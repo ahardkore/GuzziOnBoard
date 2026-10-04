@@ -46,6 +46,7 @@ The first hardware milestone should be **read-only identification and live data*
 - `index.html`, `app.js`, `styles.css` — prototype workstation UI.
 - `server.py` — dependency-free local server and simulator API.
 - `docs/ARCHITECTURE.md` — implementation boundaries and safety rules.
+- `docs/7SM_WORKFLOW.md` — 7SM identification, backup, flashing, and post-flash learning workflow based on the supplied reference.
 
 ## Safety
 

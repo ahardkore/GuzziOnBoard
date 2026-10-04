@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GuzziOnBoard — diagnostic workstation</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🏍️</text></svg>">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">GO</div>
+    <div>
+      <strong>GuzziOnBoard</strong>
+      <small id="appVersion">diagnostic workstation</small>
+    </div>
+  </div>
+
+  <nav>
+    <button class="nav active" data-view="garage"><i>▣</i> Garage</button>
+    <button class="nav" data-view="overview"><i>◉</i> Overview</button>
+    <button class="nav" data-view="live"><i>∿</i> Live data</button>
+    <button class="nav" data-view="faults"><i>⚠</i> Fault codes <b id="faultBadge" class="badge hidden">0</b></button>
+    <button class="nav" data-view="service"><i>⚙</i> Service actions</button>
+    <button class="nav" data-view="discovery"><i>🔍</i> Discovery</button>
+    <button class="nav" data-view="sessions"><i>▤</i> Sessions</button>
+    <button class="nav" data-view="report"><i>⎙</i> Report</button>
+  </nav>
+
+  <div class="sidebar-foot">
+    <div class="conn-card" id="connCard">
+      <div class="conn-dot" id="connDot"></div>
+      <div>
+        <strong id="connTitle">Not connected</strong>
+        <small id="connSub">Pick a motorcycle in the Garage</small>
+      </div>
+    </div>
+    <button class="btn block" id="disconnectBtn" disabled>Disconnect</button>
+    <p class="disclaimer">Not affiliated with Piaggio or the GuzziDiag author. ECU programming is disabled in this build.</p>
+  </div>
+</aside>
+
+<main>
+  <header class="topbar">
+    <div>
+      <h1 id="pageTitle">Garage</h1>
+      <p id="pageSub">Choose the motorcycle and the way you are talking to it.</p>
+    </div>
+    <div class="topbar-right">
+      <span class="pill" id="modePill">simulator</span>
+      <span class="pill ghost" id="ecuPill">no ECU</span>
+    </div>
+  </header>
+
+  <div id="notices"></div>
+
+  <!-- ======================================================= GARAGE -->
+  <section class="view" id="garage">
+    <div class="grid-2">
+      <article class="panel">
+        <h2>1 · Motorcycle</h2>
+        <p class="muted">Moto Guzzi changed ECUs as running changes rather than on model-year boundaries. The label on your ECU always wins over this table.</p>
+        <label class="field">
+          <span>Model</span>
+          <input list="modelList" id="modelInput" placeholder="Start typing… e.g. Griso 1200 8V" autocomplete="off">
+          <datalist id="modelList"></datalist>
+        </label>
+        <label class="field">
+          <span>Year</span>
+          <input type="number" id="yearInput" min="1990" max="2026" placeholder="2012">
+        </label>
+        <div id="resolveResult" class="resolve"></div>
+        <details class="advanced">
+          <summary>Override: pick an ECU family directly</summary>
+          <select id="ecuOverride"><option value="">— use the model lookup —</option></select>
+        </details>
+      </article>
+
+      <article class="panel">
+        <h2>2 · Connection</h2>
+        <div id="transportList" class="transports"></div>
+        <label class="field" id="deviceField" hidden>
+          <span>Device</span>
+          <input id="deviceInput" placeholder="/dev/ttyUSB0">
+        </label>
+        <label class="field">
+          <span>Session mode</span>
+          <select id="modeSelect">
+            <option value="simulator">Simulator — no hardware</option>
+            <option value="read_only">Read only — observe a real bike</option>
+            <option value="service">Service — actuator tests and adaptations</option>
+          </select>
+        </label>
+        <div class="checklist" id="checklistBox" hidden>
+          <h3>Hardware checklist</h3>
+          <ul id="checklistItems"></ul>
+          <label class="check"><input type="checkbox" id="checklistAccept"> I have checked all of the above.</label>
+        </div>
+        <button class="btn primary block" id="connectBtn" disabled>Connect</button>
+      </article>
+    </div>
+
+    <article class="panel">
+      <h2>Coverage</h2>
+      <p class="muted" id="coverageLine">Loading the capability catalog…</p>
+      <div class="table-wrap"><table class="data" id="ecuTable">
+        <thead><tr><th>ECU family</th><th>Years</th><th>Transport</th><th>Confidence</th><th>Capabilities</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <p class="muted small">Confidence drives what the workstation will let you do. <b>verified-capture</b> means the scalings came off a real bus; <b>documented</b> means a service manual or a mature open tool; <b>inferred</b> means pattern-matched from a sibling ECU and read-only here.</p>
+    </article>
+  </section>
+
+  <!-- ===================================================== OVERVIEW -->
+  <section class="view hidden" id="overview">
+    <div class="grid-2">
+      <article class="panel" id="identityPanel">
+        <h2>ECU identification</h2>
+        <p class="muted">Mandatory before any command. Read with service <code>1A 80</code>.</p>
+        <div id="identityBody" class="kv-empty">Connect and identify to populate this.</div>
+        <button class="btn" id="identifyBtn" disabled>Read identification</button>
+      </article>
+      <article class="panel">
+        <h2>Link</h2>
+        <div id="linkBody" class="kv-empty">Not connected.</div>
+      </article>
+    </div>
+    <article class="panel">
+      <h2>What this ECU supports</h2>
+      <div id="capabilityGrid" class="caps"></div>
+    </article>
+  </section>
+
+  <!-- ========================================================= LIVE -->
+  <section class="view hidden" id="live">
+    <article class="panel toolbar-panel">
+      <div class="toolbar">
+        <button class="btn primary" id="pollBtn" disabled>Start polling</button>
+        <span class="muted small" id="pollRate">idle</span>
+        <div class="spacer"></div>
+        <details class="channel-picker">
+          <summary>Channels</summary>
+          <div id="channelList"></div>
+        </details>
+      </div>
+    </article>
+    <div id="liveGrid" class="metrics"></div>
+    <article class="panel">
+      <h2>Raw provenance</h2>
+      <p class="muted small">Every decoded value keeps the bytes it came from. If a scaling is wrong, this is what you send with the bug report.</p>
+      <div class="table-wrap"><table class="data" id="rawTable">
+        <thead><tr><th>Channel</th><th>RLI</th><th>Raw</th><th>Decoded</th><th>Confidence</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </article>
+  </section>
+
+  <!-- ======================================================= FAULTS -->
+  <section class="view hidden" id="faults">
+    <article class="panel">
+      <div class="toolbar">
+        <button class="btn" id="readDtcBtn" disabled>Read fault memory</button>
+        <button class="btn danger" id="clearDtcBtn" disabled>Clear fault memory</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="dtcSummary">Not read yet.</span>
+      </div>
+      <div id="clearGate"></div>
+    </article>
+    <div id="faultList"></div>
+  </section>
+
+  <!-- ====================================================== SERVICE -->
+  <section class="view hidden" id="service">
+    <article class="panel warn-panel">
+      <h2>⚠ These actions move things on the motorcycle</h2>
+      <p>Actuator tests energise real outputs — injectors squirt fuel, coils make sparks, the fuel pump pressurises the rail. Adaptation resets discard learned values and cannot be undone. Every action below shows exactly which preconditions pass and which do not.</p>
+    </article>
+    <article class="panel">
+      <h2>Adaptations and routines</h2>
+      <div id="routineList" class="action-list"></div>
+    </article>
+    <article class="panel">
+      <h2>Actuator tests</h2>
+      <p class="muted small">IAW ECUs have no output timer: an output stays energised until something turns it off. This workstation owns the deadline and releases on expiry, on disconnect, and if the browser goes away.</p>
+      <div id="actuatorList" class="action-list"></div>
+    </article>
+  </section>
+
+  <!-- ==================================================== DISCOVERY -->
+  <section class="view hidden" id="discovery">
+    <article class="panel">
+      <h2>Local identifier discovery</h2>
+      <p class="muted">A read-only sweep of <code>21 &lt;rli&gt;</code> across a range. Safe on any bike — it only reads. This is how an unmapped ECU family gets characterised: sweep with the engine off, sweep again with it running, and whatever moved is a live channel.</p>
+      <div class="toolbar">
+        <label class="inline">Start <input type="text" id="scanStart" value="0x30" size="5"></label>
+        <label class="inline">End <input type="text" id="scanEnd" value="0x7F" size="5"></label>
+        <button class="btn primary" id="scanBtn" disabled>Run sweep</button>
+        <button class="btn" id="snapshotBtn" disabled>Keep as baseline</button>
+        <button class="btn" id="exportScanBtn" disabled>Export JSON</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="scanSummary">No sweep yet.</span>
+      </div>
+    </article>
+    <article class="panel">
+      <div class="table-wrap"><table class="data" id="scanTable">
+        <thead><tr><th>RLI</th><th>Answered</th><th>Len</th><th>Raw</th><th>Int (BE)</th><th>Δ vs baseline</th><th>Known as</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </article>
+  </section>
+
+  <!-- ===================================================== SESSIONS -->
+  <section class="view hidden" id="sessions">
+    <article class="panel">
+      <div class="toolbar">
+        <button class="btn" id="refreshSessionsBtn">Refresh</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="sessionDir"></span>
+      </div>
+    </article>
+    <div class="grid-2">
+      <article class="panel">
+        <h2>Recorded sessions</h2>
+        <div id="sessionList"></div>
+      </article>
+      <article class="panel">
+        <h2>Events</h2>
+        <div id="sessionEvents" class="log-view">Pick a session.</div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ======================================================= REPORT -->
+  <section class="view hidden" id="report">
+    <article class="panel">
+      <div class="toolbar">
+        <button class="btn primary" id="buildReportBtn">Build report</button>
+        <button class="btn" id="downloadReportBtn" disabled>Download .txt</button>
+        <button class="btn" id="downloadJsonBtn" disabled>Download .json</button>
+      </div>
+    </article>
+    <article class="panel">
+      <pre id="reportText" class="report">Build a report to capture identification, fault codes, live values and every safety decision made this session.</pre>
+    </article>
+  </section>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-card">
+    <h2 id="modalTitle">Confirm</h2>
+    <div id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="btn" id="modalCancel">Cancel</button>
+      <button class="btn danger" id="modalConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

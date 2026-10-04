@@ -1,0 +1,699 @@
+{
+  "id": "5am",
+  "family": "IAW 5AM",
+  "display_name": "Magneti Marelli IAW 5AM / 5AM2",
+  "transport": "kline",
+  "confidence": "verified-capture",
+  "years": "2005-2016",
+  "notes": "Fitted to every CARC-framed Moto Guzzi (Breva 850/1100/1200, Griso, Norge, 1200 Sport, Stelvio). Parameter scalings below were decoded from a live K-Line capture of an IAW 5AM HW610 on a Moto Guzzi. 38 of the 79 answerable identifiers are served from shared zero slots and are marked dead. PF1C and PF2C throttle bodies support the electronic TPS reset; PF3C does not and must be set manually with a voltmeter.",
+  "kline": {
+    "baud": 10400,
+    "init": "fast",
+    "address": 51,
+    "addressed": true,
+    "tester_address": 241,
+    "ecu_address": 16,
+    "inter_byte_delay": 0.005
+  },
+  "session": {
+    "access_timing": true,
+    "diagnostic_session": 129,
+    "diagnostic_session_note": "Session 0x81. The 5AM rejects 0x85 with NRC 0x22 outside the programming flow.",
+    "lazy_session": true,
+    "tester_present_interval": 2.0
+  },
+  "identification": {
+    "service": 26,
+    "option": 128,
+    "fields": [
+      {
+        "name": "Drawing",
+        "offset": 0,
+        "length": 11
+      },
+      {
+        "name": "Hardware",
+        "offset": 11,
+        "length": 11
+      },
+      {
+        "name": "Omologation",
+        "offset": 22,
+        "length": 11
+      },
+      {
+        "name": "Software",
+        "offset": 33,
+        "length": 11
+      },
+      {
+        "name": "Tester",
+        "offset": 44,
+        "length": 11
+      }
+    ]
+  },
+  "memory": {
+    "image_size": 327680,
+    "read_supported": true,
+    "write_supported": false,
+    "write_blocked_reason": "No verified seed/key, no bench-tested recovery path, and no power-loss handling. Reading is safe; writing is not enabled in this build.",
+    "approx_read_minutes": 20,
+    "security_access": true
+  },
+  "capabilities": [
+    "identify",
+    "live",
+    "dtc_read",
+    "dtc_clear",
+    "actuators",
+    "tps_reset",
+    "self_adaptation_reset",
+    "memory_read"
+  ],
+  "parameters": [
+    {
+      "key": "rpm",
+      "name": "Engine speed",
+      "local_id": 48,
+      "unit": "rpm",
+      "digits": 0,
+      "default": true,
+      "group": "engine",
+      "min": 0,
+      "max": 9000,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "air_temp",
+      "name": "Intake air temperature",
+      "local_id": 50,
+      "unit": "°C",
+      "bias": -40,
+      "digits": 0,
+      "default": true,
+      "group": "engine",
+      "min": -40,
+      "max": 120,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "coolant_temp",
+      "name": "Head/oil temperature",
+      "local_id": 51,
+      "unit": "°C",
+      "bias": -40,
+      "digits": 0,
+      "default": true,
+      "group": "engine",
+      "min": -40,
+      "max": 160,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "throttle",
+      "name": "Throttle angle",
+      "local_id": 52,
+      "unit": "°",
+      "scale": 0.1,
+      "digits": 1,
+      "default": true,
+      "group": "fuelling",
+      "min": 0,
+      "max": 95,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "advance_latched",
+      "name": "Ignition advance (latched)",
+      "local_id": 53,
+      "unit": "°",
+      "scale": 0.1,
+      "digits": 1,
+      "group": "ignition",
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "advance",
+      "name": "Ignition advance",
+      "local_id": 55,
+      "unit": "°",
+      "scale": 0.1,
+      "digits": 1,
+      "default": true,
+      "group": "ignition",
+      "min": 0,
+      "max": 50,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "injection_ms",
+      "name": "Injection time",
+      "local_id": 57,
+      "unit": "ms",
+      "scale": 0.001,
+      "digits": 2,
+      "default": true,
+      "group": "fuelling",
+      "min": 0,
+      "max": 30,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "idle_target",
+      "name": "Idle target",
+      "local_id": 58,
+      "unit": "rpm",
+      "digits": 0,
+      "group": "idle",
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "battery",
+      "name": "Battery voltage",
+      "local_id": 60,
+      "unit": "V",
+      "scale": 0.1,
+      "digits": 2,
+      "default": true,
+      "group": "electrical",
+      "min": 8,
+      "max": 16,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "lambda_f",
+      "name": "Lambda front",
+      "local_id": 69,
+      "unit": "mV",
+      "digits": 0,
+      "default": true,
+      "group": "lambda",
+      "min": 0,
+      "max": 1000,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "lambda_r",
+      "name": "Lambda rear",
+      "local_id": 70,
+      "unit": "mV",
+      "digits": 0,
+      "group": "lambda",
+      "min": 0,
+      "max": 1000,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "lambda_int_f",
+      "name": "Lambda integrator front",
+      "local_id": 71,
+      "unit": "%",
+      "scale": 0.1,
+      "signed": true,
+      "length": 2,
+      "digits": 1,
+      "default": true,
+      "group": "lambda",
+      "min": -30,
+      "max": 30,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "lambda_int_r",
+      "name": "Lambda integrator rear",
+      "local_id": 72,
+      "unit": "%",
+      "scale": 0.1,
+      "signed": true,
+      "length": 2,
+      "digits": 1,
+      "group": "lambda",
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "lambda_loop",
+      "name": "Lambda loop",
+      "local_id": 73,
+      "group": "lambda",
+      "digits": 0,
+      "states": {
+        "0": "Open loop",
+        "2": "Closed loop"
+      },
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "lambda_phase_f",
+      "name": "Lambda phase front",
+      "local_id": 75,
+      "group": "lambda",
+      "digits": 0,
+      "states": {
+        "1": "Frozen",
+        "2": "Sensor cold",
+        "3": "Open loop",
+        "4": "Open loop",
+        "5": "Closed loop, leaning",
+        "7": "Closed loop, enriching"
+      },
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dwell_f",
+      "name": "Coil charge time front",
+      "local_id": 84,
+      "unit": "raw",
+      "digits": 0,
+      "group": "ignition",
+      "confidence": "documented"
+    },
+    {
+      "key": "dwell_r",
+      "name": "Coil charge time rear",
+      "local_id": 85,
+      "unit": "raw",
+      "digits": 0,
+      "group": "ignition",
+      "confidence": "documented"
+    },
+    {
+      "key": "stop_state",
+      "name": "Stop state",
+      "local_id": 87,
+      "group": "status",
+      "digits": 0,
+      "states": {
+        "4": "Running",
+        "8": "Stopped",
+        "16": "Stop transition"
+      },
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "engine_state",
+      "name": "Engine state",
+      "local_id": 88,
+      "group": "status",
+      "digits": 0,
+      "states": {
+        "1": "Closed throttle",
+        "2": "After-start complete",
+        "4": "Engine turning"
+      },
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "throttle_closed",
+      "name": "Throttle closed",
+      "local_id": 92,
+      "group": "status",
+      "digits": 0,
+      "states": {
+        "1": "Shut",
+        "4": "Open"
+      },
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "road_speed",
+      "name": "Road speed",
+      "local_id": 83,
+      "unit": "km/h",
+      "digits": 0,
+      "default": true,
+      "group": "chassis",
+      "min": 0,
+      "max": 220,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "neutral",
+      "name": "Neutral switch",
+      "local_id": 97,
+      "group": "chassis",
+      "digits": 0,
+      "states": {
+        "0": "In gear",
+        "1": "Neutral"
+      },
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "engine_run_flag",
+      "name": "Starter / run flag",
+      "local_id": 98,
+      "group": "status",
+      "digits": 0,
+      "states": {
+        "0": "Stopped",
+        "2": "Off idle",
+        "4": "Idle"
+      },
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "stepper_base",
+      "name": "Idle stepper base",
+      "local_id": 107,
+      "unit": "steps",
+      "digits": 0,
+      "group": "idle",
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "stepper_position",
+      "name": "Idle stepper position",
+      "local_id": 108,
+      "unit": "steps",
+      "digits": 0,
+      "default": true,
+      "group": "idle",
+      "min": 0,
+      "max": 255,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "stepper_trim",
+      "name": "Idle stepper trim",
+      "local_id": 109,
+      "unit": "steps",
+      "signed": true,
+      "digits": 0,
+      "group": "idle",
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "starter",
+      "name": "Starter engaged",
+      "local_id": 117,
+      "group": "status",
+      "digits": 0,
+      "states": {
+        "0": "No",
+        "1": "Yes"
+      },
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "sidestand",
+      "name": "Side stand",
+      "local_id": 118,
+      "group": "chassis",
+      "digits": 0,
+      "states": {
+        "0": "Down",
+        "1": "Up"
+      },
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "clutch",
+      "name": "Clutch switch",
+      "local_id": 120,
+      "group": "chassis",
+      "digits": 0,
+      "states": {
+        "0": "Released",
+        "1": "Pulled"
+      },
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "kill_run",
+      "name": "Kill switch (RUN)",
+      "local_id": 122,
+      "group": "chassis",
+      "digits": 0,
+      "states": {
+        "0": "Stop",
+        "1": "Run"
+      },
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "kill_stop",
+      "name": "Kill switch (STOP)",
+      "local_id": 121,
+      "group": "chassis",
+      "digits": 0,
+      "states": {
+        "0": "Run",
+        "1": "Stop"
+      },
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "config_byte",
+      "name": "Configuration byte",
+      "local_id": 62,
+      "group": "diagnostic",
+      "digits": 0,
+      "confidence": "inferred"
+    },
+    {
+      "key": "unknown_6a",
+      "name": "Unidentified 0x6A",
+      "local_id": 106,
+      "group": "diagnostic",
+      "digits": 0,
+      "confidence": "unknown"
+    },
+    {
+      "key": "dead_31",
+      "name": "Unused 0x31",
+      "local_id": 49,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_36",
+      "name": "Unused 0x36",
+      "local_id": 54,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_38",
+      "name": "Unused 0x38",
+      "local_id": 56,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_3b",
+      "name": "Unused 0x3B",
+      "local_id": 59,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_4a",
+      "name": "Unused 0x4A",
+      "local_id": 74,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_4c",
+      "name": "Unused 0x4C",
+      "local_id": 76,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_56",
+      "name": "Unused 0x56",
+      "local_id": 86,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_63",
+      "name": "Unused 0x63",
+      "local_id": 99,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_6f",
+      "name": "Unused 0x6F",
+      "local_id": 111,
+      "dead": true,
+      "confidence": "verified-capture"
+    }
+  ],
+  "actuators": [
+    {
+      "key": "ac_relay",
+      "name": "A/C compressor relay",
+      "local_id": 1,
+      "group": "relay",
+      "confidence": "documented"
+    },
+    {
+      "key": "coil_front",
+      "name": "Ignition coil, front cylinder",
+      "local_id": 2,
+      "group": "ignition",
+      "max_pulse_s": 2.0,
+      "confidence": "verified-capture",
+      "warning": "Sparks at the plug. Keep the plug grounded and away from fuel vapour."
+    },
+    {
+      "key": "coil_rear",
+      "name": "Ignition coil, rear cylinder",
+      "local_id": 3,
+      "group": "ignition",
+      "max_pulse_s": 2.0,
+      "confidence": "verified-capture",
+      "warning": "Sparks at the plug. Keep the plug grounded and away from fuel vapour."
+    },
+    {
+      "key": "idle_stepper",
+      "name": "Idle stepper motor",
+      "local_id": 4,
+      "group": "idle",
+      "requires_engine_off": false,
+      "requires_engine_running": true,
+      "confidence": "documented",
+      "warning": "Only responds with the engine running."
+    },
+    {
+      "key": "fuel_pump",
+      "name": "Fuel pump relay",
+      "local_id": 5,
+      "group": "relay",
+      "max_pulse_s": 3.0,
+      "confidence": "verified-capture",
+      "warning": "Pressurises the fuel rail. Check for leaks first."
+    },
+    {
+      "key": "tachometer",
+      "name": "Tachometer drive",
+      "local_id": 6,
+      "group": "dash",
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "injector_front",
+      "name": "Injector, front cylinder",
+      "local_id": 8,
+      "group": "fuelling",
+      "max_pulse_s": 1.0,
+      "confidence": "verified-capture",
+      "warning": "Squirts fuel into the cylinder. Engine off, plug out, fuel pump off."
+    },
+    {
+      "key": "injector_rear",
+      "name": "Injector, rear cylinder",
+      "local_id": 9,
+      "group": "fuelling",
+      "max_pulse_s": 1.0,
+      "confidence": "verified-capture",
+      "warning": "Squirts fuel into the cylinder. Engine off, plug out, fuel pump off."
+    },
+    {
+      "key": "injector_3",
+      "name": "Injector 3 (4-cylinder images)",
+      "local_id": 10,
+      "group": "fuelling",
+      "max_pulse_s": 1.0,
+      "confidence": "documented",
+      "warning": "Squirts fuel into the cylinder. Engine off, plug out, fuel pump depressurised."
+    },
+    {
+      "key": "injector_4",
+      "name": "Injector 4 (4-cylinder images)",
+      "local_id": 11,
+      "group": "fuelling",
+      "max_pulse_s": 1.0,
+      "confidence": "documented",
+      "warning": "Squirts fuel into the cylinder. Engine off, plug out, fuel pump depressurised."
+    },
+    {
+      "key": "fan_1",
+      "name": "Cooling fan relay 1",
+      "local_id": 12,
+      "group": "relay",
+      "confidence": "documented"
+    },
+    {
+      "key": "fan_2",
+      "name": "Cooling fan relay 2",
+      "local_id": 13,
+      "group": "relay",
+      "confidence": "documented"
+    },
+    {
+      "key": "o2_heater_1",
+      "name": "Lambda heater 1",
+      "local_id": 14,
+      "group": "lambda",
+      "confidence": "documented"
+    },
+    {
+      "key": "o2_heater_2",
+      "name": "Lambda heater 2",
+      "local_id": 15,
+      "group": "lambda",
+      "confidence": "documented"
+    },
+    {
+      "key": "canister",
+      "name": "Canister purge valve",
+      "local_id": 16,
+      "group": "emissions",
+      "confidence": "documented"
+    },
+    {
+      "key": "warning_lamp",
+      "name": "Warning lamp",
+      "local_id": 17,
+      "group": "dash",
+      "confidence": "documented"
+    },
+    {
+      "key": "temp_lamp",
+      "name": "Temperature lamp",
+      "local_id": 18,
+      "group": "dash",
+      "confidence": "documented"
+    }
+  ],
+  "routines": [
+    {
+      "key": "tps_reset",
+      "name": "Throttle position reset",
+      "service": 49,
+      "local_id": 33,
+      "expect": 113,
+      "description": "Teaches the ECU the closed-throttle position. Ignition on, engine off. Only for PF1C and PF2C throttle bodies.",
+      "requires_engine_off": true,
+      "follow_up": "Verify the throttle reads the model's target angle, then re-check idle. On a PF3C body set the TPS manually with a voltmeter instead.",
+      "reversible": false,
+      "confidence": "verified-capture",
+      "warning": "Never run this on a non-linear PF3C throttle body."
+    },
+    {
+      "key": "self_adaptation_reset",
+      "name": "Self-adaptation reset",
+      "service": 48,
+      "local_id": 126,
+      "params": [
+        4
+      ],
+      "expect": 112,
+      "description": "Clears the learned fuelling and idle trims. Ignition on, engine off.",
+      "requires_engine_off": true,
+      "follow_up": "Ride or idle the bike through a full warm-up so the ECU relearns.",
+      "reversible": false,
+      "confidence": "verified-capture"
+    }
+  ],
+  "sources": [
+    "Live K-Line capture of an IAW 5AM HW610 on a Moto Guzzi (Vasiy/onboard-logger docs/PROTOCOL.md)",
+    "GuzziDiag / IAWDiag changelogs (von-der-salierburg.de) for parameter corrections and the actuator map",
+    "ISO 14230-2 and ISO 14230-3"
+  ]
+}

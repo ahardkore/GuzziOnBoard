@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "guzzionboard"
+version = "0.2.0"
+description = "A safety-first diagnostic workstation for Moto Guzzi motorcycles"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = []
+
+[project.optional-dependencies]
+hardware = ["pyserial>=3.5", "python-can>=4.2"]
+dev = ["pytest>=7.4"]
+
+[project.scripts]
+guzzionboard = "guzzionboard.server:serve"
+
+[tool.setuptools]
+packages = ["guzzionboard", "guzzionboard.protocol", "guzzionboard.transports", "guzzionboard.catalog"]
+
+[tool.setuptools.package-data]
+"guzzionboard.catalog" = ["*.json", "ecus/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

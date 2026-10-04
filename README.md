@@ -168,6 +168,9 @@ change.
 - `docs/PROGRAMMING.md` — reading, backing up and writing ECU memory: the
   verified 5AM sequence, image validation, the SecurityAccess gap and how to
   supply a key provider, and the recovery model.
+- `docs/PRIOR_ART.md` — the other diagnostic programs worth studying, and
+  which one closes each open gap (key algorithm, CAN IDs, per-family
+  identifiers, transport validation).
 - `docs/USER_WORKFLOWS.md` — guided connect, live-data, TPS and actuator flows.
 - `docs/7SM_WORKFLOW.md` — ride-by-wire identification and learning workflow.
 

@@ -110,6 +110,12 @@ A wrong key is cheap once and expensive repeatedly: most ECUs lock the
 security gate after a few failures, some with a timed penalty. So the tool
 will not spray guesses at your ECU.
 
+> **Update (see `docs/PRIOR_ART.md` §1.1):** the `5am_util` *source* (not just
+> its transcript) contains the working 5AM key algorithm. A Python port there
+> reproduces both published pairs exactly. It is not yet wired into
+> `security.py`; until it is bench-confirmed on a Guzzi-fit 5AM it stays
+> `documented`, not `verified`.
+
 ### Supplying a key provider
 
 If you have legitimately obtained the algorithm for your own ECU, drop a file

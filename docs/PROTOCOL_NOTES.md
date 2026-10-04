@@ -270,6 +270,10 @@ machine — USB timing jitter has bricked ECUs.
 
 ## Sources
 
+- Prior-art survey of diagnostic programs and what each one closes —
+  [docs/PRIOR_ART.md](PRIOR_ART.md), including the 5am_util source analysis
+  (working 5AM SecurityAccess algorithm, full write sequence, firmware
+  encoder).
 - Live K-Line capture and decode of an IAW 5AM HW610 on a Moto Guzzi —
   [Vasiy/onboard-logger `docs/PROTOCOL.md`](https://github.com/Vasiy/onboard-logger)
 - GuzziDiag / IAWDiag changelogs and ECU list —

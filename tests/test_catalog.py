@@ -85,12 +85,41 @@ def test_every_family_declares_its_sources(catalog):
         assert profile.notes
 
 
-def test_no_family_enables_memory_writing(catalog):
-    """The project's core safety promise, asserted rather than documented."""
+def test_memory_writing_is_only_claimed_where_the_protocol_is_verified(catalog):
+    """Writing is no longer blocked by policy - it is gated on evidence.
+
+    A family may declare ``write_supported`` only once its programming block
+    is marked ``verified-*``. Anything less and it must carry a reason saying
+    what is missing, so the refusal is actionable rather than dogmatic.
+    """
     for profile in catalog.ecus.values():
-        assert profile.memory.get("write_supported") is not True
-        if not profile.memory.get("write_supported"):
-            assert profile.memory.get("write_blocked_reason")
+        memory = profile.memory or {}
+        confidence = memory.get("programming", {}).get("confidence", "")
+        if memory.get("write_supported"):
+            assert confidence.startswith("verified"), (
+                f"{profile.id} claims write support on a "
+                f"{confidence or 'missing'} programming definition"
+            )
+            assert "memory_write" in profile.capabilities
+        else:
+            assert memory.get("write_blocked_reason"), (
+                f"{profile.id} refuses writes without saying why"
+            )
+            assert "memory_write" not in profile.capabilities
+
+
+def test_readable_families_declare_region_geometry_or_refuse(catalog):
+    """A read path must either know its geometry or admit that it does not."""
+    for profile in catalog.ecus.values():
+        memory = profile.memory or {}
+        if not memory.get("read_supported"):
+            continue
+        assert memory.get("programming", {}).get("protocol"), profile.id
+        for name, region in memory.get("regions", {}).items():
+            if not region.get("size"):
+                assert region.get("note"), (
+                    f"{profile.id}:{name} has no size and no explanation"
+                )
 
 
 def test_5am_scalings_match_the_verified_capture(catalog):

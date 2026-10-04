@@ -135,11 +135,25 @@ class SimulatedEcu:
         )
         self.communication_open = False
         self.session_started = False
+        self.programming_mode = False
+        self.baud_switched = False
         self.active_outputs: dict[int, float] = {}
         self.routine_log: list[tuple[float, int, int]] = []
         self.cleared_at: float | None = None
         self.security_unlocked = False
         self._pending_remaining = 0
+        self._last_seed = b""
+        #: Simulator-only key routine. None means "accept any key", which is
+        #: how the programming path is exercised without pretending to know
+        #: the real proprietary algorithm.
+        self.key_algorithm = None
+        #: Sparse overlay of bytes written by a programming session.
+        self.written: dict[int, int] = {}
+        self.erased = False
+        self.programmed = False
+        #: Set a byte offset here to corrupt one byte of every write, which
+        #: is how the read-back verification failure path is tested.
+        self.corrupt_write_at: int | None = None
 
         # -- fault injection, for exercising the error paths --------------
         self.drop_rate = 0.0        # fraction of requests that get no answer
@@ -238,15 +252,7 @@ class SimulatedEcu:
                 return self._nrc(service, NRC.SERVICE_NOT_SUPPORTED)
             return bytes([0xC3, payload[1] if len(payload) > 1 else 0x03])
         if service == Service.START_DIAGNOSTIC_SESSION:
-            wanted = payload[1] if len(payload) > 1 else 0x81
-            allowed = self.profile.session.get("diagnostic_session", 0x81)
-            if allowed is None:
-                return self._nrc(service, NRC.SERVICE_NOT_SUPPORTED)
-            if wanted != allowed:
-                # Real 5AM behaviour: 0x85 is refused outside programming.
-                return self._nrc(service, NRC.CONDITIONS_NOT_CORRECT)
-            self.session_started = True
-            return bytes([0x50, wanted])
+            return self._start_session(payload)
         if service == Service.STOP_DIAGNOSTIC_SESSION:
             self.session_started = False
             return bytes([0x60])
@@ -275,8 +281,51 @@ class SimulatedEcu:
             return self._security(payload)
         if service == Service.READ_MEMORY_BY_ADDRESS:
             return self._read_memory(payload)
+        if service == Service.TRANSFER_DATA:
+            return self._transfer_data(payload)
+        if service == Service.REQUEST_DOWNLOAD:
+            return self._request_download(payload)
+        if service == Service.REQUEST_TRANSFER_EXIT:
+            self.programmed = True
+            return bytes([0x77])
 
         return self._nrc(service, NRC.SERVICE_NOT_SUPPORTED)
+
+    def _start_session(self, payload: bytes) -> bytes:
+        """Session rules as observed on a real IAW 5AM.
+
+        ``10 85`` (programming) is accepted immediately after
+        StartCommunication, which is what the 5am_util flashing transcript
+        does. Once the ordinary ``10 81`` diagnostic session is running, the
+        same request is refused with conditionsNotCorrect - which is what the
+        live-data tooling sees. Both behaviours are real; the difference is
+        the state the ECU is already in.
+        """
+        service = payload[0]
+        wanted = payload[1] if len(payload) > 1 else 0x81
+        diagnostic = self.profile.session.get("diagnostic_session", 0x81)
+        programming = (self.profile.memory or {}).get("programming", {})
+        prog_session = programming.get("session")
+        baud = programming.get("baud_switch", {}).get("session")
+
+        if prog_session is not None and wanted == prog_session:
+            if self.session_started:
+                return self._nrc(service, NRC.CONDITIONS_NOT_CORRECT)
+            self.programming_mode = True
+            return bytes([0x50, wanted])
+
+        if baud is not None and wanted == baud:
+            if not self.programming_mode:
+                return self._nrc(service, NRC.CONDITIONS_NOT_CORRECT)
+            self.baud_switched = True
+            return bytes([0x50, wanted])
+
+        if diagnostic is None:
+            return self._nrc(service, NRC.SERVICE_NOT_SUPPORTED)
+        if wanted != diagnostic:
+            return self._nrc(service, NRC.CONDITIONS_NOT_CORRECT)
+        self.session_started = True
+        return bytes([0x50, wanted])
 
     @staticmethod
     def _nrc(service: int, code: int) -> bytes:
@@ -369,9 +418,77 @@ class SimulatedEcu:
     def _security(self, payload: bytes) -> bytes:
         level = payload[1] if len(payload) > 1 else 0x01
         if level % 2 == 1:
-            return bytes([0x67, level, 0x12, 0x34])
+            # Seeds on the IAW 5AM are a 16-bit value X followed by X+1.
+            x = 0x2788
+            self._last_seed = x.to_bytes(2, "big") + (x + 1).to_bytes(2, "big")
+            return bytes([0x67, level]) + self._last_seed
+        if self.key_algorithm is not None:
+            expected = self.key_algorithm(self._last_seed)
+            if bytes(payload[2:]) != bytes(expected):
+                return self._nrc(payload[0], NRC.INVALID_KEY)
         self.security_unlocked = True
         return bytes([0x67, level])
+
+    # -- programming ------------------------------------------------------
+    def _request_download(self, payload: bytes) -> bytes:
+        spec = (self.profile.memory or {}).get("programming", {})
+        if spec.get("security", {}).get("required") and not self.security_unlocked:
+            return self._nrc(payload[0], NRC.SECURITY_ACCESS_DENIED)
+        self.erased = True
+        self.written.clear()
+        return bytes([0x74, 0x00, 0x80])
+
+    def _flash_byte(self, address: int) -> int:
+        """Deterministic pseudo-image with a plausible IAW vector table.
+
+        Anything written during a programming session shadows it, so a write
+        followed by a read-back behaves the way real flash does.
+        """
+        if address in self.written:
+            return self.written[address]
+        region = (self.profile.memory or {}).get("regions", {}).get("flash", {})
+        start = int(region.get("start", 0))
+        offset = address - start
+        if 0 <= offset < 64:                 # FA 00 xx 40 vector entries
+            return (0xFA, 0x00, (offset // 4) * 4, 0x40)[offset % 4]
+        return (address * 31 + 7) & 0xFF
+
+    def _transfer_data(self, payload: bytes) -> bytes:
+        spec = (self.profile.memory or {}).get("programming", {})
+        if spec.get("protocol") != "iaw_transfer":
+            return self._nrc(payload[0], NRC.SERVICE_NOT_SUPPORTED)
+        if spec.get("security", {}).get("required") and not self.security_unlocked:
+            return self._nrc(payload[0], NRC.SECURITY_ACCESS_DENIED)
+        if len(payload) < 2:
+            return self._nrc(payload[0], NRC.REQUEST_OUT_OF_RANGE)
+
+        subfn = payload[1]
+        if subfn == (spec.get("read", {}).get("setup") or [None])[0]:
+            return bytes([0x76, subfn, 0x02])
+        write_subfn = spec.get("write", {}).get("block_subfn")
+        if write_subfn is not None and subfn == write_subfn:
+            if not self.erased:
+                return self._nrc(payload[0], NRC.CONDITIONS_NOT_CORRECT)
+            if len(payload) < 6:
+                return self._nrc(payload[0], NRC.REQUEST_OUT_OF_RANGE)
+            address = (payload[2] << 16) | (payload[3] << 8) | payload[4]
+            length = payload[5]
+            data = payload[6 : 6 + length]
+            for offset, byte in enumerate(data):
+                if self.corrupt_write_at == address + offset:
+                    byte ^= 0xFF
+                self.written[address + offset] = byte
+            return bytes([0x76, subfn, length])
+
+        if subfn == spec.get("read", {}).get("block_subfn", 0x21):
+            if len(payload) < 6:
+                return self._nrc(payload[0], NRC.REQUEST_OUT_OF_RANGE)
+            address = (payload[2] << 16) | (payload[3] << 8) | payload[4]
+            length = payload[5] or 0x20
+            data = bytes(self._flash_byte(address + i) for i in range(length))
+            return (bytes([0x76, subfn, (address >> 8) & 0xFF, address & 0xFF])
+                    + length.to_bytes(2, "big") + data)
+        return self._nrc(payload[0], NRC.SUB_FUNCTION_NOT_SUPPORTED)
 
     def _read_memory(self, payload: bytes) -> bytes:
         if not self.profile.memory.get("read_supported"):

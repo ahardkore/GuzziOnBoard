@@ -7,14 +7,21 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import threading
+import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from . import adapter as adapter_mod
+from . import tools
 from .catalog import CatalogError
 from .diagnostics import NotConnected
+from .firmware import FirmwareImage, FirmwareError
+from .programming import ProgrammingError, ProgrammingService
 from .safety import SafetyViolation
+from .security import SecurityUnavailable, describe_all, load_plugins
 from .sessionlog import SessionLog
 from .transports.base import TransportError, TransportUnavailable
 from .workstation import Workstation
@@ -30,11 +37,62 @@ CONTENT_TYPES = {
 }
 
 
+class JobRunner:
+    """One long-running memory operation at a time, with live progress.
+
+    Reading an ECU takes twenty to thirty minutes, so these cannot run inside
+    a request. Exactly one job may be in flight: concurrent flash operations
+    on one ECU are never something the user meant.
+    """
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._thread: threading.Thread | None = None
+        self._state: dict = {"name": None, "state": "idle"}
+
+    def start(self, name: str, fn) -> dict:
+        with self._lock:
+            if self._thread and self._thread.is_alive():
+                raise ProgrammingError(
+                    f"{self._state['name']} is still running; wait for it to "
+                    "finish or disconnect"
+                )
+            self._state = {
+                "name": name, "state": "running", "started": time.time(),
+                "progress": None, "result": None, "error": None,
+            }
+
+        def report(progress):
+            self._state["progress"] = progress.as_dict()
+
+        def target():
+            try:
+                result = fn(report)
+                self._state["result"] = result
+                self._state["state"] = "done"
+            except BaseException as exc:
+                self._state["error"] = f"{type(exc).__name__}: {exc}"
+                self._state["state"] = "failed"
+            finally:
+                self._state["finished"] = time.time()
+
+        self._thread = threading.Thread(target=target, daemon=True, name=name)
+        self._thread.start()
+        return self.status()
+
+    def status(self) -> dict:
+        state = dict(self._state)
+        state["running"] = bool(self._thread and self._thread.is_alive())
+        return state
+
+
 class Api:
     """Route table. Each handler returns ``(status, payload)``."""
 
     def __init__(self, workstation: Workstation):
         self.ws = workstation
+        self._prog: ProgrammingService | None = None
+        self.jobs = JobRunner()
 
     # -- catalog ----------------------------------------------------------
     def get_catalog(self, query: dict) -> tuple[int, dict]:
@@ -174,6 +232,137 @@ class Api:
         report = self.ws.build_report()
         return 200, {"report": report, "text": self.ws.report_text(report)}
 
+    # -- memory and programming ------------------------------------------
+    def _programming(self) -> ProgrammingService:
+        if self._prog is None or self._prog.diag is not self.ws.require_service():
+            self._prog = ProgrammingService(self.ws.require_service())
+        return self._prog
+
+    def get_memory(self, query: dict) -> tuple[int, dict]:
+        prog = self._programming()
+        return 200, {
+            "capabilities": prog.capabilities(),
+            "job": self.jobs.status(),
+            "checkpoints": {
+                name: prog.pending_checkpoint(name)
+                for name in prog.regions()
+            },
+            "acknowledgement": self.ws.gate.PROGRAMMING_ACKNOWLEDGEMENT,
+            "programming_enabled": self.ws.gate.allow_programming,
+        }
+
+    def get_memory_progress(self, query: dict) -> tuple[int, dict]:
+        return 200, self.jobs.status()
+
+    def post_memory_backup(self, body: dict) -> tuple[int, dict]:
+        prog = self._programming()
+        region = body.get("region", "flash")
+
+        def run(report):
+            return prog.backup(region, progress=report)
+
+        return 202, self.jobs.start(f"backup:{region}", run)
+
+    def post_memory_read(self, body: dict) -> tuple[int, dict]:
+        prog = self._programming()
+        region = body.get("region", "flash")
+
+        def run(report):
+            image = prog.read_region(region, progress=report)
+            path = image.save(prog.image_dir / f"{prog.profile.id}-{region}-read.bin")
+            return {"path": str(path), "describe": image.describe()}
+
+        return 202, self.jobs.start(f"read:{region}", run)
+
+    def post_memory_validate(self, body: dict) -> tuple[int, dict]:
+        prog = self._programming()
+        path = body.get("path")
+        if not path:
+            return 400, {"error": "a 'path' to an image file is required"}
+        try:
+            image = FirmwareImage.from_file(path)
+        except OSError as exc:
+            return 400, {"error": str(exc)}
+        return 200, prog.validate(image, body.get("region", "flash"))
+
+    def post_memory_write(self, body: dict) -> tuple[int, dict]:
+        prog = self._programming()
+        region = body.get("region", "flash")
+        path, token = body.get("path"), body.get("token")
+        if not path or not token:
+            return 400, {"error": "'path' and 'token' are both required"}
+        image = FirmwareImage.from_file(path)
+
+        def run(report):
+            return prog.write_region(image, token, region, progress=report)
+
+        return 202, self.jobs.start(f"write:{region}", run)
+
+    def post_memory_check_write(self, body: dict) -> tuple[int, dict]:
+        decision = self._programming().check_write(body.get("region", "flash"))
+        return 200, decision.as_dict()
+
+    def post_programming_enable(self, body: dict) -> tuple[int, dict]:
+        self.ws.gate.enable_programming(body.get("acknowledgement", ""))
+        return 200, {"programming_enabled": True}
+
+    def post_programming_disable(self, body: dict) -> tuple[int, dict]:
+        self.ws.gate.disable_programming()
+        return 200, {"programming_enabled": False}
+
+    def get_security(self, query: dict) -> tuple[int, dict]:
+        load_plugins()
+        return 200, {
+            "providers": describe_all(),
+            "plugin_dir": str(__import__("guzzionboard.security",
+                                         fromlist=["PLUGIN_DIR"]).PLUGIN_DIR),
+        }
+
+    # -- adapter and tools ------------------------------------------------
+    def get_adapter(self, query: dict) -> tuple[int, dict]:
+        port = (query.get("port") or [""])[0]
+        loopback = (query.get("loopback") or ["0"])[0] == "1"
+        report = adapter_mod.check_adapter(port, loopback=loopback)
+        return 200, {
+            "report": report.as_dict(),
+            "text": report.text(),
+            "ports": adapter_mod.list_ports(),
+        }
+
+    def post_adapter_latency(self, body: dict) -> tuple[int, dict]:
+        port = body.get("port", "")
+        ok = adapter_mod.set_latency_timer(port, int(body.get("value", 1)))
+        return 200, {
+            "ok": ok,
+            "latency_ms": adapter_mod.read_latency_timer(port),
+            "instructions": "" if ok else adapter_mod.latency_fix_instructions(port),
+        }
+
+    def get_gearing(self, query: dict) -> tuple[int, dict]:
+        def number(name, default):
+            try:
+                return float((query.get(name) or [default])[0])
+            except (TypeError, ValueError):
+                return default
+
+        gearing = tools.Gearing(
+            final_drive=number("final_drive", 4.125),
+            tyre=(query.get("tyre") or ["180/55-17"])[0],
+        )
+        return 200, gearing.table()
+
+    def get_export(self, query: dict) -> tuple[int, dict]:
+        name = (query.get("name") or [""])[0]
+        fmt = (query.get("format") or ["csv"])[0]
+        if fmt not in tools.EXPORTERS:
+            return 400, {"error": f"unknown format {fmt!r}"}
+        path = Path(self.ws.session_dir) / name
+        if not name or not path.is_file() or path.parent != Path(self.ws.session_dir):
+            return 404, {"error": "no such session"}
+        events = list(SessionLog.read(path))
+        return 200, {"format": fmt, "name": name,
+                     "content": tools.EXPORTERS[fmt](events)}
+
 
 ROUTES_GET = {
     "/api/catalog": "get_catalog",
@@ -188,6 +377,12 @@ ROUTES_GET = {
     "/api/sessions": "get_sessions",
     "/api/sessions/events": "get_session_events",
     "/api/report": "get_report",
+    "/api/memory": "get_memory",
+    "/api/memory/progress": "get_memory_progress",
+    "/api/security": "get_security",
+    "/api/adapter": "get_adapter",
+    "/api/tools/gearing": "get_gearing",
+    "/api/sessions/export": "get_export",
 }
 
 ROUTES_POST = {
@@ -200,6 +395,14 @@ ROUTES_POST = {
     "/api/actuators/release": "post_actuator_release",
     "/api/routines/run": "post_routine_run",
     "/api/discover": "post_discover",
+    "/api/memory/backup": "post_memory_backup",
+    "/api/memory/read": "post_memory_read",
+    "/api/memory/validate": "post_memory_validate",
+    "/api/memory/write": "post_memory_write",
+    "/api/memory/check-write": "post_memory_check_write",
+    "/api/programming/enable": "post_programming_enable",
+    "/api/programming/disable": "post_programming_disable",
+    "/api/adapter/latency": "post_adapter_latency",
 }
 
 
@@ -251,6 +454,12 @@ def make_handler(workstation: Workstation):
                 status, payload = 501, {"error": str(exc), "code": "no_driver"}
             except TransportError as exc:
                 status, payload = 502, {"error": str(exc), "code": "transport"}
+            except SecurityUnavailable as exc:
+                status, payload = 501, {"error": str(exc), "code": "no_key_provider"}
+            except (ProgrammingError, FirmwareError) as exc:
+                status, payload = 409, {"error": str(exc), "code": "programming"}
+            except PermissionError as exc:
+                status, payload = 403, {"error": str(exc), "code": "token"}
             except Exception as exc:  # pragma: no cover - last resort
                 traceback.print_exc()
                 status, payload = 500, {"error": str(exc), "code": "internal"}

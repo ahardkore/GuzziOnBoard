@@ -24,6 +24,7 @@
     <button class="nav" data-view="live"><i>∿</i> Live data</button>
     <button class="nav" data-view="faults"><i>⚠</i> Fault codes <b id="faultBadge" class="badge hidden">0</b></button>
     <button class="nav" data-view="service"><i>⚙</i> Service actions</button>
+    <button class="nav" data-view="firmware"><i>▥</i> ECU memory</button>
     <button class="nav" data-view="discovery"><i>🔍</i> Discovery</button>
     <button class="nav" data-view="sessions"><i>▤</i> Sessions</button>
     <button class="nav" data-view="report"><i>⎙</i> Report</button>
@@ -208,6 +209,74 @@
         <thead><tr><th>RLI</th><th>Answered</th><th>Len</th><th>Raw</th><th>Int (BE)</th><th>Δ vs baseline</th><th>Known as</th></tr></thead>
         <tbody></tbody>
       </table></div>
+    </article>
+  </section>
+
+  <!-- ===================================================== FIRMWARE -->
+  <section class="view hidden" id="firmware">
+    <article class="panel">
+      <h2>ECU memory</h2>
+      <p class="muted">Reading an ECU image is slow but safe. Writing one is neither. Everything here is ordered the way it has to happen: check the adapter, read a backup, verify it, validate the new image, and only then write.</p>
+      <div id="memCaps" class="kv">Connect to an ECU first.</div>
+    </article>
+
+    <article class="panel">
+      <h2>1 &middot; Adapter pre-flight</h2>
+      <p class="muted small">A 16&nbsp;ms FTDI latency timer is the usual reason a 20&nbsp;minute read takes hours. GuzziDiag calls 1&nbsp;ms essential.</p>
+      <div class="toolbar">
+        <label class="inline">Port <input type="text" id="adapterPort" placeholder="/dev/ttyUSB0" size="16"></label>
+        <button class="btn" id="adapterBtn">Check adapter</button>
+        <button class="btn" id="latencyBtn">Set latency to 1 ms</button>
+      </div>
+      <pre class="log-view" id="adapterOut">Not checked.</pre>
+    </article>
+
+    <article class="panel">
+      <h2>2 &middot; Backup</h2>
+      <p class="muted small">A backup is read twice and only kept if both reads agree byte for byte. One read over a noisy K-Line is not a backup.</p>
+      <div class="toolbar">
+        <label class="inline">Region
+          <select id="memRegion"></select>
+        </label>
+        <button class="btn primary" id="backupBtn" disabled>Read &amp; verify backup</button>
+        <button class="btn" id="readBtn" disabled>Single read</button>
+      </div>
+      <div id="memProgress" class="hidden">
+        <div class="progress"><div class="progress-bar" id="memBar"></div></div>
+        <span class="muted small" id="memProgressText"></span>
+      </div>
+      <div id="memResult"></div>
+    </article>
+
+    <article class="panel">
+      <h2>3 &middot; Validate an image</h2>
+      <p class="muted small">Size, vector table, entropy and hardware family are checked before a single byte is sent. Flashing an HW1xx image into an HW3xx ECU bricks it.</p>
+      <div class="toolbar">
+        <label class="inline">Image path <input type="text" id="imagePath" placeholder="~/.guzzionboard/images/....bin" size="44"></label>
+        <button class="btn" id="validateBtn" disabled>Validate</button>
+      </div>
+      <div id="validateOut"></div>
+    </article>
+
+    <article class="panel danger-zone">
+      <h2>4 &middot; Write</h2>
+      <p class="muted small">Writing is an opt-in, not a hidden feature. It stays refused until every precondition below is green.</p>
+      <div class="toolbar">
+        <input type="text" id="ackInput" placeholder="type the acknowledgement" size="46">
+        <button class="btn" id="enableProgBtn">Enable programming</button>
+        <button class="btn" id="disableProgBtn">Disable</button>
+      </div>
+      <div id="writeGate"></div>
+      <div class="toolbar">
+        <button class="btn danger" id="writeBtn" disabled>Write image to ECU</button>
+      </div>
+      <div id="checkpointOut"></div>
+    </article>
+
+    <article class="panel">
+      <h2>SecurityAccess key providers</h2>
+      <p class="muted small">No verified key algorithm ships with this project for any Guzzi ECU. Drop one into the plugin directory if you have it.</p>
+      <div id="securityOut"></div>
     </article>
   </section>
 

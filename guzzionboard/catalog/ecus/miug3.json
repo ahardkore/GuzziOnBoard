@@ -56,15 +56,48 @@
     "image_size": null,
     "read_supported": true,
     "write_supported": false,
-    "write_blocked_reason": "Handled by IAWMIUG3Writer; no verified fixtures in this project.",
-    "security_access": true
+    "write_blocked_reason": "Handled by IAWMIUG3Reader/Writer; no verified fixtures in this project.",
+    "security_access": true,
+    "regions": {
+      "flash": {
+        "start": 0,
+        "size": 0,
+        "block": 64,
+        "writable": false,
+        "expect_vector_table": true,
+        "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
+      },
+      "eeprom": {
+        "start": 0,
+        "size": 0,
+        "block": 32,
+        "writable": false,
+        "note": "TPS zero, CO trim, fault memory. Geometry not captured."
+      }
+    },
+    "programming": {
+      "protocol": "iaw_transfer",
+      "confidence": "inferred",
+      "session": 133,
+      "security": {
+        "required": true,
+        "level": 1,
+        "seed_bytes": 4
+      },
+      "read": {
+        "block_subfn": 33
+      },
+      "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
+    }
   },
   "capabilities": [
+    "discover",
+    "dtc_clear",
+    "dtc_read",
+    "eeprom_read",
     "identify",
     "live",
-    "dtc_read",
-    "dtc_clear",
-    "discover",
+    "memory_read",
     "throttle_learning"
   ],
   "routines": [

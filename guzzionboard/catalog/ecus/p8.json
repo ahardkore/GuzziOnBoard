@@ -56,13 +56,14 @@
     "image_size": null,
     "read_supported": false,
     "write_supported": false,
-    "write_blocked_reason": "EPROM-era ECU; images are read with a programmer, not over K-Line.",
-    "security_access": false
+    "write_blocked_reason": "No reader or writer exists for this family anywhere in the GuzziDiag toolchain, and no memory-access sequence has been captured. These are early-1990s ECUs whose maps generally live in a socketed EPROM, so the practical route is to pull the chip and use an EPROM programmer.",
+    "security_access": false,
+    "regions": {}
   },
   "capabilities": [
-    "identify",
+    "discover",
     "dtc_read",
-    "discover"
+    "identify"
   ],
   "sources": [
     "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",

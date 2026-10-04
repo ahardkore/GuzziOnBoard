@@ -35,12 +35,31 @@ def test_simulator_validates_the_checksum_of_what_it_receives(profile):
         conn.write(bytes(bad))
 
 
-def test_simulator_rejects_a_session_the_real_ecu_rejects(profile):
-    """The 5AM answers NRC 0x22 to StartDiagnosticSession 0x85."""
+def test_programming_session_is_refused_once_diagnostics_are_running(profile):
+    """Both observed 5AM behaviours, and the state that distinguishes them.
+
+    The flashing tools open ``10 85`` straight after StartCommunication and it
+    is accepted. The live-data tools, already inside a ``10 81`` session, get
+    NRC 0x22 for the same request.
+    """
     ecu = SimulatedEcu(profile)
+    assert ecu.handle(bytes([0x10, 0x85]))[0] == 0x50
+
+    ecu = SimulatedEcu(profile)
+    assert ecu.handle(bytes([0x10, 0x81]))[0] == 0x50
     response = ecu.handle(bytes([0x10, 0x85]))
     assert response[0] == 0x7F and response[2] == 0x22
-    assert ecu.handle(bytes([0x10, 0x81]))[0] == 0x50
+
+
+def test_baud_switch_requires_the_programming_session_first(profile):
+    ecu = SimulatedEcu(profile)
+    refused = ecu.handle(bytes([0x10, 0x0C, 0x0C, 0x09]))
+    assert refused[0] == 0x7F and refused[2] == 0x22
+
+    ecu = SimulatedEcu(profile)
+    ecu.handle(bytes([0x10, 0x85]))
+    assert ecu.handle(bytes([0x10, 0x0C, 0x0C, 0x09]))[0] == 0x50
+    assert ecu.baud_switched
 
 
 def test_simulator_rejects_an_unknown_service(profile):

@@ -712,3 +712,238 @@ window.addEventListener('beforeunload', () => {
     toast(`Could not reach the local server: ${err.message}`, 'bad');
   }
 })();
+
+/* --------------------------------------------------------------- firmware */
+/* ECU memory: adapter pre-flight, backup, validation and the write opt-in.
+ * Reads take twenty minutes or more, so they run as a server-side job and
+ * this view polls for progress rather than holding a request open. */
+
+const fw = { caps: null, job: null, timer: null, lastImage: null };
+
+function renderMemoryCapabilities(data) {
+  fw.caps = data;
+  const c = data.capabilities;
+  const yesno = (v) => (v ? '<b class="ok">yes</b>' : '<b class="bad">no</b>');
+  const rows = [
+    ['ECU', `${esc(c.family)} <span class="muted">(${esc(c.ecu)})</span>`],
+    ['Protocol', `<code>${esc(c.protocol)}</code>`],
+    ['Read supported', yesno(c.read_supported)],
+    ['Write supported', yesno(c.write_supported)],
+    ['SecurityAccess', c.security_required
+      ? (c.security_available
+        ? '<b class="ok">required, provider available</b>'
+        : '<b class="bad">required, no key provider</b>')
+      : 'not required'],
+  ];
+  if (c.estimated_read_minutes) {
+    rows.push(['Estimated read', `about ${c.estimated_read_minutes} minutes`]);
+  }
+  if (c.write_blocked_reason) rows.push(['Why not writable', esc(c.write_blocked_reason)]);
+  if (c.hardware_note) rows.push(['Hardware notes', esc(c.hardware_note)]);
+
+  $('#memCaps').innerHTML = rows
+    .map(([k, v], i) => `<div${i >= 5 ? ' class="full"' : ''}>`
+      + `<span>${k}</span><b>${v}</b></div>`)
+    .join('');
+
+  const select = $('#memRegion');
+  select.innerHTML = Object.entries(c.regions).map(([name, r]) => {
+    const size = r.size ? `${(r.size / 1024).toFixed(0)} KiB` : 'geometry unknown';
+    return `<option value="${esc(name)}">${esc(name)} — ${size}</option>`;
+  }).join('');
+
+  const canRead = c.read_supported;
+  $('#backupBtn').disabled = !canRead;
+  $('#readBtn').disabled = !canRead;
+  $('#validateBtn').disabled = false;
+
+  // An interrupted write is the single most important thing to surface.
+  const pending = Object.entries(data.checkpoints || {})
+    .filter(([, v]) => v).map(([region, v]) => `
+      <div class="gate-card bad">
+        <h4>Unfinished write on ${esc(region)} — phase “${esc(v.phase)}”</h4>
+        <ul>${(v.recovery || []).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+        ${v.backup ? `<p class="small">Backup: <code>${esc(v.backup)}</code></p>` : ''}
+      </div>`);
+  $('#checkpointOut').innerHTML = pending.join('');
+
+  $('#ackInput').placeholder = data.acknowledgement || '';
+  renderWriteGate();
+}
+
+function renderMemoryProgress(job) {
+  fw.job = job;
+  const box = $('#memProgress');
+  const running = job && job.running;
+  box.classList.toggle('hidden', !running && job?.state !== 'running');
+
+  if (job?.progress) {
+    const p = job.progress;
+    $('#memBar').style.width = `${(p.fraction * 100).toFixed(1)}%`;
+    const eta = p.eta_s > 60
+      ? `${Math.round(p.eta_s / 60)} min left`
+      : `${Math.round(p.eta_s)} s left`;
+    $('#memProgressText').textContent =
+      `${p.phase}: ${p.done.toLocaleString()} / ${p.total.toLocaleString()} bytes `
+      + `(${(p.fraction * 100).toFixed(1)}%) — ${eta} — ${p.message}`;
+  }
+
+  if (job?.state === 'failed') {
+    $('#memResult').innerHTML =
+      `<div class="gate-card bad"><h4>${esc(job.name)} failed</h4><p>${esc(job.error)}</p></div>`;
+    stopMemoryPoll();
+  } else if (job?.state === 'done') {
+    const r = job.result || {};
+    const d = r.describe || {};
+    $('#memResult').innerHTML = `
+      <div class="gate-card ok">
+        <h4>${esc(job.name)} complete</h4>
+        ${r.verified !== undefined
+          ? `<p>Two reads compared: <b>${r.verified ? 'identical' : 'DIFFERENT'}</b>
+             (${r.attempts} attempts)</p>` : ''}
+        ${r.path ? `<p>Saved to <code>${esc(r.path)}</code></p>` : ''}
+        ${d.checksums ? `<p class="small">${d.checksums.length.toLocaleString()} bytes ·
+          sum16 0x${d.checksums.sum16.toString(16).toUpperCase()} ·
+          sha256 ${esc(d.checksums.sha256.slice(0, 32))}…</p>` : ''}
+        ${d.hardware_strings?.length
+          ? `<p class="small">Hardware strings: ${d.hardware_strings.map(esc).join(', ')}</p>` : ''}
+      </div>`;
+    if (r.path) $('#imagePath').value = r.path;
+    stopMemoryPoll();
+    loadMemory();
+  }
+}
+
+function startMemoryPoll() {
+  stopMemoryPoll();
+  fw.timer = setInterval(async () => {
+    try { renderMemoryProgress(await api('/api/memory/progress')); } catch (_) {}
+  }, 1000);
+}
+function stopMemoryPoll() { clearInterval(fw.timer); fw.timer = null; }
+
+async function loadMemory() {
+  try {
+    renderMemoryCapabilities(await api('/api/memory'));
+  } catch (err) {
+    $('#memCaps').innerHTML = `<p class="muted">${esc(err.message)}</p>`;
+  }
+  try {
+    const sec = await api('/api/security');
+    const entries = Object.entries(sec.providers);
+    $('#securityOut').innerHTML = entries.length
+      ? entries.map(([ecu, list]) => list.map((p) => `
+          <div class="gate-card ${p.verified ? 'ok' : 'warn'}">
+            <h4>${esc(ecu)} — ${esc(p.name)} ${p.verified ? '' : '(unverified)'}</h4>
+            <p class="small">${esc(p.note || '')}</p>
+          </div>`).join('')).join('')
+      : '<p class="muted">No key providers registered.</p>';
+    $('#securityOut').innerHTML +=
+      `<p class="muted small">Plugin directory: <code>${esc(sec.plugin_dir)}</code></p>`;
+  } catch (_) { /* not fatal */ }
+}
+
+async function renderWriteGate() {
+  try {
+    const decision = await api('/api/memory/check-write', {
+      method: 'POST', body: { region: $('#memRegion').value || 'flash' },
+    });
+    renderGate(decision, $('#writeGate'));
+    $('#writeBtn').disabled = !decision.allowed;
+    $('#writeBtn').dataset.token = decision.token || '';
+  } catch (err) {
+    $('#writeGate').innerHTML = `<p class="muted">${esc(err.message)}</p>`;
+    $('#writeBtn').disabled = true;
+  }
+}
+
+$('#adapterBtn').onclick = async () => {
+  const port = encodeURIComponent($('#adapterPort').value.trim());
+  const data = await api(`/api/adapter?port=${port}`);
+  $('#adapterOut').textContent = data.text;
+  const likely = (data.ports || []).find((p) => p.likely_adapter);
+  if (likely && !$('#adapterPort').value) $('#adapterPort').value = likely.device;
+};
+
+$('#latencyBtn').onclick = async () => {
+  const port = $('#adapterPort').value.trim();
+  if (!port) return toast('Enter the adapter port first.', 'bad');
+  const data = await api('/api/adapter/latency', { method: 'POST', body: { port, value: 1 } });
+  if (data.ok) toast(`Latency timer is now ${data.latency_ms} ms.`, 'ok');
+  else { toast('Could not set it from here.', 'bad'); $('#adapterOut').textContent = data.instructions; }
+};
+
+$('#backupBtn').onclick = async () => {
+  const region = $('#memRegion').value;
+  const minutes = fw.caps?.capabilities?.estimated_read_minutes;
+  const warning = minutes
+    ? `This reads ${region} twice to verify it, so expect roughly ${minutes * 2} minutes. `
+      + 'Put the battery on a charger and do not let the machine sleep.'
+    : 'This can take a long time. Put the battery on a charger.';
+  if (!window.confirm(warning)) return;
+  $('#memResult').innerHTML = '';
+  await api('/api/memory/backup', { method: 'POST', body: { region } });
+  startMemoryPoll();
+};
+
+$('#readBtn').onclick = async () => {
+  $('#memResult').innerHTML = '';
+  await api('/api/memory/read', { method: 'POST', body: { region: $('#memRegion').value } });
+  startMemoryPoll();
+};
+
+$('#validateBtn').onclick = async () => {
+  const path = $('#imagePath').value.trim();
+  if (!path) return toast('Give the path of an image file.', 'bad');
+  const result = await api('/api/memory/validate', {
+    method: 'POST', body: { path, region: $('#memRegion').value },
+  });
+  const level = { ok: 'ok', warn: 'warn', fatal: 'bad' };
+  $('#validateOut').innerHTML = `
+    <div class="gate-card ${result.ok ? 'ok' : 'bad'}">
+      <h4>${result.ok ? 'Image passes validation' : 'Image REJECTED'}</h4>
+    </div>`
+    + result.findings.map((f) => `
+      <div class="gate-card ${level[f.level]}">
+        <h4>${esc(f.check)}</h4><p class="small">${esc(f.detail)}</p>
+      </div>`).join('');
+};
+
+$('#enableProgBtn').onclick = async () => {
+  try {
+    await api('/api/programming/enable', {
+      method: 'POST', body: { acknowledgement: $('#ackInput').value },
+    });
+    toast('Programming enabled for this session.', 'warn');
+  } catch (err) { toast(err.message, 'bad'); }
+  loadMemory();
+};
+
+$('#disableProgBtn').onclick = async () => {
+  await api('/api/programming/disable', { method: 'POST', body: {} });
+  toast('Programming disabled.', 'ok');
+  loadMemory();
+};
+
+$('#writeBtn').onclick = async () => {
+  const path = $('#imagePath').value.trim();
+  const token = $('#writeBtn').dataset.token;
+  if (!path) return toast('Validate an image first.', 'bad');
+  if (!window.confirm(
+    'This will erase and rewrite the ECU.\n\n'
+    + 'Confirm the battery is on a charger, nothing will interrupt the machine, '
+    + 'and you have a verified backup you can restore.\n\nContinue?')) return;
+  $('#memResult').innerHTML = '';
+  await api('/api/memory/write', {
+    method: 'POST', body: { path, token, region: $('#memRegion').value },
+  });
+  startMemoryPoll();
+};
+
+$('#memRegion').onchange = renderWriteGate;
+$$('.nav').forEach((b) => {
+  if (b.dataset.view === 'firmware') {
+    const previous = b.onclick;
+    b.onclick = () => { previous?.(); loadMemory(); };
+  }
+});

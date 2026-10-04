@@ -118,8 +118,12 @@ class SafetyGate:
     state: VehicleState = field(default_factory=VehicleState)
     #: Minimum battery voltage for an actuator test or adaptation.
     min_battery_v: float = 11.5
-    #: Writing ECU memory is a build-level switch, off by default.
+    #: Writing ECU memory is off until the operator turns it on through
+    #: :meth:`enable_programming`. It is an opt-in, not a build-time block:
+    #: the capability exists, but it will not arm itself by accident.
     allow_programming: bool = False
+    #: What the operator acknowledged when enabling programming.
+    programming_acknowledgement: str = ""
 
     _tokens: dict[str, tuple[str, float]] = field(default_factory=dict, init=False)
     _audit: list[dict] = field(default_factory=list, init=False)
@@ -231,9 +235,8 @@ class SafetyGate:
                 Check(
                     "programming-enabled",
                     self.allow_programming,
-                    "ECU programming is disabled in this build: there are no "
-                    "protocol fixtures, no bench-tested recovery path and no "
-                    "power-loss handling",
+                    "ECU programming has not been enabled for this session. "
+                    "Call enable_programming() and acknowledge the risk first.",
                 )
             )
             checks.append(
@@ -297,26 +300,91 @@ class SafetyGate:
             )
 
     # -- the guard handed to the KWP2000 session --------------------------
-    def session_guard(self, armed_for: set[int] | None = None):
+    # -- programming opt-in -----------------------------------------------
+    #: The subset of mutating services that can alter ECU memory.
+    PROGRAMMING_SERVICES = frozenset(
+        {
+            Service.REQUEST_DOWNLOAD,
+            Service.TRANSFER_DATA,
+            Service.REQUEST_TRANSFER_EXIT,
+            Service.WRITE_MEMORY_BY_ADDRESS,
+        }
+    )
+
+    #: What the operator has to type back, verbatim, to arm programming.
+    PROGRAMMING_ACKNOWLEDGEMENT = "I have a verified backup and accept the risk"
+
+    def enable_programming(self, acknowledgement: str) -> None:
+        """Arm ECU memory writing for this session.
+
+        Deliberately awkward. The operator must repeat
+        :data:`PROGRAMMING_ACKNOWLEDGEMENT` exactly, the choice is recorded in
+        the audit log, and it still only unlocks the *gate* - every individual
+        write is evaluated on its own merits afterwards.
+        """
+        if acknowledgement.strip() != self.PROGRAMMING_ACKNOWLEDGEMENT:
+            self._audit.append(
+                {
+                    "at": time.time(),
+                    "event": "programming_enable_refused",
+                    "reason": "acknowledgement did not match",
+                }
+            )
+            raise SafetyViolation(
+                Decision(
+                    allowed=False,
+                    operation="enable-programming",
+                    risk=Risk.IRREVERSIBLE,
+                    checks=(
+                        Check(
+                            "acknowledgement",
+                            False,
+                            "to enable ECU programming, repeat exactly: "
+                            f"{self.PROGRAMMING_ACKNOWLEDGEMENT!r}",
+                        ),
+                    ),
+                )
+            )
+        self.allow_programming = True
+        self.programming_acknowledgement = acknowledgement.strip()
+        self._audit.append(
+            {"at": time.time(), "event": "programming_enabled"}
+        )
+
+    def disable_programming(self) -> None:
+        self.allow_programming = False
+        self.programming_acknowledgement = ""
+        self._audit.append({"at": time.time(), "event": "programming_disabled"})
+
+    def session_guard(self, armed_for: set[int] | None = None, *,
+                      purpose: str = "write"):
         """Build a ``write_guard`` callable.
 
         Only the services explicitly armed for the current operation may be
         transmitted; everything else in :data:`MUTATING_SERVICES` is refused at
         the frame level.
+
+        ``purpose="read"`` exists because the IAW families read their flash
+        with TransferData (0x36), a nominally mutating service. Reading is not
+        destructive, so an armed read does not require the programming opt-in -
+        but it still may not send RequestDownload or WriteMemoryByAddress.
         """
         armed = armed_for or set()
+        reading = purpose == "read"
 
         def guard(service: int) -> bool:
             if service not in MUTATING_SERVICES:
                 return True
-            if service in (
-                Service.REQUEST_DOWNLOAD,
-                Service.TRANSFER_DATA,
-                Service.REQUEST_TRANSFER_EXIT,
-                Service.WRITE_MEMORY_BY_ADDRESS,
-            ) and not self.allow_programming:
+            if service not in armed:
                 return False
-            return service in armed
+            if service in self.PROGRAMMING_SERVICES:
+                if reading and service in (
+                    Service.TRANSFER_DATA,
+                    Service.REQUEST_TRANSFER_EXIT,
+                ):
+                    return True
+                return self.allow_programming
+            return True
 
         return guard
 

@@ -62,19 +62,49 @@
     "image_size": null,
     "read_supported": true,
     "write_supported": false,
-    "write_blocked_reason": "7SM writing is the highest-risk operation in the Guzzi world and is not enabled in this build.",
+    "write_blocked_reason": "7SM writing is the highest-risk operation in the Guzzi world. No verified key algorithm and no recovery path here.",
     "security_access": true,
-    "hardware_note": "Never run a 7SM write through a virtual machine - USB timing jitter has bricked ECUs."
+    "hardware_note": "Pull the headlight fuse or use a battery charger - a read takes about 30 minutes. Set the FTDI latency timer to 1 ms; this is essential. Never run a 7SM write inside a virtual machine. NEVER flash an HW1xx image into an HW3xx ECU or the reverse: it bricks the ECU.",
+    "approx_read_minutes": 30,
+    "hardware_compatibility": {
+      "rule": "hw_family_must_match",
+      "detail": "HW1xx and HW3xx images are not interchangeable."
+    },
+    "regions": {
+      "flash": {
+        "start": 0,
+        "size": 0,
+        "block": 64,
+        "writable": false,
+        "expect_vector_table": true,
+        "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
+      }
+    },
+    "programming": {
+      "protocol": "iaw_transfer",
+      "confidence": "inferred",
+      "session": 133,
+      "security": {
+        "required": true,
+        "level": 1,
+        "seed_bytes": 4
+      },
+      "read": {
+        "block_subfn": 33
+      },
+      "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
+    }
   },
   "capabilities": [
+    "discover",
+    "dtc_clear",
+    "dtc_read",
+    "handle_learning",
     "identify",
     "live",
-    "dtc_read",
-    "dtc_clear",
-    "discover",
-    "handle_learning",
-    "throttle_learning",
-    "service_reset"
+    "memory_read",
+    "service_reset",
+    "throttle_learning"
   ],
   "routines": [
     {

@@ -57,19 +57,75 @@
     "image_size": 327680,
     "read_supported": true,
     "write_supported": false,
-    "write_blocked_reason": "No verified seed/key, no bench-tested recovery path, and no power-loss handling. Reading is safe; writing is not enabled in this build.",
+    "write_blocked_reason": "No verified SecurityAccess key algorithm, no bench-tested recovery path, and no power-loss handling. The full write state machine exists and is tested against the simulator, but it is not enabled against hardware.",
     "approx_read_minutes": 20,
-    "security_access": true
+    "security_access": true,
+    "hardware_note": "Readable on the bench: 12V on pins 4 and 17, ground on 10 and 34, K-Line on pin 16. Use a battery tender if the ECU is still on the bike.",
+    "regions": {
+      "flash": {
+        "start": 16384,
+        "size": 311296,
+        "block": 32,
+        "writable": false,
+        "addr_bytes": 3,
+        "expect_vector_table": true,
+        "note": "0x4000-0x50000. The bootloader below 0x4000 is not reachable over K-Line. Observed directly in a 5AM HW610 dump."
+      },
+      "eeprom": {
+        "start": 0,
+        "size": 0,
+        "block": 32,
+        "writable": false,
+        "note": "Holds the learned values: TPS zero, CO trim, fault memory, immobilizer codes. IAW5AMEEPROMTool covers this; the region geometry has not been captured here, so size is unset and reads will refuse rather than guess."
+      }
+    },
+    "programming": {
+      "protocol": "iaw_transfer",
+      "confidence": "verified-capture",
+      "session": 133,
+      "baud_switch": {
+        "session": 12,
+        "params": [
+          12,
+          9
+        ],
+        "tester_address": 1
+      },
+      "security": {
+        "required": true,
+        "level": 1,
+        "seed_bytes": 4,
+        "note": "Seed is a 16-bit value X followed by X+1. Algorithm not published."
+      },
+      "read": {
+        "setup": [
+          17,
+          0,
+          254,
+          2,
+          1,
+          0
+        ],
+        "block_subfn": 33
+      },
+      "write": {
+        "block_subfn": 34,
+        "confidence": "inferred",
+        "note": "Write sub-function is a guess; the transcript only covers reads."
+      },
+      "source": "5am_util verbose transcript (codeberg.org/DoI/5am_util)"
+    }
   },
   "capabilities": [
+    "actuators",
+    "dtc_clear",
+    "dtc_read",
+    "eeprom_read",
     "identify",
     "live",
-    "dtc_read",
-    "dtc_clear",
-    "actuators",
-    "tps_reset",
+    "memory_read",
     "self_adaptation_reset",
-    "memory_read"
+    "tps_reset"
   ],
   "parameters": [
     {

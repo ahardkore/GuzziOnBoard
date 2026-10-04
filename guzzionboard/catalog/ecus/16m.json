@@ -54,17 +54,18 @@
   },
   "memory": {
     "image_size": null,
-    "read_supported": true,
+    "read_supported": false,
     "write_supported": false,
-    "write_blocked_reason": "EPROM-era image; handled by dedicated tooling, not this project.",
-    "security_access": false
+    "write_blocked_reason": "No reader or writer exists for this family anywhere in the GuzziDiag toolchain, and no memory-access sequence has been captured. These are early-1990s ECUs whose maps generally live in a socketed EPROM, so the practical route is to pull the chip and use an EPROM programmer.",
+    "security_access": false,
+    "regions": {}
   },
   "capabilities": [
-    "identify",
-    "live",
-    "dtc_read",
+    "discover",
     "dtc_clear",
-    "discover"
+    "dtc_read",
+    "identify",
+    "live"
   ],
   "sources": [
     "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",

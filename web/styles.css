@@ -382,3 +382,50 @@ table.data tr.changed td { background: #12281e; }
   .sidebar { position: static; height: auto; }
   nav { flex-direction: row; flex-wrap: wrap; }
 }
+
+/* ------------------------------------------------------------- firmware */
+/* Memory operations run for tens of minutes, so progress has to be legible
+ * from across a garage, and the write section has to look dangerous. */
+
+.progress {
+  height: 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 10px 0 6px;
+}
+.progress-bar {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--accent), #6fe3b4);
+  transition: width .4s ease;
+}
+
+.gate-card {
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-radius: 7px;
+  background: var(--bg);
+  padding: 9px 12px;
+  margin: 8px 0;
+}
+.gate-card h4 { margin: 0 0 4px; font-size: .86rem; font-weight: 600; }
+.gate-card p, .gate-card ul { margin: 4px 0 0; font-size: .82rem; color: var(--muted); }
+.gate-card ul { padding-left: 18px; }
+.gate-card.ok { border-left-color: var(--accent); }
+.gate-card.ok h4 { color: #7fd9ad; }
+.gate-card.warn { border-left-color: var(--warn); background: #241f12; }
+.gate-card.warn h4 { color: #f0c969; }
+.gate-card.bad { border-left-color: var(--danger); background: #2a1512; }
+.gate-card.bad h4 { color: #ef8d78; }
+
+.danger-zone { border-color: #653227; }
+.danger-zone > h2 { color: #ef8d78; }
+.danger-zone > h2::before { content: '⚠ '; }
+
+b.ok { color: #5ee0a6; }
+b.bad { color: #ef8d78; }
+
+#adapterOut { white-space: pre-wrap; font-size: .78rem; max-height: 320px; }
+#memProgressText { font-variant-numeric: tabular-nums; }

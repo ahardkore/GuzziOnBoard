@@ -4,9 +4,11 @@ A safety-first diagnostic workstation for Moto Guzzi motorcycles, covering the
 Magneti Marelli ECU families fitted from the mid-1990s to the current bikes.
 
 > **Status: working software, unproven on a motorcycle.**
-> The protocol stack, capability catalog, safety gate and UI are real and
-> tested. The hardware transports are written but have **not** been validated
-> against a bike. ECU programming is deliberately not implemented.
+> The protocol stack, capability catalog, safety gate, memory/programming
+> stack and UI are real and tested. The hardware transports are written but
+> have **not** been validated against a bike. ECU writing is fully implemented
+> and simulator-tested, but stays gated on hardware until a verified
+> SecurityAccess key algorithm exists — see `docs/PROGRAMMING.md`.
 
 ---
 
@@ -25,11 +27,18 @@ Magneti Marelli ECU families fitted from the mid-1990s to the current bikes.
 | Read-only local-identifier discovery sweep | Implemented |
 | Session recording (raw frames + decoded samples) | Implemented |
 | Report export (text + JSON) | Implemented |
-| ECU memory **read** | Implemented (5AM image path) |
-| ECU memory **write / flashing** | **Not implemented, blocked at three layers** |
+| ECU memory **read** | Implemented; 5AM path grounded in a verified capture |
+| Backup with two-read verification | Implemented |
+| Firmware image validation (size, vector table, entropy, HW family) | Implemented |
+| ECU memory **write / erase / program / verify** | Implemented and simulator-tested; **gated on hardware** |
+| Interrupted-write checkpoints and recovery guidance | Implemented |
+| SecurityAccess seed/key plumbing + key-provider plugins | Implemented; **no verified algorithm ships** |
+| Adapter pre-flight incl. FTDI latency timer | Implemented |
+| Gearing / road-speed calculator, CSV + JSON log export | Implemented |
 
-117 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
-fault injection and full simulated sessions.
+176 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
+image validation, the full read/backup/write/verify round trip, fault
+injection and complete simulated sessions.
 
 ## Run it
 
@@ -105,8 +114,16 @@ Additional properties:
   engine-off operation; it is not treated as "probably stopped".
 - **Raw bytes are always kept** next to every decoded value, in the UI and in
   the session log. If a scaling is wrong you can prove it.
-- **Programming is refused at the build level**, in the gate, and in every
-  catalog entry — even with a verified backup and perfect preconditions.
+- **Programming is a gate, not a wall.** Writing an ECU is your right and the
+  code is complete, but it is opt-in: the operator must type an exact
+  acknowledgement, the catalog must declare a *verified* programming
+  definition for that family, and a two-read-verified backup must exist. The
+  frame guard still refuses RequestDownload and WriteMemoryByAddress until all
+  of that holds. Flash *reads* are exempt from the opt-in, because the IAW
+  families read memory with TransferData and reading breaks nothing.
+- **A write that cannot be verified is a failed write.** The image is read
+  back and compared; a mismatch is reported as a failure even if the ECU
+  claimed success, and a checkpoint records how to recover.
 
 ## Architecture
 
@@ -148,6 +165,9 @@ change.
 - `docs/ARCHITECTURE.md` — layer boundaries and the rules each layer obeys.
 - `docs/PROTOCOL_NOTES.md` — wire-level reference and provenance for every
   claim in the catalog.
+- `docs/PROGRAMMING.md` — reading, backing up and writing ECU memory: the
+  verified 5AM sequence, image validation, the SecurityAccess gap and how to
+  supply a key provider, and the recovery model.
 - `docs/USER_WORKFLOWS.md` — guided connect, live-data, TPS and actuator flows.
 - `docs/7SM_WORKFLOW.md` — ride-by-wire identification and learning workflow.
 

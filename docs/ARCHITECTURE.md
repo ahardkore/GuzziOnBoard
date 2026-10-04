@@ -167,3 +167,55 @@ Session files are gitignored. They can contain a VIN-adjacent ECU serial.
   when a model/year is ambiguous.
 - **A desktop shell.** The HTTP API is the seam a Tauri shell would sit on, but
   shipping a browser-based tool first keeps the dependency surface at zero.
+
+
+## The memory and programming layer
+
+Added after the project's scope widened from "diagnostics only" to full
+parity with the GuzziDiag toolchain, including its readers, writers and
+EEPROM tools.
+
+```
+guzzionboard/firmware.py      image container, checksums, structural
+                              validation, hardware-compatibility, diffing.
+                              Pure data. Never touches a transport.
+
+guzzionboard/security.py      SecurityAccess key providers: an interface, a
+                              registry, a file-based plugin loader. Ships no
+                              working algorithm for any Guzzi ECU.
+
+guzzionboard/programming.py   the state machine: session -> unlock -> read /
+                              erase -> transfer -> program -> verify, with
+                              progress reporting and on-disk checkpoints.
+
+guzzionboard/adapter.py       pre-flight checks on the interface itself,
+                              including the FTDI latency timer.
+
+guzzionboard/tools.py         standalone calculators and log exporters.
+```
+
+Three rules keep this layer honest.
+
+**Validation is pure.** `firmware.py` imports nothing from the transport or
+diagnostics layers, so an image can be checked without a motorcycle, and the
+checks are trivially unit testable.
+
+**Geometry comes from the catalog, never from a guess.** A region with an
+uncaptured size refuses to be read and says so. The alternative — reading some
+plausible default length — produces a file that looks like a backup and is
+not one.
+
+**Reading and writing are separated at the frame guard.** The IAW families
+read flash with TransferData (0x36), which is nominally a mutating service.
+`SafetyGate.session_guard(..., purpose="read")` permits that specific use
+without the programming opt-in, while still refusing RequestDownload (0x34)
+and WriteMemoryByAddress (0x3D). Without that split, either reads would
+require the write ceremony or writes would inherit the read's permissions.
+
+### Long operations and the HTTP seam
+
+A flash read is twenty to thirty minutes, and a verified backup is two of
+those. `server.JobRunner` runs one memory operation at a time on a background
+thread; the UI polls `/api/memory/progress` for phase, byte counts and an ETA.
+One job at a time is a deliberate constraint: concurrent flash operations on a
+single ECU are never what anybody meant.

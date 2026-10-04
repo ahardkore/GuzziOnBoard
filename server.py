@@ -5,27 +5,12 @@ shell and does not open serial ports or send ECU frames.
 """
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-import json, random, time
+import json
+from guzzionboard_core import SimulatorTransport, VehicleIdentity, identity_dict
 
 ROOT = Path(__file__).parent
-START = time.time()
-rng = random.Random(42)
-state = {"connected": False, "faults": [
-    {"code": "P0130", "title": "Lambda sensor circuit", "status": "stored", "severity": "warning"},
-    {"code": "P0505", "title": "Idle control system", "status": "historic", "severity": "info"},
-]}
-
-
-def payload():
-    t = time.time() - START
-    return {
-        "timestamp": time.time(), "rpm": round(1180 + 35 * __import__('math').sin(t * 1.4)),
-        "coolant": round(78 + 1.8 * __import__('math').sin(t / 4), 1),
-        "battery": round(13.9 + .08 * __import__('math').sin(t / 3), 2),
-        "throttle": round(3.2 + .25 * __import__('math').sin(t * 1.1), 2),
-        "air": round(31 + 1.2 * __import__('math').sin(t / 5), 1),
-        "lambda": round(.98 + .025 * __import__('math').sin(t * 2.1), 3),
-    }
+transport = SimulatorTransport()
+identity = VehicleIdentity("Moto Guzzi", "V85 TT", 2021, "IAW 7SM", "7643A102")
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *_): pass
@@ -36,8 +21,13 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers(); self.wfile.write(body)
     def do_GET(self):
         if self.path == "/api/status":
-            self.send_json({"mode": "simulator", "connected": state["connected"], "ecu": "IAW 7SM (simulated)", "vehicle": "Moto Guzzi V85 TT (simulated)", "values": payload(), "faults": state["faults"]}); return
-        if self.path == "/api/live": self.send_json(payload()); return
+            self.send_json({"mode": "simulator", "connected": transport.connected,
+                            "ecu": f"{identity.ecu_family} (simulated)",
+                            "vehicle": f"{identity.make} {identity.model} (simulated)",
+                            "identity": identity_dict(identity),
+                            "values": transport.values().json_values(),
+                            "faults": [f.__dict__ for f in transport.faults]}); return
+        if self.path == "/api/live": self.send_json(transport.values().json_values()); return
         path = (ROOT / self.path.lstrip("/")) if self.path != "/" else ROOT / "index.html"
         if path.is_file():
             data = path.read_bytes(); self.send_response(200)
@@ -45,11 +35,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(data))); self.end_headers(); self.wfile.write(data); return
         self.send_error(404)
     def do_POST(self):
-        if self.path == "/api/connect": state["connected"] = True; self.send_json({"ok": True}); return
-        if self.path == "/api/disconnect": state["connected"] = False; self.send_json({"ok": True}); return
-        if self.path == "/api/clear-faults": state["faults"] = []; self.send_json({"ok": True}); return
-        if self.path == "/api/export":
-            self.send_json({"ok": True, "message": "Report prepared in simulator mode"}); return
+        if self.path == "/api/connect": transport.connect(); self.send_json({"ok": True}); return
+        if self.path == "/api/disconnect": transport.disconnect(); self.send_json({"ok": True}); return
+        if self.path == "/api/clear-faults": transport.clear_faults(); self.send_json({"ok": True}); return
+        if self.path == "/api/export": self.send_json({"ok": True, "message": "Report prepared in simulator mode"}); return
         self.send_json({"ok": False, "error": "Operation unavailable in simulator"}, 403)
 
 if __name__ == "__main__":

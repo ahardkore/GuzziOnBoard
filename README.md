@@ -1,54 +1,184 @@
 # GuzziOnBoard
 
-A modern, safety-first diagnostic workstation for Moto Guzzi motorcycles.
+A safety-first diagnostic workstation for Moto Guzzi motorcycles, covering the
+Magneti Marelli ECU families fitted from the mid-1990s to the current bikes.
 
-> **Current status:** early prototype. The UI runs against a deterministic ECU simulator; it does not communicate with a motorcycle yet. Do not connect it to a vehicle and assume service or flashing support exists.
+> **Status: working software, unproven on a motorcycle.**
+> The protocol stack, capability catalog, safety gate, memory/programming
+> stack and UI are real and tested. The hardware transports are written but
+> have **not** been validated against a bike. ECU writing is fully implemented
+> and simulator-tested, but stays gated on hardware until a verified
+> SecurityAccess key algorithm exists — see `docs/PROGRAMMING.md`.
 
-## Direction
+---
 
-GuzziOnBoard is intended to improve on the split-tool experience of GuzziDiag, IAWDiag, GuzziCANDiag, and the IAW reader/writer tools with:
+## What it actually does today
 
-- one cross-platform desktop application;
-- a maintainable vehicle/ECU capability catalog instead of scattered per-tool definitions;
-- read-only defaults and explicit, reversible service actions;
-- mandatory ECU/vehicle identification and backup verification before writes;
-- live data dashboards, charts, session logging, and shareable reports;
-- a simulator and recorded sessions so protocol work can be developed without a motorcycle;
-- a transport layer that can support legacy K-line and modern CAN adapters independently of the UI.
+| Area | State |
+|---|---|
+| KWP2000 / ISO 14230 application + data link layer | Implemented and unit tested |
+| ISO-TP (ISO 15765-2) segmentation for CAN bikes | Implemented and unit tested |
+| Simulated ECU **speaking the real wire protocol** | Implemented; drives the whole stack |
+| Capability catalog: 9 ECU families, 81 model variants, 1992–2026 | Implemented, data-driven |
+| K-Line transport (fast init + 5-baud init, echo cancelling) | Written, **untested on hardware** |
+| CAN transport (python-can + ISO-TP) | Written, **identifiers unconfirmed** |
+| ECU identification, live data, DTC read/clear | Implemented |
+| Actuator tests, TPS reset, adaptation resets | Implemented, gated by confidence + safety |
+| Read-only local-identifier discovery sweep | Implemented |
+| Session recording (raw frames + decoded samples) | Implemented |
+| Report export (text + JSON) | Implemented |
+| ECU memory **read** | Implemented; 5AM path grounded in a verified capture |
+| Backup with two-read verification | Implemented |
+| Firmware image validation (size, vector table, entropy, HW family) | Implemented |
+| ECU memory **write / erase / program / verify** | Implemented and simulator-tested; **gated on hardware** |
+| Interrupted-write checkpoints and recovery guidance | Implemented |
+| SecurityAccess seed/key plumbing + key-provider plugins | Implemented; **no verified algorithm ships** |
+| Adapter pre-flight incl. FTDI latency timer | Implemented |
+| Gearing / road-speed calculator, CSV + JSON log export | Implemented |
 
-## Run the prototype
+176 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
+image validation, the full read/backup/write/verify round trip, fault
+injection and complete simulated sessions.
 
-The only current dependency is Python 3.11+.
+## Run it
+
+Only Python 3.11+ is needed for simulator mode.
 
 ```bash
-python3 server.py
+python3 run_server.py              # http://127.0.0.1:8000
 ```
 
-Open <http://127.0.0.1:8000>. Use **Simulator mode** to explore the dashboard, live values, fault handling, report export, and the guarded write workflow.
+Pick a motorcycle in **Garage** (try `Griso 1200 8V` / `2012`), connect in
+simulator mode, and the rest of the workstation comes alive.
 
-## Planned architecture
+For real hardware:
+
+```bash
+pip install -e '.[hardware]'       # pyserial + python-can
+python3 run_server.py
+```
+
+Run the tests with:
+
+```bash
+pip install -e '.[dev]' && pytest
+```
+
+## Coverage
+
+ECU families in the catalog, with the confidence level that governs what the
+workstation will let you do:
+
+| Family | Years | Bus | Confidence | Representative models |
+|---|---|---|---|---|
+| IAW P8 | 1993–1997 | K-Line | inferred | Daytona 1000, Quota 1000, California III i.e. |
+| IAW 16M | 1996–2001 | K-Line | documented | Sport 1100, V10 Centauro, Daytona RS |
+| IAW 15M | 1997–2002 | K-Line | documented | California EV/Jackal/Stone, Quota 1100 ES, V11 Sport |
+| IAW 15RC | 2002–2012 | K-Line | documented | V7 Classic, Nevada 750, Breva 750, California Vintage, Bellagio |
+| **IAW 5AM / 5AM2** | 2005–2016 | K-Line | **verified-capture** | All CARC: Griso, Norge, Breva 850–1200, Stelvio, 1200 Sport |
+| IAW 7SM | 2013–2021 | K-Line | documented | California 1400, Audace, Eldorado, MGX-21, early V85 TT |
+| MIU G3 | 2012–2016 | K-Line | documented | V7 (single throttle body), V7 II, V9 |
+| MIU G4 | 2017–2021 | CAN | inferred | V7 III, V7 850 |
+| Marelli 11MP | 2019–2026 | CAN | inferred | Later V85 TT, V100 Mandello |
+
+**Confidence is enforced, not decorative.** Anything below `documented`
+degrades to identification, fault codes and the read-only discovery sweep —
+the workstation will not command an ECU it does not genuinely understand.
+
+The IAW 5AM is the fully mapped family: 41 live identifiers with scalings
+decoded from a real bus capture, 17 actuators, TPS reset and self-adaptation
+reset. For the others, see "Contributing a capture" below.
+
+## Safety model
+
+Three independent layers, in order:
+
+1. **Capability + confidence.** A family must declare the capability *and*
+   carry a trustworthy definition. `inferred` families are read-only, full stop.
+2. **The safety gate** (`guzzionboard/safety.py`). Every control action is
+   evaluated against named preconditions — ECU identified, engine state
+   *observed* (not assumed), battery voltage within range, checklist accepted
+   — and a refusal tells you exactly which checks failed. Passing mints a
+   single-use, operation-bound, expiring token.
+3. **The frame guard.** The gate is installed as the KWP2000 session's
+   `write_guard`, so an unarmed state-changing service never reaches the
+   transport. You cannot bypass it by calling a service method directly.
+
+Additional properties:
+
+- **Actuator outputs are owned by this software.** IAW ECUs have no output
+  timer: once energised, an output stays on until something turns it off. Every
+  pulse has a catalog-clamped deadline, and outputs are released on expiry, on
+  disconnect, and when the session tears down.
+- **Nothing is inferred optimistically.** An unobserved engine state blocks an
+  engine-off operation; it is not treated as "probably stopped".
+- **Raw bytes are always kept** next to every decoded value, in the UI and in
+  the session log. If a scaling is wrong you can prove it.
+- **Programming is a gate, not a wall.** Writing an ECU is your right and the
+  code is complete, but it is opt-in: the operator must type an exact
+  acknowledgement, the catalog must declare a *verified* programming
+  definition for that family, and a two-read-verified backup must exist. The
+  frame guard still refuses RequestDownload and WriteMemoryByAddress until all
+  of that holds. Flash *reads* are exempt from the opt-in, because the IAW
+  families read memory with TransferData and reading breaks nothing.
+- **A write that cannot be verified is a failed write.** The image is read
+  back and compared; a mismatch is reported as a failure even if the ECU
+  claimed success, and a checkpoint records how to recover.
+
+## Architecture
 
 ```text
-Desktop shell (Tauri)
-  └── UI (web frontend)
-      └── local application API
-          ├── session + safety policy
-          ├── vehicle/ECU capability catalog
-          ├── diagnostics service (identify, values, DTCs, actuators)
-          ├── programming service (backup, verify, write, recovery)
-          └── transports (simulator, serial K-line, CAN)
+web/                     UI (no framework, no build step)
+  └── guzzionboard/server.py        local JSON API + static files
+      └── workstation.py            selection, session, report
+          └── diagnostics.py        identify / live / DTC / actuators / discovery
+              ├── safety.py         preconditions, tokens, audit log
+              ├── catalog/          data-driven ECU + vehicle definitions
+              ├── protocol/         kwp2000.py, isotp.py
+              └── transports/       simulator.py, kline.py, can.py
 ```
 
-The first hardware milestone should be **read-only identification and live data**, tested against captured sessions and one owned motorcycle. ECU writing must remain disabled until protocol fixtures, backup/restore verification, power-loss handling, and a hardware test plan exist.
+The simulator is a *transport*, not a mock of the application layer: it accepts
+encoded frames, validates checksums, answers the catalog's identifiers, returns
+real negative response codes, and can inject dropped frames, corrupted
+checksums and `responsePending`. Simulated and real sessions therefore run
+identical code.
 
-## Repository layout
+## Contributing a capture
 
-- `index.html`, `app.js`, `styles.css` — prototype workstation UI.
-- `server.py` — dependency-free local server and simulator API.
-- `docs/ARCHITECTURE.md` — implementation boundaries and safety rules.
-- `docs/7SM_WORKFLOW.md` — 7SM identification, backup, flashing, and post-flash learning workflow based on the supplied reference.
-- `docs/USER_WORKFLOWS.md` — guided connect, live-data, backup, TPS, actor, and CO-trim flows based on the beginner tutorial.
+The bottleneck is wire-level data, not code. Every family except the 5AM needs
+its local identifiers characterised, and the workstation has a tool for exactly
+this:
 
-## Safety
+1. Connect read-only, go to **Discovery**, sweep `0x30`–`0x7F` with the engine
+   off, and press **Keep as baseline**.
+2. Start the engine, sweep again. Identifiers that moved are live channels;
+   ones that did not are usually shared zero slots.
+3. **Export JSON** and open an issue with it, plus the ECU label from your bike.
 
-This project is not affiliated with Piaggio or the GuzziDiag author. ECU programming can brick an ECU or create an unsafe motorcycle. The prototype intentionally exposes no real transport and no executable ECU write operation.
+That turns directly into a catalog entry under
+`guzzionboard/catalog/ecus/`. Adding a motorcycle is a data change, not a code
+change.
+
+## Documentation
+
+- `docs/ARCHITECTURE.md` — layer boundaries and the rules each layer obeys.
+- `docs/PROTOCOL_NOTES.md` — wire-level reference and provenance for every
+  claim in the catalog.
+- `docs/PROGRAMMING.md` — reading, backing up and writing ECU memory: the
+  verified 5AM sequence, image validation, the SecurityAccess gap and how to
+  supply a key provider, and the recovery model.
+- `docs/USER_WORKFLOWS.md` — guided connect, live-data, TPS and actuator flows.
+- `docs/7SM_WORKFLOW.md` — ride-by-wire identification and learning workflow.
+
+## Credits and disclaimer
+
+This project stands on the reverse-engineering work of the GuzziDiag / IAWDiag
+authors, the Guzzitek archive, and published IAW 5AM bus captures. It is not
+affiliated with Piaggio, Moto Guzzi, Magneti Marelli, or the GuzziDiag author.
+
+ECU diagnostics can injure you and ECU programming can brick an ECU or create
+an unsafe motorcycle. Nothing here has been validated against a real bike. If
+you connect it to your Guzzi, you are the test.
+
+MIT licensed.

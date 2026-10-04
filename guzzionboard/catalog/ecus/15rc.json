@@ -1,0 +1,135 @@
+{
+  "id": "15rc",
+  "family": "IAW 15RC",
+  "display_name": "Magneti Marelli IAW 15RC",
+  "transport": "kline",
+  "confidence": "documented",
+  "years": "2002-2012",
+  "notes": "Closed-loop successor to the 15M: V7 Classic, Nevada 750, Breva 750, California from 2002, V11 CAT, Bellagio, California Vintage/Classic. Has a lambda sensor in the crossover, so a piggyback fuel module is trimmed back out by the closed loop below about 4000 rpm. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only.",
+  "kline": {
+    "baud": 10400,
+    "init": "auto",
+    "address": 51,
+    "addressed": true,
+    "tester_address": 241,
+    "ecu_address": 16,
+    "inter_byte_delay": 0.005
+  },
+  "session": {
+    "access_timing": true,
+    "diagnostic_session": 129,
+    "lazy_session": true,
+    "tester_present_interval": 2.0
+  },
+  "identification": {
+    "service": 26,
+    "option": 128,
+    "fields": [
+      {
+        "name": "Drawing",
+        "offset": 0,
+        "length": 11
+      },
+      {
+        "name": "Hardware",
+        "offset": 11,
+        "length": 11
+      },
+      {
+        "name": "Omologation",
+        "offset": 22,
+        "length": 11
+      },
+      {
+        "name": "Software",
+        "offset": 33,
+        "length": 11
+      },
+      {
+        "name": "Tester",
+        "offset": 44,
+        "length": 11
+      }
+    ]
+  },
+  "memory": {
+    "image_size": null,
+    "read_supported": true,
+    "write_supported": false,
+    "write_blocked_reason": "Handled by IAW15xReader/Writer; no verified fixtures in this project.",
+    "security_access": true,
+    "regions": {
+      "flash": {
+        "start": 0,
+        "size": 0,
+        "block": 64,
+        "writable": false,
+        "expect_vector_table": true,
+        "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
+      },
+      "eeprom": {
+        "start": 0,
+        "size": 0,
+        "block": 32,
+        "writable": false,
+        "note": "TPS zero, CO trim, fault memory. Geometry not captured."
+      }
+    },
+    "programming": {
+      "protocol": "iaw_transfer",
+      "confidence": "inferred",
+      "session": 133,
+      "security": {
+        "required": true,
+        "level": 1,
+        "seed_bytes": 4
+      },
+      "read": {
+        "block_subfn": 33
+      },
+      "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
+    }
+  },
+  "capabilities": [
+    "co_trim",
+    "discover",
+    "dtc_clear",
+    "dtc_read",
+    "eeprom_read",
+    "identify",
+    "live",
+    "memory_read",
+    "tps_reset"
+  ],
+  "routines": [
+    {
+      "key": "tps_reset",
+      "name": "Throttle position reset",
+      "service": 49,
+      "local_id": 33,
+      "description": "15RC throttle reset. GuzziDiag uses a family-specific byte (0x89) rather than the 5AM sequence, so this entry is unproven on the wire.",
+      "requires_engine_off": true,
+      "confidence": "inferred",
+      "warning": "Do NOT reset the TPS electronically on a California 1100 or Bellagio - those must be set manually with a voltmeter. Target angle for V7 Classic / Nevada / Breva 750 is about 3.6 degrees.",
+      "follow_up": "Confirm the throttle angle against the model target, then re-check idle."
+    },
+    {
+      "key": "co_trim",
+      "name": "CO trim",
+      "service": 48,
+      "local_id": 126,
+      "description": "Adjusts the base mixture trim. Only meaningful with the lambda loop switched off.",
+      "requires_engine_off": false,
+      "reversible": true,
+      "confidence": "inferred",
+      "warning": "Changing CO trim with the lambda loop active achieves nothing - the ECU trims it straight back out."
+    }
+  ],
+  "sources": [
+    "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
+    "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
+    "ISO 14230-2 and ISO 14230-3"
+  ],
+  "parameters": [],
+  "actuators": []
+}

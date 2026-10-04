@@ -1,0 +1,151 @@
+{
+  "id": "7sm",
+  "family": "IAW 7SM",
+  "display_name": "Magneti Marelli IAW 7SM",
+  "transport": "kline",
+  "confidence": "documented",
+  "years": "2013-2021",
+  "notes": "California 1400, Audace, Eldorado, MGX-21 and the V85 TT. Ride-by-wire: there is no cable to the throttle bodies, so the handle (grip) and the throttle plates are learned as two separate routines and the order matters. The 7SM has no CO trim. Identification is confirmed to return Drawing / Hardware / Software / Omologation / Serial / Tester, and the session switches baud rate after init. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only.",
+  "kline": {
+    "baud": 10400,
+    "init": "fast",
+    "address": 51,
+    "addressed": true,
+    "tester_address": 241,
+    "ecu_address": 16,
+    "inter_byte_delay": 0.004,
+    "baud_switch_supported": true
+  },
+  "session": {
+    "access_timing": true,
+    "diagnostic_session": 129,
+    "lazy_session": true,
+    "tester_present_interval": 2.0
+  },
+  "identification": {
+    "service": 26,
+    "option": 128,
+    "fields": [
+      {
+        "name": "Drawing",
+        "offset": 0,
+        "length": 11
+      },
+      {
+        "name": "Hardware",
+        "offset": 11,
+        "length": 11
+      },
+      {
+        "name": "Omologation",
+        "offset": 22,
+        "length": 11
+      },
+      {
+        "name": "Software",
+        "offset": 33,
+        "length": 11
+      },
+      {
+        "name": "Serial",
+        "offset": 44,
+        "length": 11
+      },
+      {
+        "name": "Tester",
+        "offset": 55,
+        "length": 11
+      }
+    ]
+  },
+  "memory": {
+    "image_size": null,
+    "read_supported": true,
+    "write_supported": false,
+    "write_blocked_reason": "7SM writing is the highest-risk operation in the Guzzi world. No verified key algorithm and no recovery path here.",
+    "security_access": true,
+    "hardware_note": "Pull the headlight fuse or use a battery charger - a read takes about 30 minutes. Set the FTDI latency timer to 1 ms; this is essential. Never run a 7SM write inside a virtual machine. NEVER flash an HW1xx image into an HW3xx ECU or the reverse: it bricks the ECU.",
+    "approx_read_minutes": 30,
+    "hardware_compatibility": {
+      "rule": "hw_family_must_match",
+      "detail": "HW1xx and HW3xx images are not interchangeable."
+    },
+    "regions": {
+      "flash": {
+        "start": 0,
+        "size": 0,
+        "block": 64,
+        "writable": false,
+        "expect_vector_table": true,
+        "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
+      }
+    },
+    "programming": {
+      "protocol": "iaw_transfer",
+      "confidence": "inferred",
+      "session": 133,
+      "security": {
+        "required": true,
+        "level": 1,
+        "seed_bytes": 4
+      },
+      "read": {
+        "block_subfn": 33
+      },
+      "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
+    }
+  },
+  "capabilities": [
+    "discover",
+    "dtc_clear",
+    "dtc_read",
+    "handle_learning",
+    "identify",
+    "live",
+    "memory_read",
+    "service_reset",
+    "throttle_learning"
+  ],
+  "routines": [
+    {
+      "key": "handle_learning",
+      "name": "Handle (grip) self-learning",
+      "service": 49,
+      "local_id": 35,
+      "description": "Step 1 of 2 on ride-by-wire bikes. Learns the twistgrip sensor end stops. Ignition on, engine off, do not touch the grip while it runs.",
+      "requires_engine_off": true,
+      "confidence": "inferred",
+      "follow_up": "Immediately run throttle self-learning. Leaving only the handle learned gives an inconsistent pair.",
+      "warning": "Must be followed by throttle self-learning before the bike is ridden."
+    },
+    {
+      "key": "throttle_learning",
+      "name": "Throttle self-learning",
+      "service": 49,
+      "local_id": 36,
+      "description": "Step 2 of 2. Learns the motorised throttle plate end stops. Run immediately after handle self-learning.",
+      "requires_engine_off": true,
+      "confidence": "inferred",
+      "follow_up": "Cycle the ignition, then verify the throttle tracks the grip smoothly before riding."
+    },
+    {
+      "key": "service_reset",
+      "name": "Service interval reset",
+      "service": 49,
+      "local_id": 49,
+      "description": "Resets the maintenance counter.",
+      "requires_engine_off": true,
+      "reversible": false,
+      "confidence": "inferred",
+      "warning": "On most Guzzi models the service reset is done from the dashboard, not the ECU."
+    }
+  ],
+  "sources": [
+    "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
+    "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
+    "Published 7SM session log (ApriliaForum): init, identity block, baud switch",
+    "ISO 14230-2 and ISO 14230-3"
+  ],
+  "parameters": [],
+  "actuators": []
+}

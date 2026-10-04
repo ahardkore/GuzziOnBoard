@@ -1,0 +1,139 @@
+{
+  "id": "15m",
+  "family": "IAW 15M",
+  "display_name": "Magneti Marelli IAW 15M",
+  "transport": "kline",
+  "confidence": "documented",
+  "years": "1997-2002",
+  "notes": "California 1997-2001 (EV, Jackal, Stone, Special), Quota 1100 ES, V11 Sport and LeMans up to 2002. Open loop - no lambda sensor on most images, so there is no closed-loop trim to read. The TPS is set mechanically with a voltmeter; there is no electronic reset. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only.",
+  "kline": {
+    "baud": 10400,
+    "init": "auto",
+    "address": 51,
+    "addressed": true,
+    "tester_address": 241,
+    "ecu_address": 16,
+    "inter_byte_delay": 0.005
+  },
+  "session": {
+    "access_timing": true,
+    "diagnostic_session": 129,
+    "lazy_session": true,
+    "tester_present_interval": 2.0
+  },
+  "identification": {
+    "service": 26,
+    "option": 128,
+    "fields": [
+      {
+        "name": "Drawing",
+        "offset": 0,
+        "length": 11
+      },
+      {
+        "name": "Hardware",
+        "offset": 11,
+        "length": 11
+      },
+      {
+        "name": "Omologation",
+        "offset": 22,
+        "length": 11
+      },
+      {
+        "name": "Software",
+        "offset": 33,
+        "length": 11
+      },
+      {
+        "name": "Tester",
+        "offset": 44,
+        "length": 11
+      }
+    ]
+  },
+  "memory": {
+    "image_size": null,
+    "read_supported": true,
+    "write_supported": false,
+    "write_blocked_reason": "Handled by IAW15xReader/Writer; no verified fixtures in this project.",
+    "security_access": true,
+    "regions": {
+      "flash": {
+        "start": 0,
+        "size": 0,
+        "block": 64,
+        "writable": false,
+        "expect_vector_table": true,
+        "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
+      },
+      "eeprom": {
+        "start": 0,
+        "size": 0,
+        "block": 32,
+        "writable": false,
+        "note": "TPS zero, CO trim, fault memory. Geometry not captured."
+      }
+    },
+    "programming": {
+      "protocol": "iaw_transfer",
+      "confidence": "inferred",
+      "session": 133,
+      "security": {
+        "required": true,
+        "level": 1,
+        "seed_bytes": 4
+      },
+      "read": {
+        "block_subfn": 33
+      },
+      "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
+    }
+  },
+  "capabilities": [
+    "actuators",
+    "discover",
+    "dtc_clear",
+    "dtc_read",
+    "eeprom_read",
+    "identify",
+    "live",
+    "memory_read"
+  ],
+  "actuators": [
+    {
+      "key": "injector_front",
+      "name": "Injector, front cylinder",
+      "local_id": 8,
+      "group": "fuelling",
+      "max_pulse_s": 1.0,
+      "confidence": "inferred",
+      "warning": "Left/right assignment was wrong in older GuzziDiag builds - verify which cylinder actually clicks before trusting it."
+    },
+    {
+      "key": "injector_rear",
+      "name": "Injector, rear cylinder",
+      "local_id": 9,
+      "group": "fuelling",
+      "max_pulse_s": 1.0,
+      "confidence": "inferred",
+      "warning": "Left/right assignment was wrong in older GuzziDiag builds - verify which cylinder actually clicks before trusting it."
+    },
+    {
+      "key": "fuel_pump",
+      "name": "Fuel pump relay",
+      "local_id": 5,
+      "group": "relay",
+      "max_pulse_s": 3.0,
+      "confidence": "inferred",
+      "warning": "Pressurises the fuel rail. Check for leaks before and after."
+    }
+  ],
+  "sources": [
+    "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
+    "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
+    "ISO 14230-2 and ISO 14230-3"
+  ],
+  "parameters": [],
+  "routines": []
+}

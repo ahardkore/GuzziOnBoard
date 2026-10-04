@@ -1,0 +1,699 @@
+"""ECU memory reading and programming.
+
+This is the most dangerous code in the project, so it is also the most
+defensive. The order of operations is not negotiable:
+
+    identify -> backup -> verify backup by re-reading -> validate new image
+    -> arm safety gate -> erase -> transfer -> program -> verify by re-reading
+
+A write that cannot be verified is reported as a failure even if the ECU said
+"ok", and a failed transfer leaves a resumable checkpoint on disk plus a
+recovery procedure in the session log.
+
+Two wire protocols are supported, selected per ECU family by the catalog:
+
+``read_memory_by_address``
+    The generic KWP2000 path: ``23 <addr> <size>`` to read, ``3D`` to write.
+
+``iaw_transfer``
+    What the IAW 5AM actually does, taken from a published 5am_util transcript:
+
+        -> 10 85                StartDiagnosticSession, programming session
+        -> 1A 80                ReadEcuIdentification (hardware check)
+        -> 10 0C 0C 09          session + baud switch; tester address becomes 0x01
+        -> 27 01                SecurityAccess requestSeed  -> 67 01 <4 byte seed>
+        -> 27 02 <4 byte key>   sendKey                     -> 67 02
+        -> 36 11 00 FE 02 01 00 TransferData, setup         -> 76 11 02
+        -> 36 21 <bank> <addr16> <len>   read block         -> 76 21 <addr16> <len16> <data>
+
+    The readable region observed on a 5AM runs from 0x4000 to 0x50000; the
+    bootloader below 0x4000 is not reachable this way.
+"""
+from __future__ import annotations
+
+import json
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Callable
+
+from .catalog import EcuProfile
+from .firmware import (
+    FirmwareImage,
+    IncompatibleImage,
+    checksums,
+    summarise_findings,
+)
+from .protocol.kwp2000 import NegativeResponse, ProtocolError, Service
+from .safety import Decision, Risk, SafetyGate, SafetyViolation
+from .security import SecurityUnavailable, best_provider
+
+#: Where backups and checkpoints live.
+DEFAULT_IMAGE_DIR = Path.home() / ".guzzionboard" / "images"
+
+
+class ProgrammingError(Exception):
+    pass
+
+
+class VerificationFailed(ProgrammingError):
+    """The ECU does not contain what we just wrote. Do not power it down."""
+
+
+@dataclass
+class Progress:
+    phase: str
+    done: int = 0
+    total: int = 0
+    message: str = ""
+    started: float = field(default_factory=time.time)
+
+    @property
+    def fraction(self) -> float:
+        return (self.done / self.total) if self.total else 0.0
+
+    @property
+    def eta_s(self) -> float:
+        elapsed = time.time() - self.started
+        if not self.done or not self.total:
+            return 0.0
+        return max(0.0, elapsed * (self.total - self.done) / self.done)
+
+    def as_dict(self) -> dict:
+        return {
+            "phase": self.phase, "done": self.done, "total": self.total,
+            "fraction": round(self.fraction, 4), "eta_s": round(self.eta_s),
+            "message": self.message,
+        }
+
+
+ProgressFn = Callable[[Progress], None]
+
+
+@dataclass
+class Region:
+    """A readable/writable area of ECU memory."""
+
+    name: str
+    start: int
+    size: int
+    block: int = 0x80
+    writable: bool = False
+    addr_bytes: int = 3
+    expect_vector_table: bool = False
+    note: str = ""
+
+    @classmethod
+    def from_catalog(cls, name: str, spec: dict) -> "Region":
+        return cls(
+            name=name,
+            start=int(spec.get("start", 0)),
+            size=int(spec.get("size", 0)),
+            block=int(spec.get("block", 0x80)),
+            writable=bool(spec.get("writable", False)),
+            addr_bytes=int(spec.get("addr_bytes", 3)),
+            expect_vector_table=bool(spec.get("expect_vector_table", False)),
+            note=spec.get("note", ""),
+        )
+
+    def as_dict(self) -> dict:
+        return {
+            "name": self.name, "start": self.start, "size": self.size,
+            "block": self.block, "writable": self.writable, "note": self.note,
+        }
+
+
+class ProgrammingService:
+    """Memory operations on one connected ECU.
+
+    Takes a live :class:`~guzzionboard.diagnostics.DiagnosticsService` so it
+    reuses the same session, safety gate and session log.
+    """
+
+    def __init__(self, diagnostics, *, image_dir: Path | str = DEFAULT_IMAGE_DIR):
+        self.diag = diagnostics
+        self.profile: EcuProfile = diagnostics.profile
+        self.gate: SafetyGate = diagnostics.gate
+        self.log = diagnostics.log
+        self.image_dir = Path(image_dir)
+        self.unlocked = False
+        #: Explicit provider override; otherwise the registry is consulted.
+        self.key_provider = None
+        self.progress: Progress | None = None
+        self._progress_fn: ProgressFn | None = None
+
+    # -- catalog plumbing -------------------------------------------------
+    @property
+    def spec(self) -> dict:
+        return (self.profile.memory or {}).get("programming", {})
+
+    def regions(self) -> dict[str, Region]:
+        raw = (self.profile.memory or {}).get("regions", {})
+        return {name: Region.from_catalog(name, s) for name, s in raw.items()}
+
+    def region(self, name: str) -> Region:
+        try:
+            return self.regions()[name]
+        except KeyError:
+            raise ProgrammingError(
+                f"{self.profile.family} has no '{name}' region in the catalog"
+            ) from None
+
+    def capabilities(self) -> dict:
+        memory = self.profile.memory or {}
+        regions = self.regions()
+        return {
+            "ecu": self.profile.id,
+            "family": self.profile.family,
+            "protocol": self.spec.get("protocol", "none"),
+            "regions": {n: r.as_dict() for n, r in regions.items()},
+            "read_supported": bool(memory.get("read_supported")),
+            "write_supported": bool(memory.get("write_supported")),
+            "write_blocked_reason": memory.get("write_blocked_reason", ""),
+            "security_required": bool(self.spec.get("security", {}).get("required")),
+            "security_available": self._security_available(),
+            "hardware_note": memory.get("hardware_note", ""),
+            "estimated_read_minutes": memory.get("approx_read_minutes"),
+        }
+
+    def _security_available(self) -> bool:
+        if not self.spec.get("security", {}).get("required"):
+            return True
+        if self.key_provider is not None:
+            return True
+        try:
+            best_provider(self.profile.id)
+            return True
+        except SecurityUnavailable:
+            return False
+
+    # -- progress ---------------------------------------------------------
+    def _emit(self, phase: str, done: int, total: int, message: str = "") -> None:
+        if self.progress is None or self.progress.phase != phase:
+            self.progress = Progress(phase=phase, total=total)
+        self.progress.done = done
+        self.progress.total = total
+        self.progress.message = message
+        if self._progress_fn:
+            self._progress_fn(self.progress)
+
+    # -- session ----------------------------------------------------------
+    def enter_programming_session(self) -> dict:
+        """Bring the ECU into the session that allows memory access."""
+        session = self.diag._require()
+        spec = self.spec
+        steps: list[dict] = []
+
+        want = spec.get("session")
+        if want is not None:
+            frame = session.try_request([Service.START_DIAGNOSTIC_SESSION, want])
+            steps.append(
+                {"step": f"StartDiagnosticSession 0x{want:02X}",
+                 "ok": frame is not None,
+                 "response": frame.hex() if frame else "rejected"}
+            )
+            if frame is None:
+                raise ProgrammingError(
+                    f"{self.profile.family} refused diagnostic session "
+                    f"0x{want:02X}. On most IAW ECUs this means the ignition is "
+                    "off, the engine is running, or the ECU is not in a state "
+                    "that permits programming."
+                )
+
+        baud = spec.get("baud_switch")
+        if baud:
+            payload = [Service.START_DIAGNOSTIC_SESSION, baud["session"], *baud.get("params", [])]
+            frame = session.try_request(payload)
+            steps.append(
+                {"step": "baud switch", "ok": frame is not None,
+                 "response": frame.hex() if frame else "rejected"}
+            )
+            if frame is not None and "tester_address" in baud:
+                # The 5AM transcript shows the tester address becoming 0x01
+                # after the switch; everything afterwards uses the new pair.
+                session.source = baud["tester_address"]
+                steps.append(
+                    {"step": f"tester address -> 0x{baud['tester_address']:02X}",
+                     "ok": True, "response": ""}
+                )
+
+        self.log.action("programming_session", {"steps": steps})
+        return {"steps": steps}
+
+    def unlock(self, *, allow_unverified: bool = False) -> dict:
+        """SecurityAccess seed/key exchange."""
+        spec = self.spec.get("security", {})
+        if not spec.get("required"):
+            self.unlocked = True
+            return {"unlocked": True, "method": "not required"}
+
+        session = self.diag._require()
+        level = spec.get("level", 0x01)
+        provider = self.key_provider or best_provider(
+            self.profile.id, allow_unverified=allow_unverified
+        )
+
+        seed_frame = session.request([Service.SECURITY_ACCESS, level])
+        seed = bytes(seed_frame.data[1:])
+        self.log.action(
+            "security_seed",
+            {"level": level, "seed": seed.hex(" "), "provider": provider.name},
+        )
+        if not any(seed):
+            self.unlocked = True
+            return {"unlocked": True, "method": "already unlocked"}
+
+        key = provider(seed)
+        try:
+            session.request([Service.SECURITY_ACCESS, level + 1, *key])
+        except NegativeResponse as exc:
+            self.log.error("security_key", f"{provider.name}: {exc}")
+            raise ProgrammingError(
+                f"SecurityAccess rejected the key from '{provider.name}' "
+                f"({exc}). This project ships no verified key algorithm for "
+                f"{self.profile.family}; supply one as a plugin. Do not retry "
+                "repeatedly - ECUs lock out after a few failures."
+            ) from exc
+
+        self.unlocked = True
+        self.log.action(
+            "security_unlocked", {"provider": provider.name, "verified": provider.verified}
+        )
+        return {
+            "unlocked": True, "method": provider.name, "verified": provider.verified,
+            "seed": seed.hex(" "), "key": key.hex(" "),
+        }
+
+    # -- reading ----------------------------------------------------------
+    def read_region(
+        self,
+        region_name: str = "flash",
+        *,
+        progress: ProgressFn | None = None,
+        allow_unverified_key: bool = False,
+    ) -> FirmwareImage:
+        """Read a whole region into a :class:`FirmwareImage`."""
+        self._progress_fn = progress
+        memory = self.profile.memory or {}
+        if not memory.get("read_supported"):
+            raise ProgrammingError(
+                f"{self.profile.family}: reading is not supported by this build "
+                f"({memory.get('write_blocked_reason', 'no verified read path')})"
+            )
+        if not self.diag.identity:
+            raise ProgrammingError("identify the ECU before reading its memory")
+
+        region = self.region(region_name)
+        if region.size <= 0:
+            raise ProgrammingError(
+                f"the geometry of the '{region_name}' region on "
+                f"{self.profile.family} has never been captured, so this build "
+                "does not know how much to read or from where. "
+                f"{region.note}".strip()
+            )
+        self.enter_programming_session()
+        if self.spec.get("security", {}).get("required"):
+            self.unlock(allow_unverified=allow_unverified_key)
+
+        protocol = self.spec.get("protocol", "read_memory_by_address")
+        reader = {
+            "read_memory_by_address": self._read_by_address,
+            "iaw_transfer": self._read_by_transfer,
+        }.get(protocol)
+        if reader is None:
+            raise ProgrammingError(f"unknown programming protocol {protocol!r}")
+
+        started = time.time()
+        data = reader(region)
+        image = FirmwareImage(
+            data=data,
+            ecu_id=self.profile.id,
+            region=region_name,
+            source="read",
+            identity=dict(self.diag.identity.fields),
+            meta={
+                "protocol": protocol,
+                "duration_s": round(time.time() - started, 1),
+                "region": region.as_dict(),
+            },
+        )
+        self.log.action(
+            "memory_read_complete",
+            {"region": region_name, "size": image.size,
+             "sha256": image.sha256, "duration_s": image.meta["duration_s"]},
+        )
+        return image
+
+    def _read_by_address(self, region: Region) -> bytearray:
+        session = self.diag._require()
+        out = bytearray()
+        address = region.start
+        while len(out) < region.size:
+            chunk = min(region.block, region.size - len(out))
+            out += session.read_memory_by_address(
+                address, chunk, addr_bytes=region.addr_bytes
+            )
+            address += chunk
+            self.diag._touch()
+            self._emit("read", len(out), region.size, f"0x{address:06X}")
+        return out
+
+    def _read_by_transfer(self, region: Region) -> bytearray:
+        """The IAW ``36 11`` setup / ``36 21`` block-read path."""
+        session = self.diag._require()
+        setup = self.spec.get("read", {}).get("setup")
+        if setup:
+            session.write_guard = self.gate.session_guard(
+                {Service.TRANSFER_DATA}, purpose="read"
+            )
+            try:
+                session.request([Service.TRANSFER_DATA, *setup])
+            finally:
+                session.write_guard = self.gate.session_guard()
+
+        out = bytearray()
+        address = region.start
+        subfn = self.spec.get("read", {}).get("block_subfn", 0x21)
+
+        session.write_guard = self.gate.session_guard(
+            {Service.TRANSFER_DATA}, purpose="read"
+        )
+        try:
+            while len(out) < region.size:
+                chunk = min(region.block, region.size - len(out))
+                bank = (address >> 16) & 0xFF
+                frame = session.request(
+                    [Service.TRANSFER_DATA, subfn, bank,
+                     (address >> 8) & 0xFF, address & 0xFF, chunk]
+                )
+                # 76 <subfn> <addr16> <len16> <data...>
+                body = frame.data[1:]
+                if len(body) < 4:
+                    raise ProtocolError(
+                        f"short block response at 0x{address:06X}: {frame.hex()}"
+                    )
+                payload = body[4:]
+                if not payload:
+                    raise ProtocolError(f"empty block at 0x{address:06X}")
+                out += payload
+                address += len(payload)
+                self.diag._touch()
+                self._emit("read", len(out), region.size, f"0x{address:06X}")
+        finally:
+            session.write_guard = self.gate.session_guard()
+        return out
+
+    # -- backup -----------------------------------------------------------
+    def backup(
+        self, region_name: str = "flash", *, progress: ProgressFn | None = None,
+        verify: bool = True, allow_unverified_key: bool = False,
+    ) -> dict:
+        """Read a region twice and only trust it if both reads agree.
+
+        A single read of a flash over a noisy K-Line is not a backup. Two
+        identical reads is the cheapest honest verification available.
+        """
+        first = self.read_region(
+            region_name, progress=progress, allow_unverified_key=allow_unverified_key
+        )
+        result = {"image": first, "verified": False, "attempts": 1}
+
+        if verify:
+            second = self.read_region(
+                region_name, progress=progress,
+                allow_unverified_key=allow_unverified_key,
+            )
+            result["attempts"] = 2
+            if first.matches(second):
+                result["verified"] = True
+            else:
+                diff = first.diff(second)
+                self.log.error(
+                    "backup_verify",
+                    f"two reads disagree in {diff['changed_bytes']} bytes",
+                )
+                result["diff"] = diff
+                raise VerificationFailed(
+                    f"Two consecutive reads of {region_name} differ in "
+                    f"{diff['changed_bytes']} bytes. The link is unreliable - "
+                    "check the adapter, the ground and the battery before "
+                    "trusting any backup."
+                )
+
+        stamp = time.strftime("%Y%m%d-%H%M%S")
+        name = f"{self.profile.id}-{region_name}-{stamp}.bin"
+        path = first.save(self.image_dir / name)
+
+        self.gate.state.verified_backup = bool(result["verified"])
+        self.gate.state.backup_path = str(path)
+
+        self.log.action(
+            "backup",
+            {"region": region_name, "path": str(path), "sha256": first.sha256,
+             "verified": result["verified"]},
+        )
+        return {
+            "path": str(path),
+            "verified": result["verified"],
+            "attempts": result["attempts"],
+            "describe": first.describe(),
+        }
+
+    # -- validation -------------------------------------------------------
+    def validate(self, image: FirmwareImage, region_name: str = "flash") -> dict:
+        identity = dict(self.diag.identity.fields) if self.diag.identity else None
+        findings = image.validate_for(
+            self.profile, region=region_name, target_identity=identity
+        )
+        summary = summarise_findings(findings)
+        summary["image"] = image.describe()
+        self.log.action("image_validate", {"region": region_name, "ok": summary["ok"]})
+        return summary
+
+    def check_write(self, region_name: str = "flash") -> Decision:
+        decision = self.gate.evaluate(
+            f"write:{region_name}", Risk.IRREVERSIBLE,
+            profile=self.profile, capability="memory_write",
+        )
+        self.log.decision(decision.as_dict())
+        return decision
+
+    # -- writing ----------------------------------------------------------
+    def write_region(
+        self,
+        image: FirmwareImage,
+        token: str,
+        region_name: str = "flash",
+        *,
+        progress: ProgressFn | None = None,
+        allow_unverified_key: bool = False,
+    ) -> dict:
+        """Erase, transfer, program and verify. Every step can refuse.
+
+        This will not run in the shipped configuration: the safety gate's
+        ``programming-enabled`` check is false unless the build explicitly
+        enables it, and no catalog entry declares ``memory_write``.
+        """
+        self._progress_fn = progress
+        memory = self.profile.memory or {}
+        region = self.region(region_name)
+
+        # 1. policy
+        if not memory.get("write_supported"):
+            raise SafetyViolation(self.check_write(region_name))
+        if not region.writable:
+            raise ProgrammingError(f"the {region_name} region is not writable")
+        decision = self.check_write(region_name)
+        if not decision.allowed:
+            raise SafetyViolation(decision)
+        self.gate.consume(token, f"write:{region_name}")
+
+        # 2. structure
+        validation = self.validate(image, region_name)
+        if not validation["ok"]:
+            raise IncompatibleImage(
+                "image failed validation: "
+                + "; ".join(f["detail"] for f in validation["fatal"])
+            )
+
+        # 3. backup must exist and be verified
+        if not self.gate.state.verified_backup:
+            raise ProgrammingError(
+                "no verified backup for this ECU. Take one and let it verify "
+                "before writing anything."
+            )
+
+        checkpoint = self._checkpoint_path(region_name)
+        self._write_checkpoint(
+            checkpoint,
+            {"phase": "starting", "region": region_name,
+             "image_sha256": image.sha256,
+             "backup": self.gate.state.backup_path,
+             "identity": dict(self.diag.identity.fields) if self.diag.identity else {}},
+        )
+
+        try:
+            self.enter_programming_session()
+            if self.spec.get("security", {}).get("required"):
+                self.unlock(allow_unverified=allow_unverified_key)
+
+            session = self.diag._require()
+            armed = {
+                Service.REQUEST_DOWNLOAD,
+                Service.TRANSFER_DATA,
+                Service.REQUEST_TRANSFER_EXIT,
+                Service.WRITE_MEMORY_BY_ADDRESS,
+            }
+            session.write_guard = self.gate.session_guard(armed)
+            try:
+                self._erase(region)
+                self._write_checkpoint(checkpoint, {"phase": "erased"})
+                self._transfer(image, region)
+                self._write_checkpoint(checkpoint, {"phase": "transferred"})
+                self._finalise(region)
+            finally:
+                session.write_guard = self.gate.session_guard()
+
+            # 4. verify by reading it back
+            self._emit("verify", 0, region.size, "reading back")
+            readback = self.read_region(region_name, progress=progress)
+            if not readback.matches(image):
+                diff = readback.diff(image)
+                self._write_checkpoint(
+                    checkpoint, {"phase": "verify_failed", "diff": diff}
+                )
+                raise VerificationFailed(
+                    f"Write verification FAILED: {diff['changed_bytes']} bytes "
+                    "differ from what was sent. DO NOT power the ECU down. "
+                    f"Retry the write, or restore {self.gate.state.backup_path}."
+                )
+
+            self._write_checkpoint(checkpoint, {"phase": "complete"})
+            self.log.action(
+                "write_complete",
+                {"region": region_name, "sha256": image.sha256, "verified": True},
+            )
+            return {
+                "ok": True, "region": region_name, "verified": True,
+                "sha256": image.sha256, "bytes": image.size,
+            }
+
+        except VerificationFailed as exc:
+            # The phase is already recorded and is more specific than "failed".
+            self._write_checkpoint(checkpoint, {"error": str(exc)})
+            self.log.error("write", str(exc))
+            raise
+        except Exception as exc:
+            self._write_checkpoint(checkpoint, {"phase": "failed", "error": str(exc)})
+            self.log.error("write", str(exc))
+            raise
+
+    def _erase(self, region: Region) -> None:
+        session = self.diag._require()
+        self._emit("erase", 0, 1, "erasing")
+        erase = self.spec.get("erase")
+        if erase:
+            session.request(list(erase))
+        else:
+            session.request(
+                [Service.REQUEST_DOWNLOAD,
+                 *region.start.to_bytes(region.addr_bytes, "big"),
+                 0x00,
+                 *region.size.to_bytes(region.addr_bytes, "big")]
+            )
+        self.diag._touch()
+        self._emit("erase", 1, 1, "erased")
+
+    def _transfer(self, image: FirmwareImage, region: Region) -> None:
+        session = self.diag._require()
+        block = self.spec.get("write", {}).get("block", region.block)
+        subfn = self.spec.get("write", {}).get("block_subfn")
+        sent = 0
+        address = region.start
+        while sent < image.size:
+            chunk = image.data[sent : sent + block]
+            if subfn is None:
+                session.request([Service.TRANSFER_DATA, *chunk])
+            else:
+                bank = (address >> 16) & 0xFF
+                session.request(
+                    [Service.TRANSFER_DATA, subfn, bank,
+                     (address >> 8) & 0xFF, address & 0xFF, len(chunk), *chunk]
+                )
+            sent += len(chunk)
+            address += len(chunk)
+            self.diag._touch()
+            self._emit("write", sent, image.size, f"0x{address:06X}")
+
+    def _finalise(self, region: Region) -> None:
+        session = self.diag._require()
+        self._emit("program", 0, 1, "programming")
+        session.try_request([Service.REQUEST_TRANSFER_EXIT])
+        self.diag._touch()
+        self._emit("program", 1, 1, "programmed")
+
+    # -- checkpoints ------------------------------------------------------
+    def _checkpoint_path(self, region_name: str) -> Path:
+        self.image_dir.mkdir(parents=True, exist_ok=True)
+        return self.image_dir / f"{self.profile.id}-{region_name}-checkpoint.json"
+
+    def _write_checkpoint(self, path: Path, data: dict) -> None:
+        existing = {}
+        if path.is_file():
+            try:
+                existing = json.loads(path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                existing = {}
+        existing.update(data)
+        existing["updated_at"] = time.time()
+        path.write_text(json.dumps(existing, indent=2, default=str), encoding="utf-8")
+
+    def pending_checkpoint(self, region_name: str = "flash") -> dict | None:
+        """An interrupted write, if there is one."""
+        path = self._checkpoint_path(region_name)
+        if not path.is_file():
+            return None
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return None
+        if data.get("phase") in ("complete", None):
+            return None
+        data["recovery"] = self.recovery_advice(data.get("phase", ""))
+        return data
+
+    @staticmethod
+    def recovery_advice(phase: str) -> list[str]:
+        common = [
+            "Keep the ignition on and the ECU powered. Do not disconnect anything.",
+            "Put the battery on a charger before retrying.",
+        ]
+        by_phase = {
+            "starting": ["Nothing was written. It is safe to retry."],
+            "erased": [
+                "The region was erased but not written. The ECU will not run.",
+                "Retry the write with the same image, or restore the backup.",
+            ],
+            "transferred": [
+                "Data was transferred but the programming step did not confirm.",
+                "Retry the write; the ECU should accept a repeat transfer.",
+            ],
+            "verify_failed": [
+                "The ECU does not contain what was sent.",
+                "Retry the write. If it fails again, restore the backup image.",
+            ],
+            "failed": [
+                "The write aborted. Restore the backup image recorded in this "
+                "checkpoint before riding the motorcycle.",
+            ],
+        }
+        return common + by_phase.get(phase, ["Restore the backup image."])
+
+    # -- EEPROM convenience ----------------------------------------------
+    def read_eeprom(self, **kw) -> FirmwareImage:
+        """EEPROM holds the learned values: TPS zero, CO trim, fault memory.
+
+        Far smaller and far less dangerous than flash, and the thing most
+        owners actually want to inspect or move between ECUs.
+        """
+        return self.read_region("eeprom", **kw)

@@ -1,0 +1,78 @@
+{
+  "id": "16m",
+  "family": "IAW 16M",
+  "display_name": "Magneti Marelli IAW 16M",
+  "transport": "kline",
+  "confidence": "documented",
+  "years": "1996-2001",
+  "notes": "Sport 1100, V10 Centauro, Daytona RS. Early generation - expect 5-baud slow init and a reduced service set. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only.",
+  "kline": {
+    "baud": 10400,
+    "init": "slow",
+    "address": 51,
+    "addressed": true,
+    "tester_address": 241,
+    "ecu_address": 16,
+    "inter_byte_delay": 0.005
+  },
+  "session": {
+    "access_timing": false,
+    "diagnostic_session": null,
+    "lazy_session": true,
+    "tester_present_interval": 2.0
+  },
+  "identification": {
+    "service": 26,
+    "option": 128,
+    "fields": [
+      {
+        "name": "Drawing",
+        "offset": 0,
+        "length": 11
+      },
+      {
+        "name": "Hardware",
+        "offset": 11,
+        "length": 11
+      },
+      {
+        "name": "Omologation",
+        "offset": 22,
+        "length": 11
+      },
+      {
+        "name": "Software",
+        "offset": 33,
+        "length": 11
+      },
+      {
+        "name": "Tester",
+        "offset": 44,
+        "length": 11
+      }
+    ]
+  },
+  "memory": {
+    "image_size": null,
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No reader or writer exists for this family anywhere in the GuzziDiag toolchain, and no memory-access sequence has been captured. These are early-1990s ECUs whose maps generally live in a socketed EPROM, so the practical route is to pull the chip and use an EPROM programmer.",
+    "security_access": false,
+    "regions": {}
+  },
+  "capabilities": [
+    "discover",
+    "dtc_clear",
+    "dtc_read",
+    "identify",
+    "live"
+  ],
+  "sources": [
+    "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
+    "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
+    "ISO 14230-2 and ISO 14230-3"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}

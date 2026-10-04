@@ -1,0 +1,122 @@
+{
+  "id": "miug3",
+  "family": "Marelli MIU G3",
+  "display_name": "Magneti Marelli MIU G3",
+  "transport": "kline",
+  "confidence": "documented",
+  "years": "2012-2016",
+  "notes": "Single-throttle-body V7 II, V9 and the 2012-on V7. Uses throttle self-learning rather than a TPS reset, and has no CO trim. Target throttle readings: 0.9-1.0 degrees for V7/V7 III/V9, 1.0-1.2 for V7 II. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only.",
+  "kline": {
+    "baud": 10400,
+    "init": "fast",
+    "address": 51,
+    "addressed": true,
+    "tester_address": 241,
+    "ecu_address": 16,
+    "inter_byte_delay": 0.005
+  },
+  "session": {
+    "access_timing": true,
+    "diagnostic_session": 129,
+    "lazy_session": true,
+    "tester_present_interval": 2.0
+  },
+  "identification": {
+    "service": 26,
+    "option": 128,
+    "fields": [
+      {
+        "name": "Drawing",
+        "offset": 0,
+        "length": 11
+      },
+      {
+        "name": "Hardware",
+        "offset": 11,
+        "length": 11
+      },
+      {
+        "name": "Omologation",
+        "offset": 22,
+        "length": 11
+      },
+      {
+        "name": "Software",
+        "offset": 33,
+        "length": 11
+      },
+      {
+        "name": "Tester",
+        "offset": 44,
+        "length": 11
+      }
+    ]
+  },
+  "memory": {
+    "image_size": null,
+    "read_supported": true,
+    "write_supported": false,
+    "write_blocked_reason": "Handled by IAWMIUG3Reader/Writer; no verified fixtures in this project.",
+    "security_access": true,
+    "regions": {
+      "flash": {
+        "start": 0,
+        "size": 0,
+        "block": 64,
+        "writable": false,
+        "expect_vector_table": true,
+        "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
+      },
+      "eeprom": {
+        "start": 0,
+        "size": 0,
+        "block": 32,
+        "writable": false,
+        "note": "TPS zero, CO trim, fault memory. Geometry not captured."
+      }
+    },
+    "programming": {
+      "protocol": "iaw_transfer",
+      "confidence": "inferred",
+      "session": 133,
+      "security": {
+        "required": true,
+        "level": 1,
+        "seed_bytes": 4
+      },
+      "read": {
+        "block_subfn": 33
+      },
+      "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
+    }
+  },
+  "capabilities": [
+    "discover",
+    "dtc_clear",
+    "dtc_read",
+    "eeprom_read",
+    "identify",
+    "live",
+    "memory_read",
+    "throttle_learning"
+  ],
+  "routines": [
+    {
+      "key": "throttle_learning",
+      "name": "Throttle self-learning",
+      "service": 49,
+      "local_id": 33,
+      "description": "MIU G3 equivalent of the TPS reset. Ignition on, engine off.",
+      "requires_engine_off": true,
+      "confidence": "inferred",
+      "follow_up": "Check the throttle angle lands in the model's target band (0.9-1.2 degrees), then re-check idle."
+    }
+  ],
+  "sources": [
+    "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
+    "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
+    "ISO 14230-2 and ISO 14230-3"
+  ],
+  "parameters": [],
+  "actuators": []
+}

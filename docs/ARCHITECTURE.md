@@ -1,67 +1,221 @@
-# Architecture and safety boundary
+# Architecture
 
-## Core domains
-
-### Transport
-
-A transport moves framed bytes and knows nothing about screens or motorcycle semantics.
+Each layer has one job and one rule it is not allowed to break. This document
+describes what is implemented, not what is planned.
 
 ```text
+web/                               UI — no framework, no build step
+  │  fetch() JSON
+  ▼
+guzzionboard/server.py             local HTTP API + static files
+  ▼
+guzzionboard/workstation.py        selection, session lifecycle, reports
+  ▼
+guzzionboard/diagnostics.py        identify / live / DTC / actuators / discovery
+  ├── safety.py                    preconditions, tokens, audit
+  ├── catalog/                     ECU + vehicle definitions (JSON)
+  ├── protocol/kwp2000.py          framing, services, NRC, session
+  ├── protocol/isotp.py            ISO 15765-2 segmentation
+  └── transports/                  simulator.py | kline.py | can.py
+```
+
+---
+
+## Transports
+
+**Rule: a transport moves framed bytes and knows nothing about motorcycles.**
+
+```python
 Transport.open() -> Connection
-Connection.request(frame, timeout) -> response
+Transport.initialize(connection, method=...) -> InitResult
+Connection.write(bytes)
+Connection.read_frame(timeout) -> bytes     # b"" on timeout
 Connection.close()
 ```
 
-Initial implementations:
+Three implementations:
 
-1. `SimulatorTransport` — deterministic values, faults, and failure injection.
-2. `SerialKLineTransport` — FTDI/USB serial, after capture fixtures exist.
-3. `CanTransport` — SocketCAN and supported USB CAN adapters.
+| | File | State |
+|---|---|---|
+| `SimulatorTransport` | `simulator.py` | Complete, drives the test suite |
+| `KLineTransport` | `kline.py` | Written, untested on hardware |
+| `CanTransport` | `can.py` | Written, identifiers unconfirmed |
 
-### ECU protocol
+`pyserial` and `python-can` are imported lazily, so the simulator and the tests
+run on a machine with no drivers installed. A missing driver raises
+`TransportUnavailable` with the install command in the message.
 
-Each ECU family is a versioned adapter with explicit capabilities:
+`read_frame` uses the KWP2000 length field rather than a timeout heuristic, so
+a frame is consumed exactly, not guessed at.
 
-- identification;
-- live-data polling and decoding;
-- DTC read/clear;
-- actuator tests;
-- adaptations/service routines;
-- memory read/write (disabled unless the adapter declares every safety precondition).
+### The simulator is a transport, not a mock
 
-Raw frames, decoded values, units, scaling, and provenance should be retained in a session log. Never silently interpret an unknown byte as a value.
+This is the most important design decision in the project. `SimulatedEcu`
+accepts **encoded frames**, validates their checksums, dispatches on the real
+service IDs, answers the catalog's local identifiers through a small physical
+engine model, and returns genuine negative response codes — including
+reproducing the IAW 5AM's rejection of session `0x85`.
 
-### Capability catalog
+It can also inject failures: dropped responses, corrupted checksums, injected
+`responsePending`, and added latency. The error paths are therefore tested, not
+hoped for.
 
-Vehicle definitions should be data-driven and versioned. A definition includes connector/transport, ECU family, supported operations, request/response fixtures, value decoders, DTC descriptions, and required preconditions. Unknown ECU software versions must fall back to read-only identification.
+Consequence: simulated and real sessions run **identical** code from
+`KWP2000Session` upwards.
 
-## Safety rules for write operations
+---
 
-The UI is not allowed to call a transport write directly. A write must pass a safety gate that:
+## Protocol
 
-1. confirms motorcycle and ECU identification;
-2. confirms stable external power and an approved adapter;
-3. reads the target region and verifies a user-saved backup;
-4. validates the image/checksum and exact ECU compatibility;
-5. requires an explicit typed confirmation;
-6. records operator, time, adapter, ECU identity, checksums, and every frame;
-7. verifies the written contents and reports recovery instructions on interruption.
+**Rule: never silently interpret an unknown byte as a value.**
 
-Until those rules are implemented and tested with hardware, programming is a visible roadmap item only—not a feature.
+`protocol/kwp2000.py` owns framing, checksums, the service enum, negative
+response codes, DTC decoding and the stateful session. It is transport
+agnostic and has no imports from the layers above.
 
-## Testing strategy
+`KWP2000Session` handles request/response correlation, verifies that a response
+answers the request that was sent, retries `responsePending`, and raises rather
+than returning a plausible-looking wrong number. Every frame is handed to an
+`on_frame` callback in both directions for the session log.
 
-- unit tests for every decoder using golden request/response fixtures;
-- property tests for frame checksums and bounds handling;
-- simulator failure modes: timeout, malformed frame, low voltage, wrong ECU;
-- replay tests from recorded sessions;
-- hardware-in-the-loop tests on a bench ECU with current-limited power;
-- UI tests that assert destructive actions are unavailable in simulator/read-only mode.
+`protocol/isotp.py` implements ISO 15765-2 segmentation and reassembly with no
+CAN library import, so it is unit testable on its own.
 
-## Proposed milestones
+---
 
-1. **Prototype (current):** simulator dashboard and safe interaction model.
-2. **Core:** typed protocol/transport packages, session storage, fixtures, report export.
-3. **Read-only hardware:** port detection, adapter diagnostics, ECU identity, live values, DTCs.
-4. **Service:** actuator tests and resets, each gated by ECU-specific preconditions.
-5. **Programming:** only after backup, checksum, recovery, and bench validation are complete.
+## Capability catalog
+
+**Rule: adding a motorcycle is a data change, not a code change.**
+
+`catalog/ecus/*.json` — one versioned document per ECU family holding the
+transport parameters, session bring-up, identification layout, live parameters
+(local id, offset, length, endianness, sign, scale, bias, state enums), the
+actuator map, routines, memory limits, declared capabilities and **sources**.
+
+`catalog/vehicles.json` — 81 model variants mapped to families with year
+windows, displacement, TPS type and per-model warnings. Guzzi changed ECUs as
+running changes, so overlapping entries are expected; `Catalog.resolve` prefers
+the narrower window and `Catalog.ambiguous` lets the UI say so out loud.
+
+`catalog/dtc_sae.json` — shared SAE J2012 table merged into every family and
+overridable per family.
+
+Nothing in the protocol or UI layers may hardcode a local identifier, a scaling
+factor or an actuator number. Tests enforce uniqueness of identifiers, presence
+of provenance, presence of warnings on dangerous actuators, and that no family
+enables memory writing.
+
+### Confidence gating
+
+Every definition carries a confidence level. `EcuProfile.supports()` returns
+`False` for control capabilities below `documented`, so an `inferred` family
+degrades to identification, DTCs and the read-only discovery sweep. This is
+asserted in `tests/test_catalog.py`, not merely documented.
+
+---
+
+## Safety
+
+**Rule: refusing has to be the easy path.**
+
+Three independent layers:
+
+1. **Capability + confidence** in the catalog (above).
+2. **`SafetyGate.evaluate()`** returns a `Decision` listing every named check
+   with pass/fail and a human-readable reason. Checks include mode, declared
+   capability, definition confidence, ECU identified, engine state *observed*,
+   battery voltage, and checklist acceptance. An allowed decision mints a
+   single-use token bound to that operation and expiring after 120 s.
+3. **`SafetyGate.session_guard()`** is installed as the KWP2000 session's
+   `write_guard`. A state-changing service that is not explicitly armed for the
+   current operation never reaches the transport — calling a service method
+   directly does not bypass it. Programming services are blocked even when
+   armed, unless `allow_programming` is set at the build level.
+
+Supporting properties:
+
+- Engine state is only ever set from an observed value
+  (`DiagnosticsService._update_inferred_state`). Unknown is not "probably off".
+- Actuator deadlines are owned by this software, clamped by the catalog, and
+  released on expiry, on disconnect and on teardown, because IAW ECUs have no
+  output timer.
+- Every control decision, allowed or refused, is appended to an audit log that
+  ships in the exported report.
+
+---
+
+## Session recording
+
+**Rule: a decoded value is only trustworthy if the bytes behind it were kept.**
+
+Newline-delimited JSON, one file per session, holding `frame` (raw hex, both
+directions), `sample` (key, local id, raw bytes, decoded value, unit),
+`action`, `safety` and `error` events. Recordings are the input for fixing a
+decoder without owning the bike that produced the fault, and for contributing
+new catalog entries.
+
+Session files are gitignored. They can contain a VIN-adjacent ECU serial.
+
+---
+
+## What is deliberately absent
+
+- **ECU writing / flashing.** No fixtures, no bench-tested recovery, no
+  power-loss handling. Blocked in the catalog, the gate and the frame guard.
+- **Automatic ECU detection by probing.** Guessing a protocol by writing to an
+  unknown bus is how things go wrong; the operator picks, and the catalog warns
+  when a model/year is ambiguous.
+- **A desktop shell.** The HTTP API is the seam a Tauri shell would sit on, but
+  shipping a browser-based tool first keeps the dependency surface at zero.
+
+
+## The memory and programming layer
+
+Added after the project's scope widened from "diagnostics only" to full
+parity with the GuzziDiag toolchain, including its readers, writers and
+EEPROM tools.
+
+```
+guzzionboard/firmware.py      image container, checksums, structural
+                              validation, hardware-compatibility, diffing.
+                              Pure data. Never touches a transport.
+
+guzzionboard/security.py      SecurityAccess key providers: an interface, a
+                              registry, a file-based plugin loader. Ships no
+                              working algorithm for any Guzzi ECU.
+
+guzzionboard/programming.py   the state machine: session -> unlock -> read /
+                              erase -> transfer -> program -> verify, with
+                              progress reporting and on-disk checkpoints.
+
+guzzionboard/adapter.py       pre-flight checks on the interface itself,
+                              including the FTDI latency timer.
+
+guzzionboard/tools.py         standalone calculators and log exporters.
+```
+
+Three rules keep this layer honest.
+
+**Validation is pure.** `firmware.py` imports nothing from the transport or
+diagnostics layers, so an image can be checked without a motorcycle, and the
+checks are trivially unit testable.
+
+**Geometry comes from the catalog, never from a guess.** A region with an
+uncaptured size refuses to be read and says so. The alternative — reading some
+plausible default length — produces a file that looks like a backup and is
+not one.
+
+**Reading and writing are separated at the frame guard.** The IAW families
+read flash with TransferData (0x36), which is nominally a mutating service.
+`SafetyGate.session_guard(..., purpose="read")` permits that specific use
+without the programming opt-in, while still refusing RequestDownload (0x34)
+and WriteMemoryByAddress (0x3D). Without that split, either reads would
+require the write ceremony or writes would inherit the read's permissions.
+
+### Long operations and the HTTP seam
+
+A flash read is twenty to thirty minutes, and a verified backup is two of
+those. `server.JobRunner` runs one memory operation at a time on a background
+thread; the UI polls `/api/memory/progress` for phase, byte counts and an ETA.
+One job at a time is a deliberate constraint: concurrent flash operations on a
+single ECU are never what anybody meant.

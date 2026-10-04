@@ -1,0 +1,821 @@
+{
+  "schema_version": 2,
+  "note": "Model-to-ECU mapping for Moto Guzzi. Guzzi changed ECUs as running changes rather than on model-year boundaries, so overlapping entries are expected and the ECU label on the bike always wins over this table. Every entry carries a confidence level; anything marked 'inferred' has not been confirmed against a real motorcycle.",
+  "sources": [
+    "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
+    "GuzziDiag / IAWDiag ECU list and tutorials (von-der-salierburg.de, wildguzzi.com)",
+    "guzzifan.com ECU and error-code reference"
+  ],
+  "vehicles": [
+    {
+      "model": "Daytona 1000",
+      "year_from": 1992,
+      "year_to": 1997,
+      "ecu": "p8",
+      "displacement": "992",
+      "tps": "PF09",
+      "notes": "Pre-OBD Marelli P8. Identification only.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "Quota 1000",
+      "year_from": 1992,
+      "year_to": 1997,
+      "ecu": "p8",
+      "displacement": "992",
+      "tps": "PF09",
+      "notes": "Pre-OBD Marelli P8. Identification only.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "California III i.e.",
+      "year_from": 1993,
+      "year_to": 1997,
+      "ecu": "p8",
+      "displacement": "1064",
+      "tps": "PF09",
+      "notes": "Pre-OBD Marelli P8.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "California 1100 i.e.",
+      "year_from": 1994,
+      "year_to": 1997,
+      "ecu": "p8",
+      "displacement": "1064",
+      "tps": "PF09/PF3C",
+      "notes": "Early 1100 injection ran P8; later frames moved to 15M.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "Sport 1100 i.e.",
+      "year_from": 1995,
+      "year_to": 1999,
+      "ecu": "16m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Daytona RS",
+      "year_from": 1996,
+      "year_to": 2001,
+      "ecu": "16m",
+      "displacement": "992",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V10 Centauro",
+      "year_from": 1997,
+      "year_to": 2001,
+      "ecu": "16m",
+      "displacement": "992",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California EV",
+      "year_from": 1997,
+      "year_to": 2001,
+      "ecu": "15m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California EV Touring",
+      "year_from": 1997,
+      "year_to": 2001,
+      "ecu": "15m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California Jackal",
+      "year_from": 1997,
+      "year_to": 2001,
+      "ecu": "15m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California Special",
+      "year_from": 1997,
+      "year_to": 2001,
+      "ecu": "15m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California Special Sport",
+      "year_from": 1997,
+      "year_to": 2001,
+      "ecu": "15m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California Stone",
+      "year_from": 1997,
+      "year_to": 2001,
+      "ecu": "15m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California Stone Metal",
+      "year_from": 1997,
+      "year_to": 2001,
+      "ecu": "15m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California Aluminium",
+      "year_from": 1997,
+      "year_to": 2001,
+      "ecu": "15m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California Titanium",
+      "year_from": 1997,
+      "year_to": 2001,
+      "ecu": "15m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Quota 1100 ES",
+      "year_from": 1998,
+      "year_to": 2001,
+      "ecu": "15m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V11 Sport",
+      "year_from": 1999,
+      "year_to": 2002,
+      "ecu": "15m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset. Running change to 15RC during 2002 - check the ECU label.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V11 Sport Naked",
+      "year_from": 2001,
+      "year_to": 2002,
+      "ecu": "15m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V11 Le Mans",
+      "year_from": 2001,
+      "year_to": 2002,
+      "ecu": "15m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset. Running change to 15RC during 2002.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V11 Le Mans Tenni",
+      "year_from": 2001,
+      "year_to": 2002,
+      "ecu": "15m",
+      "displacement": "1064",
+      "tps": "PF3C",
+      "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V11 Sport",
+      "year_from": 2002,
+      "year_to": 2006,
+      "ecu": "15rc",
+      "displacement": "1064",
+      "tps": "PF1C/00",
+      "notes": "Closed loop with a lambda sensor in the crossover. A piggyback fuel module is trimmed back out below ~4000 rpm.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V11 Le Mans",
+      "year_from": 2002,
+      "year_to": 2006,
+      "ecu": "15rc",
+      "displacement": "1064",
+      "tps": "PF1C/00",
+      "notes": "Closed loop (CAT models).",
+      "confidence": "documented"
+    },
+    {
+      "model": "V11 Coppa Italia",
+      "year_from": 2003,
+      "year_to": 2005,
+      "ecu": "15rc",
+      "displacement": "1064",
+      "tps": "PF1C/00",
+      "notes": "",
+      "confidence": "documented"
+    },
+    {
+      "model": "V11 Ballabio",
+      "year_from": 2003,
+      "year_to": 2005,
+      "ecu": "15rc",
+      "displacement": "1064",
+      "tps": "PF1C/00",
+      "notes": "",
+      "confidence": "documented"
+    },
+    {
+      "model": "V11 Cafe Sport",
+      "year_from": 2003,
+      "year_to": 2005,
+      "ecu": "15rc",
+      "displacement": "1064",
+      "tps": "PF1C/00",
+      "notes": "",
+      "confidence": "documented"
+    },
+    {
+      "model": "California EV Touring",
+      "year_from": 2002,
+      "year_to": 2005,
+      "ecu": "15rc",
+      "displacement": "1064",
+      "tps": "PF1C/00",
+      "notes": "Set the TPS manually on 1100 Californias - do not use the electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California Stone",
+      "year_from": 2002,
+      "year_to": 2005,
+      "ecu": "15rc",
+      "displacement": "1064",
+      "tps": "PF1C/00",
+      "notes": "Set the TPS manually on 1100 Californias - do not use the electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California Special Sport",
+      "year_from": 2002,
+      "year_to": 2005,
+      "ecu": "15rc",
+      "displacement": "1064",
+      "tps": "PF1C/00",
+      "notes": "Set the TPS manually on 1100 Californias - do not use the electronic reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California Vintage",
+      "year_from": 2006,
+      "year_to": 2012,
+      "ecu": "15rc",
+      "displacement": "1064",
+      "tps": "PF1C/00",
+      "notes": "Target throttle 3.2-3.6 degrees. Set manually, not electronically.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California Classic",
+      "year_from": 2006,
+      "year_to": 2012,
+      "ecu": "15rc",
+      "displacement": "1064",
+      "tps": "PF1C/00",
+      "notes": "Target throttle 3.2-3.6 degrees. Set manually, not electronically.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Breva 750 i.e.",
+      "year_from": 2003,
+      "year_to": 2012,
+      "ecu": "15rc",
+      "displacement": "744",
+      "tps": "PF1C/00",
+      "notes": "Target throttle about 3.6 degrees.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Nevada Classic 750",
+      "year_from": 2004,
+      "year_to": 2012,
+      "ecu": "15rc",
+      "displacement": "744",
+      "tps": "PF1C/00",
+      "notes": "Target throttle about 3.6 degrees.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Nevada Anniversario 750",
+      "year_from": 2010,
+      "year_to": 2012,
+      "ecu": "15rc",
+      "displacement": "744",
+      "tps": "PF1C/00",
+      "notes": "",
+      "confidence": "documented"
+    },
+    {
+      "model": "V7 Classic",
+      "year_from": 2008,
+      "year_to": 2012,
+      "ecu": "15rc",
+      "displacement": "744",
+      "tps": "PF1C/00",
+      "notes": "Target throttle about 3.6 degrees.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V7 Cafe Classic",
+      "year_from": 2009,
+      "year_to": 2012,
+      "ecu": "15rc",
+      "displacement": "744",
+      "tps": "PF1C/00",
+      "notes": "",
+      "confidence": "documented"
+    },
+    {
+      "model": "V7 Racer",
+      "year_from": 2011,
+      "year_to": 2012,
+      "ecu": "15rc",
+      "displacement": "744",
+      "tps": "PF1C/00",
+      "notes": "",
+      "confidence": "documented"
+    },
+    {
+      "model": "Bellagio 940",
+      "year_from": 2007,
+      "year_to": 2013,
+      "ecu": "15rc",
+      "displacement": "936",
+      "tps": "PF1C/00",
+      "notes": "Target throttle 3.2-3.6 degrees. Never reset the Bellagio TPS electronically.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Breva 850",
+      "year_from": 2006,
+      "year_to": 2011,
+      "ecu": "5am",
+      "displacement": "877",
+      "tps": "PF1C/PF2C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Breva 1100",
+      "year_from": 2005,
+      "year_to": 2011,
+      "ecu": "5am",
+      "displacement": "1064",
+      "tps": "PF1C/PF2C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Breva 1100 ABS",
+      "year_from": 2006,
+      "year_to": 2011,
+      "ecu": "5am",
+      "displacement": "1064",
+      "tps": "PF1C/PF2C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Breva 1200 Sport",
+      "year_from": 2006,
+      "year_to": 2011,
+      "ecu": "5am",
+      "displacement": "1151",
+      "tps": "PF1C/PF2C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Griso 850",
+      "year_from": 2006,
+      "year_to": 2010,
+      "ecu": "5am",
+      "displacement": "877",
+      "tps": "PF1C/PF2C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Griso 1100",
+      "year_from": 2005,
+      "year_to": 2010,
+      "ecu": "5am",
+      "displacement": "1064",
+      "tps": "PF1C/PF2C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Griso 1200 8V",
+      "year_from": 2007,
+      "year_to": 2016,
+      "ecu": "5am",
+      "displacement": "1151",
+      "tps": "PF3C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset. PF3C throttle body: set the TPS manually, never electronically.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Norge 850",
+      "year_from": 2007,
+      "year_to": 2011,
+      "ecu": "5am",
+      "displacement": "877",
+      "tps": "PF1C/PF2C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Norge 1200",
+      "year_from": 2006,
+      "year_to": 2011,
+      "ecu": "5am",
+      "displacement": "1151",
+      "tps": "PF1C/PF2C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Norge 1200 GT 8V",
+      "year_from": 2010,
+      "year_to": 2016,
+      "ecu": "5am",
+      "displacement": "1151",
+      "tps": "PF3C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset. PF3C throttle body: set the TPS manually, never electronically.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Norge 1200 GTL",
+      "year_from": 2010,
+      "year_to": 2016,
+      "ecu": "5am",
+      "displacement": "1151",
+      "tps": "PF3C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset. PF3C throttle body: set the TPS manually, never electronically.",
+      "confidence": "documented"
+    },
+    {
+      "model": "1200 Sport",
+      "year_from": 2006,
+      "year_to": 2013,
+      "ecu": "5am",
+      "displacement": "1151",
+      "tps": "PF1C/PF2C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "1200 Sport 8V",
+      "year_from": 2008,
+      "year_to": 2013,
+      "ecu": "5am",
+      "displacement": "1151",
+      "tps": "PF3C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset. PF3C throttle body: set the TPS manually, never electronically.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Stelvio 1200",
+      "year_from": 2008,
+      "year_to": 2011,
+      "ecu": "5am",
+      "displacement": "1151",
+      "tps": "PF1C/PF2C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Stelvio 1200 8V NTX",
+      "year_from": 2011,
+      "year_to": 2016,
+      "ecu": "5am",
+      "displacement": "1151",
+      "tps": "PF3C",
+      "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset. PF3C throttle body: set the TPS manually, never electronically.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V7 Stone",
+      "year_from": 2012,
+      "year_to": 2014,
+      "ecu": "miug3",
+      "displacement": "744",
+      "tps": "integrated",
+      "notes": "Single throttle body. Uses throttle self-learning, not a TPS reset. No CO trim. Target throttle 0.9-1.0 degrees.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V7 Special",
+      "year_from": 2012,
+      "year_to": 2014,
+      "ecu": "miug3",
+      "displacement": "744",
+      "tps": "integrated",
+      "notes": "Single throttle body. Uses throttle self-learning, not a TPS reset. No CO trim. Target throttle 0.9-1.0 degrees.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V7 Racer",
+      "year_from": 2013,
+      "year_to": 2014,
+      "ecu": "miug3",
+      "displacement": "744",
+      "tps": "integrated",
+      "notes": "Single throttle body. Uses throttle self-learning, not a TPS reset. No CO trim.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V7 II Stone",
+      "year_from": 2015,
+      "year_to": 2017,
+      "ecu": "miug3",
+      "displacement": "744",
+      "tps": "integrated",
+      "notes": "Single throttle body. Uses throttle self-learning, not a TPS reset. No CO trim. Target throttle 1.0-1.2 degrees.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V7 II Special",
+      "year_from": 2015,
+      "year_to": 2017,
+      "ecu": "miug3",
+      "displacement": "744",
+      "tps": "integrated",
+      "notes": "Single throttle body. Uses throttle self-learning, not a TPS reset. No CO trim. Target throttle 1.0-1.2 degrees.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V7 II Racer",
+      "year_from": 2015,
+      "year_to": 2017,
+      "ecu": "miug3",
+      "displacement": "744",
+      "tps": "integrated",
+      "notes": "Single throttle body. Uses throttle self-learning, not a TPS reset. No CO trim. Target throttle 1.0-1.2 degrees.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V7 II Stornello",
+      "year_from": 2016,
+      "year_to": 2017,
+      "ecu": "miug3",
+      "displacement": "744",
+      "tps": "integrated",
+      "notes": "Single throttle body. Uses throttle self-learning, not a TPS reset. No CO trim.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V9 Bobber",
+      "year_from": 2016,
+      "year_to": 2021,
+      "ecu": "miug3",
+      "displacement": "853",
+      "tps": "integrated",
+      "notes": "Single throttle body. Uses throttle self-learning, not a TPS reset. No CO trim. Target throttle 0.9-1.0 degrees.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V9 Roamer",
+      "year_from": 2016,
+      "year_to": 2021,
+      "ecu": "miug3",
+      "displacement": "853",
+      "tps": "integrated",
+      "notes": "Single throttle body. Uses throttle self-learning, not a TPS reset. No CO trim. Target throttle 0.9-1.0 degrees.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California 1400 Touring",
+      "year_from": 2013,
+      "year_to": 2020,
+      "ecu": "7sm",
+      "displacement": "1380",
+      "tps": "ride-by-wire",
+      "notes": "Ride-by-wire. Handle self-learning must be followed immediately by throttle self-learning. No CO trim.",
+      "confidence": "documented"
+    },
+    {
+      "model": "California 1400 Custom",
+      "year_from": 2013,
+      "year_to": 2020,
+      "ecu": "7sm",
+      "displacement": "1380",
+      "tps": "ride-by-wire",
+      "notes": "Ride-by-wire. Handle self-learning must be followed immediately by throttle self-learning. No CO trim.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Audace 1400",
+      "year_from": 2015,
+      "year_to": 2020,
+      "ecu": "7sm",
+      "displacement": "1380",
+      "tps": "ride-by-wire",
+      "notes": "Ride-by-wire. Handle self-learning must be followed immediately by throttle self-learning. No CO trim.",
+      "confidence": "documented"
+    },
+    {
+      "model": "Eldorado 1400",
+      "year_from": 2015,
+      "year_to": 2020,
+      "ecu": "7sm",
+      "displacement": "1380",
+      "tps": "ride-by-wire",
+      "notes": "Ride-by-wire. Handle self-learning must be followed immediately by throttle self-learning. No CO trim.",
+      "confidence": "documented"
+    },
+    {
+      "model": "MGX-21",
+      "year_from": 2016,
+      "year_to": 2020,
+      "ecu": "7sm",
+      "displacement": "1380",
+      "tps": "ride-by-wire",
+      "notes": "Ride-by-wire. Handle self-learning must be followed immediately by throttle self-learning. No CO trim.",
+      "confidence": "documented"
+    },
+    {
+      "model": "V85 TT",
+      "year_from": 2019,
+      "year_to": 2021,
+      "ecu": "7sm",
+      "displacement": "853",
+      "tps": "ride-by-wire",
+      "notes": "Ride-by-wire. Handle self-learning must be followed immediately by throttle self-learning. No CO trim. Sources disagree on where the V85 TT moves to the CAN-based 11MP - confirm against the ECU label before trusting the transport.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "V7 III Stone",
+      "year_from": 2017,
+      "year_to": 2020,
+      "ecu": "miug4",
+      "displacement": "744",
+      "tps": "integrated",
+      "notes": "CAN-bus diagnostics over ISO-TP. Request/response identifiers are unconfirmed on this family - the workstation stays read-only.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "V7 III Special",
+      "year_from": 2017,
+      "year_to": 2020,
+      "ecu": "miug4",
+      "displacement": "744",
+      "tps": "integrated",
+      "notes": "CAN-bus diagnostics over ISO-TP. Request/response identifiers are unconfirmed on this family - the workstation stays read-only.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "V7 III Racer",
+      "year_from": 2017,
+      "year_to": 2020,
+      "ecu": "miug4",
+      "displacement": "744",
+      "tps": "integrated",
+      "notes": "CAN-bus diagnostics over ISO-TP. Request/response identifiers are unconfirmed on this family - the workstation stays read-only.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "V7 III Carbon",
+      "year_from": 2018,
+      "year_to": 2020,
+      "ecu": "miug4",
+      "displacement": "744",
+      "tps": "integrated",
+      "notes": "CAN-bus diagnostics over ISO-TP. Request/response identifiers are unconfirmed on this family - the workstation stays read-only.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "V7 850 Stone",
+      "year_from": 2021,
+      "year_to": 2026,
+      "ecu": "miug4",
+      "displacement": "853",
+      "tps": "integrated",
+      "notes": "CAN-bus diagnostics over ISO-TP. Request/response identifiers are unconfirmed on this family - the workstation stays read-only.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "V7 850 Special",
+      "year_from": 2021,
+      "year_to": 2026,
+      "ecu": "miug4",
+      "displacement": "853",
+      "tps": "integrated",
+      "notes": "CAN-bus diagnostics over ISO-TP. Request/response identifiers are unconfirmed on this family - the workstation stays read-only.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "V9 Bobber Centenario",
+      "year_from": 2021,
+      "year_to": 2023,
+      "ecu": "miug4",
+      "displacement": "853",
+      "tps": "integrated",
+      "notes": "CAN-bus diagnostics over ISO-TP. Request/response identifiers are unconfirmed on this family - the workstation stays read-only.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "V85 TT",
+      "year_from": 2022,
+      "year_to": 2026,
+      "ecu": "11mp",
+      "displacement": "853",
+      "tps": "ride-by-wire",
+      "notes": "CAN-bus diagnostics over ISO-TP. Request/response identifiers are unconfirmed on this family - the workstation stays read-only.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "V85 TT Travel",
+      "year_from": 2020,
+      "year_to": 2026,
+      "ecu": "11mp",
+      "displacement": "853",
+      "tps": "ride-by-wire",
+      "notes": "CAN-bus diagnostics over ISO-TP. Request/response identifiers are unconfirmed on this family - the workstation stays read-only.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "V85 Strada",
+      "year_from": 2023,
+      "year_to": 2026,
+      "ecu": "11mp",
+      "displacement": "853",
+      "tps": "ride-by-wire",
+      "notes": "CAN-bus diagnostics over ISO-TP. Request/response identifiers are unconfirmed on this family - the workstation stays read-only.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "V100 Mandello",
+      "year_from": 2022,
+      "year_to": 2026,
+      "ecu": "11mp",
+      "displacement": "1042",
+      "tps": "ride-by-wire",
+      "notes": "CAN-bus diagnostics over ISO-TP. Request/response identifiers are unconfirmed on this family - the workstation stays read-only. Liquid-cooled compact block; ECU family not confirmed.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "V100 Mandello S",
+      "year_from": 2022,
+      "year_to": 2026,
+      "ecu": "11mp",
+      "displacement": "1042",
+      "tps": "ride-by-wire",
+      "notes": "CAN-bus diagnostics over ISO-TP. Request/response identifiers are unconfirmed on this family - the workstation stays read-only. Liquid-cooled compact block; ECU family not confirmed.",
+      "confidence": "inferred"
+    },
+    {
+      "model": "Stelvio 1200 (2024)",
+      "year_from": 2024,
+      "year_to": 2026,
+      "ecu": "11mp",
+      "displacement": "1042",
+      "tps": "ride-by-wire",
+      "notes": "CAN-bus diagnostics over ISO-TP. Request/response identifiers are unconfirmed on this family - the workstation stays read-only. ECU family not confirmed.",
+      "confidence": "inferred"
+    }
+  ]
+}

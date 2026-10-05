@@ -292,7 +292,10 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     for good: log the bus while GuzziCanDiag talks to the bike, then run the
     capture through <b>Discovery &rarr; CAN identifier discovery</b> — it names
     the pair, shows its evidence, and tells you if it is neither standard
-    pair.</p>
+    pair. Meanwhile the <b>CAN rehearsal</b> transport (with the
+    <code>.[hardware]</code> extra installed) runs the whole ISO-TP path
+    against the simulated ECU on a virtual bus — using exactly the ids you
+    set, so the pair you are about to try can be dry-run first.</p>
   </div>
 
   <div class="card">

@@ -179,7 +179,7 @@ class Workstation:
             )
         if entry and entry.notes:
             notices.append({"level": "info", "text": entry.notes})
-        if transport != "simulator":
+        if transport not in ("simulator", "cansim"):
             notices.append(
                 {
                     "level": "danger",
@@ -206,6 +206,16 @@ class Workstation:
         if kind == "simulator":
             engine = EngineModel(ambient_c=18.0)
             return SimulatorTransport(ecu=SimulatedEcu(profile, engine=engine))
+        if kind == "cansim":
+            from .transports.cansim import VirtualCanTransport
+
+            spec = self.selection.can_spec()
+            return VirtualCanTransport(
+                profile=profile,
+                tx_id=spec.get("tx_id", 0x7E0),
+                rx_id=spec.get("rx_id", 0x7E8),
+                padding=spec.get("padding", 0xAA),
+            )
         if kind == "kline":
             from .transports.kline import KLineTransport
 
@@ -261,6 +271,14 @@ class Workstation:
             found.append(
                 {"id": "can", "name": "CAN (ISO-TP)", "available": True,
                  "detail": "python-can is installed."}
+            )
+            found.append(
+                {"id": "cansim", "name": "CAN rehearsal (virtual)",
+                 "available": True,
+                 "detail": "The full ISO-TP framing path, flow control and all, "
+                           "against the simulated ECU on a virtual bus - and it "
+                           "uses the CAN ids you set, so the pair you are "
+                           "confirming can be dry-run first."}
             )
         except ImportError:
             found.append(
@@ -361,7 +379,7 @@ class Workstation:
             "trust": {
                 "ecu_definition_confidence": profile.confidence if profile else "unknown",
                 "transport": self.selection.transport_kind,
-                "simulated": self.selection.transport_kind == "simulator",
+                "simulated": self.selection.transport_kind in ("simulator", "cansim"),
                 "caveat": (
                     "Values are decoded with catalog scalings. Anything below "
                     "'documented' confidence is an interpretation, not a measurement."

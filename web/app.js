@@ -58,6 +58,18 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
 ));
 
+const Prefs = {
+  get(key, fallback = null) {
+    try {
+      const v = localStorage.getItem(`guzzionboard.${key}`);
+      return v === null || v === '' ? fallback : v;
+    } catch (_) { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(`guzzionboard.${key}`, value ?? ''); } catch (_) { /* private mode */ }
+  },
+};
+
 const confidenceClass = (c) => ({
   'verified-bench': 'ok', 'verified-capture': 'ok',
   documented: 'mid', inferred: 'low', unknown: 'low',
@@ -117,9 +129,32 @@ async function loadCatalog() {
   const make = $('#makeSelect');
   make.innerHTML = state.catalog.makes
     .map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
-  make.value = state.catalog.makes.includes('Moto Guzzi') ? 'Moto Guzzi' : state.catalog.makes[0];
-  make.onchange = () => { fillModels(); updateConnectEnabled(); };
+  const savedMake = Prefs.get('make');
+  make.value = (savedMake && state.catalog.makes.includes(savedMake))
+    ? savedMake
+    : (state.catalog.makes.includes('Moto Guzzi') ? 'Moto Guzzi' : state.catalog.makes[0]);
+  make.onchange = () => { Prefs.set('make', make.value); fillModels(); updateConnectEnabled(); };
   fillModels();
+
+  // last time's bike, if it still exists in the catalog
+  const savedModel = Prefs.get('model');
+  const savedYear = Prefs.get('year');
+  if (savedModel && [...$('#modelSelect').options].some((o) => o.value === savedModel)) {
+    $('#modelSelect').value = savedModel;
+    fillYears();
+    if (savedYear && [...$('#yearSelect').options].some((o) => o.value === savedYear)) {
+      $('#yearSelect').value = savedYear;
+      resolveVehicle();
+    }
+  }
+
+  // everything else the operator should not have to retype
+  [['device', '#deviceInput'], ['mode', '#modeSelect'], ['image', '#imagePath'],
+   ['mapsImage', '#mapsImagePath'], ['mapsDiff', '#mapsDiffPath'],
+   ['canTx', '#canTxId'], ['canRx', '#canRxId']].forEach(([k, sel]) => {
+    const saved = Prefs.get(k);
+    if (saved && $(sel)) $(sel).value = saved;
+  });
 
   $('#ecuOverride').innerHTML = '<option value="">— use the model lookup —</option>'
     + state.catalog.ecus.map((e) =>
@@ -152,7 +187,10 @@ function fillModels() {
   const models = [...new Set(vehiclesOf(make).map((v) => v.model))].sort();
   $('#modelSelect').innerHTML = '<option value="">— pick a model —</option>'
     + models.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
-  $('#modelSelect').onchange = () => { fillYears(); resolveVehicle(); };
+  $('#modelSelect').onchange = () => {
+    Prefs.set('model', $('#modelSelect').value);
+    fillYears(); resolveVehicle();
+  };
   fillYears();
 }
 
@@ -218,6 +256,11 @@ function renderTransports(transports) {
     </label>`).join('');
 
   $$('input[name=transport]').forEach((r) => (r.onchange = onTransportChange));
+  const saved = Prefs.get('transport');
+  if (saved) {
+    const radio = document.querySelector(`input[name=transport][value="${CSS.escape(saved)}"]`);
+    if (radio) radio.checked = true;
+  }
   onTransportChange();
 }
 
@@ -228,12 +271,13 @@ function currentTransport() {
 
 function onTransportChange() {
   const kind = currentTransport();
-  const physical = kind !== 'simulator';
+  const physical = !['simulator', 'cansim'].includes(kind);
+  Prefs.set('transport', kind);
   $('#deviceField').hidden = !physical;
   $('#checklistBox').hidden = !physical;
-  $('#canFields').hidden = kind !== 'can';
+  $('#canFields').hidden = !['can', 'cansim'].includes(kind);
   $('#deviceInput').placeholder = kind === 'can' ? 'can0' : '/dev/ttyUSB0';
-  if (kind === 'can') {
+  if (['can', 'cansim'].includes(kind) && !$('#canTxId').value) {
     const spec = (state.resolved && state.resolved.ecu_detail && state.resolved.ecu_detail.can) || {};
     $('#canTxId').value = spec.tx_id !== undefined ? `0x${spec.tx_id.toString(16).toUpperCase()}` : '0x7E0';
     $('#canRxId').value = spec.rx_id !== undefined ? `0x${spec.rx_id.toString(16).toUpperCase()}` : '0x7E8';
@@ -263,7 +307,7 @@ async function connect() {
         transport: currentTransport(),
         device: $('#deviceInput').value,
       };
-  if (currentTransport() === 'can') {
+  if (['can', 'cansim'].includes(currentTransport())) {
     body.can_tx_id = $('#canTxId').value.trim();
     body.can_rx_id = $('#canRxId').value.trim();
   }
@@ -1012,8 +1056,28 @@ async function loadXdfs() {
       ? maps.xdfs.map((x) => `<option value="${esc(x.title)}">`
           + `${esc(x.title)} — ${x.tables} tables, ${x.constants} constants</option>`).join('')
       : '<option value="">— none found —</option>';
+    $('#xdfSelect').onchange = () => Prefs.set('xdf', $('#xdfSelect').value);
+    suggestXdf();
   } catch (err) {
     toast(`Could not list XDFs: ${err.message}`, 'bad');
+  }
+}
+
+function suggestXdf() {
+  const select = $('#xdfSelect');
+  if (!select.options.length) return;
+  const last = Prefs.get('xdf');
+  if (last && [...select.options].some((o) => o.value === last)) {
+    select.value = last;
+    return;
+  }
+  // the selected ECU family usually names itself in the XDF title:
+  // "IAW 5AM / 5AM2" -> any definition whose title mentions 5AM
+  const family = (state.status?.vehicle?.ecu?.family || '').toUpperCase();
+  const tokens = family.match(/(5AM2|5AM|16M|15M|59M|7SM|5SM|5DM|11MP|MIU|P7|P8)/g) || [];
+  for (const token of tokens) {
+    const hit = [...select.options].find((o) => o.value.toUpperCase().includes(token));
+    if (hit) { select.value = hit.value; Prefs.set('xdf', hit.value); return; }
   }
 }
 

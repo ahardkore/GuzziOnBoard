@@ -59,6 +59,7 @@ from .firmware import (
     FirmwareImage,
     IncompatibleImage,
     checksums,
+    hardware_family,
     iaw5am_upload_blob,
     iaw5am_upload_checksum,
     summarise_findings,
@@ -592,12 +593,49 @@ class ProgrammingService:
             raise SafetyViolation(decision)
         self.gate.consume(token, f"write:{region_name}")
 
-        # 2. structure
+        # 2. structure and provenance.  A file with the right length is not
+        # enough: never silently reinterpret a dump for another region/ECU.
+        if image.region != region_name:
+            raise IncompatibleImage(
+                f"image is labelled for region {image.region!r}, not {region_name!r}"
+            )
+        if image.ecu_id and image.ecu_id != self.profile.id:
+            raise IncompatibleImage(
+                f"image belongs to ECU {image.ecu_id!r}, not {self.profile.id!r}"
+            )
         validation = self.validate(image, region_name)
         if not validation["ok"]:
             raise IncompatibleImage(
                 "image failed validation: "
                 + "; ".join(f["detail"] for f in validation["fatal"])
+            )
+        # validate_for intentionally reports missing hardware strings as a
+        # warning for inspection workflows.  A write is different: require a
+        # provenance identity captured with the image and compare hardware
+        # families.  The simulator's payload (and some legitimate dumps) do
+        # not embed the printable hardware string, so checking only bytes
+        # would reject a known-good read while still allowing an unlabelled
+        # file.
+        target_hw = (
+            str(self.diag.identity.fields.get("Hardware", "")).strip()
+            if self.diag.identity else ""
+        )
+        image_hw = str(image.identity.get("Hardware", "")).strip()
+        target_family = hardware_family(target_hw)
+        image_family = hardware_family(image_hw)
+        if not target_family:
+            raise IncompatibleImage(
+                "the ECU reported no usable hardware identity; writing is refused"
+            )
+        if not image_family:
+            raise IncompatibleImage(
+                "image has no captured hardware identity; compatibility with "
+                "the identified ECU cannot be confirmed, so writing is refused"
+            )
+        if target_family != image_family:
+            raise IncompatibleImage(
+                f"image provenance reports {image_hw}, but the ECU reports "
+                f"{target_hw}; hardware families differ"
             )
 
         # 3. backup must exist and be verified
@@ -752,7 +790,10 @@ class ProgrammingService:
     def _finalise(self, image: FirmwareImage, region: Region) -> None:
         session = self.diag._require()
         self._emit("program", 0, 1, "programming")
-        session.try_request([Service.REQUEST_TRANSFER_EXIT])
+        # Transfer exit is a required state transition, not a capability
+        # probe.  Swallowing a negative response here could make us run the
+        # erase/program routine against an incomplete download.
+        session.request([Service.REQUEST_TRANSFER_EXIT])
         self.diag._touch()
 
         program = self.spec.get("write", {}).get("program")

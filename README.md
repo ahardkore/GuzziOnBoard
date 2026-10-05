@@ -1,14 +1,18 @@
 # GuzziOnBoard
 
 A safety-first diagnostic workstation for Moto Guzzi motorcycles, covering the
-Magneti Marelli ECU families fitted from the mid-1990s to the current bikes.
+Magneti Marelli ECU families fitted from the mid-1990s to the current bikes —
+plus the same Marelli ECUs as Ducati and Aprilia fitted to their bikes of the
+same era, read-only until their identifier tables are confirmed.
 
 > **Status: working software, unproven on a motorcycle.**
 > The protocol stack, capability catalog, safety gate, memory/programming
 > stack and UI are real and tested. The hardware transports are written but
 > have **not** been validated against a bike. ECU writing is fully implemented
-> and simulator-tested, but stays gated on hardware until a verified
-> SecurityAccess key algorithm exists — see `docs/PROGRAMMING.md`.
+> against the documented 5am_util sequence and simulator-tested, and ships the
+> 5AM key algorithm transcribed from that tool's source — but the key is not
+> bench-confirmed on a Guzzi-fit ECU, so writing stays gated on hardware. See
+> `docs/PROGRAMMING.md` and `docs/PRIOR_ART.md`.
 
 ---
 
@@ -19,10 +23,16 @@ Magneti Marelli ECU families fitted from the mid-1990s to the current bikes.
 | KWP2000 / ISO 14230 application + data link layer | Implemented and unit tested |
 | ISO-TP (ISO 15765-2) segmentation for CAN bikes | Implemented and unit tested |
 | Simulated ECU **speaking the real wire protocol** | Implemented; drives the whole stack |
-| Capability catalog: 9 ECU families, 81 model variants, 1992–2026 | Implemented, data-driven |
+| Capability catalog: 10 ECU families, 118 model variants across Moto Guzzi, Ducati and Aprilia, 1992–2026 | Implemented, data-driven |
 | K-Line transport (fast init + 5-baud init, echo cancelling) | Written, **untested on hardware** |
 | CAN transport (python-can + ISO-TP) | Written, **identifiers unconfirmed** |
 | ECU identification, live data, DTC read/clear | Implemented |
+| Make / model / year vehicle selection (Moto Guzzi, Ducati, Aprilia) | Implemented; cross-brand bikes read-only by design |
+| CAN request/response identifiers configurable per session | Implemented (the pair is unconfirmed on CAN bikes) |
+| CAN capture analysis: find the id pair from a passive sniff (candump / SavvyCAN / CRTD) | Implemented; read-only by construction |
+| **Virtual CAN rehearsal**: the whole ISO-TP path (segmentation, flow control, reassembly) against the simulated ECU | Implemented (needs `.[hardware]` extra; the pair you set is the pair it speaks) |
+| Remembers the garage, transport, paths and XDF choices between sessions | Implemented (browser-local) |
+| Print / save any view as PDF; maps export as standalone HTML | Implemented |
 | Actuator tests, TPS reset, adaptation resets | Implemented, gated by confidence + safety |
 | Read-only local-identifier discovery sweep | Implemented |
 | Session recording (raw frames + decoded samples) | Implemented |
@@ -30,26 +40,38 @@ Magneti Marelli ECU families fitted from the mid-1990s to the current bikes.
 | ECU memory **read** | Implemented; 5AM path grounded in a verified capture |
 | Backup with two-read verification | Implemented |
 | Firmware image validation (size, vector table, entropy, HW family) | Implemented |
+| **Maps & tables**: TunerPro XDF render + named diff of dumps | Implemented; XDFs supplied by the user |
 | ECU memory **write / erase / program / verify** | Implemented and simulator-tested; **gated on hardware** |
 | Interrupted-write checkpoints and recovery guidance | Implemented |
 | SecurityAccess seed/key plumbing + key-provider plugins | Implemented; **no verified algorithm ships** |
 | Adapter pre-flight incl. FTDI latency timer | Implemented |
 | Gearing / road-speed calculator, CSV + JSON log export | Implemented |
+| Fault read with workstation-observed context ("what was live when we looked") | Implemented; honestly *not* an ECU freeze frame |
+| Session comparison (two recordings, channel by channel) | Implemented |
+| Standalone browser engine simulator (`web/sim.html`) | Implemented; single self-contained page |
 
-176 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
-image validation, the full read/backup/write/verify round trip, fault
-injection and complete simulated sessions.
+270 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
+image validation, XDF parsing/render/diff, the full read/backup/write/verify
+round trip, fault injection, session comparison, the packaging entry point
+and complete simulated sessions.
 
 ## Run it
 
 Only Python 3.11+ is needed for simulator mode.
 
 ```bash
-python3 run_server.py              # http://127.0.0.1:8000
+python3 run_server.py              # same as: guzzionboard
 ```
+
+`pip install -e .` installs a `guzzionboard` command with a proper
+`--help` (`--host`, `--port`, `--no-record`, `--version`).
 
 Pick a motorcycle in **Garage** (try `Griso 1200 8V` / `2012`), connect in
 simulator mode, and the rest of the workstation comes alive.
+
+There is also a self-contained browser demo of the engine model at
+`web/sim.html` (served as `/sim.html`): start it, rev it, inject faults, watch
+the safety gate refuse — no server required once you have the file.
 
 For real hardware:
 
@@ -57,6 +79,25 @@ For real hardware:
 pip install -e '.[hardware]'       # pyserial + python-can
 python3 run_server.py
 ```
+
+### Named maps from a dump
+
+The **Firmware → Maps & tables** panel renders a dump as named fuel and
+ignition tables using TunerPro XDF definitions — the same files the GuzziDiag
+ecosystem uses. None ship with this repo (they are third-party); get them
+from
+<https://www.von-der-salierburg.de/download/GuzziDiag/> (TunerPro XDF
+section) and drop them in:
+
+```bash
+mkdir -p ~/.guzzionboard/xdfs && cp ~/Downloads/*5AM*.xdf ~/.guzzionboard/xdfs/
+```
+
+Then point the panel at an image (a previous read lands in
+`~/.guzzionboard/images/`) and render, or diff it against a second image —
+every changed cell is reported by table name and axis value, not raw offset.
+A region read of a full-device XDF is handled automatically (address base
+0x4000, detected and reported). Strictly read-only.
 
 Run the tests with:
 
@@ -84,6 +125,26 @@ workstation will let you do:
 **Confidence is enforced, not decorative.** Anything below `documented`
 degrades to identification, fault codes and the read-only discovery sweep —
 the workstation will not command an ECU it does not genuinely understand.
+
+### The same ECUs in other makes — Ducati and Aprilia
+
+Ducati and Aprilia bought the same Magneti Marelli ECUs, and the GuzziDiag
+ecosystem has always tuned them all. The catalog now resolves those bikes to
+the shared families, with one deliberate limit:
+
+| Make | Families | Examples |
+|---|---|---|
+| Ducati | P8, 15M, 16M, 59M, 5AM | 748, 916, 996, 999, 749, Monster 620–1000, Multistrada, 848/1098/1198, ST2/ST3/ST4 |
+| Aprilia | 16M, 5AM, 7SM | RSV Mille, Tuono 1000, Falco, Caponord, Futura, Mana 850, RSV4 Factory |
+
+Every cross-brand entry ships as `inferred`: the model→ECU mapping is
+documented (GuzziTek master list, Ducati.ms ECU list, TuneECU), but this
+project's identifier tables were all captured in a Moto Guzzi context — so the
+workstation selects the stricter confidence level and keeps those bikes at
+identification, fault codes and the read-only discovery sweep until someone
+records a session on the real machine. One capture promotes the whole family.
+The Ducati-only IAW 59M (999/749 and the injected air-cooled Monsters) is
+modelled as its own family at `unknown` for the same reason.
 
 The IAW 5AM is the fully mapped family: 41 live identifiers with scalings
 decoded from a real bus capture, 17 actuators, TPS reset and self-adaptation
@@ -168,6 +229,9 @@ change.
 - `docs/PROGRAMMING.md` — reading, backing up and writing ECU memory: the
   verified 5AM sequence, image validation, the SecurityAccess gap and how to
   supply a key provider, and the recovery model.
+- `docs/PRIOR_ART.md` — the other diagnostic programs worth studying, and
+  which one closes each open gap (key algorithm, CAN IDs, per-family
+  identifiers, transport validation).
 - `docs/USER_WORKFLOWS.md` — guided connect, live-data, TPS and actuator flows.
 - `docs/7SM_WORKFLOW.md` — ride-by-wire identification and learning workflow.
 

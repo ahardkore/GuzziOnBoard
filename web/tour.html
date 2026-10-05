@@ -1,0 +1,442 @@
+<!doctype html>
+<!-- GuzziOnBoard — Tour & Setup page.
+     SCREENSHOTS: drop PNGs into web/shots/ named garage.png, overview.png,
+     live.png, faults.png, service.png, firmware.png, maps.png, sessions.png.
+     Missing shots show a labelled placeholder automatically.
+     AFFILIATE LINKS: search for "a.affiliate" below and replace each href
+     with your Amazon affiliate link (and set data-tag to your tag). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GuzziOnBoard — Tour &amp; Setup</title>
+<style>
+:root {
+  --ink: #1b1d22; --muted: #5c6470; --line: #d8dce2; --paper: #ffffff;
+  --wash: #f4f5f7; --accent: #b3261e; --ok: #1a7f37; --warn: #9a6700;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; color: var(--ink); background: var(--wash);
+  font: 16px/1.6 Georgia, "Times New Roman", serif;
+}
+code, .kbd, button, .step-btn, .tab-btn { font-family: ui-monospace, Menlo, Consolas, monospace; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 20px 80px; }
+header.site {
+  background: var(--ink); color: #fff; padding: 28px 0 34px;
+}
+header.site .wrap { padding-bottom: 0; }
+header.site h1 { margin: 0 0 6px; font-size: 34px; letter-spacing: .5px; }
+header.site p { margin: 0; color: #c8cdd6; max-width: 46em; }
+header.site a.back {
+  display: inline-block; margin-top: 18px; color: #fff; text-decoration: none;
+  border: 1px solid #565d6b; padding: 7px 16px; border-radius: 6px; font-size: 14px;
+}
+header.site a.back:hover { background: #2c3038; }
+section { margin: 44px 0; }
+h2 { font-size: 26px; margin: 0 0 6px; }
+h2 + p.sub { margin-top: 0; color: var(--muted); }
+.card {
+  background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
+  padding: 22px 26px; margin: 18px 0;
+}
+/* ---- tour ---- */
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+.tab-btn {
+  border: 1px solid var(--line); background: var(--paper); color: var(--ink);
+  border-radius: 20px; padding: 7px 16px; cursor: pointer; font-size: 13px;
+}
+.tab-btn[aria-selected="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.step { display: none; }
+.step.active { display: block; }
+.step h3 { margin: 4px 0 10px; font-size: 20px; }
+.step .when { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+figure.shot { margin: 16px 0 6px; }
+figure.shot img {
+  width: 100%; border: 1px solid var(--line); border-radius: 8px; display: block;
+}
+figure.shot .slot {
+  display: none; border: 2px dashed #b9bfc9; border-radius: 8px; color: var(--muted);
+  padding: 56px 20px; text-align: center; font-size: 15px; background: var(--wash);
+}
+figure.shot.missing img { display: none; }
+figure.shot.missing .slot { display: block; }
+figcaption { color: var(--muted); font-size: 13px; margin-top: 8px; }
+.tour-nav { display: flex; justify-content: space-between; margin-top: 14px; }
+.tour-nav button {
+  border: 1px solid var(--line); background: var(--paper); border-radius: 6px;
+  padding: 8px 18px; cursor: pointer; font-size: 14px; color: var(--ink);
+}
+.tour-nav button:hover { background: var(--wash); }
+ul.tight { margin: 8px 0; padding-left: 22px; }
+ul.tight li { margin: 4px 0; }
+/* ---- hardware ---- */
+.hw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; }
+.hw {
+  background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
+  padding: 18px 20px; display: flex; flex-direction: column;
+}
+.hw h4 { margin: 0 0 4px; font-size: 17px; }
+.hw .need { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+.hw p { font-size: 14px; margin: 0 0 14px; flex: 1; }
+a.affiliate {
+  display: block; text-align: center; text-decoration: none; border-radius: 6px;
+  padding: 9px 0; font-size: 14px; background: var(--ink); color: #fff;
+}
+a.affiliate:hover { background: #33373f; }
+.disclosure { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+kbd.kbd {
+  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px; font-size: 12px; background: var(--paper);
+}
+.tag { display: inline-block; border: 1px solid var(--line); border-radius: 12px;
+  padding: 0 10px; font-size: 12px; color: var(--muted); margin-right: 6px; }
+footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line);
+  padding-top: 18px; margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <h1>GuzziOnBoard</h1>
+    <p>A safety-first diagnostic workstation for the Magneti&nbsp;Marelli ECUs of Moto
+    Guzzi motorcycles — and the same ECUs as they run in Ducatis and Aprilias. Live
+    data, fault codes, actuator tests, firmware backup and validation, named map
+    tables from TunerPro definitions: everything the laptop can honestly do,
+    and nothing it cannot yet prove.</p>
+    <a class="back" href="/">&larr; Back to the workstation</a>
+    <a class="back" href="/sim.html" style="margin-left:10px">Engine simulator demo &rarr;</a>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ================================================== TOUR -->
+<section id="tour">
+  <h2>A walk through the workstation</h2>
+  <p class="sub">Click through the views, or use the keyboard: <kbd class="kbd">&larr;</kbd>
+  <kbd class="kbd">&rarr;</kbd>. Every panel below runs against the built-in ECU
+  simulator, so nothing here needs a motorcycle — or risks one.</p>
+
+  <div class="tabs" role="tablist" id="tourTabs"></div>
+
+  <div class="card">
+    <div id="tourSteps">
+
+      <div class="step" data-step="garage">
+        <h3>1 · Garage — pick the bike</h3>
+        <p class="when">Every session starts here, simulator or bike.</p>
+        <p>Three dropdowns — make, model, year — resolve the ECU and the protocol it
+        speaks. Moto Guzzi, Ducati and Aprilia are covered; cross-brand bikes run
+        read-only until their identifier tables are confirmed on the real machine
+        (the workstation tells you, rather than guessing). The connection panel
+        picks the transport: the built-in simulator, a K-Line USB adapter, or CAN.</p>
+        <figure class="shot" data-shot="garage">
+          <img src="shots/garage.png" alt="The Garage view: make, model and year dropdowns and the ECU resolution card">
+          <div class="slot">Screenshot slot — save the Garage view as <code>web/shots/garage.png</code></div>
+          <figcaption>The Garage: make / model / year, the resolved ECU with its confidence level, and the transport picker.</figcaption>
+        </figure>
+      </div>
+
+      <div class="step" data-step="overview">
+        <h3>2 · Overview — who is this ECU?</h3>
+        <p class="when">First command after connecting, always.</p>
+        <p>Identification is mandatory before anything else: the ECU answers with its
+        part numbers and software versions, read with service <code>1A 80</code>. The
+        overview also shows the link state and what this particular ECU supports —
+        capabilities the catalog cannot vouch for are shown greyed out, not hidden.</p>
+        <figure class="shot" data-shot="overview">
+          <img src="shots/overview.png" alt="The Overview view with the ECU identification block and capability grid">
+          <div class="slot">Screenshot slot — save the Overview view as <code>web/shots/overview.png</code></div>
+          <figcaption>Identification block, link diagnostics, and the capability grid with confidence gating.</figcaption>
+        </figure>
+      </div>
+
+      <div class="step" data-step="live">
+        <h3>3 · Live data — with its receipts</h3>
+        <p class="when">Engine running, bike on the stand or at idle in neutral.</p>
+        <p>Polling decodes every channel the catalog has verified scalings for — RPM,
+        TPS, coolant and air temperature, lambda, battery voltage. The provenance
+        table underneath keeps the raw bytes next to every decoded value: if a
+        scaling is ever wrong, that is the evidence you send with the bug report.</p>
+        <figure class="shot" data-shot="live">
+          <img src="shots/live.png" alt="The Live view with metric cards and the raw provenance table">
+          <div class="slot">Screenshot slot — save the Live view as <code>web/shots/live.png</code></div>
+          <figcaption>Live channels polling, and the raw-bytes provenance table below.</figcaption>
+        </figure>
+      </div>
+
+      <div class="step" data-step="faults">
+        <h3>4 · Faults — read, understand, then clear</h3>
+        <p class="when">Any time; clearing asks twice.</p>
+        <p>Fault memory comes back with SAE and manufacturer descriptions. Clearing
+        is deliberately a two-step action with a typed acknowledgement — the kind of
+        thing you want to be sure about before you erase the evidence.</p>
+        <figure class="shot" data-shot="faults">
+          <img src="shots/faults.png" alt="The Faults view listing stored DTCs with descriptions">
+          <div class="slot">Screenshot slot — save the Faults view as <code>web/shots/faults.png</code></div>
+          <figcaption>Stored faults with descriptions, and the gated clear action.</figcaption>
+        </figure>
+      </div>
+
+      <div class="step" data-step="service">
+        <h3>5 · Service — actuator tests and resets</h3>
+        <p class="when">Engine off, observed, and only for ECU families the catalog trusts.</p>
+        <p>Injector and relay pulses, throttle balancing hints, TPS resets and
+        self-adaptation wipes — each gated by the confidence level and the observed
+        engine state. The safety gate refuses to command an ECU it does not genuinely
+        understand, and refuses actuator tests while the engine runs.</p>
+        <figure class="shot" data-shot="service">
+          <img src="shots/service.png" alt="The Service view with actuator tests and routines">
+          <div class="slot">Screenshot slot — save the Service view as <code>web/shots/service.png</code></div>
+          <figcaption>Actuator tests and service routines, with the safety gate in the way.</figcaption>
+        </figure>
+      </div>
+
+      <div class="step" data-step="firmware">
+        <h3>6 · Firmware — read, verify, validate, and only then write</h3>
+        <p class="when">The one place where patience is a feature.</p>
+        <p>Reading a 5AM flash takes twenty-plus minutes over K-Line, so a backup is
+        read <em>twice</em> and only kept when both reads agree byte for byte. New
+        images are validated — size, vector table, entropy, hardware family — before
+        a single byte is sent, because flashing an HW1xx image into an HW3xx ECU
+        bricks it. Writing stays behind an explicit acknowledgement, a verified
+        backup and a battery-voltage check.</p>
+        <figure class="shot" data-shot="firmware">
+          <img src="shots/firmware.png" alt="The Firmware view: adapter pre-flight, backup, validation and the gated write">
+          <div class="slot">Screenshot slot — save the Firmware view as <code>web/shots/firmware.png</code></div>
+          <figcaption>Adapter pre-flight, the two-read backup, image validation and the gated write.</figcaption>
+        </figure>
+      </div>
+
+      <div class="step" data-step="maps">
+        <h3>7 · Maps &amp; tables — a dump with names on it</h3>
+        <p class="when">After a read or with any image on disk.</p>
+        <p>Feed the workstation a TunerPro XDF definition — the same files the
+        GuzziDiag ecosystem uses, dropped into <code>~/.guzzionboard/xdfs/</code> —
+        and a raw dump becomes named fuel and ignition tables with real units.
+        Diff two images and every changed cell is reported by table name and axis
+        value, not by offset. Print or save the tables as a standalone HTML
+        document.</p>
+        <figure class="shot" data-shot="maps">
+          <img src="shots/maps.png" alt="The Maps view rendering a named ignition table from an XDF">
+          <div class="slot">Screenshot slot — save the Maps view as <code>web/shots/maps.png</code></div>
+          <figcaption>A named table rendered from an XDF: axis labels in engineering units, values scaled.</figcaption>
+        </figure>
+      </div>
+
+      <div class="step" data-step="sessions">
+        <h3>8 · Sessions &amp; reports — the paper trail</h3>
+        <p class="when">Always recording; export when you are done.</p>
+        <p>Every session is recorded frame by frame — raw bytes and decoded samples —
+        to <code>~/.guzzionboard/sessions/</code>, exportable as CSV or JSON. The
+        report view assembles a plain-text summary of the whole session: what was
+        connected, what was read, what was commanded and what the safety gate
+        refused.</p>
+        <figure class="shot" data-shot="sessions">
+          <img src="shots/sessions.png" alt="The Sessions view listing recorded sessions with export buttons">
+          <div class="slot">Screenshot slot — save the Sessions view as <code>web/shots/sessions.png</code></div>
+          <figcaption>Recorded sessions with the event log and exports.</figcaption>
+        </figure>
+      </div>
+
+    </div>
+    <div class="tour-nav">
+      <button id="tourPrev">&larr; Previous</button>
+      <button id="tourNext">Next &rarr;</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================== SETUP -->
+<section id="setup">
+  <h2>Setup</h2>
+  <p class="sub">From zero to simulator in one command; from simulator to bike with
+  two cables and a battery charger.</p>
+
+  <div class="card">
+    <h3>1 · Run it (simulator, no hardware)</h3>
+    <p>No motorcycle and no cable yet? <a href="/sim.html">The engine simulator demo</a> is a single self-contained page — the same engine model, in your browser, no server needed. The full workstation below speaks the actual KWP2000 protocol.</p>
+    <p>Any machine with Python 3.11 or newer:</p>
+    <p><code>python3 run_server.py</code> &nbsp;then open
+    <code>http://127.0.0.1:8000</code>. Pick a motorcycle — try <em>Moto Guzzi /
+    Griso 1200 8V / 2012</em> — connect, and the simulator speaks the real KWP2000
+    wire protocol back at you.</p>
+  </div>
+
+  <div class="card">
+    <h3>2 · Talk to a real bike (K-Line)</h3>
+    <p>The 1990s&ndash;2010s Marelli ECUs speak KWP2000 over a single-wire K-Line at
+    10400 baud, through the bike&rsquo;s 3-pin diagnostic connector:</p>
+    <ul class="tight">
+      <li>A <b>KKL &ldquo;VAG-COM 409&rdquo; USB cable</b> — this is a plain
+      FTDI-based serial adapter with the K-Line driver transistor built in. Get one
+      with a genuine FTDI chip; the clones with fake chips misbehave at 10400 baud.</li>
+      <li>A <b>3-pin to OBD adapter lead</b> for your bike (Moto Guzzi, Ducati and
+      Aprilia of this era share the same 3-pin diagnostic plug).</li>
+      <li>Set the adapter&rsquo;s <b>latency timer to 1&nbsp;ms</b> — the
+      workstation&rsquo;s adapter pre-flight checks this; the Windows default of
+      16&nbsp;ms turns a 20-minute read into hours.</li>
+    </ul>
+    <p>Then: <code>pip install -e '.[hardware]'</code>, pick the bike, choose the
+    K-Line transport and your serial port, accept the hardware checklist, connect.</p>
+  </div>
+
+  <div class="card">
+    <h3>3 · Newer CAN bikes</h3>
+    <p>The CAN-era ECUs (V7 III / V7 850, later V85 TT, V100) wrap the same
+    diagnostics in ISO-TP over CAN. You need a CAN adapter python-can can drive —
+    a USB OBD-II dongle with ELM327-class firmware is the cheap route, a
+    genuine OBDLink or a socketcan interface the reliable one. The request/response
+    CAN identifiers are <b>not yet confirmed</b> on these bikes; the workstation
+    assumes the standard pair and lets you override it per session. To settle it
+    for good: log the bus while GuzziCanDiag talks to the bike, then run the
+    capture through <b>Discovery &rarr; CAN identifier discovery</b> — it names
+    the pair, shows its evidence, and tells you if it is neither standard
+    pair. Meanwhile the <b>CAN rehearsal</b> transport (with the
+    <code>.[hardware]</code> extra installed) runs the whole ISO-TP path
+    against the simulated ECU on a virtual bus — using exactly the ids you
+    set, so the pair you are about to try can be dry-run first.</p>
+  </div>
+
+  <div class="card">
+    <h3>4 · Maps from a dump</h3>
+    <p>Download the TunerPro XDF definitions for your ECU from the GuzziDiag
+    archive at <code>von-der-salierburg.de</code> and drop them into
+    <code>~/.guzzionboard/xdfs/</code>. The Maps &amp; tables view then renders any
+    image — including your verified backups — as named tables, and diffs two
+    images by table and cell.</p>
+  </div>
+
+  <div class="card">
+    <h3>5 · Before you write anything</h3>
+    <ul class="tight">
+      <li>Battery on a charger or maintainer. A write that loses power mid-flash
+      is a bricked ECU.</li>
+      <li>A verified backup first — the workstation insists, and refuses to write
+      without one.</li>
+      <li>Laptop asleep = ECU bricked. Disable sleep and low-battery actions.</li>
+      <li>Validate the new image against the ECU family first. The workstation
+      does this; read its findings.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================== HARDWARE -->
+<section id="hardware">
+  <h2>The hardware that matters</h2>
+  <p class="sub">The short, honest list — what to buy and why it matters.
+  <span class="tag">K-Line</span><span class="tag">CAN</span><span class="tag">bench</span></p>
+
+  <div class="hw-grid">
+    <!-- AFFILIATE: replace each href with your affiliate link -->
+    <div class="hw">
+      <h4>KKL VAG-COM 409 USB cable</h4>
+      <p class="need">The K-Line adapter — required for every Marelli ECU from the P8 to the 7SM.</p>
+      <p>FTDI-based USB serial with the K-Line transceiver built in. Buy one with a
+      genuine FTDI chip and set the latency timer to 1&nbsp;ms; the workstation's
+      pre-flight walks you through it.</p>
+      <a class="affiliate" href="https://www.amazon.com/s?k=KKL+VAG-COM+409+FTDI+USB+cable&tag=YOURTAG-20" data-tag="YOURTAG-20" target="_blank" rel="nofollow noopener">View on Amazon</a>
+    </div>
+    <div class="hw">
+      <h4>3-pin diagnostic adapter lead</h4>
+      <p class="need">Bike-side plug — Moto Guzzi, Ducati and Aprilia share it.</p>
+      <p>Converts the round 3-pin diagnostic connector of this era to the OBD
+      socket on the KKL cable. Cheap, and the one cable everyone forgets until
+      the bike is on the stand.</p>
+      <a class="affiliate" href="https://www.amazon.com/s?k=3+pin+diagnostic+adapter+Moto+Guzzi+Ducati+Aprilia&tag=YOURTAG-20" data-tag="YOURTAG-20" target="_blank" rel="nofollow noopener">View on Amazon</a>
+    </div>
+    <div class="hw">
+      <h4>Battery maintainer / charger</h4>
+      <p class="need">Non-negotiable for any read longer than a coffee.</p>
+      <p>A 20+ minute flash read or a write session needs a stable supply. A
+      maintainer with a proper charging profile keeps the battery voltage in the
+      window the safety gate checks before any write.</p>
+      <a class="affiliate" href="https://www.amazon.com/s?k=motorcycle+battery+tender+maintainer&tag=YOURTAG-20" data-tag="YOURTAG-20" target="_blank" rel="nofollow noopener">View on Amazon</a>
+    </div>
+    <div class="hw">
+      <h4>OBDLink SX / MX+ (CAN era)</h4>
+      <p class="need">For the CAN bikes: V7 III, V7 850, later V85 TT, V100.</p>
+      <p>ISO-TP over CAN needs a responsive adapter; the OBDLink family has the
+      timing to match. STN-based adapters also give you a fallback CLI for
+      identifier sniffing, which is exactly what the CAN families still need.</p>
+      <a class="affiliate" href="https://www.amazon.com/s?k=OBDLink+SX+USB&tag=YOURTAG-20" data-tag="YOURTAG-20" target="_blank" rel="nofollow noopener">View on Amazon</a>
+    </div>
+    <div class="hw">
+      <h4>USB multi-meter or clamp meter</h4>
+      <p class="need">Trust, but verify — the cheap insurance.</p>
+      <p>Verifying battery voltage at the ECU connector before a write, and
+      checking that the K-Line idle voltage is where it should be, catches most
+      &ldquo;the tool is broken&rdquo; sessions before they start.</p>
+      <a class="affiliate" href="https://www.amazon.com/s?k=multimeter+automotive+true+rms&tag=YOURTAG-20" data-tag="YOURTAG-20" target="_blank" rel="nofollow noopener">View on Amazon</a>
+    </div>
+    <div class="hw">
+      <h4>Anti-static mat &amp; wrist strap</h4>
+      <p class="need">If the ECU comes off the bike and onto the bench.</p>
+      <p>Bench work — key captures, memory reads on a loose ECU — is how this
+      project&rsquo;s unverified families get promoted. A grounded mat costs less
+      than one ECU.</p>
+      <a class="affiliate" href="https://www.amazon.com/s?k=anti+static+mat+wrist+strap+workbench&tag=YOURTAG-20" data-tag="YOURTAG-20" target="_blank" rel="nofollow noopener">View on Amazon</a>
+    </div>
+  </div>
+  <p class="disclosure">Disclosure: some links on this page may be affiliate links.
+  If you buy through them, this site may earn a commission at no extra cost to you.
+  Nothing here is sold by or affiliated with Piaggio, Moto Guzzi, Ducati or Aprilia.</p>
+</section>
+
+<footer>
+  <p>GuzziOnBoard is an independent, open-source project. Not affiliated with
+  Piaggio Group, Moto Guzzi, Ducati, Aprilia, Magneti Marelli or the GuzziDiag
+  authors. ECU programming on this build is gated behind verification this
+  software has not yet earned on hardware — on purpose.</p>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  var steps = [].slice.call(document.querySelectorAll('.step'));
+  var tabs = document.getElementById('tourTabs');
+  var current = 0;
+
+  steps.forEach(function (step, i) {
+    var btn = document.createElement('button');
+    btn.className = 'tab-btn';
+    btn.setAttribute('role', 'tab');
+    btn.textContent = step.querySelector('h3').textContent.replace(/^\d+\s*·\s*/, '');
+    btn.addEventListener('click', function () { show(i); });
+    tabs.appendChild(btn);
+  });
+
+  function show(i) {
+    current = (i + steps.length) % steps.length;
+    steps.forEach(function (s, j) { s.classList.toggle('active', j === current); });
+    [].slice.call(tabs.children).forEach(function (b, j) {
+      b.setAttribute('aria-selected', j === current ? 'true' : 'false');
+    });
+  }
+
+  document.getElementById('tourPrev').addEventListener('click', function () { show(current - 1); });
+  document.getElementById('tourNext').addEventListener('click', function () { show(current + 1); });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.target && /INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)) return;
+    if (ev.key === 'ArrowLeft') show(current - 1);
+    if (ev.key === 'ArrowRight') show(current + 1);
+  });
+
+  // A missing screenshot degrades to its labelled slot, never a broken icon.
+  document.querySelectorAll('figure.shot img').forEach(function (img) {
+    function missing() {
+      img.closest('figure.shot').classList.add('missing');
+      img.onerror = null;
+    }
+    img.onerror = missing;
+    if (img.complete && img.naturalWidth === 0) missing();
+  });
+
+  show(0);
+})();
+</script>
+</body>
+</html>

@@ -58,6 +58,18 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
 ));
 
+const Prefs = {
+  get(key, fallback = null) {
+    try {
+      const v = localStorage.getItem(`guzzionboard.${key}`);
+      return v === null || v === '' ? fallback : v;
+    } catch (_) { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(`guzzionboard.${key}`, value ?? ''); } catch (_) { /* private mode */ }
+  },
+};
+
 const confidenceClass = (c) => ({
   'verified-bench': 'ok', 'verified-capture': 'ok',
   documented: 'mid', inferred: 'low', unknown: 'low',
@@ -114,8 +126,35 @@ async function loadCatalog() {
   state.catalog = await api('/api/catalog');
   const { summary } = state.catalog;
 
-  $('#modelList').innerHTML = state.catalog.models
-    .map((m) => `<option value="${esc(m.model)}">`).join('');
+  const make = $('#makeSelect');
+  make.innerHTML = state.catalog.makes
+    .map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  const savedMake = Prefs.get('make');
+  make.value = (savedMake && state.catalog.makes.includes(savedMake))
+    ? savedMake
+    : (state.catalog.makes.includes('Moto Guzzi') ? 'Moto Guzzi' : state.catalog.makes[0]);
+  make.onchange = () => { Prefs.set('make', make.value); fillModels(); updateConnectEnabled(); };
+  fillModels();
+
+  // last time's bike, if it still exists in the catalog
+  const savedModel = Prefs.get('model');
+  const savedYear = Prefs.get('year');
+  if (savedModel && [...$('#modelSelect').options].some((o) => o.value === savedModel)) {
+    $('#modelSelect').value = savedModel;
+    fillYears();
+    if (savedYear && [...$('#yearSelect').options].some((o) => o.value === savedYear)) {
+      $('#yearSelect').value = savedYear;
+      resolveVehicle();
+    }
+  }
+
+  // everything else the operator should not have to retype
+  [['device', '#deviceInput'], ['mode', '#modeSelect'], ['image', '#imagePath'],
+   ['mapsImage', '#mapsImagePath'], ['mapsDiff', '#mapsDiffPath'],
+   ['canTx', '#canTxId'], ['canRx', '#canRxId']].forEach(([k, sel]) => {
+    const saved = Prefs.get(k);
+    if (saved && $(sel)) $(sel).value = saved;
+  });
 
   $('#ecuOverride').innerHTML = '<option value="">— use the model lookup —</option>'
     + state.catalog.ecus.map((e) =>
@@ -139,16 +178,47 @@ async function loadCatalog() {
     </tr>`).join('');
 }
 
-async function resolveVehicle() {
-  const model = $('#modelInput').value.trim();
-  const year = parseInt($('#yearInput').value, 10);
-  const box = $('#resolveResult');
-  if (!model || !year) { box.innerHTML = ''; updateConnectEnabled(); return; }
+function vehiclesOf(make) {
+  return (state.catalog.vehicles || []).filter((v) => v.make === make);
+}
 
-  const data = await api(`/api/catalog/resolve?model=${encodeURIComponent(model)}&year=${year}`);
+function fillModels() {
+  const make = $('#makeSelect').value || (state.catalog.makes || ['Moto Guzzi'])[0];
+  const models = [...new Set(vehiclesOf(make).map((v) => v.model))].sort();
+  $('#modelSelect').innerHTML = '<option value="">— pick a model —</option>'
+    + models.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  $('#modelSelect').onchange = () => {
+    Prefs.set('model', $('#modelSelect').value);
+    fillYears(); resolveVehicle();
+  };
+  fillYears();
+}
+
+function fillYears() {
+  const make = $('#makeSelect').value;
+  const model = $('#modelSelect').value;
+  const entries = vehiclesOf(make).filter((v) => v.model === model);
+  const years = new Set();
+  entries.forEach((v) => {
+    const end = Math.min(v.year_to || new Date().getFullYear(), new Date().getFullYear() + 1);
+    for (let y = v.year_from; y <= end; y++) years.add(y);
+  });
+  const sorted = [...years].sort((a, b) => b - a);
+  $('#yearSelect').innerHTML = '<option value="">— pick a year —</option>'
+    + sorted.map((y) => `<option value="${y}">${y}</option>`).join('');
+}
+
+async function resolveVehicle() {
+  const make = $('#makeSelect').value;
+  const model = $('#modelSelect').value;
+  const year = parseInt($('#yearSelect').value, 10);
+  const box = $('#resolveResult');
+  if (!model || !year) { box.innerHTML = ''; state.resolved = null; updateConnectEnabled(); return; }
+
+  const data = await api(`/api/catalog/resolve?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${year}`);
   if (!data.matches.length) {
-    box.innerHTML = `<div class="resolve-card bad">No catalog entry for <b>${esc(model)} ${year}</b>.
-      Check the spelling, or use the ECU override below if you know the family.</div>`;
+    box.innerHTML = `<div class="resolve-card bad">No catalog entry for <b>${esc(make)} ${esc(model)} ${year}</b>.
+      Pick another year, or use the ECU override below if you know the family.</div>`;
     state.resolved = null; updateConnectEnabled(); return;
   }
 
@@ -186,6 +256,11 @@ function renderTransports(transports) {
     </label>`).join('');
 
   $$('input[name=transport]').forEach((r) => (r.onchange = onTransportChange));
+  const saved = Prefs.get('transport');
+  if (saved) {
+    const radio = document.querySelector(`input[name=transport][value="${CSS.escape(saved)}"]`);
+    if (radio) radio.checked = true;
+  }
   onTransportChange();
 }
 
@@ -196,10 +271,17 @@ function currentTransport() {
 
 function onTransportChange() {
   const kind = currentTransport();
-  const physical = kind !== 'simulator';
+  const physical = !['simulator', 'cansim'].includes(kind);
+  Prefs.set('transport', kind);
   $('#deviceField').hidden = !physical;
   $('#checklistBox').hidden = !physical;
+  $('#canFields').hidden = !['can', 'cansim'].includes(kind);
   $('#deviceInput').placeholder = kind === 'can' ? 'can0' : '/dev/ttyUSB0';
+  if (['can', 'cansim'].includes(kind) && !$('#canTxId').value) {
+    const spec = (state.resolved && state.resolved.ecu_detail && state.resolved.ecu_detail.can) || {};
+    $('#canTxId').value = spec.tx_id !== undefined ? `0x${spec.tx_id.toString(16).toUpperCase()}` : '0x7E0';
+    $('#canRxId').value = spec.rx_id !== undefined ? `0x${spec.rx_id.toString(16).toUpperCase()}` : '0x7E8';
+  }
   if (physical && $('#modeSelect').value === 'simulator') $('#modeSelect').value = 'read_only';
   if (!physical) $('#modeSelect').value = 'simulator';
   updateConnectEnabled();
@@ -219,11 +301,16 @@ async function connect() {
   const body = ecuOverride
     ? { ecu: ecuOverride, transport: currentTransport(), device: $('#deviceInput').value }
     : {
-        model: $('#modelInput').value.trim(),
-        year: parseInt($('#yearInput').value, 10),
+        make: $('#makeSelect').value,
+        model: $('#modelSelect').value,
+        year: parseInt($('#yearSelect').value, 10),
         transport: currentTransport(),
         device: $('#deviceInput').value,
       };
+  if (['can', 'cansim'].includes(currentTransport())) {
+    body.can_tx_id = $('#canTxId').value.trim();
+    body.can_rx_id = $('#canRxId').value.trim();
+  }
 
   $('#connectBtn').disabled = true;
   try {
@@ -473,7 +560,16 @@ async function readDtcs() {
     ? `${list.length} code${list.length > 1 ? 's' : ''} in memory`
     : 'Fault memory is clean.';
 
-  $('#faultList').innerHTML = list.length ? list.map((d) => `
+  const context = Object.entries(data.context || {});
+  const contextHtml = context.length
+    ? `<div class="fault-context"><span class="muted small">Context observed at read time
+        ${data.context_note ? `<span title="${esc(data.context_note)}">(?)</span>` : ''}:</span>
+       ${context.map(([k, c]) =>
+         `<span class="tag">${esc(c.name)} <b>${esc(c.value)}${esc(c.unit ? ' ' + c.unit : '')}</b></span>`
+       ).join(' ')}</div>`
+    : '';
+
+  $('#faultList').innerHTML = contextHtml + (list.length ? list.map((d) => `
     <article class="fault ${d.warning_indicator ? 'warn' : ''}">
       <div class="fault-code">${esc(d.code)}</div>
       <div class="fault-info">
@@ -484,7 +580,7 @@ async function readDtcs() {
       <div class="fault-status ${d.status}">${esc(d.status)}</div>
     </article>`).join('')
     : `<article class="panel empty"><div class="empty-icon">✓</div>
-       <h3>No diagnostic trouble codes</h3><p>The ECU reports a clean fault memory.</p></article>`;
+       <h3>No diagnostic trouble codes</h3><p>The ECU reports a clean fault memory.</p></article>`);
 
   state.clearDecision = data.clear;
   renderGate(data.clear, $('#clearGate'));
@@ -638,6 +734,8 @@ function download(filename, text, type = 'text/plain') {
 
 async function loadSessions() {
   const data = await api('/api/sessions');
+  state.sessions = data.sessions;
+  fillCompareSelects();
   $('#sessionDir').textContent = `${data.sessions.length} recorded session(s)`;
   $('#sessionList').innerHTML = data.sessions.length ? data.sessions.map((s) => `
     <button class="session-row" data-name="${esc(s.name)}">
@@ -681,8 +779,8 @@ async function buildReport() {
 
 /* ----------------------------------------------------------------- wire */
 
-$('#modelInput').oninput = () => { clearTimeout($('#modelInput')._t); $('#modelInput')._t = setTimeout(resolveVehicle, 180); };
-$('#yearInput').oninput = () => { clearTimeout($('#yearInput')._t); $('#yearInput')._t = setTimeout(resolveVehicle, 180); };
+$('#yearSelect').onchange = resolveVehicle;
+$('#printBtn').onclick = () => window.print();
 $('#ecuOverride').onchange = updateConnectEnabled;
 $('#checklistAccept').onchange = updateConnectEnabled;
 $('#connectBtn').onclick = connect;
@@ -947,3 +1045,372 @@ $$('.nav').forEach((b) => {
     b.onclick = () => { previous?.(); loadMemory(); };
   }
 });
+
+/* ------------------------------------------------------------------ maps */
+/* TunerPro XDF definitions turn a raw dump into named tables. The XDFs are
+ * third-party files (the GuzziDiag ones live at von-der-salierburg.de) and
+ * live in ~/.guzzionboard/xdfs — nothing ships with the app. This view is
+ * strictly read-only: it renders and diffs, it never writes. */
+
+const maps = { xdfs: [], lastDoc: null };
+
+const fmtValue = (v) => (Number.isInteger(v) ? String(v) : String(+v.toPrecision(4)));
+
+async function loadXdfs() {
+  try {
+    const data = await api('/api/maps');
+    maps.xdfs = data.xdfs || [];
+    $('#mapsXdfDir').textContent = maps.xdfs.length
+      ? `${maps.xdfs.length} definition file(s) in ${data.directory}`
+      : `none in ${data.directory} yet`;
+    $('#xdfSelect').innerHTML = maps.xdfs.length
+      ? maps.xdfs.map((x) => `<option value="${esc(x.title)}">`
+          + `${esc(x.title)} — ${x.tables} tables, ${x.constants} constants</option>`).join('')
+      : '<option value="">— none found —</option>';
+    $('#xdfSelect').onchange = () => Prefs.set('xdf', $('#xdfSelect').value);
+    suggestXdf();
+  } catch (err) {
+    toast(`Could not list XDFs: ${err.message}`, 'bad');
+  }
+}
+
+function suggestXdf() {
+  const select = $('#xdfSelect');
+  if (!select.options.length) return;
+  const last = Prefs.get('xdf');
+  if (last && [...select.options].some((o) => o.value === last)) {
+    select.value = last;
+    return;
+  }
+  // the selected ECU family usually names itself in the XDF title:
+  // "IAW 5AM / 5AM2" -> any definition whose title mentions 5AM
+  const family = (state.status?.vehicle?.ecu?.family || '').toUpperCase();
+  const tokens = family.match(/(5AM2|5AM|16M|15M|59M|7SM|5SM|5DM|11MP|MIU|P7|P8)/g) || [];
+  for (const token of tokens) {
+    const hit = [...select.options].find((o) => o.value.toUpperCase().includes(token));
+    if (hit) { select.value = hit.value; Prefs.set('xdf', hit.value); return; }
+  }
+}
+
+function mapsTableHtml(t) {
+  const head = `<tr><th>${esc(t.units || '')}</th>`
+    + t.x.map((x) => `<th>${esc(x)}</th>`).join('') + '</tr>';
+  const body = t.values.map((row, r) => `<tr><th>${esc(t.y[r] ?? '')}</th>`
+    + row.map((v) => `<td>${esc(fmtValue(v))}</td>`).join('') + '</tr>').join('');
+  return `<div class="table-wrap"><table class="data"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+
+function mapsNotices(render) {
+  const out = [];
+  const base = render.address_base ? (
+    `Rendered with address base 0x${render.address_base.toString(16)} — `
+    + 'the image is a region read, the XDF addresses the full device.') : null;
+  if (base) out.push(`<p class="muted small">${esc(base)}</p>`);
+  if (render.unsupported?.length) {
+    out.push(`<div class="gate-card warn"><h4>${render.unsupported.length} item(s) not interpreted</h4>`
+      + render.unsupported.map((u) => `<p class="small">${esc(u.title || 'untitled')}: ${esc(u.reason)}</p>`).join('')
+      + '</div>');
+  }
+  if (render.errors?.length) {
+    out.push(`<div class="gate-card bad"><h4>${render.errors.length} item(s) outside this image</h4>`
+      + render.errors.map((e) => `<p class="small">${esc(e.title)}: ${esc(e.reason)}</p>`).join('')
+      + '</div>');
+  }
+  return out.join('');
+}
+
+const MAPS_DOC_CSS = `body{font-family:Georgia,serif;margin:24px;color:#111}
+h1{font-size:20px}h2{font-size:15px;margin:20px 0 4px}
+table{border-collapse:collapse;margin:6px 0 18px}
+th,td{border:1px solid #999;padding:3px 8px;font-size:12px;text-align:center}
+thead th,tbody th{background:#eee}
+.meta{color:#555;font-size:12px}
+.cell-note{color:#333;font-size:13px;margin:2px 0 14px;padding-left:8px;border-left:3px solid #999}`;
+
+function mapsTablesHtml(tables) {
+  return tables.map((t) => `
+    <h2>${esc(t.title)} <small>(${esc(t.category || '')} · ${esc(t.units || '')})</small></h2>
+    <table><thead><tr><th>${esc(t.units || '')} \ ${esc(t.x_units || '')}</th>`
+    + t.x.map((x) => `<th>${esc(x)}</th>`).join('') + '</tr></thead>'
+    + '<tbody>' + t.values.map((row, r) => `<tr><th>${esc(t.y[r] ?? '')}</th>`
+      + row.map((v) => `<td>${esc(fmtValue(v))}</td>`).join('') + '</tr>').join('') + '</tbody></table>').join('');
+}
+
+function mapsDoc(title, bodyHtml) {
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
+<style>${MAPS_DOC_CSS}</style></head><body><h1>${esc(title)}</h1>${bodyHtml}</body></html>`;
+}
+
+function mapsResultToolbar() {
+  return `<div class="toolbar no-export">
+    <button class="btn small" data-act="save-html">Save as HTML</button>
+    <button class="btn small" data-act="print">Print / PDF</button>
+    <span class="muted small">Saved documents are standalone: tables, units and values, nothing else.</span>
+  </div>`;
+}
+
+function wireMapsToolbar() {
+  document.querySelectorAll('[data-act="save-html"]').forEach((btn) => {
+    btn.onclick = () => {
+      if (!maps.lastDoc) return;
+      download(`guzzionboard-maps-${Date.now()}.html`,
+        maps.lastDoc.html, 'text/html');
+    };
+  });
+  document.querySelectorAll('[data-act="print"]').forEach((btn) => {
+    btn.onclick = () => window.print();
+  });
+}
+
+function renderMapsResult(render) {
+  const meta = render.xdf || {};
+  maps.lastDoc = {
+    title: `${meta.title || 'Maps'} — rendered tables`,
+    html: mapsDoc(`${meta.title || 'Maps'} — rendered tables`,
+      `<p class="meta">${esc(render.image ? '' : '')}${render.tables.length} table(s), `
+      + `${render.constants.length} constant(s) · image ${(render.image_size / 1024).toFixed(0)} KiB`
+      + (render.address_base ? ` · address base 0x${render.address_base.toString(16)} (region read)` : '')
+      + `</p>`
+      + mapsTablesHtml(render.tables)
+      + (render.constants.length ? `<h2>Constants</h2><table><thead><tr><th>Constant</th><th>Value</th><th>Units</th></tr></thead><tbody>`
+        + render.constants.map((c) => `<tr><td>${esc(c.title)}</td><td>${esc(fmtValue(c.value))}</td><td>${esc(c.units)}</td></tr>`).join('')
+        + '</tbody></table>' : '')),
+  };
+  const constants = render.constants?.length ? `
+    <details><summary>Constants (${render.constants.length})</summary>
+      <div class="table-wrap"><table class="data">
+        <thead><tr><th>Constant</th><th>Category</th><th>Value</th><th>Address</th></tr></thead>
+        <tbody>${render.constants.map((c) => `
+          <tr><td>${esc(c.title)}</td><td>${esc(c.category)}</td>
+              <td><b>${esc(fmtValue(c.value))}</b> ${esc(c.units)}</td>
+              <td><code>${esc(c.address)}</code></td></tr>`).join('')}
+        </tbody></table></div></details>` : '';
+  $('#mapsOut').innerHTML = mapsResultToolbar() + `
+    <div class="gate-card ok">
+      <h4>${esc(meta.title || 'Definitions')}</h4>
+      <p class="small">${esc(meta.description || '')}</p>
+      <p class="muted small">${render.tables.length} table(s) · ${render.constants.length} constant(s)
+        · image ${(render.image_size / 1024).toFixed(0)} KiB</p>
+    </div>`
+    + mapsNotices(render)
+    + render.tables.map((t, i) => `
+      <details ${i === 0 ? 'open' : ''}>
+        <summary>${esc(t.title)}
+          <span class="muted small"> — ${esc(t.category)} · ${esc(t.units)} · ${t.rows}×${t.cols} · <code>${esc(t.address)}</code></span>
+        </summary>${mapsTableHtml(t)}</details>`).join('')
+    + constants;
+  wireMapsToolbar();
+}
+
+$('#mapsRefreshBtn').onclick = loadXdfs;
+
+$('#mapsRenderBtn').onclick = async () => {
+  const path = $('#mapsImagePath').value.trim() || $('#imagePath').value.trim();
+  const xdf = $('#xdfSelect').value;
+  if (!xdf) return toast('No XDF definitions found — drop .xdf files into ~/.guzzionboard/xdfs/.', 'bad');
+  if (!path) return toast('Give the path of an image to render.', 'bad');
+  if (!path.startsWith('/') && !path.startsWith('~')) {
+    return toast('Give an absolute path, e.g. /home/you/.guzzionboard/images/5am-flash-read.bin', 'bad');
+  }
+  $('#mapsOut').innerHTML = '<p class="muted">Rendering…</p>';
+  try {
+    renderMapsResult(await api('/api/maps/render', { method: 'POST', body: { path, xdf } }));
+  } catch (err) {
+    $('#mapsOut').innerHTML = `<div class="gate-card bad"><h4>Could not render</h4><p class="small">${esc(err.message)}</p></div>`;
+  }
+};
+
+$('#mapsDiffBtn').onclick = async () => {
+  const a = $('#mapsImagePath').value.trim() || $('#imagePath').value.trim();
+  const b = $('#mapsDiffPath').value.trim();
+  const xdf = $('#xdfSelect').value;
+  if (!xdf) return toast('No XDF definitions found — drop .xdf files into ~/.guzzionboard/xdfs/.', 'bad');
+  if (!a || !b) return toast('Both images are needed to diff.', 'bad');
+  $('#mapsOut').innerHTML = '<p class="muted">Comparing…</p>';
+  try {
+    const d = await api('/api/maps/diff', {
+      method: 'POST', body: { path_a: a, path_b: b, xdf },
+    });
+    if (d.identical) {
+      $('#mapsOut').innerHTML = '<div class="gate-card ok"><h4>No differences</h4>'
+        + '<p class="small">Every table and constant in these definitions is identical between the two images.</p></div>';
+      return;
+    }
+    maps.lastDoc = {
+      title: `${(d.xdf || {}).title || 'Maps'} — diff`,
+      html: mapsDoc(`${(d.xdf || {}).title || 'Maps'} — differences`,
+        d.tables.map((t) => `<h2>${esc(t.title)} — ${t.changed_cells} cell(s) changed</h2>`
+        + `<table><thead><tr><th>Row</th><th>Column</th><th>Before</th><th>After</th></tr></thead><tbody>`
+        + (t.cells || []).map((c) => `<tr><td>${esc(c.y)}</td><td>${esc(c.x)}</td>`
+          + `<td>${esc(fmtValue(c.before))}</td><td>${esc(fmtValue(c.after))}</td></tr>`).join('')
+        + '</tbody></table>').join('')
+        + (d.constants.length ? `<h2>Constants</h2><table><thead><tr><th>Constant</th><th>Before</th><th>After</th></tr></thead><tbody>`
+          + d.constants.map((c) => `<tr><td>${esc(c.title)}</td><td>${esc(fmtValue(c.before))}</td><td>${esc(fmtValue(c.after))}</td></tr>`).join('')
+          + '</tbody></table>' : '')),
+    };
+    $('#mapsOut').innerHTML = mapsResultToolbar() + `
+      <div class="gate-card warn"><h4>Images differ</h4>
+        <p class="small">${d.tables.length} table(s) and ${d.constants.length} constant(s) changed.</p></div>`
+      + d.tables.map((t) => `
+        <details open><summary>${esc(t.title)}
+          <span class="muted small"> — ${t.changed_cells} cell(s) changed</span></summary>
+        <div class="table-wrap"><table class="data">
+          <thead><tr><th>Row</th><th>Column</th><th>Before</th><th>After</th></tr></thead>
+          <tbody>${(t.cells || []).map((c) => `
+            <tr><td>${esc(c.y)}</td><td>${esc(c.x)}</td>
+                <td><b class="bad">${esc(fmtValue(c.before))}</b></td>
+                <td><b class="ok">${esc(fmtValue(c.after))}</b></td></tr>`).join('')}
+          </tbody></table></div>
+        ${t.cells_truncated ? '<p class="muted small">Only the first 512 changed cells are listed.</p>' : ''}
+        ${t.error ? `<p class="muted small">${esc(t.error)}</p>` : ''}
+        </details>`).join('')
+      + (d.constants.length ? `
+        <details open><summary>Constants</summary>
+        <div class="table-wrap"><table class="data">
+          <thead><tr><th>Constant</th><th>Before</th><th>After</th></tr></thead>
+          <tbody>${d.constants.map((c) => `
+            <tr><td>${esc(c.title)}</td>
+                <td><b class="bad">${esc(fmtValue(c.before))}</b> ${esc(c.units)}</td>
+                <td><b class="ok">${esc(fmtValue(c.after))}</b></td></tr>`).join('')}
+          </tbody></table></div></details>` : '');
+    wireMapsToolbar();
+  } catch (err) {
+    $('#mapsOut').innerHTML = `<div class="gate-card bad"><h4>Could not diff</h4><p class="small">${esc(err.message)}</p></div>`;
+  }
+};
+
+$$('.nav').forEach((b) => {
+  if (b.dataset.view === 'firmware') {
+    const previous = b.onclick;
+    b.onclick = () => { previous?.(); loadXdfs(); };
+  }
+});
+
+/* ------------------------------------------------- CAN capture analysis */
+/* The CAN id pair is the one unknown on the CAN-era bikes (PRIOR_ART §7
+ * item 2). This reads a passive capture — candump, SavvyCAN CSV or CRTD —
+ * and reports the pair that behaves like ISO-TP diagnostics, with the
+ * evidence, so nobody has to trust a guess. */
+
+function renderCanlog(result) {
+  const out = $('#canlogOut');
+  const head = `
+    <div class="gate-card ${result.diagnostic_traffic_found ? 'ok' : 'warn'}">
+      <h4>${result.diagnostic_traffic_found
+        ? `${result.pairs.length} candidate pair(s) found`
+        : 'No diagnostic traffic recognised'}</h4>
+      <p class="small">${result.frames} frames · format <b>${esc(result.format)}</b>
+        ${result.span_seconds ? ` · ${(result.span_seconds / 60).toFixed(1)} min` : ''}
+        · ${result.bus_ids.length} bus id(s)</p>
+    </div>`;
+
+  if (!result.diagnostic_traffic_found) {
+    out.innerHTML = head
+      + result.notes.map((n) => `<p class="muted small">${esc(n)}</p>`).join('');
+    return;
+  }
+
+  const matchesNote = (p) => p.matches
+    ? `<p class="small"><b class="ok">This is ${esc(p.matches)}.</b></p>`
+    : `<p class="small"><b class="warn">This is neither standard pair.</b>
+       Enter <code>${esc(p.request_id)}</code> / <code>${esc(p.response_id)}</code>
+       in the Garage CAN fields when you connect${p.extended ? ' (29-bit)' : ''}.</p>`;
+
+  out.innerHTML = head
+    + result.pairs.map((p, i) => `
+      <div class="gate-card ${i === 0 ? 'ok' : ''}">
+        <h4>${i === 0 ? 'Best candidate: ' : ''}request <code>${esc(p.request_id)}</code>
+          &rarr; response <code>${esc(p.response_id)}</code>
+          <span class="conf ${p.confidence === 'strong' ? 'ok' : 'mid'}">${esc(p.confidence)}</span>
+        </h4>
+        ${matchesNote(p)}
+        <p class="muted small">
+          ${p.evidence.request_frames} request frame(s) · ${p.evidence.response_frames} response frame(s)
+          · ${p.evidence.multi_frame_to_ecu} multi-frame exchange(s) to the ECU
+          · ${p.evidence.multi_frame_from_ecu} from it
+          ${p.tester_present_interval_s ? ` · tester present every ${p.tester_present_interval_s}s` : ''}
+          ${p.padding_byte ? ` · padded with ${esc(p.padding_byte)}` : ''}
+        </p>
+        ${p.request_sids.length ? `<p class="muted small">Requests: ${esc(p.request_sids.join(', '))}</p>` : ''}
+        ${p.response_sids.length ? `<p class="muted small">Responses: ${esc(p.response_sids.join(', '))}</p>` : ''}
+      </div>`).join('')
+    + result.notes.map((n) => `<p class="muted small">${esc(n)}</p>`).join('');
+}
+
+async function analyseCanlog(body) {
+  $('#canlogOut').innerHTML = '<p class="muted">Analysing…</p>';
+  try {
+    renderCanlog(await api('/api/tools/canlog', { method: 'POST', body }));
+  } catch (err) {
+    $('#canlogOut').innerHTML =
+      `<div class="gate-card bad"><h4>Could not analyse</h4><p class="small">${esc(err.message)}</p></div>`;
+  }
+}
+
+$('#canlogBtn').onclick = () => {
+  const path = $('#canlogPath').value.trim();
+  if (!path) return toast('Give the path of a capture file.', 'bad');
+  analyseCanlog({ path });
+};
+$('#canlogPasteBtn').onclick = () => {
+  const text = $('#canlogText').value.trim();
+  if (!text) return toast('Paste some capture lines first.', 'bad');
+  analyseCanlog({ text });
+};
+
+/* ---------------------------------------------------------- compare view */
+/* Two recorded sessions, side by side, channel by channel. Sessions are
+ * not aligned in time, so the server compares means, not point-by-point. */
+
+function fillCompareSelects() {
+  const sessions = state.sessions || [];
+  const options = sessions.length
+    ? sessions.map((s) => `<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('')
+    : '<option value="">no sessions yet</option>';
+  $('#compareA').innerHTML = options;
+  $('#compareB').innerHTML = options;
+  if (sessions.length >= 2) {
+    $('#compareA').value = sessions[1].name;   // newer first: A = older
+    $('#compareB').value = sessions[0].name;
+  }
+}
+
+function fmtStat(s) {
+  if (!s) return '<span class="muted">—</span>';
+  return `${s.mean} <span class="muted small">(${s.min}…${s.max}, n=${s.count})</span>`;
+}
+
+$('#compareBtn').onclick = async () => {
+  const a = $('#compareA').value, b = $('#compareB').value;
+  if (!a || !b) return toast('Two recorded sessions are needed.', 'bad');
+  $('#compareOut').innerHTML = '<p class="muted">Comparing…</p>';
+  try {
+    const d = await api('/api/sessions/compare', { method: 'POST', body: { a, b } });
+    const meta = (s) => {
+      const m = s.meta || {};
+      return `${esc(m.model || m.ecu_family || '?')} · ${esc(m.ecu_family || '?')} · ${esc(s.name)}`;
+    };
+    const dtcLine = (title, codes) => codes.length
+      ? `<p class="small"><b>${title}:</b> ${codes.map((c) => `<code>${esc(c)}</code>`).join(' ')}</p>`
+      : '';
+    $('#compareOut').innerHTML = `
+      <div class="gate-card"><h4>${meta(d.a)} &nbsp;&harr;&nbsp; ${meta(d.b)}</h4></div>`
+      + (d.channels_only_in_a.length ? `<p class="muted small">Only in A: ${esc(d.channels_only_in_a.join(', '))}</p>` : '')
+      + (d.channels_only_in_b.length ? `<p class="muted small">Only in B: ${esc(d.channels_only_in_b.join(', '))}</p>` : '')
+      + (d.dtcs.only_a.length || d.dtcs.only_b.length || d.dtcs.both.length
+        ? dtcLine('Codes in both', d.dtcs.both) + dtcLine('Only in A', d.dtcs.only_a) + dtcLine('Only in B', d.dtcs.only_b)
+        : '')
+      + `<div class="table-wrap"><table class="data">
+        <thead><tr><th>Channel</th><th>A (mean, range)</th><th>B (mean, range)</th><th>Δ mean</th></tr></thead>
+        <tbody>${d.channels.map((c) => `
+          <tr><td><b>${esc(c.key)}</b> ${esc(c.unit)}</td>
+              <td>${fmtStat(c.a)}</td><td>${fmtStat(c.b)}</td>
+              <td>${c.delta_mean === null ? '<span class="muted">—</span>'
+                : `<b class="${Math.abs(c.delta_mean) < 1e-9 ? '' : 'warn'}">${c.delta_mean > 0 ? '+' : ''}${c.delta_mean}</b>`}</td>
+          </tr>`).join('')}
+        </tbody></table></div>`;
+  } catch (err) {
+    $('#compareOut').innerHTML =
+      `<div class="gate-card bad"><h4>Could not compare</h4><p class="small">${esc(err.message)}</p></div>`;
+  }
+};

@@ -201,3 +201,97 @@ def test_saving_writes_a_sidecar_with_provenance(tmp_path):
     assert sidecar["ecu_id"] == "5am"
     assert sidecar["checksums"]["sha256"] == image.sha256
     assert sidecar["identity"]["Hardware"] == "IAW5AMHW610"
+
+
+# -- IAW 5AM upload encoding ------------------------------------------------
+#
+# The known-answer vectors below were produced by compiling the *original*
+# encrypt_blob() from 5am_util's main.c and running it over these exact
+# buffers, so a pass here means "byte-identical to the C tool", not merely
+# self-consistent.
+
+from guzzionboard.firmware import (  # noqa: E402
+    IAW5AM_CHECKSUM_LEN,
+    IAW5AM_FLASH_SIZE,
+    IAW5AM_UPLOAD_MAGIC,
+    FirmwareError,
+    iaw5am_decode,
+    iaw5am_encode,
+    iaw5am_flash_payload,
+    iaw5am_upload_blob,
+    iaw5am_upload_checksum,
+)
+
+#: C reference: encrypt_blob(magic + bytes((i*31+7) & 0xFF for i in range(64)))
+C_VECTOR_64 = bytes.fromhex(
+    "DA677839F65B159438F692B7FB36D0683CF293F7F916F0E840EE9430F7F51169"
+    "44EA9570F5D531E948E696B0F3B5516A4CE297F0F19571EA50DE9831EF75916B"
+    "54DA9971ED55B1EB"
+)
+
+#: C reference: the same, over a 256-byte buffer with an FA vector-table head.
+C_VECTOR_256 = bytes.fromhex(
+    "DA677839F65B1594BEE33BC299AFC762BEE33AD099AFA7622DA25FD043B74A2A"
+    "29A65E9045D72AA925AA5D5047F70A2921AE5C104914E9A81DB25BD74B34C928"
+    "19B65A974D54A9A715BA59574F74892711BE5817519469A60DC257D653B44926"
+    "09C6569655D429A505CA555657F4092501CE54165915E8A47DD253D55B35C824"
+    "79D652955D55A8A375DA51555F75882371DE5015619568A26DE24FD463B54822"
+    "69E64E9465D528A165EA4D5467F5082161EE4C146916EBA05DF24BD36B36CB20"
+    "59F64A936D56ABAF55FA49536F768B2F51FE481371966BAE4D8247D273B64B2E"
+    "4986469275D62BAD458A455277F60B2D418E44127917EAAC3D9243D17B37CA2C"
+    "399642917D57AAAB"
+)
+
+
+def _vector_64_plain() -> bytes:
+    return IAW5AM_UPLOAD_MAGIC + bytes((i * 31 + 7) & 0xFF for i in range(64))
+
+
+def _vector_256_plain() -> bytes:
+    head = bytes.fromhex("FA000002" "FA000440" "FA000840" "FA000C40")
+    return IAW5AM_UPLOAD_MAGIC + head + bytes(
+        (i * 97 + 13) & 0xFF for i in range(16, 256)
+    )
+
+
+def test_upload_encode_matches_the_original_c_tool():
+    assert iaw5am_encode(_vector_64_plain()) == C_VECTOR_64
+    assert iaw5am_encode(_vector_256_plain()) == C_VECTOR_256
+
+
+def test_upload_decode_is_the_exact_inverse():
+    assert iaw5am_decode(C_VECTOR_64) == _vector_64_plain()
+    assert iaw5am_decode(C_VECTOR_256) == _vector_256_plain()
+    import random
+
+    rng = random.Random(20261004)
+    for _ in range(50):
+        blob = bytes(rng.randrange(256) for _ in range(rng.randrange(1, 4096)))
+        assert iaw5am_decode(iaw5am_encode(blob)) == blob
+
+
+def test_upload_blob_shape_and_rejection():
+    region = bytes((i * 7 + 3) & 0xFF for i in range(IAW5AM_FLASH_SIZE))
+    blob = iaw5am_upload_blob(region)
+    assert len(blob) == IAW5AM_FLASH_SIZE + 8          # magic + payload
+    assert iaw5am_decode(blob)[:8] == IAW5AM_UPLOAD_MAGIC
+    assert iaw5am_decode(blob)[8:] == region            # payload round-trips
+
+    # A full-device dump encodes to exactly the same blob.
+    device = bytes(0x4000) + region
+    assert iaw5am_upload_blob(device) == blob
+
+    # Anything else is refused rather than interpreted.
+    with pytest.raises(FirmwareError):
+        iaw5am_upload_blob(region[:-1])
+    with pytest.raises(FirmwareError):
+        iaw5am_flash_payload(b"\x00" * 12)
+
+
+def test_upload_checksum_covers_all_but_two_bytes():
+    region = bytes((i * 13 + 5) & 0xFF for i in range(IAW5AM_FLASH_SIZE))
+    checksum = iaw5am_upload_checksum(region)
+    assert checksum == (sum(region[:IAW5AM_CHECKSUM_LEN]) & 0xFFFF)
+    assert checksum == checksums(region[:IAW5AM_CHECKSUM_LEN])["sum16"]
+    # Over the device form too, since the payload is the same.
+    assert iaw5am_upload_checksum(bytes(0x4000) + region) == checksum

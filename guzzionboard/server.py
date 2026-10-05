@@ -15,13 +15,16 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from . import adapter as adapter_mod
+from . import canlog
 from . import tools
 from .catalog import CatalogError
 from .diagnostics import NotConnected
 from .firmware import FirmwareImage, FirmwareError
+from .maps import XDF_DIR, XdfError, XdfFile, load_xdfs
 from .programming import ProgrammingError, ProgrammingService
 from .safety import SafetyViolation
 from .security import SecurityUnavailable, describe_all, load_plugins
+from . import sessiondiff
 from .sessionlog import SessionLog
 from .transports.base import TransportError, TransportUnavailable
 from .workstation import Workstation
@@ -99,6 +102,7 @@ class Api:
         catalog = self.ws.catalog
         return 200, {
             "summary": catalog.summary(),
+            "makes": catalog.makes(),
             "models": [
                 {
                     "model": model,
@@ -106,15 +110,25 @@ class Api:
                 }
                 for model in catalog.models()
             ],
+            "vehicles": [
+                {
+                    "make": v.make, "model": v.model,
+                    "year_from": v.year_from, "year_to": v.year_to,
+                    "ecu": v.ecu,
+                }
+                for v in catalog.vehicles
+            ],
             "ecus": [e.as_dict() for e in catalog.ecus.values()],
         }
 
     def get_resolve(self, query: dict) -> tuple[int, dict]:
         model = (query.get("model") or [""])[0]
+        make = (query.get("make") or [""])[0]
         year = int((query.get("year") or ["0"])[0] or 0)
-        matches = self.ws.catalog.find(model, year or None)
+        matches = self.ws.catalog.find(model, year or None, make)
         return 200, {
             "model": model,
+            "make": make,
             "year": year,
             "ambiguous": len(matches) > 1,
             "matches": [
@@ -125,13 +139,19 @@ class Api:
 
     # -- lifecycle --------------------------------------------------------
     def post_select(self, body: dict) -> tuple[int, dict]:
-        return 200, self.ws.select(
-            model=body.get("model", ""),
-            year=int(body.get("year") or 0),
-            ecu=body.get("ecu", ""),
-            transport=body.get("transport", "simulator"),
-            device=body.get("device", ""),
-        )
+        try:
+            return 200, self.ws.select(
+                model=body.get("model", ""),
+                year=int(body.get("year") or 0),
+                ecu=body.get("ecu", ""),
+                make=body.get("make", ""),
+                transport=body.get("transport", "simulator"),
+                device=body.get("device", ""),
+                can_tx_id=body.get("can_tx_id", ""),
+                can_rx_id=body.get("can_rx_id", ""),
+            )
+        except ValueError as exc:
+            return 400, {"error": str(exc)}
 
     def post_connect(self, body: dict) -> tuple[int, dict]:
         return 200, self.ws.connect(
@@ -169,9 +189,17 @@ class Api:
 
     def get_dtcs(self, query: dict) -> tuple[int, dict]:
         service = self.ws.require_service()
-        dtcs = service.read_dtcs()
+        result = service.read_dtcs()
         decision = service.check_clear_dtcs()
-        return 200, {"dtcs": dtcs, "clear": decision.as_dict()}
+        return 200, {
+            "dtcs": result["dtcs"],
+            "context": result["context"],
+            "context_note": (
+                "Observed by the workstation at read time - these ECUs do not "
+                "expose an ECU-stored freeze frame, and this is not one."
+            ),
+            "clear": decision.as_dict(),
+        }
 
     def post_dtcs_clear(self, body: dict) -> tuple[int, dict]:
         return 200, self.ws.require_service().clear_dtcs(body.get("token", ""))
@@ -218,6 +246,24 @@ class Api:
     # -- sessions and reports ---------------------------------------------
     def get_sessions(self, query: dict) -> tuple[int, dict]:
         return 200, {"sessions": SessionLog.list_sessions(self.ws.session_dir)}
+
+    def post_sessions_compare(self, body: dict) -> tuple[int, dict]:
+        a, b = body.get("a"), body.get("b")
+        if not (a and b):
+            return 400, {"error": "two session names, 'a' and 'b', are required"}
+        if a == b:
+            return 400, {"error": "pick two different sessions"}
+        paths = {}
+        for name in (a, b):
+            candidate = Path(self.ws.session_dir) / name
+            if not name or not candidate.is_file() or \
+                    candidate.parent != Path(self.ws.session_dir):
+                return 404, {"error": f"no such session: {name!r}"}
+            paths[name] = candidate
+        try:
+            return 200, sessiondiff.compare(paths[a], paths[b])
+        except sessiondiff.SessionDiffError as exc:
+            return 400, {"error": str(exc)}
 
     def get_session_events(self, query: dict) -> tuple[int, dict]:
         name = (query.get("name") or [""])[0]
@@ -302,6 +348,75 @@ class Api:
         decision = self._programming().check_write(body.get("region", "flash"))
         return 200, decision.as_dict()
 
+    # -- maps (TunerPro XDF) -----------------------------------------------
+    def get_maps(self, query: dict) -> tuple[int, dict]:
+        xdfs = load_xdfs()
+        return 200, {
+            "directory": str(XDF_DIR),
+            "xdfs": [x.describe() for x in xdfs],
+        }
+
+    def _load_xdf(self, ref: str) -> XdfFile:
+        """An XDF from the plugin directory (by title or filename), or a path."""
+        for xdf in load_xdfs():
+            if ref in (xdf.title, Path(xdf.path).name if xdf.path else None):
+                return xdf
+        if Path(ref).suffix.lower() == ".xdf":
+            return XdfFile.from_file(ref)
+        raise XdfError(
+            f"no XDF named {ref!r} in {XDF_DIR}, and not a .xdf path either"
+        )
+
+    @staticmethod
+    def _address_base(body: dict) -> int | None:
+        base = body.get("address_base")
+        if base in (None, ""):
+            return None
+        try:
+            return int(str(base), 0)
+        except ValueError:
+            raise XdfError(f"address_base {base!r} is not a number") from None
+
+    def post_maps_render(self, body: dict) -> tuple[int, dict]:
+        path, ref = body.get("path"), body.get("xdf")
+        if not path:
+            return 400, {"error": "an image 'path' is required"}
+        if not ref:
+            return 400, {"error": "an 'xdf' (title or .xdf path) is required"}
+        try:
+            image = FirmwareImage.from_file(path)
+        except OSError as exc:
+            return 400, {"error": str(exc)}
+        try:
+            xdf = self._load_xdf(ref)
+        except XdfError as exc:
+            return 400, {"error": str(exc)}
+        try:
+            render = xdf.render(image, address_base=self._address_base(body))
+        except XdfError as exc:
+            return 400, {"error": str(exc)}
+        return 200, {**render, "image": image.describe()}
+
+    def post_maps_diff(self, body: dict) -> tuple[int, dict]:
+        a, b, ref = body.get("path_a"), body.get("path_b"), body.get("xdf")
+        if not (a and b):
+            return 400, {"error": "'path_a' and 'path_b' are both required"}
+        if not ref:
+            return 400, {"error": "an 'xdf' (title or .xdf path) is required"}
+        try:
+            before, after = FirmwareImage.from_file(a), FirmwareImage.from_file(b)
+        except OSError as exc:
+            return 400, {"error": str(exc)}
+        try:
+            xdf = self._load_xdf(ref)
+        except XdfError as exc:
+            return 400, {"error": str(exc)}
+        try:
+            diff = xdf.diff(before, after, address_base=self._address_base(body))
+        except XdfError as exc:
+            return 400, {"error": str(exc)}
+        return 200, {**diff, "image": before.describe()}
+
     def post_programming_enable(self, body: dict) -> tuple[int, dict]:
         self.ws.gate.enable_programming(body.get("acknowledgement", ""))
         return 200, {"programming_enabled": True}
@@ -337,6 +452,24 @@ class Api:
             "latency_ms": adapter_mod.read_latency_timer(port),
             "instructions": "" if ok else adapter_mod.latency_fix_instructions(port),
         }
+
+    def post_tools_canlog(self, body: dict) -> tuple[int, dict]:
+        """Analyse a passively sniffed CAN capture: which ids are the pair?
+
+        Accepts a file ``path`` (candump, SavvyCAN CSV or CRTD) or pasted
+        ``text``. Read-only by construction: it never touches hardware.
+        """
+        path, text = body.get("path"), body.get("text")
+        if not path and not text:
+            return 400, {"error": "a capture 'path' or pasted 'text' is required"}
+        try:
+            if path:
+                result = canlog.analyze_capture_file(path)
+            else:
+                result = canlog.analyze_capture_text(str(text))
+        except canlog.CanLogError as exc:
+            return 400, {"error": str(exc)}
+        return 200, result
 
     def get_gearing(self, query: dict) -> tuple[int, dict]:
         def number(name, default):
@@ -377,6 +510,7 @@ ROUTES_GET = {
     "/api/sessions": "get_sessions",
     "/api/sessions/events": "get_session_events",
     "/api/report": "get_report",
+    "/api/maps": "get_maps",
     "/api/memory": "get_memory",
     "/api/memory/progress": "get_memory_progress",
     "/api/security": "get_security",
@@ -400,9 +534,13 @@ ROUTES_POST = {
     "/api/memory/validate": "post_memory_validate",
     "/api/memory/write": "post_memory_write",
     "/api/memory/check-write": "post_memory_check_write",
+    "/api/maps/render": "post_maps_render",
+    "/api/maps/diff": "post_maps_diff",
     "/api/programming/enable": "post_programming_enable",
     "/api/programming/disable": "post_programming_disable",
     "/api/adapter/latency": "post_adapter_latency",
+    "/api/tools/canlog": "post_tools_canlog",
+    "/api/sessions/compare": "post_sessions_compare",
 }
 
 

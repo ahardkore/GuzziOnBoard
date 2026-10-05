@@ -4,18 +4,20 @@ KWP2000 service 0x27 is a seed/key handshake: the ECU sends a challenge and
 the tester must answer with a key derived by a manufacturer algorithm. Those
 algorithms are proprietary and are not published.
 
-**This project does not ship a working key algorithm for any Moto Guzzi ECU,
-and does not pretend to.** What it ships is the plumbing:
+**This project ships one working algorithm - for the IAW 5AM, transcribed
+from the open-source 5am_util flashing tool - and no verified algorithm for
+any Moto Guzzi ECU.** "Working" means it reproduces every published seed/key
+pair and is what a tool that really flashed these ECUs used; "not verified"
+means nobody has confirmed it unlocks a Guzzi-fitted 5AM, so it is never
+selected automatically. On top of that:
 
 * a stable :class:`KeyProvider` interface;
 * a registry so a provider can be supplied without touching the core;
 * a plugin loader that reads a provider from a local file, so anyone who has
   legitimately obtained the algorithm for their own ECU can drop it in;
-* one explicitly-unverified *hypothesis* provider for the IAW 5AM, derived
-  from two published seed/key pairs and disabled by default.
+* the 5AM provider, unverified on Guzzi hardware and disabled by default.
 
-Why not just guess? Two published samples define infinitely many functions
-that fit them. A wrong key costs nothing on the first attempt (the ECU answers
+Why not guess? A wrong key costs nothing on the first attempt (the ECU answers
 ``invalidKey``), but most ECUs lock out after a few tries and some impose a
 timed penalty, so a tool that sprays guesses at a security gate is a tool that
 locks people out of their own motorcycle.
@@ -105,63 +107,56 @@ def describe_all() -> dict:
 
 
 # --------------------------------------------------------------------------
-# Hypothesis provider: IAW 5AM
+# IAW 5AM: the 5am_util algorithm
 # --------------------------------------------------------------------------
 #
-# Two seed/key pairs are published in the 5am_util verbose output:
+# Transcribed from calc_key() in 5am_util's main.c (github.com/denandz/5am_util,
+# mirrored at codeberg.org/DoI/5am_util) and verified against both seed/key
+# pairs that tool's README transcript publishes:
 #
-#     seed 0x27882789 -> key 0xDA786927
-#     seed 0x3CA93CAA -> key 0x0E816927
+#     seed 27 88 27 89 -> key DA 78 69 27
+#     seed 3C A9 3C AA -> key 0E 81 69 27
 #
-# Observations:
-#   * the seed is a 16-bit value X followed by X+1;
-#   * the low 16 bits of the key are 0x6927 in both samples.
+# The seed is a 16-bit X followed by X+1. The C code reads the big-endian
+# challenge as two little-endian uint16 halves, which is where the byte swaps
+# below come from; in seed terms the key is
 #
-# Fitting key_hi = (a * X + b) mod 2^16 to two points yields exactly one (a, b)
-# pair, which is *not* evidence - any two points define a line. It is recorded
-# here so it can be tested by someone with a bench ECU, and it is marked
-# unverified so that nothing uses it by accident.
-
-_A, _B = None, None
-
-
-def _fit_affine() -> tuple[int, int] | tuple[None, None]:
-    x1, k1 = 0x2788, 0xDA78
-    x2, k2 = 0x3CA9, 0x0E81
-    for a in range(1, 1 << 16):
-        if (x1 * a - k1) % 0x10000 == (x2 * a - k2) % 0x10000:
-            b = (k1 - x1 * a) % 0x10000
-            return a, b
-    return None, None
+#     (bswap16(X+1) div 161) << 24 | (bswap16(X) mod 200) << 16 | 0x6927
+#
+# Why it is registered unverified: it provably matches the two published
+# pairs and is the algorithm a successful flashing tool actually shipped, but
+# nobody has fed it a seed from a *Guzzi-fitted* 5AM and confirmed the unlock.
+# The 59M is expected to share it (IAW5xReader/Writer treat 5AM and 59M as one
+# family); no such claim is made for the 15x, 7SM or MIU families.
 
 
-def _iaw5am_hypothesis(seed: bytes) -> bytes:
-    global _A, _B
-    if _A is None:
-        _A, _B = _fit_affine()
-    if _A is None:
-        raise SecurityUnavailable("5AM hypothesis: no affine fit")
+def _iaw5am_key(seed: bytes) -> bytes:
     if len(seed) != 4:
-        raise SecurityUnavailable(f"5AM seed should be 4 bytes, got {len(seed)}")
-    x = int.from_bytes(seed[:2], "big")
-    key_hi = (_A * x + _B) & 0xFFFF
-    return key_hi.to_bytes(2, "big") + b"\x69\x27"
+        raise SecurityUnavailable(
+            f"IAW 5AM seed should be 4 bytes, got {len(seed)}"
+        )
+    b0, b1, b2, b3 = seed
+    q0 = b3 | (b2 << 8)      # q[0] as a little-endian host sees it
+    q1 = b1 | (b0 << 8)      # q[1]
+    w = ((q0 >> 8) | (q0 << 8)) & 0xFFFF
+    return bytes(((w // 0xA1) & 0xFF, (q1 % 0xC8) & 0xFF, 0x69, 0x27))
 
 
 register(
     Provider(
         ecu_id="5am",
-        name="iaw5am-affine-hypothesis",
-        fn=_iaw5am_hypothesis,
+        name="iaw5am-kwp-divmod",
+        fn=_iaw5am_key,
         verified=False,
         note=(
-            "Fitted to the two seed/key pairs published in the 5am_util verbose "
-            "output. Two samples cannot determine the algorithm; this is a "
-            "hypothesis to be tested on a bench ECU, not a working key routine. "
-            "Expect invalidKey, and be aware that repeated failures can lock the "
-            "security gate."
+            "Transcribed from calc_key() in 5am_util's main.c and reproducing "
+            "both seed/key pairs published in that tool's transcript. It is "
+            "the algorithm of a tool that has flashed IAW 5AM ECUs "
+            "successfully, but it has not been confirmed against a "
+            "Guzzi-fitted 5AM, so it is not chosen automatically. Repeated "
+            "wrong keys can lock the security gate."
         ),
-        source="5am_util verbose transcript",
+        source="5am_util main.c calc_key() via docs/PRIOR_ART.md 1.1",
     )
 )
 

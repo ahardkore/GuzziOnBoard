@@ -15,7 +15,7 @@ reason is named.
 | Read EEPROM, any family | Implemented, geometry uncaptured. |
 | Backup with verification | Fully working. |
 | Image validation | Fully working. |
-| Write / erase / program | Fully implemented and simulator-tested. Disabled against hardware pending a verified key algorithm and a verified write sub-function. |
+| Write / erase / program | Fully implemented against the documented 5am_util sequence and simulator-tested. Disabled against hardware pending a bench-confirmed key and physical-layer validation. |
 | Write verification by read-back | Fully working. |
 | Interrupted-write recovery | Fully working. |
 
@@ -40,7 +40,10 @@ preconditions are:
 
 Seven green lights and the write proceeds. Six and it does not. The remaining
 red light on every Guzzi family today is the first one, and that is an
-evidence problem, not a policy one.
+evidence problem, not a policy one. For the 5AM the evidence is now one bench
+session away: the key algorithm and the full write sequence are transcribed
+and simulator-tested (`docs/PRIOR_ART.md` 1.1-1.5); what is missing is a real
+ECU saying yes.
 
 ## The 5AM read sequence
 
@@ -79,6 +82,55 @@ without the programming opt-in, while still refusing RequestDownload (0x34)
 and WriteMemoryByAddress (0x3D). Reading is not destructive and should not
 require the same ceremony as writing.
 
+## The 5AM write sequence
+
+Transcribed from `write_firmware()` in 5am_util's `main.c` (the transcript
+only covered reads, which is why the write sub-function used to be marked
+`inferred`). The catalog carries every frame as data:
+
+```
+->  10 85 03                    programming session; line moves to 38400
+<-  50 85
+->  83 03 1E 02 0A 14 00        AccessTimingParameter (P2/P3/P4)
+<-  C3 03 ...                   tester address stays 0xF1 ...
+->  27 01                       ... except here, sent from 0x01
+<-  67 01 <seed>
+->  27 02 <key>                 the iaw5am-kwp-divmod answer
+<-  67 02
+->  3B 98 20                    writer record   - MANDATORY
+->  3B 99 20 18 01 01           reflash date record
+->  31 02 00 40 00 04 FF FF     arm the erase for 0x4000..0x4FFFF
+->  33 02                       run the erase  (ECU streams status; wait)
+->  34 00 40 00 33 04 C0 00     RequestDownload
+->  36 <254 bytes>              TransferData of the ENCODED blob
+    ... 1226 chunks, no sub-function ...
+->  37                          RequestTransferExit
+->  31 01 00 40 00 04 FF FF <sum16>   arm programming with the checksum
+->  33 01                       program
+```
+
+Three details that are easy to get wrong:
+
+**The upload is not the dump.** The wire payload is
+`firmware.iaw5am_upload_blob(image)` — the eight magic bytes `C2 07 16 33 6F
+EB B0 1D` followed by every flash byte transformed by an add/rotate/invert
+pattern with an 8-byte period. The encoder is byte-verified against a
+compiled copy of the original C, and its inverse decodes what the ECU holds
+for the read-back verification. The program routine's argument is the plain
+`sum16` of the flash payload minus its last two bytes — the ECU decodes
+before it checks.
+
+**The records are not optional.** 5am_util's comment is explicit: leave out
+the `3B 98 20` writer record and the `3B 99 20` date record, and
+RequestDownload fails. The simulator enforces this, and
+`test_the_ecu_refuses_a_download_without_the_writer_records` pins it.
+
+**The write session is not the read session.** No `10 0C 0C 09`, no switch
+to tester address `0x01`: the session frame `10 85 03` itself moves the line
+to 38400, and the tester address stays `0xF1` — except the `27` exchange,
+which 5am_util sends from `0x01`. The catalog records all of this; the
+simulator reproduces it.
+
 ### Region geometry
 
 The readable region runs `0x4000` to `0x50000`, which is 311,296 bytes. The
@@ -86,25 +138,32 @@ often-quoted figure of 327,680 bytes (`0x50000`) is the whole device including
 the bootloader below `0x4000`, and that part is not reachable over K-Line.
 A read takes about 20 minutes at 32 bytes per block.
 
-## The missing piece: SecurityAccess
+## The SecurityAccess key
 
 Service `0x27` is a seed/key challenge. The ECU sends four bytes, the tester
 must answer with the right four bytes, and the algorithm is proprietary.
 
-**GuzziOnBoard ships no working key algorithm for any Moto Guzzi ECU.** This
-is not modesty, it is accuracy. Two seed/key pairs appear in the `5am_util`
-transcript:
+**GuzziOnBoard ships one key algorithm: `iaw5am-kwp-divmod`, transcribed from
+`calc_key()` in 5am_util's source** (see `docs/PRIOR_ART.md` 1.1). It
+reproduces both pairs published in that tool's transcript exactly:
 
 ```
 seed 0x27882789 -> key 0xDA786927
 seed 0x3CA93CAA -> key 0x0E816927
 ```
 
-The seed is structured (a 16-bit value `X` followed by `X+1`) and both keys
-end in `0x6927`, which is suggestive. Fitting `key_hi = a*X + b (mod 2^16)` to
-two points yields exactly one `(a, b)` pair — and that is worth nothing, since
-any two points define a line. That fit is registered as
-`iaw5am-affine-hypothesis`, marked unverified, and never selected by default.
+In seed terms (the seed is a 16-bit `X` followed by `X+1`):
+
+```
+key = (bswap16(X+1) div 161) << 24 | (bswap16(X) mod 200) << 16 | 0x6927
+```
+
+It is registered `verified=False` and never selected automatically. "Working"
+means it provably matches the published pairs and is the algorithm a tool
+that really flashed IAW 5AM ECUs shipped; **not verified** means nobody has
+fed it a seed from a Guzzi-fitted 5AM and confirmed the unlock. The 59M is
+expected to share it (one family in the GuzziDiag tooling); no claim is made
+for the 15x, 7SM or MIU families.
 
 A wrong key is cheap once and expensive repeatedly: most ECUs lock the
 security gate after a few failures, some with a timed penalty. So the tool

@@ -1,6 +1,8 @@
 """The read/backup/verify/write path, exercised against the simulator."""
 from __future__ import annotations
 
+import tempfile
+
 import pytest
 
 from guzzionboard.catalog import load_catalog
@@ -49,6 +51,9 @@ def service(profile, tmp_path):
     diag.identify()
     prog = ProgrammingService(diag, image_dir=tmp_path)
     prog.key_provider = Provider("5am", "simulator", sim_key, verified=True)
+    # Real ECUs need ~12 s of pacing across erase and program; the simulator
+    # does not, and the tests would crawl.
+    prog.hardware_pacing = False
     yield prog
     diag.disconnect()
 
@@ -104,19 +109,47 @@ def test_a_wrong_key_is_reported_without_retrying(service):
 
 
 def test_no_verified_key_algorithm_ships_for_any_guzzi_ecu():
-    """Honesty check: we must not pretend to know a proprietary algorithm."""
+    """Honesty check: nothing is marked verified until a bench ECU says so.
+
+    The 5AM algorithm from 5am_util is real and reproduces its published
+    pairs, but 'verified' means confirmed on a Guzzi-fitted ECU, which has
+    not happened yet.
+    """
     for ecu_id in ("5am", "7sm", "15m", "15rc", "miug3"):
         assert not [p for p in providers_for(ecu_id) if p.verified]
 
 
-def test_the_5am_hypothesis_is_available_but_never_chosen_by_default():
-    hypothesis = providers_for("5am")[0]
-    assert hypothesis.name == "iaw5am-affine-hypothesis"
-    assert not hypothesis.verified
-    assert "hypothesis" in hypothesis.note
+def test_the_5am_algorithm_is_available_but_never_chosen_by_default():
+    provider = providers_for("5am")[0]
+    assert provider.name == "iaw5am-kwp-divmod"
+    assert not provider.verified
+    assert "5am_util" in provider.source
     with pytest.raises(SecurityUnavailable, match="only unverified"):
         best_provider("5am")
-    assert best_provider("5am", allow_unverified=True) is hypothesis
+    assert best_provider("5am", allow_unverified=True) is provider
+
+
+def test_the_5am_algorithm_reproduces_both_published_pairs():
+    """Known-answer: the two seed/key pairs in the 5am_util transcript."""
+    provider = providers_for("5am")[0]
+    assert provider(bytes.fromhex("27882789")) == bytes.fromhex("DA786927")
+    assert provider(bytes.fromhex("3CA93CAA")) == bytes.fromhex("0E816927")
+
+
+def test_the_real_5am_algorithm_unlocks_the_simulated_ecu(profile):
+    """End to end: the fixed simulator seed goes through the real provider."""
+    ecu = SimulatedEcu(profile, engine=EngineModel(running=False))
+    ecu.key_algorithm = providers_for("5am")[0]   # the ECU now checks the real key
+    gate = SafetyGate(mode=Mode.READ_ONLY, state=VehicleState())
+    diag = DiagnosticsService(profile, SimulatorTransport(ecu=ecu), gate)
+    diag.connect()
+    prog = ProgrammingService(diag, image_dir=tempfile.mkdtemp())
+    prog.hardware_pacing = False
+    prog.enter_programming_session()
+    result = prog.unlock(allow_unverified=True)
+    assert result["key"] == "da 78 69 27"        # the fixed seed is 27 88 27 89
+    assert ecu.security_unlocked
+    diag.disconnect()
 
 
 def test_an_ecu_with_no_provider_explains_how_to_add_one():
@@ -315,6 +348,52 @@ def test_a_complete_write_round_trip_succeeds_and_verifies(service, monkeypatch)
     # The ECU really holds the new bytes.
     assert service.read_region("flash").data[5000:5004] == b"\xde\xad\xbe\xef"
     assert service.pending_checkpoint("flash") is None
+
+
+def test_a_write_follows_the_documented_5am_sequence(service, monkeypatch):
+    """Records, routine arms, encoded transfer and checksum - as documented.
+
+    This is the fidelity check for the 5am_util transcription: the simulator
+    enforces the sequence, and the wire payload is the *encoded* blob, not
+    the plain image.
+    """
+    from guzzionboard.firmware import iaw5am_upload_blob
+
+    service.backup("flash")
+    arm_for_writing(service, monkeypatch)
+
+    original = service.read_region("flash")
+    ecu = service.diag.transport.ecu
+
+    decision = service.check_write("flash")
+    service.write_region(original, decision.token)
+
+    # 0x3B writer and date records, in order, before anything else.
+    assert ecu.records_written == [b"\x98\x20", b"\x99\x20"]
+    # The erase ran as 31 02 then 33 02, and programming as 31 01 then 33
+    # 01 - four routine operations, not a RequestDownload shortcut.
+    assert ecu.erased
+    routine_ids = [entry[1] for entry in ecu.routine_log]
+    assert routine_ids == [0x02, 0x02, 0x01, 0x01]
+    # The upload was the encoded blob, byte for byte.
+    assert bytes(ecu.upload_blob) == iaw5am_upload_blob(original.data)
+    # The program routine validated the checksum of what it actually holds.
+    assert ecu.last_program_checksum_ok is True
+    assert ecu.programmed
+
+
+def test_the_ecu_refuses_a_download_without_the_writer_records(service, monkeypatch):
+    """5am_util: skip the 0x3B records and RequestDownload fails."""
+    service.backup("flash")
+    arm_for_writing(service, monkeypatch)
+    monkeypatch.setitem(
+        service.profile.memory["programming"]["write"], "records", []
+    )
+    image = service.read_region("flash")
+    decision = service.check_write("flash")
+    with pytest.raises(Exception, match="conditionsNotCorrect|rejected"):
+        service.write_region(image, decision.token)
+    assert service.pending_checkpoint("flash")["phase"] == "failed"
 
 
 def test_a_corrupted_write_fails_verification_and_leaves_recovery(service, monkeypatch):

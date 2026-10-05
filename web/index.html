@@ -52,6 +52,9 @@
     <div class="topbar-right">
       <span class="pill" id="modePill">simulator</span>
       <span class="pill ghost" id="ecuPill">no ECU</span>
+      <button class="btn small no-print" id="printBtn" title="Print this view or save it as PDF">Print / PDF</button>
+      <a class="btn small no-print" href="/sim.html" target="_blank" rel="noopener">Simulator demo</a>
+      <a class="btn small no-print" href="/tour.html" target="_blank" rel="noopener">Tour &amp; setup</a>
     </div>
   </header>
 
@@ -62,15 +65,18 @@
     <div class="grid-2">
       <article class="panel">
         <h2>1 · Motorcycle</h2>
-        <p class="muted">Moto Guzzi changed ECUs as running changes rather than on model-year boundaries. The label on your ECU always wins over this table.</p>
+        <p class="muted">Pick the make, model and year; the workstation resolves the ECU and the protocol it speaks. These brands changed ECUs as running changes rather than on model-year boundaries — the label on your ECU always wins over this table.</p>
+        <label class="field">
+          <span>Make</span>
+          <select id="makeSelect"></select>
+        </label>
         <label class="field">
           <span>Model</span>
-          <input list="modelList" id="modelInput" placeholder="Start typing… e.g. Griso 1200 8V" autocomplete="off">
-          <datalist id="modelList"></datalist>
+          <select id="modelSelect"></select>
         </label>
         <label class="field">
           <span>Year</span>
-          <input type="number" id="yearInput" min="1990" max="2026" placeholder="2012">
+          <select id="yearSelect"></select>
         </label>
         <div id="resolveResult" class="resolve"></div>
         <details class="advanced">
@@ -86,6 +92,17 @@
           <span>Device</span>
           <input id="deviceInput" placeholder="/dev/ttyUSB0">
         </label>
+        <div id="canFields" hidden>
+          <label class="field">
+            <span>Request id (tester &rarr; ECU)</span>
+            <input id="canTxId" placeholder="0x7E0">
+          </label>
+          <label class="field">
+            <span>Response id (ECU &rarr; tester)</span>
+            <input id="canRxId" placeholder="0x7E8">
+          </label>
+          <p class="muted small">The 11-bit pair 0x7E0/0x7E8 is assumed but <b>unconfirmed</b> on these bikes. If a capture shows different ids (for example the 29-bit pair 0x18DA10F1/0x18DAF110), set them here — they apply to this session only.</p>
+        </div>
         <label class="field">
           <span>Session mode</span>
           <select id="modeSelect">
@@ -210,6 +227,30 @@
         <tbody></tbody>
       </table></div>
     </article>
+
+    <article class="panel">
+      <h2>CAN identifier discovery</h2>
+      <p class="muted">The CAN-era bikes wrap the same diagnostics in ISO-TP, and the request/response id pair has never been confirmed on one. Capture the bus while another tool (GuzziCanDiag) talks to the bike, then let this find the pair — read-only by construction.</p>
+      <details class="advanced">
+        <summary>How to take the capture</summary>
+        <ol class="muted small">
+          <li>Connect a CAN adapter to the bike's OBD socket and your laptop. Nothing else should be talking on the bus.</li>
+          <li>Start logging — SavvyCAN: connect, <i>File → Log To File</i>, run a GuzziCanDiag session (identify + live data is plenty), stop and export as CSV. socketcan: <code>candump -tz can0 &gt; capture.log</code>.</li>
+          <li>Analyse the file here. A minute of a live session is enough.</li>
+        </ol>
+      </details>
+      <div class="toolbar">
+        <label class="inline">Capture path <input type="text" id="canlogPath" placeholder="~/captures/session.csv" size="36"></label>
+        <button class="btn primary" id="canlogBtn">Analyse capture</button>
+      </div>
+      <details class="advanced">
+        <summary>or paste a few lines</summary>
+        <textarea id="canlogText" rows="5" placeholder="(1700000000.123456) can0 7E0#023E00AAAAAAAAAA" spellcheck="false"></textarea>
+        <div class="toolbar"><button class="btn" id="canlogPasteBtn">Analyse pasted lines</button>
+          <span class="muted small">candump, SavvyCAN CSV or CRTD — auto-detected</span></div>
+      </details>
+      <div id="canlogOut"></div>
+    </article>
   </section>
 
   <!-- ===================================================== FIRMWARE -->
@@ -258,6 +299,25 @@
       <div id="validateOut"></div>
     </article>
 
+    <article class="panel">
+      <h2>Maps &amp; tables</h2>
+      <p class="muted small">Render a dump as named fuel and ignition tables with a TunerPro XDF definition (the GuzziDiag files live at von-der-salierburg.de). Drop <code>.xdf</code> files into <code>~/.guzzionboard/xdfs/</code> &mdash; none ship with this project. Strictly read-only.</p>
+      <div class="toolbar">
+        <label class="inline">Definitions <select id="xdfSelect"><option value="">&mdash; none found &mdash;</option></select></label>
+        <button class="btn" id="mapsRefreshBtn">Reload</button>
+        <span class="muted small" id="mapsXdfDir"></span>
+      </div>
+      <div class="toolbar">
+        <label class="inline">Image path <input type="text" id="mapsImagePath" placeholder="~/.guzzionboard/images/....bin" size="44"></label>
+        <button class="btn primary" id="mapsRenderBtn">Render tables</button>
+      </div>
+      <div class="toolbar">
+        <label class="inline">Compare with <input type="text" id="mapsDiffPath" placeholder="second image, e.g. the factory backup" size="44"></label>
+        <button class="btn" id="mapsDiffBtn">Diff</button>
+      </div>
+      <div id="mapsOut"></div>
+    </article>
+
     <article class="panel danger-zone">
       <h2>4 &middot; Write</h2>
       <p class="muted small">Writing is an opt-in, not a hidden feature. It stays refused until every precondition below is green.</p>
@@ -299,6 +359,17 @@
         <div id="sessionEvents" class="log-view">Pick a session.</div>
       </article>
     </div>
+
+    <article class="panel">
+      <h2>Compare two sessions</h2>
+      <p class="muted small">The cheapest baseline there is: record one session cold, another after a change, and this names the channels that moved. Sessions are not aligned in time, so means are compared, honestly.</p>
+      <div class="toolbar">
+        <label class="inline">A <select id="compareA"></select></label>
+        <label class="inline">B <select id="compareB"></select></label>
+        <button class="btn primary" id="compareBtn">Compare</button>
+      </div>
+      <div id="compareOut"></div>
+    </article>
   </section>
 
   <!-- ======================================================= REPORT -->

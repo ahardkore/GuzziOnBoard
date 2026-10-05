@@ -19,6 +19,7 @@ import time
 from dataclasses import dataclass, field
 
 from ..catalog import EcuProfile
+from ..firmware import IAW5AM_CHECKSUM_LEN, iaw5am_decode, iaw5am_decode_byte
 from ..protocol.kwp2000 import (
     ECU_ADDRESS,
     NEGATIVE_RESPONSE,
@@ -151,6 +152,16 @@ class SimulatedEcu:
         self.written: dict[int, int] = {}
         self.erased = False
         self.programmed = False
+        #: The 5AM-style write path: 0x3B records, routine arms and the raw
+        #: (encoded) upload blob, tracked so the documented sequence is
+        #: actually enforced rather than merely tolerated.
+        self.records_written: list[bytes] = []
+        self.erase_armed = False
+        self.program_armed = False
+        self.download_pending = False
+        self.upload_blob = bytearray()
+        self.last_program_checksum: int | None = None
+        self.last_program_checksum_ok: bool | None = None
         #: Set a byte offset here to corrupt one byte of every write, which
         #: is how the read-back verification failure path is tested.
         self.corrupt_write_at: int | None = None
@@ -273,10 +284,12 @@ class SimulatedEcu:
             return bytes([0x54])
         if service == Service.IO_CONTROL_BY_LOCAL_ID:
             return self._io_control(payload)
+        if service == Service.WRITE_DATA_BY_LOCAL_ID:
+            return self._write_data_by_id(payload)
         if service == Service.START_ROUTINE_BY_LOCAL_ID:
             return self._start_routine(payload)
         if service == Service.REQUEST_ROUTINE_RESULTS:
-            return self._nrc(service, NRC.SERVICE_NOT_SUPPORTED)
+            return self._routine_results(payload)
         if service == Service.SECURITY_ACCESS:
             return self._security(payload)
         if service == Service.READ_MEMORY_BY_ADDRESS:
@@ -286,6 +299,7 @@ class SimulatedEcu:
         if service == Service.REQUEST_DOWNLOAD:
             return self._request_download(payload)
         if service == Service.REQUEST_TRANSFER_EXIT:
+            self.download_pending = False
             self.programmed = True
             return bytes([0x77])
 
@@ -312,6 +326,11 @@ class SimulatedEcu:
             if self.session_started:
                 return self._nrc(service, NRC.CONDITIONS_NOT_CORRECT)
             self.programming_mode = True
+            # Only the in-flight transfer state is dropped here. The
+            # uploaded image, routine arms and records deliberately persist:
+            # real flash keeps what was written, and the read-back
+            # verification re-enters this session before reading.
+            self.download_pending = False
             return bytes([0x50, wanted])
 
         if baud is not None and wanted == baud:
@@ -399,10 +418,72 @@ class SimulatedEcu:
             self.active_outputs.pop(local_id, None)
         return bytes([0x70, local_id])
 
+    def _write_spec(self) -> dict:
+        return (self.profile.memory or {}).get("programming", {}).get(
+            "write", {}
+        )
+
+    def _programming_spec(self) -> dict:
+        return (self.profile.memory or {}).get("programming", {})
+
+    def _write_data_by_id(self, payload: bytes) -> bytes:
+        """Service 0x3B: the writer and reflash-date records.
+
+        5am_util: without these records RequestDownload fails, so the
+        simulator enforces them the same way.
+        """
+        records = self._write_spec().get("records", [])
+        if not records:
+            return self._nrc(payload[0], NRC.SERVICE_NOT_SUPPORTED)
+        if len(payload) < 3:
+            return self._nrc(payload[0], NRC.REQUEST_OUT_OF_RANGE)
+        did = bytes(payload[1:3])
+        for record in records:
+            if bytes(record["did"]) == did:
+                self.records_written.append(did)
+                return bytes([0x7B]) + payload[1:]
+        return self._nrc(payload[0], NRC.REQUEST_OUT_OF_RANGE)
+
+    def _programming_routine(self, local_id: int) -> str | None:
+        """Which write phase, if any, a routine local id belongs to."""
+        erase = self._write_spec().get("erase")
+        program = self._write_spec().get("program")
+        if isinstance(erase, dict) and local_id == erase.get("start", [0, 0])[1]:
+            return "erase"
+        if (isinstance(program, dict)
+                and local_id == program.get("start", [0, 0])[1]):
+            return "program"
+        return None
+
     def _start_routine(self, payload: bytes) -> bytes:
         if len(payload) < 2:
             return self._nrc(payload[0], NRC.REQUEST_OUT_OF_RANGE)
         local_id = payload[1]
+
+        # The write path: 0x31 arms the erase/program routines the catalog
+        # documents. The program arm also validates the uploaded checksum
+        # the way the real ECU is believed to.
+        phase = self._programming_routine(local_id)
+        if phase is not None:
+            if self._programming_spec().get("security", {}).get("required") \
+                    and not self.security_unlocked:
+                return self._nrc(payload[0], NRC.SECURITY_ACCESS_DENIED)
+            if phase == "erase":
+                if not self.records_written:
+                    return self._nrc(payload[0], NRC.CONDITIONS_NOT_CORRECT)
+                self.erase_armed = True
+                self.routine_log.append((time.time(), local_id, payload[0]))
+                return bytes([0x71, local_id])
+            if not self.erased:
+                # Programming arms only after an erase actually ran.
+                return self._nrc(payload[0], NRC.CONDITIONS_NOT_CORRECT)
+            sent = int.from_bytes(bytes(payload[-2:]), "big")
+            self.last_program_checksum = sent
+            self.last_program_checksum_ok = (sent == self._flash_checksum())
+            self.program_armed = True
+            self.routine_log.append((time.time(), local_id, payload[0]))
+            return bytes([0x71, local_id])
+
         routine = next(
             (r for r in self.profile.routines
              if r.service == Service.START_ROUTINE_BY_LOCAL_ID and r.local_id == local_id),
@@ -414,6 +495,34 @@ class SimulatedEcu:
             return self._nrc(payload[0], NRC.CONDITIONS_NOT_CORRECT)
         self.routine_log.append((time.time(), local_id, payload[0]))
         return bytes([0x71, local_id])
+
+    def _routine_results(self, payload: bytes) -> bytes:
+        """Service 0x33: on the 5AM this is what *runs* the armed phase."""
+        if len(payload) < 2:
+            return self._nrc(payload[0], NRC.REQUEST_OUT_OF_RANGE)
+        local_id = payload[1]
+        erase = self._write_spec().get("erase")
+        program = self._write_spec().get("program")
+
+        if isinstance(erase, dict) and local_id == erase.get("trigger", [0, 0])[1]:
+            if not self.erase_armed:
+                return self._nrc(payload[0], NRC.CONDITIONS_NOT_CORRECT)
+            self.erase_armed = False
+            self.erased = True
+            self.routine_log.append((time.time(), local_id, payload[0]))
+            return bytes([0x73, local_id])
+        if (isinstance(program, dict)
+                and local_id == program.get("trigger", [0, 0])[1]):
+            if not self.program_armed or not self.erased:
+                return self._nrc(payload[0], NRC.CONDITIONS_NOT_CORRECT)
+            self.program_armed = False
+            self.programmed = True
+            self.routine_log.append((time.time(), local_id, payload[0]))
+            return bytes([0x73, local_id])
+
+        # Most IAW families do not implement 0x33 at all, which the
+        # diagnostics layer treats as best-effort.
+        return self._nrc(payload[0], NRC.SERVICE_NOT_SUPPORTED)
 
     def _security(self, payload: bytes) -> bytes:
         level = payload[1] if len(payload) > 1 else 0x01
@@ -431,12 +540,27 @@ class SimulatedEcu:
 
     # -- programming ------------------------------------------------------
     def _request_download(self, payload: bytes) -> bytes:
-        spec = (self.profile.memory or {}).get("programming", {})
+        spec = self._programming_spec()
         if spec.get("security", {}).get("required") and not self.security_unlocked:
             return self._nrc(payload[0], NRC.SECURITY_ACCESS_DENIED)
+        # 5am_util: the download is refused unless the writer and date
+        # records were written first.
+        expected = [bytes(r["did"]) for r in self._write_spec().get("records", [])]
+        if expected and any(did not in self.records_written for did in expected):
+            return self._nrc(payload[0], NRC.CONDITIONS_NOT_CORRECT)
+        # A new download is a fresh transfer of the upload blob.
         self.erased = True
         self.written.clear()
+        self.upload_blob.clear()
+        self.download_pending = True
         return bytes([0x74, 0x00, 0x80])
+
+    def _flash_checksum(self) -> int:
+        """The sum16 the program routine is sent, over the decoded flash."""
+        if len(self.upload_blob) <= 8:
+            return 0
+        decoded = iaw5am_decode(bytes(self.upload_blob))[8:]
+        return sum(decoded[:IAW5AM_CHECKSUM_LEN]) & 0xFFFF
 
     def _flash_byte(self, address: int) -> int:
         """Deterministic pseudo-image with a plausible IAW vector table.
@@ -449,12 +573,16 @@ class SimulatedEcu:
         region = (self.profile.memory or {}).get("regions", {}).get("flash", {})
         start = int(region.get("start", 0))
         offset = address - start
+        # An uploaded (encoded) blob shadows the image too; the ECU decodes
+        # it into flash, so that is what a read must return.
+        if 0 <= offset < len(self.upload_blob) - 8:
+            return iaw5am_decode_byte(self.upload_blob[8 + offset], 8 + offset)
         if 0 <= offset < 64:                 # FA 00 xx 40 vector entries
             return (0xFA, 0x00, (offset // 4) * 4, 0x40)[offset % 4]
         return (address * 31 + 7) & 0xFF
 
     def _transfer_data(self, payload: bytes) -> bytes:
-        spec = (self.profile.memory or {}).get("programming", {})
+        spec = self._programming_spec()
         if spec.get("protocol") != "iaw_transfer":
             return self._nrc(payload[0], NRC.SERVICE_NOT_SUPPORTED)
         if spec.get("security", {}).get("required") and not self.security_unlocked:
@@ -463,9 +591,36 @@ class SimulatedEcu:
             return self._nrc(payload[0], NRC.REQUEST_OUT_OF_RANGE)
 
         subfn = payload[1]
-        if subfn == (spec.get("read", {}).get("setup") or [None])[0]:
+        write_spec = self._write_spec()
+        read_spec = spec.get("read", {})
+        setup_subfn = (read_spec.get("setup") or [None])[0]
+
+        # Raw upload mode: once RequestDownload has been accepted, every 0x36
+        # frame streams the encoded blob with no sub-function at all - this
+        # is the 5am_util write path. The state is what disambiguates it
+        # from reads: an upload chunk whose first byte happens to be 0x11 or
+        # 0x21 is still an upload, and no read can occur between
+        # RequestDownload and RequestTransferExit.
+        if self.download_pending and write_spec.get("chunk") is not None:
+            if not self.erased:
+                return self._nrc(payload[0], NRC.CONDITIONS_NOT_CORRECT)
+            region = (self.profile.memory or {}).get("regions", {}).get(
+                "flash", {}
+            )
+            start = int(region.get("start", 0))
+            data = payload[1:]
+            base = len(self.upload_blob)
+            for k, byte in enumerate(data):
+                blob_pos = base + k
+                if blob_pos >= 8:            # past the magic: real flash bytes
+                    if self.corrupt_write_at == start + blob_pos - 8:
+                        byte ^= 0xFF
+                self.upload_blob.append(byte)
+            return bytes([0x76, len(data)])
+
+        if subfn == setup_subfn:
             return bytes([0x76, subfn, 0x02])
-        write_subfn = spec.get("write", {}).get("block_subfn")
+        write_subfn = write_spec.get("block_subfn")
         if write_subfn is not None and subfn == write_subfn:
             if not self.erased:
                 return self._nrc(payload[0], NRC.CONDITIONS_NOT_CORRECT)

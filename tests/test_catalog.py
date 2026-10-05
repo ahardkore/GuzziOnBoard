@@ -180,3 +180,44 @@ def test_unknown_vehicle_raises_rather_than_guessing(catalog):
         catalog.resolve("Ducati Monster", 2015)
     with pytest.raises(CatalogError):
         catalog.ecu("not-an-ecu")
+
+
+# -- cross-brand coverage (Ducati, Aprilia) ---------------------------------
+
+
+def test_cross_brand_makes_are_present(catalog):
+    assert set(catalog.makes()) == {"Aprilia", "Ducati", "Moto Guzzi"}
+
+
+def test_every_cross_brand_entry_is_read_only_until_confirmed(catalog):
+    """Shared ECU hardware is not shared protocol knowledge.
+
+    Ducati and Aprilia run the same Marelli ECUs, but this catalog's
+    identifier tables were all captured in a Moto Guzzi context - so every
+    cross-brand vehicle ships as 'inferred' and degrades to read-only via
+    the effective-confidence rule in the workstation.
+    """
+    cross = [v for v in catalog.vehicles if v.make != "Moto Guzzi"]
+    assert len(cross) >= 30
+    for vehicle in cross:
+        assert vehicle.confidence == "inferred", vehicle
+        assert vehicle.ecu in catalog.ecus
+
+
+def test_find_scopes_by_make(catalog):
+    # the same model name may exist under different makes one day
+    assert catalog.find("748", 2000, "Ducati")
+    assert not catalog.find("748", 2000, "Moto Guzzi")
+    # 916: P8 for the early cars, 16M for the later ones
+    early = catalog.resolve("916", 1995, "Ducati")
+    later = catalog.resolve("916", 1997, "Ducati")
+    assert early[1].id == "p8" and later[1].id == "16m"
+
+
+def test_the_59m_family_is_an_honest_placeholder(catalog):
+    profile = catalog.ecu("59m")
+    assert profile.confidence == "unknown"
+    assert not profile.parameters and not profile.actuators
+    assert not profile.memory.get("read_supported")
+    # identification, DTCs and the read-only sweep only
+    assert set(profile.capabilities) <= {"identify", "dtc_read", "discover"}

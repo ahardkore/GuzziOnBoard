@@ -50,7 +50,7 @@ same era, read-only until their identifier tables are confirmed.
 | Session comparison (two recordings, channel by channel) | Implemented |
 | Standalone browser engine simulator (`web/sim.html`) | Implemented; single self-contained page |
 
-270 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
+266 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
 image validation, XDF parsing/render/diff, the full read/backup/write/verify
 round trip, fault injection, session comparison, the packaging entry point
 and complete simulated sessions.
@@ -240,6 +240,12 @@ change.
 This project stands on the reverse-engineering work of the GuzziDiag / IAWDiag
 authors, the Guzzitek archive, and published IAW 5AM bus captures. It is not
 affiliated with Piaggio, Moto Guzzi, Magneti Marelli, or the GuzziDiag author.
+
+ECU diagnostics can injure you and ECU programming can brick an ECU or create
+an unsafe motorcycle. Nothing here has been validated against a real bike. If
+you connect it to your Guzzi, you are the test.
+
+MIT licensed.
 
 ECU diagnostics can injure you and ECU programming can brick an ECU or create
 an unsafe motorcycle. Nothing here has been validated against a real bike. If

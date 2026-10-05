@@ -15,6 +15,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from . import adapter as adapter_mod
+from . import canlog
 from . import tools
 from .catalog import CatalogError
 from .diagnostics import NotConnected
@@ -425,6 +426,24 @@ class Api:
             "instructions": "" if ok else adapter_mod.latency_fix_instructions(port),
         }
 
+    def post_tools_canlog(self, body: dict) -> tuple[int, dict]:
+        """Analyse a passively sniffed CAN capture: which ids are the pair?
+
+        Accepts a file ``path`` (candump, SavvyCAN CSV or CRTD) or pasted
+        ``text``. Read-only by construction: it never touches hardware.
+        """
+        path, text = body.get("path"), body.get("text")
+        if not path and not text:
+            return 400, {"error": "a capture 'path' or pasted 'text' is required"}
+        try:
+            if path:
+                result = canlog.analyze_capture_file(path)
+            else:
+                result = canlog.analyze_capture_text(str(text))
+        except canlog.CanLogError as exc:
+            return 400, {"error": str(exc)}
+        return 200, result
+
     def get_gearing(self, query: dict) -> tuple[int, dict]:
         def number(name, default):
             try:
@@ -493,6 +512,7 @@ ROUTES_POST = {
     "/api/programming/enable": "post_programming_enable",
     "/api/programming/disable": "post_programming_disable",
     "/api/adapter/latency": "post_adapter_latency",
+    "/api/tools/canlog": "post_tools_canlog",
 }
 
 

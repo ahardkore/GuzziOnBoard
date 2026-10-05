@@ -29,6 +29,7 @@ same era, read-only until their identifier tables are confirmed.
 | ECU identification, live data, DTC read/clear | Implemented |
 | Make / model / year vehicle selection (Moto Guzzi, Ducati, Aprilia) | Implemented; cross-brand bikes read-only by design |
 | CAN request/response identifiers configurable per session | Implemented (the pair is unconfirmed on CAN bikes) |
+| CAN capture analysis: find the id pair from a passive sniff (candump / SavvyCAN / CRTD) | Implemented; read-only by construction |
 | Print / save any view as PDF; maps export as standalone HTML | Implemented |
 | Actuator tests, TPS reset, adaptation resets | Implemented, gated by confidence + safety |
 | Read-only local-identifier discovery sweep | Implemented |
@@ -44,7 +45,7 @@ same era, read-only until their identifier tables are confirmed.
 | Adapter pre-flight incl. FTDI latency timer | Implemented |
 | Gearing / road-speed calculator, CSV + JSON log export | Implemented |
 
-235 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
+253 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
 image validation, XDF parsing/render/diff, the full read/backup/write/verify
 round trip, fault injection and complete simulated sessions.
 

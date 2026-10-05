@@ -1210,3 +1210,75 @@ $$('.nav').forEach((b) => {
     b.onclick = () => { previous?.(); loadXdfs(); };
   }
 });
+
+/* ------------------------------------------------- CAN capture analysis */
+/* The CAN id pair is the one unknown on the CAN-era bikes (PRIOR_ART §7
+ * item 2). This reads a passive capture — candump, SavvyCAN CSV or CRTD —
+ * and reports the pair that behaves like ISO-TP diagnostics, with the
+ * evidence, so nobody has to trust a guess. */
+
+function renderCanlog(result) {
+  const out = $('#canlogOut');
+  const head = `
+    <div class="gate-card ${result.diagnostic_traffic_found ? 'ok' : 'warn'}">
+      <h4>${result.diagnostic_traffic_found
+        ? `${result.pairs.length} candidate pair(s) found`
+        : 'No diagnostic traffic recognised'}</h4>
+      <p class="small">${result.frames} frames · format <b>${esc(result.format)}</b>
+        ${result.span_seconds ? ` · ${(result.span_seconds / 60).toFixed(1)} min` : ''}
+        · ${result.bus_ids.length} bus id(s)</p>
+    </div>`;
+
+  if (!result.diagnostic_traffic_found) {
+    out.innerHTML = head
+      + result.notes.map((n) => `<p class="muted small">${esc(n)}</p>`).join('');
+    return;
+  }
+
+  const matchesNote = (p) => p.matches
+    ? `<p class="small"><b class="ok">This is ${esc(p.matches)}.</b></p>`
+    : `<p class="small"><b class="warn">This is neither standard pair.</b>
+       Enter <code>${esc(p.request_id)}</code> / <code>${esc(p.response_id)}</code>
+       in the Garage CAN fields when you connect${p.extended ? ' (29-bit)' : ''}.</p>`;
+
+  out.innerHTML = head
+    + result.pairs.map((p, i) => `
+      <div class="gate-card ${i === 0 ? 'ok' : ''}">
+        <h4>${i === 0 ? 'Best candidate: ' : ''}request <code>${esc(p.request_id)}</code>
+          &rarr; response <code>${esc(p.response_id)}</code>
+          <span class="conf ${p.confidence === 'strong' ? 'ok' : 'mid'}">${esc(p.confidence)}</span>
+        </h4>
+        ${matchesNote(p)}
+        <p class="muted small">
+          ${p.evidence.request_frames} request frame(s) · ${p.evidence.response_frames} response frame(s)
+          · ${p.evidence.multi_frame_to_ecu} multi-frame exchange(s) to the ECU
+          · ${p.evidence.multi_frame_from_ecu} from it
+          ${p.tester_present_interval_s ? ` · tester present every ${p.tester_present_interval_s}s` : ''}
+          ${p.padding_byte ? ` · padded with ${esc(p.padding_byte)}` : ''}
+        </p>
+        ${p.request_sids.length ? `<p class="muted small">Requests: ${esc(p.request_sids.join(', '))}</p>` : ''}
+        ${p.response_sids.length ? `<p class="muted small">Responses: ${esc(p.response_sids.join(', '))}</p>` : ''}
+      </div>`).join('')
+    + result.notes.map((n) => `<p class="muted small">${esc(n)}</p>`).join('');
+}
+
+async function analyseCanlog(body) {
+  $('#canlogOut').innerHTML = '<p class="muted">Analysing…</p>';
+  try {
+    renderCanlog(await api('/api/tools/canlog', { method: 'POST', body }));
+  } catch (err) {
+    $('#canlogOut').innerHTML =
+      `<div class="gate-card bad"><h4>Could not analyse</h4><p class="small">${esc(err.message)}</p></div>`;
+  }
+}
+
+$('#canlogBtn').onclick = () => {
+  const path = $('#canlogPath').value.trim();
+  if (!path) return toast('Give the path of a capture file.', 'bad');
+  analyseCanlog({ path });
+};
+$('#canlogPasteBtn').onclick = () => {
+  const text = $('#canlogText').value.trim();
+  if (!text) return toast('Paste some capture lines first.', 'bad');
+  analyseCanlog({ text });
+};

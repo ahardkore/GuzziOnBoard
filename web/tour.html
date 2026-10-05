@@ -288,8 +288,11 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     a USB OBD-II dongle with ELM327-class firmware is the cheap route, a
     genuine OBDLink or a socketcan interface the reliable one. The request/response
     CAN identifiers are <b>not yet confirmed</b> on these bikes; the workstation
-    assumes the standard pair and lets you override it per session while the real
-    pair is captured.</p>
+    assumes the standard pair and lets you override it per session. To settle it
+    for good: log the bus while GuzziCanDiag talks to the bike, then run the
+    capture through <b>Discovery &rarr; CAN identifier discovery</b> — it names
+    the pair, shows its evidence, and tells you if it is neither standard
+    pair.</p>
   </div>
 
   <div class="card">

@@ -226,6 +226,30 @@
         <tbody></tbody>
       </table></div>
     </article>
+
+    <article class="panel">
+      <h2>CAN identifier discovery</h2>
+      <p class="muted">The CAN-era bikes wrap the same diagnostics in ISO-TP, and the request/response id pair has never been confirmed on one. Capture the bus while another tool (GuzziCanDiag) talks to the bike, then let this find the pair — read-only by construction.</p>
+      <details class="advanced">
+        <summary>How to take the capture</summary>
+        <ol class="muted small">
+          <li>Connect a CAN adapter to the bike's OBD socket and your laptop. Nothing else should be talking on the bus.</li>
+          <li>Start logging — SavvyCAN: connect, <i>File → Log To File</i>, run a GuzziCanDiag session (identify + live data is plenty), stop and export as CSV. socketcan: <code>candump -tz can0 &gt; capture.log</code>.</li>
+          <li>Analyse the file here. A minute of a live session is enough.</li>
+        </ol>
+      </details>
+      <div class="toolbar">
+        <label class="inline">Capture path <input type="text" id="canlogPath" placeholder="~/captures/session.csv" size="36"></label>
+        <button class="btn primary" id="canlogBtn">Analyse capture</button>
+      </div>
+      <details class="advanced">
+        <summary>or paste a few lines</summary>
+        <textarea id="canlogText" rows="5" placeholder="(1700000000.123456) can0 7E0#023E00AAAAAAAAAA" spellcheck="false"></textarea>
+        <div class="toolbar"><button class="btn" id="canlogPasteBtn">Analyse pasted lines</button>
+          <span class="muted small">candump, SavvyCAN CSV or CRTD — auto-detected</span></div>
+      </details>
+      <div id="canlogOut"></div>
+    </article>
   </section>
 
   <!-- ===================================================== FIRMWARE -->

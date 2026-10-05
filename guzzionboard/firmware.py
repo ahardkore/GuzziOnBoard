@@ -71,6 +71,124 @@ def checksums(data: bytes) -> dict:
 
 
 # --------------------------------------------------------------------------
+# IAW 5AM upload encoding
+# --------------------------------------------------------------------------
+#
+# The IAW 5AM does not accept a plain dump on TransferData. The uploaded blob
+# opens with eight fixed bytes, and every payload byte is then transformed by
+# an add/rotate/invert pattern with an 8-byte period. Both the magic and the
+# per-byte transforms are transcribed from ``encrypt_blob()`` in 5am_util's
+# ``main.c`` and byte-verified against a compiled copy of the original C (see
+# ``docs/PRIOR_ART.md`` 1.3 and the known-answer tests in test_firmware.py).
+
+#: The eight bytes every upload blob begins with.
+IAW5AM_UPLOAD_MAGIC = bytes((0xC2, 0x07, 0x16, 0x33, 0x6F, 0xEB, 0xB0, 0x1D))
+
+#: Flash region 0x4000..0x50000, the part a dump contains.
+IAW5AM_FLASH_SIZE = 0x4C000
+#: The whole device, including the bootloader below 0x4000 that K-Line
+#: cannot reach. A full-device file is 0x50000 bytes.
+IAW5AM_DEVICE_SIZE = 0x50000
+#: The program routine's checksum covers the region minus its last two bytes,
+#: exactly as 5am_util computes it.
+IAW5AM_CHECKSUM_LEN = 0x4BFFE
+
+
+def _ror8(value: int, n: int) -> int:
+    return ((value >> n) | (value << (8 - n))) & 0xFF
+
+
+def _rol8(value: int, n: int) -> int:
+    return ((value << n) | (value >> (8 - n))) & 0xFF
+
+
+def iaw5am_encode_byte(value: int, position: int) -> int:
+    """One byte of the upload transform. ``position`` is the blob offset."""
+    step = position & 7
+    if step == 0:
+        return _ror8((value + 0x88) & 0xFF, 1) ^ 0xFF
+    if step == 1:
+        return _ror8((value + 0xC7) & 0xFF, 1)
+    if step == 2:
+        return _ror8((value + 0x26) & 0xFF, 3) ^ 0xFF
+    if step == 3:
+        return _ror8((value + 0xA5) & 0xFF, 5) ^ 0xFF
+    if step == 4:
+        return _ror8((value + 0x6C) & 0xFF, 2)
+    if step == 5:
+        return _ror8((value + 0xEB) & 0xFF, 6)
+    if step == 6:
+        return _ror8((value + 0x0A) & 0xFF, 6) ^ 0xFF
+    return _ror8((0x66 - value) & 0xFF, 4)
+
+
+def iaw5am_decode_byte(value: int, position: int) -> int:
+    """The exact inverse of :func:`iaw5am_encode_byte`."""
+    step = position & 7
+    if step == 0:
+        return (_rol8(value ^ 0xFF, 1) - 0x88) & 0xFF
+    if step == 1:
+        return (_rol8(value, 1) - 0xC7) & 0xFF
+    if step == 2:
+        return (_rol8(value ^ 0xFF, 3) - 0x26) & 0xFF
+    if step == 3:
+        return (_rol8(value ^ 0xFF, 5) - 0xA5) & 0xFF
+    if step == 4:
+        return (_rol8(value, 2) - 0x6C) & 0xFF
+    if step == 5:
+        return (_rol8(value, 6) - 0xEB) & 0xFF
+    if step == 6:
+        return (_rol8(value ^ 0xFF, 6) - 0x0A) & 0xFF
+    return (0x66 - _rol8(value, 4)) & 0xFF
+
+
+def iaw5am_encode(data: bytes) -> bytes:
+    """Apply the upload transform to a whole buffer (magic included)."""
+    return bytes(iaw5am_encode_byte(b, i) for i, b in enumerate(data))
+
+
+def iaw5am_decode(data: bytes) -> bytes:
+    """Undo :func:`iaw5am_encode` on a whole buffer."""
+    return bytes(iaw5am_decode_byte(b, i) for i, b in enumerate(data))
+
+
+def iaw5am_flash_payload(image: bytes) -> bytes:
+    """Extract the 0x4C000 flash payload from a dump.
+
+    Accepts either a region image (what :meth:`ProgrammingService.read_region`
+    produces) or a full-device file (what IAW5xReader writes), and refuses
+    anything else rather than guess what it is looking at.
+    """
+    if len(image) == IAW5AM_FLASH_SIZE:
+        return image
+    if len(image) == IAW5AM_DEVICE_SIZE:
+        return image[0x4000:]
+    raise FirmwareError(
+        f"expected a {IAW5AM_FLASH_SIZE}-byte flash image or a "
+        f"{IAW5AM_DEVICE_SIZE}-byte full-device dump, got {len(image)} bytes"
+    )
+
+
+def iaw5am_upload_blob(image: bytes) -> bytes:
+    """Encode a flash image into the blob the 5AM write path expects.
+
+    The result is 0x4C008 bytes: the magic, then the transformed payload.
+    This is what RequestDownload hands over and TransferData streams, and it
+    is *not* what the ECU ends up holding - the ECU decodes it into flash.
+    """
+    return iaw5am_encode(IAW5AM_UPLOAD_MAGIC + iaw5am_flash_payload(image))
+
+
+def iaw5am_upload_checksum(image: bytes) -> int:
+    """The 16-bit byte sum the program routine validates.
+
+    Computed over the *plain* payload (0x4BFFE bytes of it), not the encoded
+    blob - the ECU decodes before it checks.
+    """
+    return sum16(iaw5am_flash_payload(image)[:IAW5AM_CHECKSUM_LEN])
+
+
+# --------------------------------------------------------------------------
 # Structure checks
 # --------------------------------------------------------------------------
 

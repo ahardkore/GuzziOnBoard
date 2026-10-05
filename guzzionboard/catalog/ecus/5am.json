@@ -57,7 +57,7 @@
     "image_size": 327680,
     "read_supported": true,
     "write_supported": false,
-    "write_blocked_reason": "No verified SecurityAccess key algorithm, no bench-tested recovery path, and no power-loss handling. The full write state machine exists and is tested against the simulator, but it is not enabled against hardware.",
+    "write_blocked_reason": "The 5am_util key algorithm and the full documented write sequence are implemented and simulator-tested, but neither has met a Guzzi-fitted ECU: no bench-confirmed key unlock, no bench-tested recovery path, no power-loss handling. Writing stays disabled against hardware until then.",
     "approx_read_minutes": 20,
     "security_access": true,
     "hardware_note": "Readable on the bench: 12V on pins 4 and 17, ground on 10 and 34, K-Line on pin 16. Use a battery tender if the ECU is still on the bike.",
@@ -89,13 +89,15 @@
           12,
           9
         ],
-        "tester_address": 1
+        "tester_address": 1,
+        "baud": 64200
       },
       "security": {
         "required": true,
         "level": 1,
         "seed_bytes": 4,
-        "note": "Seed is a 16-bit value X followed by X+1. Algorithm not published."
+        "note": "Seed is a 16-bit value X followed by X+1. Algorithm transcribed from 5am_util main.c calc_key() and registered as iaw5am-kwp-divmod (unverified on Guzzi hardware). See docs/PRIOR_ART.md 1.1.",
+        "source": 1
       },
       "read": {
         "setup": [
@@ -109,9 +111,100 @@
         "block_subfn": 33
       },
       "write": {
-        "block_subfn": 34,
-        "confidence": "inferred",
-        "note": "Write sub-function is a guess; the transcript only covers reads."
+        "confidence": "documented",
+        "session": {
+          "start": [
+            16,
+            133,
+            3
+          ],
+          "timing": [
+            131,
+            3,
+            30,
+            2,
+            10,
+            20,
+            0
+          ],
+          "source": 241,
+          "baud": 38400,
+          "note": "10 85 03 switches the ECU to the programming session and the line to 38400; AccessTimingParameter sets P2/P3/P4. Unlike the read path there is no 10 0C session, and the tester address stays 0xF1 (except the 27 exchange, which 5am_util sends from 0x01)."
+        },
+        "records": [
+          {
+            "did": [
+              152,
+              32
+            ],
+            "value": [],
+            "note": "Writer identification. GuzziDiag's writer sends its TesterCode here; 5am_util sends it empty. Mandatory: RequestDownload fails without a 0x3B 98 20 record."
+          },
+          {
+            "did": [
+              153,
+              32
+            ],
+            "value": [
+              18,
+              1,
+              1
+            ],
+            "note": "Reflash date, YY MM DD. 5am_util sends 2018-01-01."
+          }
+        ],
+        "erase": {
+          "start": [
+            49,
+            2,
+            0,
+            64,
+            0,
+            4,
+            255,
+            255
+          ],
+          "trigger": [
+            51,
+            2
+          ],
+          "wait_s": 10,
+          "note": "31 02 arms the erase for 0x4000..0x4FFFF; 33 02 is what makes it run. The ECU streams status frames while erasing, which 5am_util handles by waiting."
+        },
+        "request_download": [
+          52,
+          0,
+          64,
+          0,
+          51,
+          4,
+          192,
+          0
+        ],
+        "request_download_note": "Byte-for-byte from 5am_util: 0x4000, then an unexplained 0x33, then the length 0x4C000.",
+        "chunk": 254,
+        "upload_encoding": "iaw5am-addror",
+        "program": {
+          "start": [
+            49,
+            1,
+            0,
+            64,
+            0,
+            4,
+            255,
+            255
+          ],
+          "trigger": [
+            51,
+            1
+          ],
+          "checksum": "sum16",
+          "wait_s": 2,
+          "note": "31 01 arms programming with the flash checksum16 appended; 33 01 executes it."
+        },
+        "note": "Transcribed from 5am_util main.c write_firmware(). The verbose transcript only covered reads, which is why this was 'inferred' before the source was read.",
+        "source": "5am_util main.c (github.com/denandz/5am_util) via docs/PRIOR_ART.md 1.2"
       },
       "source": "5am_util verbose transcript (codeberg.org/DoI/5am_util)"
     }
@@ -144,7 +237,7 @@
       "key": "air_temp",
       "name": "Intake air temperature",
       "local_id": 50,
-      "unit": "°C",
+      "unit": "\u00b0C",
       "bias": -40,
       "digits": 0,
       "default": true,
@@ -157,7 +250,7 @@
       "key": "coolant_temp",
       "name": "Head/oil temperature",
       "local_id": 51,
-      "unit": "°C",
+      "unit": "\u00b0C",
       "bias": -40,
       "digits": 0,
       "default": true,
@@ -170,7 +263,7 @@
       "key": "throttle",
       "name": "Throttle angle",
       "local_id": 52,
-      "unit": "°",
+      "unit": "\u00b0",
       "scale": 0.1,
       "digits": 1,
       "default": true,
@@ -183,7 +276,7 @@
       "key": "advance_latched",
       "name": "Ignition advance (latched)",
       "local_id": 53,
-      "unit": "°",
+      "unit": "\u00b0",
       "scale": 0.1,
       "digits": 1,
       "group": "ignition",
@@ -193,7 +286,7 @@
       "key": "advance",
       "name": "Ignition advance",
       "local_id": 55,
-      "unit": "°",
+      "unit": "\u00b0",
       "scale": 0.1,
       "digits": 1,
       "default": true,

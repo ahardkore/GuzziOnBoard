@@ -7,8 +7,10 @@ Magneti Marelli ECU families fitted from the mid-1990s to the current bikes.
 > The protocol stack, capability catalog, safety gate, memory/programming
 > stack and UI are real and tested. The hardware transports are written but
 > have **not** been validated against a bike. ECU writing is fully implemented
-> and simulator-tested, but stays gated on hardware until a verified
-> SecurityAccess key algorithm exists — see `docs/PROGRAMMING.md`.
+> against the documented 5am_util sequence and simulator-tested, and ships the
+> 5AM key algorithm transcribed from that tool's source — but the key is not
+> bench-confirmed on a Guzzi-fit ECU, so writing stays gated on hardware. See
+> `docs/PROGRAMMING.md` and `docs/PRIOR_ART.md`.
 
 ---
 

@@ -16,7 +16,8 @@ Two wire protocols are supported, selected per ECU family by the catalog:
     The generic KWP2000 path: ``23 <addr> <size>`` to read, ``3D`` to write.
 
 ``iaw_transfer``
-    What the IAW 5AM actually does, taken from a published 5am_util transcript:
+    What the IAW 5AM actually does. The read sequence comes from a published
+    5am_util transcript:
 
         -> 10 85                StartDiagnosticSession, programming session
         -> 1A 80                ReadEcuIdentification (hardware check)
@@ -25,6 +26,22 @@ Two wire protocols are supported, selected per ECU family by the catalog:
         -> 27 02 <4 byte key>   sendKey                     -> 67 02
         -> 36 11 00 FE 02 01 00 TransferData, setup         -> 76 11 02
         -> 36 21 <bank> <addr16> <len>   read block         -> 76 21 <addr16> <len16> <data>
+
+    The write sequence is transcribed from the same tool's source (see
+    ``docs/PRIOR_ART.md`` 1.2):
+
+        -> 10 85 03             programming session; the line moves to 38400
+        -> 83 03 ...            AccessTimingParameter
+        -> 27 01 / 27 02        SecurityAccess (sent from tester 0x01)
+        -> 3B 98 20             writer record   - mandatory, or the download fails
+        -> 3B 99 20 <date>      reflash-date record
+        -> 31 02 00 40 00 04 FF FF   arm the erase for 0x4000..0x4FFFF
+        -> 33 02                run the erase (the ECU streams status frames)
+        -> 34 00 40 00 33 04 C0 00   RequestDownload
+        -> 36 <254 bytes>       TransferData of the *encoded* blob (firmware.iaw5am_upload_blob)
+        -> 37                   RequestTransferExit
+        -> 31 01 00 40 00 04 FF FF <sum16>   arm programming with the checksum
+        -> 33 01                program
 
     The readable region observed on a 5AM runs from 0x4000 to 0x50000; the
     bootloader below 0x4000 is not reachable this way.
@@ -42,6 +59,8 @@ from .firmware import (
     FirmwareImage,
     IncompatibleImage,
     checksums,
+    iaw5am_upload_blob,
+    iaw5am_upload_checksum,
     summarise_findings,
 )
 from .protocol.kwp2000 import NegativeResponse, ProtocolError, Service
@@ -141,6 +160,9 @@ class ProgrammingService:
         self.key_provider = None
         self.progress: Progress | None = None
         self._progress_fn: ProgressFn | None = None
+        #: False in tests: simulated ECUs do not need the erase/program
+        #: pacing waits that real silicon does. Hardware keeps the defaults.
+        self.hardware_pacing = True
 
     # -- catalog plumbing -------------------------------------------------
     @property
@@ -240,6 +262,59 @@ class ProgrammingService:
         self.log.action("programming_session", {"steps": steps})
         return {"steps": steps}
 
+    def _wait(self, seconds: float) -> None:
+        """Pacing between phases, from the 5am_util reference timings."""
+        if self.hardware_pacing and seconds > 0:
+            time.sleep(seconds)
+
+    def _enter_write_session(self) -> dict:
+        """Bring the ECU into the session the *write* path needs.
+
+        The 5AM write bring-up differs from the read path (5am_util
+        ``write_firmware``): the session frame itself moves the line to
+        38400, AccessTimingParameter follows, and the tester address stays
+        0xF1 instead of becoming 0x01. Families without a write-session spec
+        fall back to the read bring-up.
+        """
+        wsess = self.spec.get("write", {}).get("session")
+        if not wsess:
+            return self.enter_programming_session()
+
+        session = self.diag._require()
+        steps: list[dict] = []
+
+        frame = session.try_request(list(wsess["start"]))
+        steps.append(
+            {"step": "write session start", "ok": frame is not None,
+             "response": frame.hex() if frame else "rejected"}
+        )
+        if frame is None:
+            raise ProgrammingError(
+                f"{self.profile.family} refused the programming session."
+            )
+
+        timing = wsess.get("timing")
+        if timing:
+            frame = session.try_request(list(timing))
+            steps.append(
+                {"step": "access timing parameters", "ok": frame is not None,
+                 "response": frame.hex() if frame else "rejected"}
+            )
+            if frame is None:
+                raise ProgrammingError(
+                    f"{self.profile.family} refused the timing parameters."
+                )
+
+        if "source" in wsess:
+            session.source = wsess["source"]
+            steps.append(
+                {"step": f"tester address -> 0x{wsess['source']:02X}",
+                 "ok": True, "response": ""}
+            )
+
+        self.log.action("write_session", {"steps": steps})
+        return {"steps": steps}
+
     def unlock(self, *, allow_unverified: bool = False) -> dict:
         """SecurityAccess seed/key exchange."""
         spec = self.spec.get("security", {})
@@ -253,27 +328,36 @@ class ProgrammingService:
             self.profile.id, allow_unverified=allow_unverified
         )
 
-        seed_frame = session.request([Service.SECURITY_ACCESS, level])
-        seed = bytes(seed_frame.data[1:])
-        self.log.action(
-            "security_seed",
-            {"level": level, "seed": seed.hex(" "), "provider": provider.name},
-        )
-        if not any(seed):
-            self.unlocked = True
-            return {"unlocked": True, "method": "already unlocked"}
-
-        key = provider(seed)
+        # On the write path 5am_util addresses the 27 exchange from tester
+        # 0x01 even though every other frame keeps 0xF1. The catalog records
+        # that source; honour it for the exchange only.
+        saved_source = session.source
+        if "source" in spec:
+            session.source = spec["source"]
         try:
-            session.request([Service.SECURITY_ACCESS, level + 1, *key])
-        except NegativeResponse as exc:
-            self.log.error("security_key", f"{provider.name}: {exc}")
-            raise ProgrammingError(
-                f"SecurityAccess rejected the key from '{provider.name}' "
-                f"({exc}). This project ships no verified key algorithm for "
-                f"{self.profile.family}; supply one as a plugin. Do not retry "
-                "repeatedly - ECUs lock out after a few failures."
-            ) from exc
+            seed_frame = session.request([Service.SECURITY_ACCESS, level])
+            seed = bytes(seed_frame.data[1:])
+            self.log.action(
+                "security_seed",
+                {"level": level, "seed": seed.hex(" "), "provider": provider.name},
+            )
+            if not any(seed):
+                self.unlocked = True
+                return {"unlocked": True, "method": "already unlocked"}
+
+            key = provider(seed)
+            try:
+                session.request([Service.SECURITY_ACCESS, level + 1, *key])
+            except NegativeResponse as exc:
+                self.log.error("security_key", f"{provider.name}: {exc}")
+                raise ProgrammingError(
+                    f"SecurityAccess rejected the key from '{provider.name}' "
+                    f"({exc}). This project ships no verified key algorithm for "
+                    f"{self.profile.family}; supply one as a plugin. Do not retry "
+                    "repeatedly - ECUs lock out after a few failures."
+                ) from exc
+        finally:
+            session.source = saved_source
 
         self.unlocked = True
         self.log.action(
@@ -533,7 +617,7 @@ class ProgrammingService:
         )
 
         try:
-            self.enter_programming_session()
+            self._enter_write_session()
             if self.spec.get("security", {}).get("required"):
                 self.unlock(allow_unverified=allow_unverified_key)
 
@@ -543,14 +627,17 @@ class ProgrammingService:
                 Service.TRANSFER_DATA,
                 Service.REQUEST_TRANSFER_EXIT,
                 Service.WRITE_MEMORY_BY_ADDRESS,
+                Service.WRITE_DATA_BY_LOCAL_ID,
+                Service.START_ROUTINE_BY_LOCAL_ID,
             }
             session.write_guard = self.gate.session_guard(armed)
             try:
+                self._pre_write_records()
                 self._erase(region)
                 self._write_checkpoint(checkpoint, {"phase": "erased"})
                 self._transfer(image, region)
                 self._write_checkpoint(checkpoint, {"phase": "transferred"})
-                self._finalise(region)
+                self._finalise(image, region)
             finally:
                 session.write_guard = self.gate.session_guard()
 
@@ -588,30 +675,67 @@ class ProgrammingService:
             self.log.error("write", str(exc))
             raise
 
+    def _pre_write_records(self) -> None:
+        """Writer and reflash-date records (service 0x3B).
+
+        5am_util is explicit: leave these out and RequestDownload fails. The
+        catalog carries them as data so the values stay auditable.
+        """
+        session = self.diag._require()
+        for record in self.spec.get("write", {}).get("records", []):
+            did = bytes(record["did"])
+            value = bytes(record.get("value", []))
+            session.request([Service.WRITE_DATA_BY_LOCAL_ID, *did, *value])
+            self.diag._touch()
+
     def _erase(self, region: Region) -> None:
         session = self.diag._require()
         self._emit("erase", 0, 1, "erasing")
-        erase = self.spec.get("erase")
-        if erase:
-            session.request(list(erase))
+        erase = self.spec.get("write", {}).get("erase")
+        if isinstance(erase, dict) and "start" in erase:
+            # The documented IAW sequence: a routine call arms the erase and
+            # a routine-results request is what actually runs it.
+            session.request(list(erase["start"]))
+            session.request(list(erase["trigger"]))
+            self._wait(erase.get("wait_s", 0))
         else:
-            session.request(
-                [Service.REQUEST_DOWNLOAD,
-                 *region.start.to_bytes(region.addr_bytes, "big"),
-                 0x00,
-                 *region.size.to_bytes(region.addr_bytes, "big")]
-            )
+            legacy = self.spec.get("erase")
+            if legacy:
+                session.request(list(legacy))
+            else:
+                session.request(
+                    [Service.REQUEST_DOWNLOAD,
+                     *region.start.to_bytes(region.addr_bytes, "big"),
+                     0x00,
+                     *region.size.to_bytes(region.addr_bytes, "big")]
+                )
         self.diag._touch()
         self._emit("erase", 1, 1, "erased")
 
+    def _upload_payload(self, image: FirmwareImage) -> bytes:
+        """What actually goes on the wire: the encoded blob, not the dump."""
+        encoding = self.spec.get("write", {}).get("upload_encoding")
+        if not encoding:
+            return image.data
+        if encoding != "iaw5am-addror":
+            raise ProgrammingError(f"unknown upload encoding {encoding!r}")
+        return iaw5am_upload_blob(image.data)
+
     def _transfer(self, image: FirmwareImage, region: Region) -> None:
         session = self.diag._require()
-        block = self.spec.get("write", {}).get("block", region.block)
-        subfn = self.spec.get("write", {}).get("block_subfn")
+        write_spec = self.spec.get("write", {})
+        download = write_spec.get("request_download")
+        if download:
+            session.request(list(download))
+            self.diag._touch()
+
+        payload = self._upload_payload(image)
+        block = write_spec.get("chunk", write_spec.get("block", region.block))
+        subfn = write_spec.get("block_subfn")
         sent = 0
         address = region.start
-        while sent < image.size:
-            chunk = image.data[sent : sent + block]
+        while sent < len(payload):
+            chunk = payload[sent : sent + block]
             if subfn is None:
                 session.request([Service.TRANSFER_DATA, *chunk])
             else:
@@ -623,13 +747,31 @@ class ProgrammingService:
             sent += len(chunk)
             address += len(chunk)
             self.diag._touch()
-            self._emit("write", sent, image.size, f"0x{address:06X}")
+            self._emit("write", sent, len(payload), f"0x{address:06X}")
 
-    def _finalise(self, region: Region) -> None:
+    def _finalise(self, image: FirmwareImage, region: Region) -> None:
         session = self.diag._require()
         self._emit("program", 0, 1, "programming")
         session.try_request([Service.REQUEST_TRANSFER_EXIT])
         self.diag._touch()
+
+        program = self.spec.get("write", {}).get("program")
+        if isinstance(program, dict) and "start" in program:
+            payload = list(program["start"])
+            if program.get("checksum"):
+                encoding = self.spec.get("write", {}).get("upload_encoding")
+                if encoding != "iaw5am-addror":
+                    raise ProgrammingError(
+                        f"no checksum form for upload encoding {encoding!r}"
+                    )
+                # The ECU validates the plain image, decoded from the blob.
+                checksum = iaw5am_upload_checksum(image.data)
+                payload += [checksum >> 8, checksum & 0xFF]
+            session.request(payload)
+            session.request(list(program["trigger"]))
+            self._wait(program.get("wait_s", 0))
+            self.diag._touch()
+
         self._emit("program", 1, 1, "programmed")
 
     # -- checkpoints ------------------------------------------------------

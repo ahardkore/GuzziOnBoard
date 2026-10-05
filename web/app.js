@@ -23,6 +23,15 @@ const state = {
   scan: null,
   baseline: null,
   report: null,
+  lastSamples: [],
+  lastAnalysis: null,
+  derivedCatalog: null,
+  sim: null,
+  procedures: [],
+  run: null,
+  liveLog: [],
+  replay: null,
+  replayTimer: null,
 };
 
 const HISTORY_LEN = 90;
@@ -70,6 +79,68 @@ const Prefs = {
   },
 };
 
+/* ------------------------------------------------------- temperature units
+ *
+ * The ECUs always answer in Celsius — that is what the wire says and that is
+ * what the raw bytes column keeps showing. Everything a human reads can be
+ * flipped to Fahrenheit, because plenty of these bikes are ridden where the
+ * thermometer in the garage is marked in °F.
+ */
+
+const CELSIUS_RE = /^\s*(°|deg\.?\s*)?C(elsius)?\s*$/i;
+const isCelsiusUnit = (unit) => CELSIUS_RE.test(String(unit ?? ''));
+
+const Temp = {
+  unit() { return Prefs.get('tempUnit', 'C') === 'F' ? 'F' : 'C'; },
+  setUnit(u) { Prefs.set('tempUnit', u === 'F' ? 'F' : 'C'); },
+
+  /* The label to print next to a converted value. */
+  label(unit) {
+    return isCelsiusUnit(unit) && Temp.unit() === 'F' ? '°F' : unit;
+  },
+
+  /* Convert a Celsius value if (and only if) the channel is a temperature
+   * and the user asked for Fahrenheit. Non-numeric values pass through. */
+  value(v, unit) {
+    if (!isCelsiusUnit(unit) || Temp.unit() === 'C') return v;
+    const n = Number(v);
+    if (!Number.isFinite(n)) return v;
+    const f = n * 9 / 5 + 32;
+    return Number.isInteger(n) ? Math.round(f) : +f.toFixed(1);
+  },
+
+  /* A difference in Celsius is 1.8x as large in Fahrenheit, with no offset. */
+  delta(v, unit) {
+    if (!isCelsiusUnit(unit) || Temp.unit() === 'C') return v;
+    const n = Number(v);
+    if (!Number.isFinite(n)) return v;
+    return +(n * 9 / 5).toFixed(2);
+  },
+
+  /* Units built on Celsius, such as "°C/min". */
+  labelFor(unit) {
+    const u = String(unit ?? '');
+    return Temp.unit() === 'F' && u.includes('\u00b0C') ? u.replace('\u00b0C', '\u00b0F') : u;
+  },
+
+  /* A derived value. `delta` marks a difference or a rate: Fahrenheit
+   * scales it by 9/5 but must not shift it by 32. */
+  valueFor(v, unit, delta) {
+    const u = String(unit ?? '');
+    if (Temp.unit() === 'C' || !u.includes('\u00b0C')) return v;
+    const n = Number(v);
+    if (!Number.isFinite(n)) return v;
+    const rate = delta || u !== '\u00b0C';
+    return +(rate ? n * 9 / 5 : n * 9 / 5 + 32).toFixed(1);
+  },
+
+  /* "92.4 °F" — value and unit together, both escaped. */
+  text(v, unit) {
+    const u = Temp.label(unit);
+    return `${esc(Temp.value(v, unit))}${u ? ` ${esc(u)}` : ''}`;
+  },
+};
+
 const confidenceClass = (c) => ({
   'verified-bench': 'ok', 'verified-capture': 'ok',
   documented: 'mid', inferred: 'low', unknown: 'low',
@@ -83,7 +154,9 @@ const VIEW_META = {
   live: ['Live data', 'Decoded channels, with the raw bytes behind them.'],
   faults: ['Fault codes', 'Stored and current diagnostic trouble codes.'],
   service: ['Service actions', 'Everything here changes something on the bike.'],
+  procedures: ['Guided tests', 'Known state, one bounded action, the right channels, a verdict.'],
   discovery: ['Discovery', 'Read-only sweep for unmapped local identifiers.'],
+  simulator: ['Simulated bike', 'Drive the simulated engine and seed faults to practise on.'],
   sessions: ['Sessions', 'Recorded frames, samples and safety decisions.'],
   report: ['Report', 'A shareable snapshot of this session.'],
 };
@@ -97,9 +170,217 @@ function show(view) {
   if (view === 'sessions') loadSessions();
   if (view === 'service') loadServiceActions();
   if (view === 'overview') renderOverview();
+  if (view === 'simulator') loadSim();
+  if (view === 'procedures') loadProcedures();
 }
 
 $$('.nav').forEach((b) => (b.onclick = () => show(b.dataset.view)));
+
+/* ------------------------------------------------------- guided tests */
+
+async function loadProcedures() {
+  let data;
+  try { data = await api('/api/procedures'); }
+  catch (err) { return toast(err.message, 'bad'); }
+  state.procedures = data.procedures;
+
+  $('#procedureList').innerHTML = data.procedures.map((p) => `
+    <div class="action ${p.available ? '' : 'blocked'}">
+      <div class="action-main">
+        <strong>${esc(p.name)}</strong>
+        <span class="tagline">${esc({ off: 'engine stopped', running: 'engine running', any: 'both states' }[p.engine])}</span>
+        <p class="small muted">${esc(p.purpose)}</p>
+        ${p.caveat ? `<p class="small warn-text">⚠ ${esc(p.caveat)}</p>` : ''}
+        ${p.available ? `<p class="small muted">${p.steps.length} steps</p>`
+          : `<p class="small muted">Not offered on this ECU: ${esc(p.missing.join(', '))}</p>`}
+      </div>
+      <button class="btn small" data-procedure="${esc(p.key)}" ${p.available ? '' : 'disabled'}>Start</button>
+    </div>`).join('');
+
+  $$('#procedureList button[data-procedure]').forEach((b) => (b.onclick = async () => {
+    try {
+      const out = await api('/api/procedures/start', { method: 'POST', body: { key: b.dataset.procedure } });
+      renderProcedureRun(out.run);
+    } catch (err) { toast(err.message, 'bad'); }
+  }));
+
+  if (data.run) renderProcedureRun(data.run);
+}
+
+function renderProcedureRun(run) {
+  state.run = run;
+  const box = $('#procedureRun');
+  if (!run) { box.innerHTML = '<p class="muted">Pick a test to begin.</p>'; return; }
+
+  const done = run.status !== 'running';
+  const step = run.step;
+  const log = run.results.map((r) => `
+    <div class="log-line"><span class="log-k">${esc(r.kind)}</span>
+      <b>${esc(r.title || r.step)}</b> — ${esc(r.detail)}</div>`).join('');
+
+  let controls = '';
+  if (step && !done) {
+    const label = { instruct: 'Done — continue', observe: 'Start sampling',
+      actuate: 'Command it', input: 'Record', verdict: 'Show the result' }[step.kind];
+    const input = step.kind === 'input'
+      ? (step.input_kind === 'yesno'
+        ? `<div class="toolbar"><button class="btn primary" data-answer="1">Yes</button>
+             <button class="btn" data-answer="0">No</button></div>`
+        : `<label class="field"><span>${esc(step.input_label)} (${esc(step.input_unit)})</span>
+             <input type="number" step="0.1" id="procInput"></label>
+           <button class="btn primary" id="procNext">${esc(label)}</button>`)
+      : `<button class="btn primary" id="procNext">${esc(label)}</button>`;
+    controls = `
+      <div class="gate-card">
+        <h4>Step ${run.step_index + 1} of ${run.step_count} · ${esc(step.title)}</h4>
+        ${step.text ? `<p class="small">${esc(step.text)}</p>` : ''}
+        ${step.channels.length ? `<p class="small muted">Will sample ${esc(step.channels.join(', '))} for ${step.seconds} s.</p>` : ''}
+        ${step.actuator ? `<p class="small warn-text">⚠ Commands <code>${esc(step.actuator)}</code> for ${step.pulse_s} s.</p>` : ''}
+        ${input}
+      </div>`;
+  }
+
+  const verdict = run.verdict ? `
+    <div class="finding ${esc(run.verdict.level)}">
+      <div class="finding-head"><b>${esc(run.verdict.title)}</b>
+        <span class="finding-level ${esc(run.verdict.level)}">${esc(run.verdict.level)}</span></div>
+      <p class="small">${esc(run.verdict.detail)}</p>
+      ${run.verdict.suspects.length ? `<p class="small muted">Usual suspects: ${esc(run.verdict.suspects.join(' · '))}</p>` : ''}
+    </div>` : '';
+
+  box.innerHTML = `
+    <h4>${esc(run.name)} <span class="pill ghost">${esc(run.status)}</span></h4>
+    ${run.caveat ? `<p class="small warn-text">⚠ ${esc(run.caveat)}</p>` : ''}
+    ${controls}${verdict}
+    <div class="log-view">${log || '<span class="muted">No steps run yet.</span>'}</div>
+    <div class="toolbar">
+      ${done ? '<button class="btn" id="procRestart">Back to the list</button>'
+             : '<button class="btn danger" id="procAbort">Abort and release outputs</button>'}
+    </div>
+    <p class="muted small">${esc(run.note)}</p>`;
+
+  const advance = async (value) => {
+    const button = $('#procNext') || document.activeElement;
+    if (button && button.tagName === 'BUTTON') { button.disabled = true; button.textContent = 'Working…'; }
+    try {
+      const out = await api('/api/procedures/advance', { method: 'POST', body: { value } });
+      renderProcedureRun(out.run);
+      if (out.run.status === 'blocked') toast('The safety gate refused this step.', 'bad');
+    } catch (err) { toast(err.message, 'bad'); renderProcedureRun(run); }
+  };
+
+  if ($('#procNext')) {
+    $('#procNext').onclick = () => advance(
+      step.kind === 'input' ? Number($('#procInput').value) : undefined);
+  }
+  $$('#procedureRun button[data-answer]').forEach((b) => (b.onclick = () => advance(b.dataset.answer === '1')));
+  if ($('#procAbort')) {
+    $('#procAbort').onclick = async () => {
+      const out = await api('/api/procedures/abort', { method: 'POST', body: {} });
+      renderProcedureRun(out.run);
+    };
+  }
+  if ($('#procRestart')) $('#procRestart').onclick = () => renderProcedureRun(null);
+}
+
+/* ----------------------------------------------------- simulated bike
+ *
+ * Controls for the built-in simulator. None of this can reach a real
+ * motorcycle: the endpoints behind it refuse unless the transport in use is
+ * the simulator or the virtual CAN bus.
+ */
+
+async function loadSim() {
+  let data;
+  try { data = await api('/api/sim'); }
+  catch (err) { return toast(err.message, 'bad'); }
+  state.sim = data;
+
+  $('#simPanels').classList.toggle('hidden', !data.available);
+  $('#simUnavailable').classList.toggle('hidden', !!data.available);
+  if (!data.available) {
+    $('#simUnavailableText').textContent = data.reason;
+    renderSimFaults(data.faults, false);
+    return;
+  }
+  renderSimEngine(data);
+  renderSimFaults(data.faults, true);
+  renderSimComms(data.comms);
+}
+
+function renderSimEngine(data) {
+  const e = data.engine;
+  const btn = $('#simRunBtn');
+  btn.textContent = e.running ? 'Stop engine' : 'Start engine';
+  btn.classList.toggle('primary', !e.running);
+  $('#simStatePill').textContent = e.running
+    ? `running · ${e.rpm} rpm` : 'engine stopped';
+  $('#simThrottle').value = e.throttle_pct;
+  $('#simThrottleLabel').textContent = `${Math.round(e.throttle_pct)}%`;
+  $('#simAmbient').value = Math.round(e.ambient_c);
+  $('#simAmbientLabel').textContent = `${Temp.value(Math.round(e.ambient_c), '\u00b0C')} ${Temp.label('\u00b0C')}`;
+  $('#simBattery').value = Math.round(e.battery_health * 100);
+  $('#simBatteryLabel').textContent = e.battery_health >= 0.95 ? 'healthy'
+    : e.battery_health >= 0.8 ? 'tired' : 'flat';
+  $('#simInGear').checked = e.in_gear;
+  $('#simAutoBlip').checked = e.auto_blip;
+  $('#simReadout').innerHTML = `
+    <div><span>Head temperature</span><b>${esc(Temp.value(e.coolant_c, '\u00b0C'))} ${esc(Temp.label('\u00b0C'))}</b></div>
+    <div><span>Battery</span><b>${e.battery_v} V</b></div>
+    <div><span>Road speed</span><b>${e.road_speed} km/h</b></div>
+    <div><span>Lambda loop</span><b>${e.closed_loop ? 'closed' : 'open'}</b></div>
+    <div><span>Running for</span><b>${Math.round(e.seconds_since_start)} s</b></div>`;
+}
+
+function renderSimFaults(faults, live) {
+  $('#simFaultList').innerHTML = faults.map((f) => `
+    <div class="action ${f.active ? 'armed' : ''}">
+      <div class="action-main">
+        <strong>${esc(f.name)}</strong>
+        <p class="small muted">${esc(f.description)}</p>
+        <p class="small muted">${f.dtc ? `Stores <code>${esc(f.dtc)}</code> once it matures. ` : ''}${esc(f.teaches || '')}</p>
+      </div>
+      <button class="btn small ${f.active ? 'danger' : ''}" data-fault="${esc(f.key)}"
+        ${live ? '' : 'disabled'}>${f.active ? 'Clear fault' : 'Seed fault'}</button>
+    </div>`).join('');
+
+  $$('#simFaultList button[data-fault]').forEach((b) => (b.onclick = async () => {
+    const key = b.dataset.fault;
+    const active = !(state.sim.faults.find((f) => f.key === key) || {}).active;
+    try {
+      state.sim = await api('/api/sim/faults', { method: 'POST', body: { key, active } });
+      renderSimFaults(state.sim.faults, true);
+      toast(active ? 'Fault seeded — watch the live data before the code arrives.'
+                   : 'Fault cleared on the bike. Any stored code stays until you erase it.',
+        active ? 'warn' : 'ok');
+    } catch (err) { toast(err.message, 'bad'); }
+  }));
+}
+
+function renderSimComms(c) {
+  $('#simDrop').value = Math.round(c.drop_rate * 100);
+  $('#simDropLabel').textContent = `${Math.round(c.drop_rate * 100)}%`;
+  $('#simCorrupt').value = Math.round(c.corrupt_rate * 100);
+  $('#simCorruptLabel').textContent = `${Math.round(c.corrupt_rate * 100)}%`;
+  $('#simPending').value = Math.round(c.pending_rate * 100);
+  $('#simPendingLabel').textContent = `${Math.round(c.pending_rate * 100)}%`;
+  $('#simLatency').value = Math.round(c.extra_latency * 1000);
+  $('#simLatencyLabel').textContent = `${Math.round(c.extra_latency * 1000)} ms`;
+}
+
+async function simEngine(body) {
+  try {
+    state.sim = await api('/api/sim/engine', { method: 'POST', body });
+    renderSimEngine(state.sim);
+  } catch (err) { toast(err.message, 'bad'); }
+}
+
+async function simComms(body) {
+  try {
+    state.sim = await api('/api/sim/comms', { method: 'POST', body });
+    renderSimComms(state.sim.comms);
+  } catch (err) { toast(err.message, 'bad'); }
+}
 
 /* --------------------------------------------------------------- modal */
 
@@ -433,6 +714,18 @@ async function loadParameters() {
   if (!state.selectedChannels.size) {
     state.parameters.slice(0, 8).forEach((p) => state.selectedChannels.add(p.key));
   }
+  await loadDerivedCatalog();
+  renderChannelPicker();
+}
+
+async function loadDerivedCatalog() {
+  if (state.derivedCatalog) return;
+  try {
+    state.derivedCatalog = (await api('/api/derived')).channels;
+  } catch (_) { state.derivedCatalog = []; }
+}
+
+function renderChannelPicker() {
   $('#channelList').innerHTML = state.parameters.map((p) => `
     <label class="check">
       <input type="checkbox" value="${esc(p.key)}" ${state.selectedChannels.has(p.key) ? 'checked' : ''}>
@@ -443,7 +736,71 @@ async function loadParameters() {
   $$('#channelList input').forEach((cb) => (cb.onchange = () => {
     if (cb.checked) state.selectedChannels.add(cb.value);
     else state.selectedChannels.delete(cb.value);
+    renderDerivedGaps();
   }));
+  renderDerivedGaps();
+}
+
+/* ------------------------------------------------- derived and findings
+ *
+ * The server computes both; this only draws them. Everything here is
+ * visually separated from the metric grid above, because a value the
+ * workstation worked out is not a value the ECU reported.
+ */
+
+function renderAnalysis(derived, findings) {
+  state.lastAnalysis = { derived, findings };
+  $('#derivedGrid').innerHTML = (derived || []).map((c) => {
+    const unit = Temp.labelFor(c.unit);
+    const value = Temp.valueFor(c.value, c.unit, c.delta);
+    return `<article class="metric derived" title="${esc(c.note)}">
+      <small>${esc(c.name)}</small>
+      <strong>${esc(value)} <em>${esc(unit)}</em></strong>
+      <label><span class="conf ${confidenceClass(c.confidence)}">${esc(c.confidence)}</span>
+        ${esc(c.sources.join(' + '))}</label>
+    </article>`;
+  }).join('') || '<p class="muted">Nothing to derive from the channels being polled.</p>';
+
+  const box = $('#findingList');
+  if (!findings || !findings.length) {
+    box.innerHTML = '<p class="muted">Every check that could run on the current '
+      + 'channels is happy. That is not a clean bill of health — it is the '
+      + 'absence of the specific problems these rules know about.</p>';
+    return;
+  }
+  box.innerHTML = findings.map((f) => `
+    <div class="finding ${esc(f.level)}">
+      <div class="finding-head"><b>${esc(f.title)}</b>
+        <span class="finding-level ${esc(f.level)}">${esc(f.level)}</span></div>
+      <p class="small">${esc(f.detail)}</p>
+      ${f.suspects.length ? `<p class="small muted">Usual suspects: ${esc(f.suspects.join(' · '))}</p>` : ''}
+      <p class="small muted">Reacting to ${Object.entries(f.evidence)
+        .map(([k, v]) => `<code>${esc(k)}</code> ${esc(v)}`).join(', ')}</p>
+    </div>`).join('');
+}
+
+/* Which derived channels cannot be computed because their inputs are not
+ * being polled — with one click to start polling them. */
+function renderDerivedGaps() {
+  const known = new Set(state.parameters.map((p) => p.key));
+  const gaps = (state.derivedCatalog || []).map((c) => ({
+    ...c,
+    missing: c.sources.filter((k) => known.has(k) && !state.selectedChannels.has(k)),
+    unmapped: c.sources.filter((k) => !known.has(k)),
+  })).filter((c) => !c.unmapped.length && c.missing.length);
+
+  const el = $('#derivedMissing');
+  if (!el) return;
+  if (!gaps.length) { el.innerHTML = ''; return; }
+  const needed = Array.from(new Set(gaps.flatMap((c) => c.missing)));
+  el.innerHTML = `<p class="muted small">Not computed yet: ${gaps
+    .map((c) => `<b>${esc(c.name)}</b> (needs ${esc(c.missing.join(', '))})`).join('; ')}
+    <button class="btn small" id="addDerivedChannels">Poll the ${needed.length} missing channel${needed.length > 1 ? 's' : ''}</button></p>`;
+  $('#addDerivedChannels').onclick = () => {
+    needed.forEach((k) => state.selectedChannels.add(k));
+    renderChannelPicker();
+    toast('Added the channels those derived values need.', 'ok');
+  };
 }
 
 function sparkline(values, min, max) {
@@ -461,6 +818,7 @@ function sparkline(values, min, max) {
 }
 
 function renderLive(samples) {
+  state.lastSamples = samples;
   const byKey = new Map(state.parameters.map((p) => [p.key, p]));
 
   $('#liveGrid').innerHTML = samples.map((s) => {
@@ -471,11 +829,17 @@ function renderLive(samples) {
         <label>${esc(s.error.slice(0, 80))}</label></article>`;
     }
     const history = state.history.get(s.key) || [];
-    const display = s.text || `${s.value}`;
+    const display = s.text || `${Temp.value(s.value, s.unit)}`;
+    const span = isCelsiusUnit(s.unit)
+      ? [Temp.value(meta.min, s.unit), Temp.value(meta.max, s.unit)]
+      : [meta.min, meta.max];
+    const trace = isCelsiusUnit(s.unit)
+      ? history.map((v) => Temp.value(v, s.unit))
+      : history;
     return `<article class="metric">
       <small>${esc(s.name)}</small>
-      <strong>${esc(display)} <em>${esc(s.unit)}</em></strong>
-      ${s.text ? '' : sparkline(history, meta.min, meta.max)}
+      <strong>${esc(display)} <em>${esc(Temp.label(s.unit))}</em></strong>
+      ${s.text ? '' : sparkline(trace, span[0], span[1])}
       <label>0x${s.local_id.toString(16).toUpperCase().padStart(2, '0')} · ${esc(s.raw)}</label>
     </article>`;
   }).join('');
@@ -486,7 +850,7 @@ function renderLive(samples) {
       <td>${esc(s.name)}</td>
       <td><code>0x${s.local_id.toString(16).toUpperCase().padStart(2, '0')}</code></td>
       <td><code>${esc(s.raw || '—')}</code></td>
-      <td>${s.error ? `<span class="err">${esc(s.error.slice(0, 60))}</span>` : `${esc(s.text || s.value)} ${esc(s.unit)}`}</td>
+      <td>${s.error ? `<span class="err">${esc(s.error.slice(0, 60))}</span>` : `${s.text ? esc(s.text) : Temp.text(s.value, s.unit)}`}</td>
       <td><span class="conf ${confidenceClass(meta.confidence)}">${esc(meta.confidence || '?')}</span></td>
     </tr>`;
   }).join('');
@@ -505,7 +869,14 @@ async function pollOnce() {
       if (arr.length > HISTORY_LEN) arr.shift();
       state.history.set(s.key, arr);
     });
+    state.liveLog.push({
+      t: data.at || Date.now() / 1000,
+      values: Object.fromEntries(data.samples.map((s) => [s.key, s])),
+    });
+    if (state.liveLog.length > 5000) state.liveLog.shift();
+    $('#exportLiveBtn').disabled = false;
     renderLive(data.samples);
+    renderAnalysis(data.derived, data.findings);
     const elapsed = performance.now() - started;
     $('#pollRate').textContent =
       `${keys.length} channels · ${elapsed.toFixed(0)} ms/sweep · ${(1000 / Math.max(elapsed, 1)).toFixed(1)} Hz max`;
@@ -565,7 +936,7 @@ async function readDtcs() {
     ? `<div class="fault-context"><span class="muted small">Context observed at read time
         ${data.context_note ? `<span title="${esc(data.context_note)}">(?)</span>` : ''}:</span>
        ${context.map(([k, c]) =>
-         `<span class="tag">${esc(c.name)} <b>${esc(c.value)}${esc(c.unit ? ' ' + c.unit : '')}</b></span>`
+         `<span class="tag">${esc(c.name)} <b>${esc(Temp.value(c.value, c.unit))}${c.unit ? ' ' + esc(Temp.label(c.unit)) : ''}</b></span>`
        ).join(' ')}</div>`
     : '';
 
@@ -738,14 +1109,22 @@ async function loadSessions() {
   fillCompareSelects();
   $('#sessionDir').textContent = `${data.sessions.length} recorded session(s)`;
   $('#sessionList').innerHTML = data.sessions.length ? data.sessions.map((s) => `
-    <button class="session-row" data-name="${esc(s.name)}">
-      <div><strong>${esc(s.meta.model || s.meta.ecu_family || 'session')}</strong>
-        <small>${esc(s.meta.ecu_family || '')} · ${esc(s.meta.transport || '')} · ${esc(s.meta.mode || '')}</small></div>
-      <div class="muted small">${(s.size / 1024).toFixed(1)} kB · ${new Date(s.modified * 1000).toLocaleString()}</div>
-    </button>`).join('')
+    <div class="session-item">
+      <button class="session-row" data-name="${esc(s.name)}">
+        <div><strong>${esc(s.meta.model || s.meta.ecu_family || 'session')}</strong>
+          <small>${esc(s.meta.ecu_family || '')} · ${esc(s.meta.transport || '')} · ${esc(s.meta.mode || '')}</small></div>
+        <div class="muted small">${(s.size / 1024).toFixed(1)} kB · ${new Date(s.modified * 1000).toLocaleString()}</div>
+      </button>
+      <div class="toolbar">
+        <button class="btn small" data-csv="${esc(s.name)}">Export CSV</button>
+        <button class="btn small" data-replay="${esc(s.name)}">Replay</button>
+      </div>
+    </div>`).join('')
     : '<p class="muted">No sessions recorded yet. Connect to create one.</p>';
 
   $$('.session-row').forEach((b) => (b.onclick = () => loadSessionEvents(b.dataset.name)));
+  $$('#sessionList button[data-csv]').forEach((b) => (b.onclick = () => exportSessionCsv(b.dataset.csv)));
+  $$('#sessionList button[data-replay]').forEach((b) => (b.onclick = () => loadReplay(b.dataset.replay)));
 }
 
 async function loadSessionEvents(name) {
@@ -756,7 +1135,7 @@ async function loadSessionEvents(name) {
       const time = new Date(e.t * 1000).toLocaleTimeString();
       let body = '';
       if (e.kind === 'frame') body = `<span class="dir ${e.dir}">${e.dir}</span> <code>${esc(e.hex)}</code>`;
-      else if (e.kind === 'sample') body = `${esc(e.key)} = ${esc(e.value)} ${esc(e.unit)} <code>${esc(e.raw)}</code>`;
+      else if (e.kind === 'sample') body = `${esc(e.key)} = ${Temp.text(e.value, e.unit)} <code>${esc(e.raw)}</code>`;
       else if (e.kind === 'safety') body = `${e.allowed ? '<span class="yes">allowed</span>' : '<span class="no">refused</span>'} ${esc(e.operation)} — ${esc(e.reason)}`;
       else if (e.kind === 'action') body = `<b>${esc(e.name)}</b> ${esc(JSON.stringify(e.detail).slice(0, 160))}`;
       else if (e.kind === 'error') body = `<span class="no">${esc(e.where)}</span> ${esc(e.message)}`;
@@ -765,11 +1144,111 @@ async function loadSessionEvents(name) {
     }).join('');
 }
 
+/* ------------------------------------------------------- export, replay */
+
+async function exportSessionCsv(name) {
+  try {
+    const data = await api(`/api/sessions/export?name=${encodeURIComponent(name)}&format=csv`);
+    if (!data.rows) return toast('That session has no samples in it to export.', 'warn');
+    download(data.filename, data.content, 'text/csv');
+    toast(`${data.rows} sweeps exported.`, 'ok');
+  } catch (err) { toast(err.message, 'bad'); }
+}
+
+/* Everything polled since the page was opened, as CSV. Same shape as the
+ * server-side export, so the two files can sit in the same spreadsheet. */
+function exportLiveCsv() {
+  const log = state.liveLog;
+  if (!log.length) return toast('Nothing polled yet.', 'warn');
+  const keys = [];
+  log.forEach((row) => Object.keys(row.values).forEach((k) => {
+    if (!keys.includes(k)) keys.push(k);
+  }));
+  const units = {};
+  log.forEach((row) => Object.entries(row.values).forEach(([k, v]) => {
+    if (units[k] === undefined) units[k] = v.unit || '';
+  }));
+  const t0 = log[0].t;
+  const lines = [
+    ['time_unix', 'elapsed_s', ...keys, ...keys.map((k) => `${k}_raw`)].join(','),
+    ['', 's', ...keys.map((k) => units[k]), ...keys.map(() => 'bytes')].join(','),
+    ...log.map((row) => [
+      row.t.toFixed(4), (row.t - t0).toFixed(3),
+      ...keys.map((k) => (row.values[k]?.value ?? '')),
+      ...keys.map((k) => (row.values[k]?.raw ?? '')),
+    ].join(',')),
+  ];
+  download(`guzzionboard-live-${Date.now()}.csv`, lines.join('\n'), 'text/csv');
+  toast(`${log.length} sweeps exported.`, 'ok');
+}
+
+async function loadReplay(name) {
+  try {
+    state.replay = await api(`/api/sessions/replay?name=${encodeURIComponent(name)}`);
+  } catch (err) { return toast(err.message, 'bad'); }
+  const frames = state.replay.frames;
+  if (!frames.length) {
+    $('#replayClock').textContent = 'this session recorded no samples';
+    return toast('That session has no samples to replay.', 'warn');
+  }
+  $('#replayScrub').max = String(frames.length - 1);
+  $('#replayScrub').value = '0';
+  $('#replayScrub').disabled = false;
+  $('#replayPlayBtn').disabled = false;
+  showReplayFrame(0);
+  toast(`${frames.length} sweeps over ${state.replay.duration_s} s.`, 'ok');
+}
+
+function showReplayFrame(index) {
+  const frame = state.replay?.frames?.[index];
+  if (!frame) return;
+  $('#replayClock').textContent =
+    `${frame.elapsed.toFixed(1)} s of ${state.replay.duration_s} s · sweep ${index + 1}/${state.replay.frames.length}`;
+
+  const measured = Object.values(frame.values).map((v) => `
+    <article class="metric">
+      <small>${esc(v.key)}</small>
+      <strong>${Temp.text(v.value, v.unit)}</strong>
+      <label>${esc(v.raw || '—')}</label>
+    </article>`).join('');
+  const derived = frame.derived.map((c) => `
+    <article class="metric derived">
+      <small>${esc(c.name)}</small>
+      <strong>${esc(Temp.valueFor(c.value, c.unit, c.delta))} <em>${esc(Temp.labelFor(c.unit))}</em></strong>
+      <label>${esc(c.sources.join(' + '))}</label>
+    </article>`).join('');
+  $('#replayGrid').innerHTML = measured + derived;
+
+  $('#replayFindings').innerHTML = frame.findings.map((f) => `
+    <div class="finding ${esc(f.level)}">
+      <div class="finding-head"><b>${esc(f.title)}</b>
+        <span class="finding-level ${esc(f.level)}">${esc(f.level)}</span></div>
+      <p class="small">${esc(f.detail)}</p>
+    </div>`).join('');
+}
+
+function toggleReplayPlay() {
+  if (state.replayTimer) {
+    clearInterval(state.replayTimer);
+    state.replayTimer = null;
+    $('#replayPlayBtn').textContent = 'Play';
+    return;
+  }
+  $('#replayPlayBtn').textContent = 'Pause';
+  state.replayTimer = setInterval(() => {
+    const scrub = $('#replayScrub');
+    const next = Number(scrub.value) + 1;
+    if (next > Number(scrub.max)) return toggleReplayPlay();
+    scrub.value = String(next);
+    showReplayFrame(next);
+  }, 300);
+}
+
 /* --------------------------------------------------------------- report */
 
 async function buildReport() {
   try {
-    state.report = await api('/api/report');
+    state.report = await api(`/api/report?temp_unit=${Temp.unit()}`);
     $('#reportText').textContent = state.report.text;
     $('#downloadReportBtn').disabled = false;
     $('#downloadJsonBtn').disabled = false;
@@ -781,6 +1260,12 @@ async function buildReport() {
 
 $('#yearSelect').onchange = resolveVehicle;
 $('#printBtn').onclick = () => window.print();
+$('#tempUnit').onchange = (e) => {
+  Temp.setUnit(e.target.value);
+  if (state.lastSamples.length) renderLive(state.lastSamples);
+  if (state.lastAnalysis) renderAnalysis(state.lastAnalysis.derived, state.lastAnalysis.findings);
+  toast(`Temperatures shown in ${Temp.unit() === 'F' ? 'Fahrenheit' : 'Celsius'}.`, 'ok');
+};
 $('#ecuOverride').onchange = updateConnectEnabled;
 $('#checklistAccept').onchange = updateConnectEnabled;
 $('#connectBtn').onclick = connect;
@@ -792,6 +1277,23 @@ $('#clearDtcBtn').onclick = clearDtcs;
 $('#scanBtn').onclick = runScan;
 $('#snapshotBtn').onclick = () => { state.baseline = state.scan; toast('Baseline kept. Change the engine state and sweep again.', 'ok'); renderScan(); };
 $('#exportScanBtn').onclick = () => download(`guzzionboard-scan-${Date.now()}.json`, JSON.stringify(state.scan, null, 2), 'application/json');
+$('#simRunBtn').onclick = () => simEngine({ running: !(state.sim?.engine?.running) });
+$('#simWarmBtn').onclick = () => simEngine({ advance_s: 300 });
+$('#simThrottle').oninput = (e) => {
+  $('#simThrottleLabel').textContent = `${e.target.value}%`;
+  simEngine({ throttle_pct: Number(e.target.value) });
+};
+$('#simAmbient').oninput = (e) => simEngine({ ambient_c: Number(e.target.value) });
+$('#simBattery').oninput = (e) => simEngine({ battery_health: Number(e.target.value) / 100 });
+$('#simInGear').onchange = (e) => simEngine({ in_gear: e.target.checked });
+$('#simAutoBlip').onchange = (e) => simEngine({ auto_blip: e.target.checked });
+$('#simDrop').oninput = (e) => simComms({ drop_rate: Number(e.target.value) / 100 });
+$('#simCorrupt').oninput = (e) => simComms({ corrupt_rate: Number(e.target.value) / 100 });
+$('#simPending').oninput = (e) => simComms({ pending_rate: Number(e.target.value) / 100 });
+$('#simLatency').oninput = (e) => simComms({ extra_latency: Number(e.target.value) / 1000 });
+$('#exportLiveBtn').onclick = exportLiveCsv;
+$('#replayScrub').oninput = (e) => showReplayFrame(Number(e.target.value));
+$('#replayPlayBtn').onclick = toggleReplayPlay;
 $('#refreshSessionsBtn').onclick = loadSessions;
 $('#buildReportBtn').onclick = buildReport;
 $('#downloadReportBtn').onclick = () => download(`guzzionboard-report-${Date.now()}.txt`, state.report.text);
@@ -803,6 +1305,7 @@ window.addEventListener('beforeunload', () => {
 
 (async function boot() {
   try {
+    $('#tempUnit').value = Temp.unit();
     await loadCatalog();
     await refreshStatus();
     setInterval(() => { if (!state.polling) refreshStatus().catch(() => {}); }, 5000);
@@ -1358,6 +1861,95 @@ $('#canlogPasteBtn').onclick = () => {
   analyseCanlog({ text });
 };
 
+/* ---------------------------------------------- K-Line capture analysis */
+/* The 5AM identifier table in the catalog came from a wire tap, because no
+ * published document carries one for any of these families. This makes that
+ * method repeatable: characterise what answered, and solve the scalings
+ * against the other tool's own CSV so a number earns 'verified-capture'
+ * instead of being asserted. */
+
+function renderKlinelog(result) {
+  const out = $('#klinelogOut');
+  const s = result.summary;
+  const solved = result.matches.length;
+  const head = `
+    <div class="gate-card ${s.answered ? 'ok' : 'warn'}">
+      <h4>${s.answered} identifier(s) answered · ${solved} scaling(s) solved</h4>
+      <p class="small">${result.frames} frames · ${s.moved} moved · ${s.always_zero} always zero
+        · ${s.refused} refused${result.identification.length
+          ? ` · ECU says <code>${esc(result.identification[0].ascii)}</code>` : ''}</p>
+    </div>`;
+
+  if (!s.answered) {
+    out.innerHTML = head + `<p class="muted small">${esc(result.note)}</p>`;
+    return;
+  }
+
+  const solvedRows = result.matches.map((m) => `
+    <tr><td><code>${esc(m.hex)}</code></td><td>${esc(m.channel)}</td>
+      <td>${m.length} byte${m.length === 1 ? '' : 's'}${m.signed ? ', signed' : ''}</td>
+      <td>× ${m.scale}${m.bias ? ` ${m.bias > 0 ? '+' : '−'} ${Math.abs(m.bias)}` : ''}</td>
+      <td class="muted">r² ${m.fit} · ${m.points} pts</td></tr>`).join('');
+
+  const unsolved = result.identifiers.filter(
+    (e) => e.answers && !result.matches.some((m) => m.local_id === e.local_id));
+  const unsolvedRows = unsolved.map((e) => `
+    <tr><td><code>${esc(e.hex)}</code></td>
+      <td class="muted">${e.always_zero ? 'always zero — dead slot'
+        : e.moved ? 'moved, meaning unknown' : 'answered, never moved'}</td>
+      <td>${e.length} byte${e.length === 1 ? '' : 's'}</td>
+      <td class="muted">${e.min} … ${e.max}</td>
+      <td class="muted">${e.samples} sample(s)</td></tr>`).join('');
+
+  out.innerHTML = head
+    + (solved ? `<h4>Solved against the reference log
+         <span class="conf ok">verified-capture</span></h4>
+       <table class="data"><thead><tr><th>Id</th><th>Channel</th><th>Width</th>
+         <th>Scaling</th><th>Fit</th></tr></thead><tbody>${solvedRows}</tbody></table>`
+      : `<p class="muted small">No scalings solved. Add the reference CSV the other
+         tool wrote during the same capture — without it an identifier can only be
+         shown to exist, not to mean anything.</p>`)
+    + (unsolved.length ? `<h4>Answered but unsolved
+         <span class="conf low">unknown</span></h4>
+       <table class="data"><thead><tr><th>Id</th><th>What was seen</th><th>Width</th>
+         <th>Range</th><th>Samples</th></tr></thead><tbody>${unsolvedRows}</tbody></table>` : '')
+    + (result.services_seen.length ? `<p class="muted small">Services used by that tool:
+        ${result.services_seen.map((x) => `${esc(x.name)} (${esc(x.service)})`).join(', ')}</p>` : '')
+    + `<details class="advanced"><summary>Draft catalog fragment</summary>
+        <p class="muted small">${esc(result.draft.note)}</p>
+        <textarea rows="12" spellcheck="false" readonly>${esc(JSON.stringify(result.draft, null, 2))}</textarea>
+       </details>`;
+}
+
+async function analyseKlinelog(body) {
+  $('#klinelogOut').innerHTML = '<p class="muted">Analysing…</p>';
+  try {
+    renderKlinelog(await api('/api/tools/klinelog', { method: 'POST', body }));
+  } catch (err) {
+    $('#klinelogOut').innerHTML =
+      `<div class="gate-card bad"><h4>Could not analyse</h4><p class="small">${esc(err.message)}</p></div>`;
+  }
+}
+
+$('#klinelogBtn').onclick = () => {
+  const path = $('#klinelogPath').value.trim();
+  if (!path) return toast('Give the path of a capture file.', 'bad');
+  analyseKlinelog({
+    path,
+    reference_path: $('#klinelogRefPath').value.trim() || undefined,
+    family: $('#klinelogFamily').value.trim() || undefined,
+  });
+};
+$('#klinelogPasteBtn').onclick = () => {
+  const text = $('#klinelogText').value.trim();
+  if (!text) return toast('Paste a capture first.', 'bad');
+  analyseKlinelog({
+    text,
+    reference_path: $('#klinelogRefPath').value.trim() || undefined,
+    family: $('#klinelogFamily').value.trim() || undefined,
+  });
+};
+
 /* ---------------------------------------------------------- compare view */
 /* Two recorded sessions, side by side, channel by channel. Sessions are
  * not aligned in time, so the server compares means, not point-by-point. */
@@ -1375,9 +1967,10 @@ function fillCompareSelects() {
   }
 }
 
-function fmtStat(s) {
+function fmtStat(s, unit) {
   if (!s) return '<span class="muted">—</span>';
-  return `${s.mean} <span class="muted small">(${s.min}…${s.max}, n=${s.count})</span>`;
+  const v = (x) => esc(Temp.value(x, unit));
+  return `${v(s.mean)} <span class="muted small">(${v(s.min)}…${v(s.max)}, n=${s.count})</span>`;
 }
 
 $('#compareBtn').onclick = async () => {
@@ -1403,10 +1996,10 @@ $('#compareBtn').onclick = async () => {
       + `<div class="table-wrap"><table class="data">
         <thead><tr><th>Channel</th><th>A (mean, range)</th><th>B (mean, range)</th><th>Δ mean</th></tr></thead>
         <tbody>${d.channels.map((c) => `
-          <tr><td><b>${esc(c.key)}</b> ${esc(c.unit)}</td>
-              <td>${fmtStat(c.a)}</td><td>${fmtStat(c.b)}</td>
+          <tr><td><b>${esc(c.key)}</b> ${esc(Temp.label(c.unit))}</td>
+              <td>${fmtStat(c.a, c.unit)}</td><td>${fmtStat(c.b, c.unit)}</td>
               <td>${c.delta_mean === null ? '<span class="muted">—</span>'
-                : `<b class="${Math.abs(c.delta_mean) < 1e-9 ? '' : 'warn'}">${c.delta_mean > 0 ? '+' : ''}${c.delta_mean}</b>`}</td>
+                : `<b class="${Math.abs(c.delta_mean) < 1e-9 ? '' : 'warn'}">${c.delta_mean > 0 ? '+' : ''}${esc(Temp.delta(c.delta_mean, c.unit))}</b>`}</td>
           </tr>`).join('')}
         </tbody></table></div>`;
   } catch (err) {

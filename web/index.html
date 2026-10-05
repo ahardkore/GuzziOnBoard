@@ -24,8 +24,10 @@
     <button class="nav" data-view="live"><i>∿</i> Live data</button>
     <button class="nav" data-view="faults"><i>⚠</i> Fault codes <b id="faultBadge" class="badge hidden">0</b></button>
     <button class="nav" data-view="service"><i>⚙</i> Service actions</button>
+    <button class="nav" data-view="procedures"><i>✓</i> Guided tests</button>
     <button class="nav" data-view="firmware"><i>▥</i> ECU memory</button>
     <button class="nav" data-view="discovery"><i>🔍</i> Discovery</button>
+    <button class="nav" data-view="simulator"><i>🧪</i> Simulated bike</button>
     <button class="nav" data-view="sessions"><i>▤</i> Sessions</button>
     <button class="nav" data-view="report"><i>⎙</i> Report</button>
   </nav>
@@ -52,6 +54,13 @@
     <div class="topbar-right">
       <span class="pill" id="modePill">simulator</span>
       <span class="pill ghost" id="ecuPill">no ECU</span>
+      <label class="unit-pick no-print" title="Celsius is what the ECU sends; Fahrenheit is converted for display only">
+        <span>Temp</span>
+        <select id="tempUnit">
+          <option value="C">°C</option>
+          <option value="F">°F</option>
+        </select>
+      </label>
       <button class="btn small no-print" id="printBtn" title="Print this view or save it as PDF">Print / PDF</button>
       <a class="btn small no-print" href="sim.html" target="_blank" rel="noopener">Simulator demo</a>
       <a class="btn small no-print" href="tour.html" target="_blank" rel="noopener">Tour &amp; setup</a>
@@ -156,6 +165,7 @@
     <article class="panel toolbar-panel">
       <div class="toolbar">
         <button class="btn primary" id="pollBtn" disabled>Start polling</button>
+        <button class="btn small" id="exportLiveBtn" disabled title="Everything polled since this page was opened">Export CSV</button>
         <span class="muted small" id="pollRate">idle</span>
         <div class="spacer"></div>
         <details class="channel-picker">
@@ -165,6 +175,24 @@
       </div>
     </article>
     <div id="liveGrid" class="metrics"></div>
+
+    <article class="panel">
+      <h2>Derived by the workstation</h2>
+      <p class="muted small">These are not ECU readings. They are arithmetic on
+      the channels above, labelled with what they were computed from, and they
+      inherit the worst confidence of their inputs.</p>
+      <div id="derivedGrid" class="metrics"></div>
+      <div id="derivedMissing"></div>
+    </article>
+
+    <article class="panel">
+      <h2>Plausibility checks</h2>
+      <p class="muted small">Opinions, not measurements. Each one names the
+      numbers it is reacting to and the usual suspects behind them — it is a
+      place to start looking, never a diagnosis.</p>
+      <div id="findingList"><p class="muted">Start polling to run the checks.</p></div>
+    </article>
+
     <article class="panel">
       <h2>Raw provenance</h2>
       <p class="muted small">Every decoded value keeps the bytes it came from. If a scaling is wrong, this is what you send with the bug report.</p>
@@ -204,6 +232,97 @@
       <p class="muted small">IAW ECUs have no output timer: an output stays energised until something turns it off. This workstation owns the deadline and releases on expiry, on disconnect, and if the browser goes away.</p>
       <div id="actuatorList" class="action-list"></div>
     </article>
+  </section>
+
+  <!-- ==================================================== SIMULATOR -->
+  <section class="view hidden" id="simulator">
+    <article class="panel warn-panel">
+      <h2>🧪 This drives the simulated motorcycle, not a real one</h2>
+      <p>Everything on this page changes the bike the workstation is talking
+      to, never the workstation's own behaviour. Seeded faults move the live
+      channels first and only mature into fault memory afterwards, so you can
+      practise reading the data before the code shows up — and watch a code
+      come straight back if you clear it while the cause is still there.</p>
+    </article>
+
+    <div id="simUnavailable" class="hidden">
+      <article class="panel"><p class="muted" id="simUnavailableText"></p></article>
+    </div>
+
+    <div id="simPanels">
+      <div class="grid-2">
+        <article class="panel">
+          <h2>Engine</h2>
+          <div class="toolbar">
+            <button class="btn primary" id="simRunBtn">Start engine</button>
+            <button class="btn" id="simWarmBtn" title="Fast-forward the thermal model by five minutes">Skip ahead 5 min</button>
+            <span class="pill ghost" id="simStatePill">—</span>
+          </div>
+          <label class="field">
+            <span>Throttle <b id="simThrottleLabel">0%</b></span>
+            <input type="range" id="simThrottle" min="0" max="100" value="0">
+          </label>
+          <label class="field">
+            <span>Ambient temperature <b id="simAmbientLabel">18 °C</b></span>
+            <input type="range" id="simAmbient" min="-20" max="45" value="18">
+          </label>
+          <label class="field">
+            <span>Battery condition <b id="simBatteryLabel">healthy</b></span>
+            <input type="range" id="simBattery" min="50" max="110" value="100">
+          </label>
+          <label class="check"><input type="checkbox" id="simInGear"> In gear (road speed follows rpm)</label>
+          <label class="check"><input type="checkbox" id="simAutoBlip" checked> Blip the throttle by itself when idle</label>
+          <div class="sim-readout" id="simReadout"></div>
+        </article>
+
+        <article class="panel">
+          <h2>Comms quality</h2>
+          <p class="muted small">The adapter and the wiring are part of the
+          job. These make the simulator behave like a bad connection so the
+          retry, checksum and timeout paths get exercised on purpose.</p>
+          <label class="field"><span>Dropped requests <b id="simDropLabel">0%</b></span>
+            <input type="range" id="simDrop" min="0" max="60" value="0"></label>
+          <label class="field"><span>Corrupt checksums <b id="simCorruptLabel">0%</b></span>
+            <input type="range" id="simCorrupt" min="0" max="60" value="0"></label>
+          <label class="field"><span>responsePending first <b id="simPendingLabel">0%</b></span>
+            <input type="range" id="simPending" min="0" max="100" value="0"></label>
+          <label class="field"><span>Extra latency <b id="simLatencyLabel">0 ms</b></span>
+            <input type="range" id="simLatency" min="0" max="500" step="10" value="0"></label>
+        </article>
+      </div>
+
+      <article class="panel">
+        <h2>Seeded faults</h2>
+        <p class="muted small">Each fault changes the physics, and the code it
+        eventually stores is listed with it. Nothing appears in fault memory
+        straight away.</p>
+        <div id="simFaultList" class="action-list"></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- =================================================== PROCEDURES -->
+  <section class="view hidden" id="procedures">
+    <article class="panel">
+      <h2>What a guided test is</h2>
+      <p class="muted">A single actuator pulse is a twitch. A procedure puts
+      the engine in a known state, does one bounded thing, watches the right
+      channels and says what the result means. Observations are ordinary live
+      reads; anything that moves on the bike goes through the same safety gate
+      and the same output deadline as the Service view. The verdict at the end
+      is an interpretation — a place to start looking, not a diagnosis.</p>
+    </article>
+
+    <div class="grid-2">
+      <article class="panel">
+        <h2>Available tests</h2>
+        <div id="procedureList" class="action-list"></div>
+      </article>
+      <article class="panel">
+        <h2>Running test</h2>
+        <div id="procedureRun"><p class="muted">Pick a test to begin.</p></div>
+      </article>
+    </div>
   </section>
 
   <!-- ==================================================== DISCOVERY -->
@@ -250,6 +369,33 @@
           <span class="muted small">candump, SavvyCAN CSV or CRTD — auto-detected</span></div>
       </details>
       <div id="canlogOut"></div>
+    </article>
+
+    <article class="panel">
+      <h2>K-Line identifier discovery</h2>
+      <p class="muted">Only the 5AM has a characterised identifier table here, and it was built by tapping the wire while another tool talked to a real bike. No document publishes the tables for 15M, 15RC, 16M, 59M, 7SM or the P-series — they only exist on the wire. This does the second half of that job for any family: it reads a capture, reports every identifier that answered, and — given the CSV the other tool wrote <i>at the same time</i> — solves the scalings instead of guessing them.</p>
+      <details class="advanced">
+        <summary>How to take the capture</summary>
+        <ol class="muted small">
+          <li>Tap the K-Line between the adapter and the laptop (a second FTDI on the same line, or a logging passthrough) and log everything while GuzziDiag or IAWDiag runs a normal live-data session on the bike.</li>
+          <li>In that tool, log its own values to CSV over the same minutes. That second file is what turns "0x42 answered" into "0x42 is battery volts × 0.01".</li>
+          <li>Sweep the engine through its range while logging: a value that never moves cannot be solved, and will be reported as unsolved rather than invented.</li>
+          <li>Analyse both here. Nothing is written to the catalog automatically — you get a draft to check.</li>
+        </ol>
+      </details>
+      <div class="toolbar">
+        <label class="inline">Family <input type="text" id="klinelogFamily" placeholder="15M" size="8"></label>
+        <label class="inline">Capture path <input type="text" id="klinelogPath" placeholder="~/captures/15m-kline.log" size="30"></label>
+        <label class="inline">Reference CSV <input type="text" id="klinelogRefPath" placeholder="~/captures/guzzidiag.csv" size="26"></label>
+        <button class="btn primary" id="klinelogBtn">Analyse capture</button>
+      </div>
+      <details class="advanced">
+        <summary>or paste the capture</summary>
+        <textarea id="klinelogText" rows="5" placeholder="0.000 tx 80 10 F1 02 21 30 1D&#10;0.020 rx 80 F1 10 04 61 30 0B B8 ..." spellcheck="false"></textarea>
+        <div class="toolbar"><button class="btn" id="klinelogPasteBtn">Analyse pasted capture</button>
+          <span class="muted small">session JSONL, timestamped hex lines, or a bare hex dump — auto-detected</span></div>
+      </details>
+      <div id="klinelogOut"></div>
     </article>
   </section>
 
@@ -359,6 +505,20 @@
         <div id="sessionEvents" class="log-view">Pick a session.</div>
       </article>
     </div>
+
+    <article class="panel" id="replayPanel">
+      <h2>Replay</h2>
+      <p class="muted small">Scrub back through a recorded session. The
+      derived values and the plausibility checks are recomputed at each point,
+      from the bytes that were recorded then.</p>
+      <div class="toolbar">
+        <button class="btn" id="replayPlayBtn" disabled>Play</button>
+        <input type="range" id="replayScrub" min="0" max="0" value="0" disabled>
+        <span class="muted small" id="replayClock">no session loaded</span>
+      </div>
+      <div id="replayGrid" class="metrics"></div>
+      <div id="replayFindings"></div>
+    </article>
 
     <article class="panel">
       <h2>Compare two sessions</h2>

@@ -5,7 +5,7 @@
   "transport": "kline",
   "confidence": "documented",
   "years": "2002-2012",
-  "notes": "Closed-loop successor to the 15M: V7 Classic, Nevada 750, Breva 750, California from 2002, V11 CAT, Bellagio, California Vintage/Classic. Has a lambda sensor in the crossover, so a piggyback fuel module is trimmed back out by the closed loop below about 4000 rpm. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only.",
+  "notes": "Closed-loop successor to the 15M: V7 Classic, Nevada 750, Breva 750, California from 2002, V11 CAT, Bellagio, California Vintage/Classic. Has a lambda sensor in the crossover, so a piggyback fuel module is trimmed back out by the closed loop below about 4000 rpm. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Lambda is reported in mV. Partial load, idle speed and rich multiplier are signed values. CO-Trim is only meaningful with lambda control switched off. A PF3C throttle body exposes raw throttle only, a PF1C corrected throttle only.",
   "kline": {
     "baud": 10400,
     "init": "auto",

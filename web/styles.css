@@ -102,7 +102,12 @@ main { padding: 22px 26px 60px; min-width: 0; }
 }
 .topbar h1 { font-size: 1.4rem; }
 .topbar p { color: var(--muted); margin: 0; font-size: .88rem; }
-.topbar-right { display: flex; gap: 8px; flex: none; }
+.topbar-right { display: flex; gap: 8px; flex: none; align-items: center; }
+
+/* Celsius / Fahrenheit picker — display only, the wire stays in Celsius. */
+.unit-pick { display: flex; align-items: center; gap: 6px; font-size: .76rem; }
+.unit-pick > span { color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.unit-pick select { padding: 3px 6px; font-size: .78rem; }
 
 .pill {
   background: var(--accent-dim); color: #d9fff0;
@@ -263,6 +268,32 @@ table.data tr.changed td { background: #12281e; }
 .metric strong { display: block; font-size: 1.55rem; font-weight: 650; letter-spacing: -.01em; }
 .metric strong em { font-size: .82rem; font-style: normal; color: var(--muted); font-weight: 500; }
 .metric label { display: block; color: #65737e; font-size: .7rem; font-family: var(--mono); margin-top: 6px; }
+/* Derived values are visually distinct from measured ones on purpose: a
+   dashed border says "the workstation worked this out". */
+.metric.derived { border-style: dashed; background: transparent; }
+.metric.derived strong { font-size: 1.3rem; }
+.metric.derived label .conf { margin-right: 6px; }
+#derivedMissing { margin-top: 12px; }
+#derivedMissing .btn { margin-left: 8px; }
+
+.finding {
+  border: 1px solid var(--line); border-left-width: 3px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 10px 14px; margin-bottom: 10px; background: var(--panel);
+}
+.finding.bad { border-left-color: var(--danger); }
+.finding.warn { border-left-color: var(--warn); }
+.finding.info, .finding.ok { border-left-color: var(--muted); }
+.finding p { margin: 6px 0 0; }
+.finding-head { display: flex; align-items: center; gap: 10px; }
+.finding-level {
+  font-size: .66rem; text-transform: uppercase; letter-spacing: .08em;
+  border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px;
+  color: var(--muted);
+}
+.finding-level.bad { color: var(--danger); border-color: currentColor; }
+.finding-level.warn { color: var(--warn); border-color: currentColor; }
+
 .spark { width: 100%; height: 30px; margin-top: 6px; display: block; }
 .spark polyline { fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 
@@ -316,6 +347,29 @@ table.data tr.changed td { background: #12281e; }
   border-radius: 8px; padding: 12px 14px;
 }
 .action.blocked { opacity: .78; }
+/* A seeded fault is an abnormal state of the simulated bike: say so. */
+.action.armed { border-color: var(--warn); background: #241f12; }
+#simFaultList .action, #procedureList .action { display: flex; gap: 12px; align-items: flex-start; }
+.tagline { font-size: .72rem; color: var(--muted); border: 1px solid var(--line);
+  border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
+.warn-text { color: var(--warn); }
+.session-item { border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 8px; }
+.session-item .toolbar { margin-top: 4px; }
+#replayScrub { flex: 1; min-width: 160px; accent-color: var(--accent); }
+#replayGrid { margin-top: 12px; }
+#replayFindings { margin-top: 12px; }
+.action-main { flex: 1; }
+.action-main p { margin: 4px 0 0; }
+
+.sim-readout {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
+}
+.sim-readout div { display: flex; flex-direction: column; gap: 2px; }
+.sim-readout span { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; }
+.sim-readout b { font-family: var(--mono); font-size: .95rem; }
+
+#simPanels input[type=range] { width: 100%; accent-color: var(--accent); padding: 0; }
 .action-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
 .action-head strong { font-size: .92rem; margin-right: 6px; }
 .action-head code { color: var(--muted); margin-left: 4px; }

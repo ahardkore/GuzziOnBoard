@@ -16,14 +16,19 @@ from urllib.parse import parse_qs, urlparse
 
 from . import adapter as adapter_mod
 from . import canlog
+from . import klinelog
 from . import tools
 from .catalog import CatalogError
+from .derived import CHANNELS as DERIVED_CHANNELS, Analyzer
+from .transports.simulator import FAULTS as SIM_FAULTS, FAULTS_BY_KEY as SIM_FAULTS_BY_KEY
 from .diagnostics import NotConnected
 from .firmware import FirmwareImage, FirmwareError
 from .maps import XDF_DIR, XdfError, XdfFile, load_xdfs
 from .programming import ProgrammingError, ProgrammingService
 from .safety import SafetyViolation
 from .security import SecurityUnavailable, describe_all, load_plugins
+from . import procedures
+from . import replay
 from . import sessiondiff
 from .sessionlog import SessionLog
 from .transports.base import TransportError, TransportUnavailable
@@ -95,6 +100,13 @@ class Api:
     def __init__(self, workstation: Workstation):
         self.ws = workstation
         self._prog: ProgrammingService | None = None
+        #: Derived channels and plausibility checks keep a short rolling
+        #: window, so the analyzer outlives a single request but is thrown
+        #: away whenever the underlying conversation changes.
+        self._analyzer: Analyzer | None = None
+        self._analyzer_for = None
+        #: The guided procedure currently being worked through, if any.
+        self._run: procedures.ProcedureRun | None = None
         self.jobs = JobRunner()
 
     # -- catalog ----------------------------------------------------------
@@ -172,14 +184,141 @@ class Api:
     def get_identify(self, query: dict) -> tuple[int, dict]:
         return 200, self.ws.require_service().identify().as_dict()
 
+    def _analysis(self) -> Analyzer:
+        service = self.ws.require_service()
+        if self._analyzer is None or self._analyzer_for is not service:
+            self._analyzer = Analyzer(service.profile)
+            self._analyzer_for = service
+        return self._analyzer
+
     def get_live(self, query: dict) -> tuple[int, dict]:
         keys = (query.get("keys") or [""])[0]
         selected = [k for k in keys.split(",") if k] or None
-        samples = self.ws.require_service().read_parameters(selected)
+        service = self.ws.require_service()
+        samples = service.read_parameters(selected)
+        analysis = self._analysis().update(samples)
         return 200, {
             "at": samples[0].at if samples else 0,
             "samples": [s.as_dict() for s in samples],
+            "derived": analysis["derived"],
+            "findings": analysis["findings"],
+            "analysis_note": (
+                "Derived values are computed by the workstation from the "
+                "samples above, not read from the ECU. Findings are "
+                "interpretations, not measurements."
+            ),
         }
+
+    # -- the simulated motorcycle -----------------------------------------
+    #
+    # Controls for the built-in simulator only. There is deliberately no
+    # equivalent for a real bike: nothing here may ever reach down a K-Line.
+
+    def _simulated_ecu(self):
+        """The :class:`SimulatedEcu` behind the current connection, if any."""
+        service = self.ws.service
+        transport = getattr(service, "transport", None) if service else None
+        return getattr(transport, "ecu", None)
+
+    def _sim_payload(self, ecu) -> dict:
+        return {
+            "available": True,
+            "transport": self.ws.selection.transport_kind,
+            "engine": ecu.engine.as_dict(),
+            "faults": [
+                {**f.as_dict(), "active": f.key in ecu.engine.faults}
+                for f in SIM_FAULTS
+            ],
+            "comms": {
+                "drop_rate": ecu.drop_rate,
+                "corrupt_rate": ecu.corrupt_rate,
+                "pending_rate": ecu.pending_rate,
+                "extra_latency": ecu.extra_latency,
+            },
+            "dtc_timing": {
+                "pending_after": ecu.dtc_pending_after,
+                "confirm_after": ecu.dtc_confirm_after,
+            },
+            "note": (
+                "This is the simulated motorcycle, not a setting on a real "
+                "one. Seeded faults change the live channels first and mature "
+                "into fault memory afterwards."
+            ),
+        }
+
+    def get_sim(self, query: dict) -> tuple[int, dict]:
+        ecu = self._simulated_ecu()
+        if ecu is None:
+            return 200, {
+                "available": False,
+                "transport": self.ws.selection.transport_kind,
+                "faults": [f.as_dict() for f in SIM_FAULTS],
+                "reason": (
+                    "Connect with the simulator (or the virtual CAN bus) to "
+                    "drive the simulated engine."
+                ),
+            }
+        return 200, self._sim_payload(ecu)
+
+    def post_sim_engine(self, body: dict) -> tuple[int, dict]:
+        ecu = self._simulated_ecu()
+        if ecu is None:
+            return 400, {"error": "not connected to a simulated ECU"}
+        engine = ecu.engine
+        if "running" in body:
+            engine.start() if bool(body["running"]) else engine.stop()
+        if "throttle_pct" in body:
+            engine.throttle_pct = max(0.0, min(100.0, float(body["throttle_pct"])))
+            engine.auto_blip = False
+        if "ambient_c" in body:
+            engine.ambient_c = max(-30.0, min(55.0, float(body["ambient_c"])))
+        if "battery_health" in body:
+            engine.battery_health = max(0.5, min(1.1, float(body["battery_health"])))
+        if "in_gear" in body:
+            engine.in_gear = bool(body["in_gear"])
+        if "auto_blip" in body:
+            engine.auto_blip = bool(body["auto_blip"])
+        if "advance_s" in body:
+            engine.advance(max(0.0, min(3600.0, float(body["advance_s"]))))
+        return 200, self._sim_payload(ecu)
+
+    def post_sim_faults(self, body: dict) -> tuple[int, dict]:
+        ecu = self._simulated_ecu()
+        if ecu is None:
+            return 400, {"error": "not connected to a simulated ECU"}
+        if "faults" in body:
+            requested = list(body["faults"] or [])
+        else:
+            requested = list(ecu.engine.faults)
+            key = body.get("key")
+            if key:
+                if bool(body.get("active", True)):
+                    requested.append(key)
+                else:
+                    requested = [k for k in requested if k != key]
+        unknown = [k for k in requested if k not in SIM_FAULTS_BY_KEY]
+        if unknown:
+            return 400, {"error": f"unknown fault(s): {', '.join(unknown)}"}
+        ecu.engine.set_faults(requested)
+        return 200, self._sim_payload(ecu)
+
+    def post_sim_comms(self, body: dict) -> tuple[int, dict]:
+        ecu = self._simulated_ecu()
+        if ecu is None:
+            return 400, {"error": "not connected to a simulated ECU"}
+        for key in ("drop_rate", "corrupt_rate", "pending_rate"):
+            if key in body:
+                setattr(ecu, key, max(0.0, min(1.0, float(body[key]))))
+        if "extra_latency" in body:
+            ecu.extra_latency = max(0.0, min(2.0, float(body["extra_latency"])))
+        return 200, self._sim_payload(ecu)
+
+    def get_derived_catalog(self, query: dict) -> tuple[int, dict]:
+        return 200, {"channels": [
+            {"key": c.key, "name": c.name, "unit": c.unit, "group": c.group,
+             "sources": list(c.sources), "note": c.note, "delta": c.delta}
+            for c in DERIVED_CHANNELS
+        ]}
 
     def get_parameters(self, query: dict) -> tuple[int, dict]:
         profile = self.ws.selection.profile
@@ -274,9 +413,80 @@ class Api:
         events = list(SessionLog.read(path))
         return 200, {"name": name, "total": len(events), "events": events[-limit:]}
 
+    def _session_path(self, name: str):
+        path = Path(self.ws.session_dir) / name
+        if not name or not path.is_file() or path.parent != Path(self.ws.session_dir):
+            return None
+        return path
+
+    def get_session_replay(self, query: dict) -> tuple[int, dict]:
+        """Scrubbable snapshots, with derived values and findings redone."""
+        name = (query.get("name") or [""])[0]
+        path = self._session_path(name)
+        if path is None:
+            return 404, {"error": "no such session"}
+        events = list(SessionLog.read(path))
+        profile = self.ws.selection.profile
+        payload = replay.frames(events, profile)
+        payload["name"] = name
+        return 200, payload
+
+    # -- guided procedures ------------------------------------------------
+
+    def get_procedures(self, query: dict) -> tuple[int, dict]:
+        run = self._run.as_dict() if self._run else None
+        return 200, {
+            "procedures": procedures.available(self.ws.selection.profile),
+            "run": run,
+            "note": (
+                "A procedure only puts together things the catalog already "
+                "describes. Observations are live reads, outputs go through "
+                "the safety gate, and the verdict is an interpretation."
+            ),
+        }
+
+    def post_procedure_start(self, body: dict) -> tuple[int, dict]:
+        key = body.get("key", "")
+        procedure = procedures.PROCEDURES_BY_KEY.get(key)
+        if procedure is None:
+            return 400, {"error": f"unknown procedure {key!r}"}
+        service = self.ws.require_service()
+        missing = procedure.missing_for(service.profile)
+        if missing:
+            return 400, {"error": "this ECU family is missing: " + ", ".join(missing)}
+        self._run = procedures.ProcedureRun(procedure, service)
+        service.log.action("procedure_start", {"key": key, "name": procedure.name})
+        return 200, {"run": self._run.as_dict()}
+
+    def post_procedure_advance(self, body: dict) -> tuple[int, dict]:
+        if self._run is None:
+            return 400, {"error": "no procedure is running"}
+        try:
+            state = self._run.advance(body.get("value"))
+        except procedures.ProcedureError as exc:
+            return 400, {"error": str(exc)}
+        if state["status"] in ("done", "blocked"):
+            self.ws.require_service().log.action(
+                "procedure_end",
+                {"key": state["procedure"], "status": state["status"],
+                 "verdict": state["verdict"]},
+            )
+        return 200, {"run": state}
+
+    def post_procedure_abort(self, body: dict) -> tuple[int, dict]:
+        if self._run is None:
+            return 400, {"error": "no procedure is running"}
+        state = self._run.abort()
+        return 200, {"run": state}
+
     def get_report(self, query: dict) -> tuple[int, dict]:
         report = self.ws.build_report()
-        return 200, {"report": report, "text": self.ws.report_text(report)}
+        unit = (query.get("temp_unit") or ["C"])[0]
+        return 200, {
+            "report": report,
+            "temp_unit": "F" if unit.upper().startswith("F") else "C",
+            "text": self.ws.report_text(report, temp_unit=unit),
+        }
 
     # -- memory and programming ------------------------------------------
     def _programming(self) -> ProgrammingService:
@@ -471,6 +681,37 @@ class Api:
             return 400, {"error": str(exc)}
         return 200, result
 
+    def post_tools_klinelog(self, body: dict) -> tuple[int, dict]:
+        """Characterise a K-Line capture: which local identifiers answered?
+
+        This is how the 5AM table was built, made repeatable. Give it a tap
+        of a diagnostic session (``path`` or pasted ``text``); give it the
+        CSV the other tool wrote at the same time (``reference`` /
+        ``reference_path``) and the scalings are solved rather than guessed.
+        Read-only: it touches files, never hardware.
+        """
+        path, text = body.get("path"), body.get("text")
+        if not path and not text:
+            return 400, {"error": "a capture 'path' or pasted 'text' is required"}
+        family = str(body.get("family") or "unknown")
+        try:
+            if path:
+                result = klinelog.analyze_file(
+                    str(path), body.get("reference_path"), family=family)
+            else:
+                reference = body.get("reference")
+                if not reference and body.get("reference_path"):
+                    from pathlib import Path as _Path
+                    ref_file = _Path(str(body["reference_path"]))
+                    if not ref_file.is_file():
+                        return 400, {"error": f"no such reference log: {ref_file}"}
+                    reference = ref_file.read_text(encoding="utf-8", errors="replace")
+                result = klinelog.analyze(
+                    str(text), str(reference) if reference else None, family=family)
+        except klinelog.KLineLogError as exc:
+            return 400, {"error": str(exc)}
+        return 200, result
+
     def get_gearing(self, query: dict) -> tuple[int, dict]:
         def number(name, default):
             try:
@@ -485,16 +726,34 @@ class Api:
         return 200, gearing.table()
 
     def get_export(self, query: dict) -> tuple[int, dict]:
+        """A recorded session as CSV or JSON.
+
+        The CSV is one row per polling sweep, with a units row and the raw
+        bytes beside every value - a spreadsheet that still carries its own
+        provenance.
+        """
         name = (query.get("name") or [""])[0]
         fmt = (query.get("format") or ["csv"])[0]
         if fmt not in tools.EXPORTERS:
             return 400, {"error": f"unknown format {fmt!r}"}
-        path = Path(self.ws.session_dir) / name
-        if not name or not path.is_file() or path.parent != Path(self.ws.session_dir):
+        path = self._session_path(name)
+        if path is None:
             return 404, {"error": "no such session"}
         events = list(SessionLog.read(path))
-        return 200, {"format": fmt, "name": name,
-                     "content": tools.EXPORTERS[fmt](events)}
+        content = tools.EXPORTERS[fmt](events)
+        header_rows = 2 if fmt == "csv" else 1
+        return 200, {
+            "format": fmt,
+            "name": name,
+            "filename": f"{Path(name).stem}.{'json' if fmt == 'json' else 'csv'}",
+            "rows": max(0, content.count("\n") - header_rows),
+            "content": content,
+            "csv": content if fmt != "json" else "",
+            "note": (
+                "One row per polling sweep. The second row carries the units, "
+                "and the raw bytes travel with every value."
+            ),
+        }
 
 
 ROUTES_GET = {
@@ -503,12 +762,16 @@ ROUTES_GET = {
     "/api/status": "get_status",
     "/api/identify": "get_identify",
     "/api/live": "get_live",
+    "/api/derived": "get_derived_catalog",
+    "/api/sim": "get_sim",
     "/api/parameters": "get_parameters",
     "/api/dtcs": "get_dtcs",
     "/api/actuators": "get_actuators",
     "/api/routines": "get_routines",
     "/api/sessions": "get_sessions",
     "/api/sessions/events": "get_session_events",
+    "/api/sessions/replay": "get_session_replay",
+    "/api/procedures": "get_procedures",
     "/api/report": "get_report",
     "/api/maps": "get_maps",
     "/api/memory": "get_memory",
@@ -540,7 +803,14 @@ ROUTES_POST = {
     "/api/programming/disable": "post_programming_disable",
     "/api/adapter/latency": "post_adapter_latency",
     "/api/tools/canlog": "post_tools_canlog",
+    "/api/tools/klinelog": "post_tools_klinelog",
     "/api/sessions/compare": "post_sessions_compare",
+    "/api/sim/engine": "post_sim_engine",
+    "/api/sim/faults": "post_sim_faults",
+    "/api/sim/comms": "post_sim_comms",
+    "/api/procedures/start": "post_procedure_start",
+    "/api/procedures/advance": "post_procedure_advance",
+    "/api/procedures/abort": "post_procedure_abort",
 }
 
 

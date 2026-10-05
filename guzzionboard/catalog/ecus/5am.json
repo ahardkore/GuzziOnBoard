@@ -5,7 +5,7 @@
   "transport": "kline",
   "confidence": "verified-capture",
   "years": "2005-2016",
-  "notes": "Fitted to every CARC-framed Moto Guzzi (Breva 850/1100/1200, Griso, Norge, 1200 Sport, Stelvio). Parameter scalings below were decoded from a live K-Line capture of an IAW 5AM HW610 on a Moto Guzzi. 38 of the 79 answerable identifiers are served from shared zero slots and are marked dead. PF1C and PF2C throttle bodies support the electronic TPS reset; PF3C does not and must be set manually with a voltmeter.",
+  "notes": "Fitted to every CARC-framed Moto Guzzi (Breva 850/1100/1200, Griso, Norge, 1200 Sport, Stelvio). Parameter scalings below were decoded from a live K-Line capture of an IAW 5AM HW610 on a Moto Guzzi. 38 of the 79 answerable identifiers are served from shared zero slots and are marked dead. PF1C and PF2C throttle bodies support the electronic TPS reset; PF3C does not and must be set manually with a voltmeter. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Fast initialisation only. The service interval is reset from the dashboard, not over diagnostics, and the stepper test needs the engine running.",
   "kline": {
     "baud": 10400,
     "init": "fast",
@@ -234,10 +234,17 @@
       "confidence": "verified-capture"
     },
     {
+      "key": "dead_31",
+      "name": "Unused 0x31",
+      "local_id": 49,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
       "key": "air_temp",
       "name": "Intake air temperature",
       "local_id": 50,
-      "unit": "\u00b0C",
+      "unit": "°C",
       "bias": -40,
       "digits": 0,
       "default": true,
@@ -250,7 +257,7 @@
       "key": "coolant_temp",
       "name": "Head/oil temperature",
       "local_id": 51,
-      "unit": "\u00b0C",
+      "unit": "°C",
       "bias": -40,
       "digits": 0,
       "default": true,
@@ -263,7 +270,7 @@
       "key": "throttle",
       "name": "Throttle angle",
       "local_id": 52,
-      "unit": "\u00b0",
+      "unit": "°",
       "scale": 0.1,
       "digits": 1,
       "default": true,
@@ -276,23 +283,37 @@
       "key": "advance_latched",
       "name": "Ignition advance (latched)",
       "local_id": 53,
-      "unit": "\u00b0",
+      "unit": "°",
       "scale": 0.1,
       "digits": 1,
       "group": "ignition",
       "confidence": "verified-capture"
     },
     {
+      "key": "dead_36",
+      "name": "Unused 0x36",
+      "local_id": 54,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
       "key": "advance",
       "name": "Ignition advance",
       "local_id": 55,
-      "unit": "\u00b0",
+      "unit": "°",
       "scale": 0.1,
       "digits": 1,
       "default": true,
       "group": "ignition",
       "min": 0,
       "max": 50,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_38",
+      "name": "Unused 0x38",
+      "local_id": 56,
+      "dead": true,
       "confidence": "verified-capture"
     },
     {
@@ -318,6 +339,13 @@
       "confidence": "verified-capture"
     },
     {
+      "key": "dead_3b",
+      "name": "Unused 0x3B",
+      "local_id": 59,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
       "key": "battery",
       "name": "Battery voltage",
       "local_id": 60,
@@ -328,6 +356,66 @@
       "group": "electrical",
       "min": 8,
       "max": 16,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "co_trim",
+      "name": "CO trim",
+      "local_id": 61,
+      "digits": 0,
+      "group": "diagnostic",
+      "confidence": "inferred",
+      "signed": true,
+      "source_note": "named 'CO Trimm' upstream (Vasiy/onboard-logger, group 'check'); the GuzziDiag changelog says CO trim is not usable on this family, so treat the reading as a stored number, not an adjustment"
+    },
+    {
+      "key": "config_byte",
+      "name": "Configuration byte",
+      "local_id": 62,
+      "group": "diagnostic",
+      "digits": 0,
+      "confidence": "inferred"
+    },
+    {
+      "key": "dead_3f",
+      "name": "Unused 0x3F",
+      "local_id": 63,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_40",
+      "name": "Unused 0x40",
+      "local_id": 64,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_41",
+      "name": "Unused 0x41",
+      "local_id": 65,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_42",
+      "name": "Unused 0x42",
+      "local_id": 66,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_43",
+      "name": "Unused 0x43",
+      "local_id": 67,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_44",
+      "name": "Unused 0x44",
+      "local_id": 68,
+      "dead": true,
       "confidence": "verified-capture"
     },
     {
@@ -393,6 +481,15 @@
       "confidence": "verified-capture"
     },
     {
+      "key": "lambda_loop_r",
+      "name": "Lambda loop, rear",
+      "local_id": 74,
+      "digits": 0,
+      "group": "fuel",
+      "confidence": "inferred",
+      "source_note": "read as a constant zero in the capture behind this table; named but unproven upstream (Vasiy/onboard-logger, group 'check'); not confirmed on a bike here"
+    },
+    {
       "key": "lambda_phase_f",
       "name": "Lambda phase front",
       "local_id": 75,
@@ -406,6 +503,62 @@
         "5": "Closed loop, leaning",
         "7": "Closed loop, enriching"
       },
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "lambda_phase_r",
+      "name": "Lambda phase, rear",
+      "local_id": 76,
+      "digits": 0,
+      "group": "fuel",
+      "confidence": "inferred",
+      "source_note": "read as a constant zero in the capture behind this table; named but unproven upstream (Vasiy/onboard-logger, group 'check'); not confirmed on a bike here"
+    },
+    {
+      "key": "dead_4d",
+      "name": "Unused 0x4D",
+      "local_id": 77,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_4e",
+      "name": "Unused 0x4E",
+      "local_id": 78,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_50",
+      "name": "Unused 0x50",
+      "local_id": 80,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_51",
+      "name": "Unused 0x51",
+      "local_id": 81,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_52",
+      "name": "Unused 0x52",
+      "local_id": 82,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "road_speed",
+      "name": "Road speed",
+      "local_id": 83,
+      "unit": "km/h",
+      "digits": 0,
+      "default": true,
+      "group": "chassis",
+      "min": 0,
+      "max": 220,
       "confidence": "verified-capture"
     },
     {
@@ -425,6 +578,13 @@
       "digits": 0,
       "group": "ignition",
       "confidence": "documented"
+    },
+    {
+      "key": "dead_56",
+      "name": "Unused 0x56",
+      "local_id": 86,
+      "dead": true,
+      "confidence": "verified-capture"
     },
     {
       "key": "stop_state",
@@ -453,6 +613,27 @@
       "confidence": "verified-capture"
     },
     {
+      "key": "dead_59",
+      "name": "Unused 0x59",
+      "local_id": 89,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_5a",
+      "name": "Unused 0x5A",
+      "local_id": 90,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_5b",
+      "name": "Unused 0x5B",
+      "local_id": 91,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
       "key": "throttle_closed",
       "name": "Throttle closed",
       "local_id": 92,
@@ -465,16 +646,34 @@
       "confidence": "verified-capture"
     },
     {
-      "key": "road_speed",
-      "name": "Road speed",
-      "local_id": 83,
-      "unit": "km/h",
-      "digits": 0,
-      "default": true,
-      "group": "chassis",
-      "min": 0,
-      "max": 220,
+      "key": "dead_5d",
+      "name": "Unused 0x5D",
+      "local_id": 93,
+      "dead": true,
       "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_5e",
+      "name": "Unused 0x5E",
+      "local_id": 94,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_5f",
+      "name": "Unused 0x5F",
+      "local_id": 95,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "air_pressure",
+      "name": "Barometric pressure",
+      "local_id": 96,
+      "digits": 0,
+      "group": "engine",
+      "confidence": "verified-capture",
+      "unit": "mbar"
     },
     {
       "key": "neutral",
@@ -500,6 +699,63 @@
         "4": "Idle"
       },
       "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_63",
+      "name": "Unused 0x63",
+      "local_id": 99,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_64",
+      "name": "Unused 0x64",
+      "local_id": 100,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_65",
+      "name": "Unused 0x65",
+      "local_id": 101,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_66",
+      "name": "Unused 0x66",
+      "local_id": 102,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_67",
+      "name": "Unused 0x67",
+      "local_id": 103,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_68",
+      "name": "Unused 0x68",
+      "local_id": 104,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_69",
+      "name": "Unused 0x69",
+      "local_id": 105,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "unknown_6a",
+      "name": "Unidentified 0x6A",
+      "local_id": 106,
+      "group": "diagnostic",
+      "digits": 0,
+      "confidence": "unknown"
     },
     {
       "key": "stepper_base",
@@ -533,6 +789,57 @@
       "confidence": "verified-capture"
     },
     {
+      "key": "dead_6e",
+      "name": "Unused 0x6E",
+      "local_id": 110,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_6f",
+      "name": "Unused 0x6F",
+      "local_id": 111,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_70",
+      "name": "Unused 0x70",
+      "local_id": 112,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_71",
+      "name": "Unused 0x71",
+      "local_id": 113,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_72",
+      "name": "Unused 0x72",
+      "local_id": 114,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "dead_73",
+      "name": "Unused 0x73",
+      "local_id": 115,
+      "dead": true,
+      "confidence": "verified-capture"
+    },
+    {
+      "key": "unknown_74",
+      "name": "Unidentified 0x74",
+      "local_id": 116,
+      "digits": 0,
+      "group": "diagnostic",
+      "confidence": "inferred",
+      "source_note": "named but unproven upstream (Vasiy/onboard-logger, group 'check'); not confirmed on a bike here"
+    },
+    {
       "key": "starter",
       "name": "Starter engaged",
       "local_id": 117,
@@ -557,6 +864,15 @@
       "confidence": "verified-capture"
     },
     {
+      "key": "unknown_77",
+      "name": "Unidentified 0x77",
+      "local_id": 119,
+      "digits": 0,
+      "group": "diagnostic",
+      "confidence": "inferred",
+      "source_note": "named but unproven upstream (Vasiy/onboard-logger, group 'check'); not confirmed on a bike here"
+    },
+    {
       "key": "clutch",
       "name": "Clutch switch",
       "local_id": 120,
@@ -565,18 +881,6 @@
       "states": {
         "0": "Released",
         "1": "Pulled"
-      },
-      "confidence": "verified-capture"
-    },
-    {
-      "key": "kill_run",
-      "name": "Kill switch (RUN)",
-      "local_id": 122,
-      "group": "chassis",
-      "digits": 0,
-      "states": {
-        "0": "Stop",
-        "1": "Run"
       },
       "confidence": "verified-capture"
     },
@@ -593,81 +897,49 @@
       "confidence": "verified-capture"
     },
     {
-      "key": "config_byte",
-      "name": "Configuration byte",
-      "local_id": 62,
-      "group": "diagnostic",
+      "key": "kill_run",
+      "name": "Kill switch (RUN)",
+      "local_id": 122,
+      "group": "chassis",
       "digits": 0,
-      "confidence": "inferred"
+      "states": {
+        "0": "Stop",
+        "1": "Run"
+      },
+      "confidence": "verified-capture"
     },
     {
-      "key": "unknown_6a",
-      "name": "Unidentified 0x6A",
-      "local_id": 106,
-      "group": "diagnostic",
-      "digits": 0,
-      "confidence": "unknown"
-    },
-    {
-      "key": "dead_31",
-      "name": "Unused 0x31",
-      "local_id": 49,
+      "key": "dead_7b",
+      "name": "Unused 0x7B",
+      "local_id": 123,
       "dead": true,
       "confidence": "verified-capture"
     },
     {
-      "key": "dead_36",
-      "name": "Unused 0x36",
-      "local_id": 54,
+      "key": "dead_7c",
+      "name": "Unused 0x7C",
+      "local_id": 124,
       "dead": true,
       "confidence": "verified-capture"
     },
     {
-      "key": "dead_38",
-      "name": "Unused 0x38",
-      "local_id": 56,
+      "key": "dead_7d",
+      "name": "Unused 0x7D",
+      "local_id": 125,
       "dead": true,
       "confidence": "verified-capture"
     },
     {
-      "key": "dead_3b",
-      "name": "Unused 0x3B",
-      "local_id": 59,
+      "key": "dead_7e",
+      "name": "Unused 0x7E",
+      "local_id": 126,
       "dead": true,
       "confidence": "verified-capture"
     },
     {
-      "key": "dead_4a",
-      "name": "Unused 0x4A",
-      "local_id": 74,
-      "dead": true,
-      "confidence": "verified-capture"
-    },
-    {
-      "key": "dead_4c",
-      "name": "Unused 0x4C",
-      "local_id": 76,
-      "dead": true,
-      "confidence": "verified-capture"
-    },
-    {
-      "key": "dead_56",
-      "name": "Unused 0x56",
-      "local_id": 86,
-      "dead": true,
-      "confidence": "verified-capture"
-    },
-    {
-      "key": "dead_63",
-      "name": "Unused 0x63",
-      "local_id": 99,
-      "dead": true,
-      "confidence": "verified-capture"
-    },
-    {
-      "key": "dead_6f",
-      "name": "Unused 0x6F",
-      "local_id": 111,
+      "key": "dead_7f",
+      "name": "Unused 0x7F",
+      "local_id": 127,
       "dead": true,
       "confidence": "verified-capture"
     }

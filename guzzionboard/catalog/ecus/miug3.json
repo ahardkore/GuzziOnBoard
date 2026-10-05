@@ -5,7 +5,7 @@
   "transport": "kline",
   "confidence": "documented",
   "years": "2012-2016",
-  "notes": "Single-throttle-body V7 II, V9 and the 2012-on V7. Uses throttle self-learning rather than a TPS reset, and has no CO trim. Target throttle readings: 0.9-1.0 degrees for V7/V7 III/V9, 1.0-1.2 for V7 II. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only.",
+  "notes": "Single-throttle-body V7 II, V9 and the 2012-on V7. Uses throttle self-learning rather than a TPS reset, and has no CO trim. Target throttle readings: 0.9-1.0 degrees for V7/V7 III/V9, 1.0-1.2 for V7 II. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: TPS-reset, a stepper test, corrected injection time and front-wheel speed all exist on this family.",
   "kline": {
     "baud": 10400,
     "init": "fast",

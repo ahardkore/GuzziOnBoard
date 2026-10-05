@@ -5,7 +5,7 @@
   "transport": "can",
   "confidence": "inferred",
   "years": "2019-2026",
-  "notes": "Later V85 TT and the V100 Mandello generation, on CAN. Euro5/Euro5+ bikes in this family are likely to require UDS-style security access for anything beyond reading. Everything here is unconfirmed; the workstation stays read-only on this family. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only.",
+  "notes": "Later V85 TT and the V100 Mandello generation, on CAN. Euro5/Euro5+ bikes in this family are likely to require UDS-style security access for anything beyond reading. Everything here is unconfirmed; the workstation stays read-only on this family. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Neither GuzziDiag nor IAWDiag covers this family, so there is no closed tool session to tap: identifiers here have to come from the CAN discovery path.",
   "can": {
     "interface": "socketcan",
     "channel": "can0",

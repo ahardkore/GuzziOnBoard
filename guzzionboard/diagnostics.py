@@ -296,14 +296,41 @@ class DiagnosticsService:
             state.engine_running = text == "Running"
 
     # -- DTCs -------------------------------------------------------------
-    def read_dtcs(self) -> list[dict]:
+    def read_dtcs(self) -> dict:
+        """Codes plus the context the workstation observed when it read them.
+
+        An IAW ECU of this era does not hand over an ECU-stored freeze frame,
+        and this project will not pretend it does. What the workstation *can*
+        do honestly is read the default live channels at the same moment and
+        keep them next to the codes: the engine state the fault was read in,
+        labelled as exactly that.
+        """
         with self._lock:
             session = self._require()
             dtcs = session.read_dtcs(self.profile.dtc_descriptions)
             self._touch()
             payload = [d.as_dict() for d in dtcs]
-            self.log.action("read_dtcs", {"count": len(payload), "dtcs": payload})
-            return payload
+            context = self._read_context()
+            self.log.action(
+                "read_dtcs",
+                {"count": len(payload), "dtcs": payload, "context": context},
+            )
+            return {"dtcs": payload, "context": context}
+
+    def _read_context(self, limit: int = 8) -> dict[str, dict]:
+        """A handful of default channels, best effort, honestly labelled."""
+        out: dict[str, dict] = {}
+        for param in self.profile.default_parameters[:limit]:
+            try:
+                sample = self.read_parameter(param)
+            except Exception:
+                continue          # a channel that fails is skipped, not faked
+            out[param.key] = {
+                "name": param.name,
+                "value": sample.value,
+                "unit": param.unit,
+            }
+        return out
 
     def check_clear_dtcs(self) -> Decision:
         decision = self.gate.evaluate_clear_dtcs(self.profile)
@@ -323,7 +350,10 @@ class DiagnosticsService:
             finally:
                 session.write_guard = self.gate.session_guard()
             self.log.action("clear_dtcs", {"result": "ok"})
-            return {"ok": True, "remaining": self.read_dtcs()}
+            remaining = [
+                d.as_dict() for d in session.read_dtcs(self.profile.dtc_descriptions)
+            ]
+            return {"ok": True, "remaining": remaining}
 
     # -- actuators --------------------------------------------------------
     def check_actuator(self, key: str) -> Decision:

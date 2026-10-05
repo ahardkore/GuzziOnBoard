@@ -46,21 +46,32 @@ same era, read-only until their identifier tables are confirmed.
 | SecurityAccess seed/key plumbing + key-provider plugins | Implemented; **no verified algorithm ships** |
 | Adapter pre-flight incl. FTDI latency timer | Implemented |
 | Gearing / road-speed calculator, CSV + JSON log export | Implemented |
+| Fault read with workstation-observed context ("what was live when we looked") | Implemented; honestly *not* an ECU freeze frame |
+| Session comparison (two recordings, channel by channel) | Implemented |
+| Standalone browser engine simulator (`web/sim.html`) | Implemented; single self-contained page |
 
-259 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
+270 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
 image validation, XDF parsing/render/diff, the full read/backup/write/verify
-round trip, fault injection and complete simulated sessions.
+round trip, fault injection, session comparison, the packaging entry point
+and complete simulated sessions.
 
 ## Run it
 
 Only Python 3.11+ is needed for simulator mode.
 
 ```bash
-python3 run_server.py              # http://127.0.0.1:8000
+python3 run_server.py              # same as: guzzionboard
 ```
+
+`pip install -e .` installs a `guzzionboard` command with a proper
+`--help` (`--host`, `--port`, `--no-record`, `--version`).
 
 Pick a motorcycle in **Garage** (try `Griso 1200 8V` / `2012`), connect in
 simulator mode, and the rest of the workstation comes alive.
+
+There is also a self-contained browser demo of the engine model at
+`web/sim.html` (served as `/sim.html`): start it, rev it, inject faults, watch
+the safety gate refuse — no server required once you have the file.
 
 For real hardware:
 

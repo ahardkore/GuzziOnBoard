@@ -560,7 +560,16 @@ async function readDtcs() {
     ? `${list.length} code${list.length > 1 ? 's' : ''} in memory`
     : 'Fault memory is clean.';
 
-  $('#faultList').innerHTML = list.length ? list.map((d) => `
+  const context = Object.entries(data.context || {});
+  const contextHtml = context.length
+    ? `<div class="fault-context"><span class="muted small">Context observed at read time
+        ${data.context_note ? `<span title="${esc(data.context_note)}">(?)</span>` : ''}:</span>
+       ${context.map(([k, c]) =>
+         `<span class="tag">${esc(c.name)} <b>${esc(c.value)}${esc(c.unit ? ' ' + c.unit : '')}</b></span>`
+       ).join(' ')}</div>`
+    : '';
+
+  $('#faultList').innerHTML = contextHtml + (list.length ? list.map((d) => `
     <article class="fault ${d.warning_indicator ? 'warn' : ''}">
       <div class="fault-code">${esc(d.code)}</div>
       <div class="fault-info">
@@ -571,7 +580,7 @@ async function readDtcs() {
       <div class="fault-status ${d.status}">${esc(d.status)}</div>
     </article>`).join('')
     : `<article class="panel empty"><div class="empty-icon">✓</div>
-       <h3>No diagnostic trouble codes</h3><p>The ECU reports a clean fault memory.</p></article>`;
+       <h3>No diagnostic trouble codes</h3><p>The ECU reports a clean fault memory.</p></article>`);
 
   state.clearDecision = data.clear;
   renderGate(data.clear, $('#clearGate'));
@@ -725,6 +734,8 @@ function download(filename, text, type = 'text/plain') {
 
 async function loadSessions() {
   const data = await api('/api/sessions');
+  state.sessions = data.sessions;
+  fillCompareSelects();
   $('#sessionDir').textContent = `${data.sessions.length} recorded session(s)`;
   $('#sessionList').innerHTML = data.sessions.length ? data.sessions.map((s) => `
     <button class="session-row" data-name="${esc(s.name)}">
@@ -1345,4 +1356,61 @@ $('#canlogPasteBtn').onclick = () => {
   const text = $('#canlogText').value.trim();
   if (!text) return toast('Paste some capture lines first.', 'bad');
   analyseCanlog({ text });
+};
+
+/* ---------------------------------------------------------- compare view */
+/* Two recorded sessions, side by side, channel by channel. Sessions are
+ * not aligned in time, so the server compares means, not point-by-point. */
+
+function fillCompareSelects() {
+  const sessions = state.sessions || [];
+  const options = sessions.length
+    ? sessions.map((s) => `<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('')
+    : '<option value="">no sessions yet</option>';
+  $('#compareA').innerHTML = options;
+  $('#compareB').innerHTML = options;
+  if (sessions.length >= 2) {
+    $('#compareA').value = sessions[1].name;   // newer first: A = older
+    $('#compareB').value = sessions[0].name;
+  }
+}
+
+function fmtStat(s) {
+  if (!s) return '<span class="muted">—</span>';
+  return `${s.mean} <span class="muted small">(${s.min}…${s.max}, n=${s.count})</span>`;
+}
+
+$('#compareBtn').onclick = async () => {
+  const a = $('#compareA').value, b = $('#compareB').value;
+  if (!a || !b) return toast('Two recorded sessions are needed.', 'bad');
+  $('#compareOut').innerHTML = '<p class="muted">Comparing…</p>';
+  try {
+    const d = await api('/api/sessions/compare', { method: 'POST', body: { a, b } });
+    const meta = (s) => {
+      const m = s.meta || {};
+      return `${esc(m.model || m.ecu_family || '?')} · ${esc(m.ecu_family || '?')} · ${esc(s.name)}`;
+    };
+    const dtcLine = (title, codes) => codes.length
+      ? `<p class="small"><b>${title}:</b> ${codes.map((c) => `<code>${esc(c)}</code>`).join(' ')}</p>`
+      : '';
+    $('#compareOut').innerHTML = `
+      <div class="gate-card"><h4>${meta(d.a)} &nbsp;&harr;&nbsp; ${meta(d.b)}</h4></div>`
+      + (d.channels_only_in_a.length ? `<p class="muted small">Only in A: ${esc(d.channels_only_in_a.join(', '))}</p>` : '')
+      + (d.channels_only_in_b.length ? `<p class="muted small">Only in B: ${esc(d.channels_only_in_b.join(', '))}</p>` : '')
+      + (d.dtcs.only_a.length || d.dtcs.only_b.length || d.dtcs.both.length
+        ? dtcLine('Codes in both', d.dtcs.both) + dtcLine('Only in A', d.dtcs.only_a) + dtcLine('Only in B', d.dtcs.only_b)
+        : '')
+      + `<div class="table-wrap"><table class="data">
+        <thead><tr><th>Channel</th><th>A (mean, range)</th><th>B (mean, range)</th><th>Δ mean</th></tr></thead>
+        <tbody>${d.channels.map((c) => `
+          <tr><td><b>${esc(c.key)}</b> ${esc(c.unit)}</td>
+              <td>${fmtStat(c.a)}</td><td>${fmtStat(c.b)}</td>
+              <td>${c.delta_mean === null ? '<span class="muted">—</span>'
+                : `<b class="${Math.abs(c.delta_mean) < 1e-9 ? '' : 'warn'}">${c.delta_mean > 0 ? '+' : ''}${c.delta_mean}</b>`}</td>
+          </tr>`).join('')}
+        </tbody></table></div>`;
+  } catch (err) {
+    $('#compareOut').innerHTML =
+      `<div class="gate-card bad"><h4>Could not compare</h4><p class="small">${esc(err.message)}</p></div>`;
+  }
 };

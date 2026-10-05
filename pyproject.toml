@@ -16,7 +16,7 @@ hardware = ["pyserial>=3.5", "python-can>=4.2"]
 dev = ["pytest>=7.4"]
 
 [project.scripts]
-guzzionboard = "guzzionboard.server:serve"
+guzzionboard = "guzzionboard.__main__:main"
 
 [tool.setuptools]
 packages = ["guzzionboard", "guzzionboard.protocol", "guzzionboard.transports", "guzzionboard.catalog"]

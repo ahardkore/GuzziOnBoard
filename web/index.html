@@ -53,6 +53,7 @@
       <span class="pill" id="modePill">simulator</span>
       <span class="pill ghost" id="ecuPill">no ECU</span>
       <button class="btn small no-print" id="printBtn" title="Print this view or save it as PDF">Print / PDF</button>
+      <a class="btn small no-print" href="/sim.html" target="_blank" rel="noopener">Simulator demo</a>
       <a class="btn small no-print" href="/tour.html" target="_blank" rel="noopener">Tour &amp; setup</a>
     </div>
   </header>
@@ -358,6 +359,17 @@
         <div id="sessionEvents" class="log-view">Pick a session.</div>
       </article>
     </div>
+
+    <article class="panel">
+      <h2>Compare two sessions</h2>
+      <p class="muted small">The cheapest baseline there is: record one session cold, another after a change, and this names the channels that moved. Sessions are not aligned in time, so means are compared, honestly.</p>
+      <div class="toolbar">
+        <label class="inline">A <select id="compareA"></select></label>
+        <label class="inline">B <select id="compareB"></select></label>
+        <button class="btn primary" id="compareBtn">Compare</button>
+      </div>
+      <div id="compareOut"></div>
+    </article>
   </section>
 
   <!-- ======================================================= REPORT -->

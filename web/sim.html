@@ -1,0 +1,394 @@
+<!doctype html>
+<!-- GuzziOnBoard — standalone engine simulator for the web page.
+     No server, no CDN, no network: this is the demo you can host anywhere
+     (it is what the built-in simulator feels like, minus the real KWP2000
+     protocol underneath — for that, run the actual workstation). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GuzziOnBoard — engine simulator</title>
+<style>
+:root {
+  --bg: #14161b; --panel: #1c1f26; --panel2: #22262f; --line: #31363f;
+  --ink: #e8eaee; --muted: #8b93a1; --accent: #d2492e; --ok: #3fb27f;
+  --warn: #d9a441; --bad: #d25050; --mono: ui-monospace, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.55 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.wrap { max-width: 1060px; margin: 0 auto; padding: 18px 20px 60px; }
+header.top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 18px; }
+header.top h1 { font-size: 22px; margin: 0; letter-spacing: .3px; }
+header.top .sub { color: var(--muted); font-size: 13.5px; }
+header.top .spacer { flex: 1; }
+header.top a { color: var(--ink); text-decoration: none; border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 13px; font-size: 13px; }
+header.top a:hover { background: var(--panel2); }
+.grid { display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
+@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; }
+.panel h2 { font-size: 15px; margin: 0 0 12px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px; }
+.btn { font: inherit; border: 1px solid var(--line); background: var(--panel2);
+  color: var(--ink); border-radius: 7px; padding: 9px 16px; cursor: pointer; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); border-color: var(--accent); }
+.btn.primary.on { background: var(--ok); border-color: var(--ok); }
+.btn.small { padding: 5px 11px; font-size: 13px; }
+.btn.danger { background: var(--bad); border-color: var(--bad); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.tach-wrap { text-align: center; }
+canvas.tach { width: 100%; max-width: 320px; }
+.rpm-digit { font: 700 44px/1 var(--mono); letter-spacing: 2px; }
+.rpm-digit small { font-size: 14px; color: var(--muted); font-weight: 400; }
+.controls { margin-top: 14px; }
+.controls label { display: block; color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px; }
+.metric { background: var(--panel); border: 1px solid var(--line); border-radius: 9px;
+  padding: 10px 13px; }
+.metric .k { color: var(--muted); font-size: 12px; text-transform: uppercase;
+  letter-spacing: .8px; }
+.metric .v { font: 600 22px/1.3 var(--mono); }
+.metric .u { color: var(--muted); font-size: 12px; margin-left: 3px; }
+.chart-panel { margin-top: 16px; }
+canvas.strip { width: 100%; height: 120px; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; }
+.fault { display: flex; gap: 12px; align-items: center; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+.fault .code { font: 700 15px var(--mono); color: var(--warn); }
+.fault .desc { font-size: 13.5px; color: var(--muted); flex: 1; }
+.mil { display: inline-block; font: 700 12px var(--mono); border-radius: 5px;
+  padding: 3px 9px; letter-spacing: 1px; }
+.mil.on { background: var(--warn); color: #14161b; animation: blink 1.2s infinite; }
+.mil.off { background: var(--panel2); color: var(--muted); }
+@keyframes blink { 50% { opacity: .35; } }
+.note { color: var(--muted); font-size: 13px; }
+.gate { border-left: 3px solid var(--bad); background: var(--panel);
+  padding: 9px 13px; border-radius: 0 8px 8px 0; margin: 10px 0; font-size: 13.5px; }
+.gate.ok { border-left-color: var(--ok); }
+footer { color: var(--muted); font-size: 12.5px; margin-top: 26px;
+  border-top: 1px solid var(--line); padding-top: 14px; }
+.toolbar { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+.tag { border: 1px solid var(--line); border-radius: 11px; padding: 1px 9px;
+  font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>GuzziOnBoard · engine simulator</h1>
+      <div class="sub">The engine model the workstation's ECU simulator runs, in your browser. The real thing speaks the actual KWP2000 wire protocol.</div>
+    </div>
+    <div class="spacer"></div>
+    <a href="/">&larr; the workstation</a>
+    <a href="/tour.html">Tour &amp; setup</a>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="panel">
+        <div class="tach-wrap">
+          <canvas class="tach" id="tach" width="640" height="400"></canvas>
+          <div class="rpm-digit"><span id="rpmDigit">0</span><small> rpm</small></div>
+        </div>
+        <div class="controls">
+          <div class="toolbar">
+            <button class="btn primary" id="ignition">Start engine</button>
+            <span class="mil off" id="mil">MIL</span>
+            <span class="tag" id="stateTag">engine off</span>
+          </div>
+          <label>Throttle <span id="thrLabel" style="float:right">0%</span></label>
+          <input type="range" id="throttle" min="0" max="100" value="0">
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h2>Actuator test</h2>
+        <div class="toolbar">
+          <button class="btn small" id="pumpBtn">Fuel pump prime (3 s)</button>
+        </div>
+        <div id="actuatorOut" class="note">The real workstation gates actuator tests the same way.</div>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h2>Fault injection</h2>
+        <div class="toolbar">
+          <button class="btn small" id="injectLambda">Store P0130</button>
+          <button class="btn small" id="injectIdle">Store P0505</button>
+        </div>
+        <div class="toolbar">
+          <button class="btn small" id="readFaults">Read fault memory</button>
+          <button class="btn small danger" id="clearFaults" disabled>Clear fault memory</button>
+        </div>
+        <div id="faultList"><div class="note">Fault memory not read yet.</div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="metrics" id="metrics"></div>
+      <div class="panel chart-panel">
+        <h2>Live trace — 60 s</h2>
+        <canvas class="strip" id="strip" width="1000" height="240"></canvas>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <h2>What you are looking at</h2>
+        <p class="note">Every value here is computed by the same physics the
+        built-in simulator uses: exponential coolant warm-up from ambient
+        towards 92&nbsp;&deg;C, a soft rev limiter at 8500&nbsp;rpm (the
+        catalogued 5AM cut-off), idle around 1250&nbsp;rpm, a charging system
+        that holds 14.2&nbsp;V, closed-loop lambda once warm. In the
+        workstation these values are not a demo — they arrive as KWP2000
+        responses over K-Line or CAN, with the raw bytes kept next to every
+        decoded value.</p>
+        <p class="note">The safety rules are real too: try the fuel pump prime
+        with the engine running, or clearing the fault memory without
+        confirming. The workstation refuses exactly the same way, on purpose.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    GuzziOnBoard is an independent open-source project, not affiliated with
+    Piaggio Group, Moto Guzzi, Ducati, Aprilia or Magneti Marelli.
+    This page is self-contained: host it anywhere, no server required.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- engine model (mirrors guzzionboard/transports/simulator.py) --------
+  var IDLE = 1250, REDLINE = 8500, AMBIENT = 18.0;
+  var state = {
+    running: false, starter: 0,
+    rpm: 0, throttle: 0, thrActual: 0,
+    coolant: AMBIENT, air: AMBIENT, t: 0,
+    battery: 12.6, lambda: 0.0, inj: 0.0, limiter: 0,
+    faults: {}, milSeen: false, confirmed: false,
+    history: [], pump: 0, pumpUntil: 0,
+  };
+
+  function step(dt) {
+    state.t += dt;
+    var s = state;
+
+    // starter cranking
+    if (s.starter > 0) {
+      s.starter -= dt;
+      s.rpm += (450 - s.rpm) * Math.min(1, dt * 6);
+      s.battery = 10.6 + Math.random() * 0.3;
+      if (s.starter <= 0) { s.running = true; }
+    } else if (s.running) {
+      s.thrActual += (s.throttle - s.thrActual) * Math.min(1, dt * 5);
+      var coldIdle = s.coolant < 50 ? IDLE + 350 : IDLE;
+      var target = coldIdle + s.thrActual / 100 * (REDLINE - coldIdle) * 1.02;
+      if (s.limiter > 0) { s.limiter -= dt; target = coldIdle * 0.9; }
+      else if (s.rpm > REDLINE) { s.limiter = 0.12; }   // soft cut, then bounce
+      s.rpm += (target - s.rpm) * Math.min(1, dt * (target > s.rpm ? 1.9 : 3.2));
+      s.battery = 14.2 + (Math.random() - 0.5) * 0.15;
+    } else {
+      s.rpm = Math.max(0, s.rpm - dt * 2600);
+      s.thrActual += (0 - s.thrActual) * Math.min(1, dt * 3);
+      s.battery = 12.6 - (s.rpm > 0 ? 0.2 : 0) + (Math.random() - 0.5) * 0.05;
+    }
+
+    // thermal model
+    var running = s.running || s.starter > 0;
+    if (running) s.coolant += (92.0 - s.coolant) * dt / 180.0;
+    else s.coolant += (AMBIENT - s.coolant) * dt / 600.0;
+    s.air = AMBIENT + Math.sin(s.t / 30) * 0.6;
+
+    // fuelling
+    var warm = s.coolant > 70;
+    s.inj = s.running ? 2.0 + 6.0 * s.thrActual / 100 + s.rpm / 4000 : 0.0;
+    if (!s.running) s.lambda = 0;
+    else if (!warm) s.lambda = 0.86 + Math.random() * 0.02;   // open loop, rich
+    else s.lambda = 1.0 + 0.035 * Math.sin(s.t * 2.2) + (Math.random() - 0.5) * 0.01;
+
+    s.history.push({ t: s.t, rpm: s.rpm, coolant: s.coolant });
+    while (s.history.length && s.t - s.history[0].t > 60) s.history.shift();
+
+    if (s.pumpUntil > s.t) s.pump = 1; else s.pump = 0;
+  }
+
+  // ---- rendering -----------------------------------------------------------
+  var $ = function (id) { return document.getElementById(id); };
+  var tach = $("tach"), tctx = tach.getContext("2d");
+  var strip = $("strip"), sctx = strip.getContext("2d");
+
+  function drawTach() {
+    var w = tach.width, h = tach.height, cx = w / 2, cy = h * 0.56, r = h * 0.42;
+    tctx.clearRect(0, 0, w, h);
+    var a0 = Math.PI * 0.75, a1 = Math.PI * 2.25;
+    function angle(v) { return a0 + Math.min(v, 9000) / 9000 * (a1 - a0); }
+    tctx.lineWidth = 10; tctx.strokeStyle = "#31363f";
+    tctx.beginPath(); tctx.arc(cx, cy, r, a0, a1); tctx.stroke();
+    // red zone from the catalogued cut-off
+    tctx.strokeStyle = "#d25050";
+    tctx.beginPath(); tctx.arc(cx, cy, r, angle(REDLINE), a1); tctx.stroke();
+    tctx.lineWidth = 1; tctx.strokeStyle = "#8b93a1"; tctx.fillStyle = "#8b93a1";
+    tctx.font = "13px " + "ui-monospace, Menlo, monospace";
+    tctx.textAlign = "center"; tctx.textBaseline = "middle";
+    for (var k = 0; k <= 9; k++) {
+      var a = angle(k * 1000);
+      tctx.beginPath();
+      tctx.moveTo(cx + Math.cos(a) * (r - 16), cy + Math.sin(a) * (r - 16));
+      tctx.lineTo(cx + Math.cos(a) * (r - 6), cy + Math.sin(a) * (r - 6));
+      tctx.stroke();
+      tctx.fillText(String(k), cx + Math.cos(a) * (r - 30), cy + Math.sin(a) * (r - 30));
+    }
+    // needle
+    var an = angle(state.rpm);
+    tctx.strokeStyle = state.rpm > REDLINE ? "#d25050" : "#e8eaee";
+    tctx.lineWidth = 3;
+    tctx.beginPath();
+    tctx.moveTo(cx - Math.cos(an) * 14, cy - Math.sin(an) * 14);
+    tctx.lineTo(cx + Math.cos(an) * (r - 22), cy + Math.sin(an) * (r - 22));
+    tctx.stroke();
+  }
+
+  function drawStrip() {
+    var w = strip.width, h = strip.height;
+    sctx.clearRect(0, 0, w, h);
+    if (state.history.length < 2) return;
+    var t1 = state.t, t0 = t1 - 60;
+    function x(t) { return (t - t0) / 60 * w; }
+    function y(v, lo, hi) { return h - 8 - (v - lo) / (hi - lo) * (h - 20); }
+    function series(get, lo, hi, color) {
+      sctx.strokeStyle = color; sctx.lineWidth = 1.6; sctx.beginPath();
+      state.history.forEach(function (p, i) {
+        var px = x(p.t), py = y(get(p), lo, hi);
+        if (i === 0) sctx.moveTo(px, py); else sctx.lineTo(px, py);
+      });
+      sctx.stroke();
+    }
+    series(function (p) { return p.rpm; }, 0, 9000, "#d2492e");
+    series(function (p) { return p.coolant; }, 0, 100, "#3fb27f");
+    sctx.fillStyle = "#8b93a1"; sctx.font = "11px ui-monospace, Menlo, monospace";
+    sctx.fillText("rpm (0–9k)  ·  coolant °C (0–100)", 10, 14);
+  }
+
+  var METRICS = [
+    ["RPM", function () { return Math.round(state.rpm); }, "rpm"],
+    ["Coolant", function () { return state.coolant.toFixed(1); }, "°C"],
+    ["Air", function () { return state.air.toFixed(1); }, "°C"],
+    ["Throttle", function () { return Math.round(state.thrActual); }, "%"],
+    ["Battery", function () { return state.battery.toFixed(1); }, "V"],
+    ["Injection", function () { return state.inj.toFixed(1); }, "ms"],
+    ["Lambda", function () { return state.lambda ? state.lambda.toFixed(3) : "—"; }, ""],
+    ["Fuel pump", function () { return state.pump ? "PRIMING" : "off"; }, ""],
+  ];
+  var metricEls = METRICS.map(function () { return null; });
+
+  function renderMetrics() {
+    if (!metricEls[0]) {
+      $("metrics").innerHTML = METRICS.map(function (m) {
+        return '<div class="metric"><div class="k">' + m[0] + '</div>'
+          + '<div class="v"><span>0</span><span class="u">' + m[2] + '</span></div></div>';
+      }).join("");
+      metricEls = Array.prototype.map.call(
+        $("metrics").querySelectorAll(".v span:first-child"), function (e) { return e; });
+    }
+    METRICS.forEach(function (m, i) { metricEls[i].textContent = String(m[1]()); });
+    $("rpmDigit").textContent = String(Math.round(state.rpm));
+    $("stateTag").textContent = state.starter > 0 ? "cranking"
+      : state.running ? (state.rpm > REDLINE - 60 ? "REV LIMITER" : "running")
+      : (state.rpm > 0 ? "spinning down" : "engine off");
+    var mil = Object.keys(state.faults).length > 0;
+    var el = $("mil");
+    el.className = "mil " + (mil ? "on" : "off");
+    el.textContent = mil ? "MIL" : "MIL";
+  }
+
+  // ---- interactions --------------------------------------------------------
+  $("ignition").onclick = function () {
+    if (state.running) { state.running = false; state.limiter = 0; }
+    else if (state.starter <= 0) { state.starter = 0.7; }
+    this.textContent = state.running ? "Stop engine" : "Start engine";
+    this.classList.toggle("on", state.running);
+  };
+  $("throttle").oninput = function () {
+    state.throttle = parseInt(this.value, 10);
+    $("thrLabel").textContent = state.throttle + "%";
+  };
+
+  var DTC_DESCRIPTIONS = {
+    P0130: "Lambda sensor circuit, bank 1 sensor 1",
+    P0505: "Idle control system - stepper or air leak",
+  };
+  $("injectLambda").onclick = function () { state.faults.P0130 = 1; state.confirmed = false; renderFaults(); };
+  $("injectIdle").onclick = function () { state.faults.P0505 = 1; state.confirmed = false; renderFaults(); };
+
+  function renderFaults() {
+    var codes = Object.keys(state.faults);
+    var box = $("faultList");
+    if (!codes.length) {
+      box.innerHTML = '<div class="note">Fault memory is clean.</div>';
+    } else {
+      box.innerHTML = codes.map(function (c) {
+        return '<div class="fault"><div class="code">' + c + '</div>'
+          + '<div class="desc">' + DTC_DESCRIPTIONS[c] + '</div></div>';
+      }).join("");
+    }
+    $("clearFaults").disabled = false;
+  }
+
+  $("readFaults").onclick = renderFaults;
+
+  $("clearFaults").onclick = function () {
+    var btn = this;
+    if (!state.confirmed) {
+      state.confirmed = true;
+      btn.textContent = "Really erase? Click again";
+      setTimeout(function () {
+        state.confirmed = false; btn.textContent = "Clear fault memory";
+      }, 4000);
+      return;
+    }
+    state.faults = {}; state.confirmed = false;
+    btn.textContent = "Clear fault memory";
+    renderFaults();
+  };
+
+  $("pumpBtn").onclick = function () {
+    var out = $("actuatorOut");
+    if (state.running || state.starter > 0) {
+      out.innerHTML = '<div class="gate"><b>Refused by the safety gate:</b> '
+        + 'engine must be stopped and its state must be observed first. '
+        + 'Actuator tests while the engine runs are how fuel ends up where it '
+        + 'should not be.</div>';
+      return;
+    }
+    state.pumpUntil = state.t + 3.0;
+    out.innerHTML = '<div class="gate ok"><b>Fuel pump prime running</b> — '
+      + '3 seconds, then it releases itself. The workstation owns the output '
+      + 'deadline: an IAW ECU has no output timer of its own.</div>';
+  };
+
+  // ---- main loop -----------------------------------------------------------
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min(0.25, (now - last) / 1000);
+    last = now;
+    step(dt);
+    drawTach();
+    drawStrip();
+    renderMetrics();
+    requestAnimationFrame(frame);
+  }
+  drawTach(); renderMetrics();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

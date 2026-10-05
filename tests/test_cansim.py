@@ -56,7 +56,8 @@ def test_live_data_and_dtcs_over_the_virtual_bus(catalog):
     assert len(samples) == 3
     assert all(s.raw for s in samples)          # provenance intact
     dtcs = service.read_dtcs()
-    assert [d["code"] for d in dtcs] == ["P0130", "P0505"]
+    assert [d["code"] for d in dtcs["dtcs"]] == ["P0130", "P0505"]
+    assert dtcs["context"]["rpm"]["value"] > 200
     service.disconnect()
 
 

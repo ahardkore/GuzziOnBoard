@@ -397,7 +397,7 @@ class Workstation:
         }
         if service and service.connected:
             try:
-                report["dtcs"] = service.read_dtcs()
+                report["dtcs"] = service.read_dtcs()["dtcs"]
             except Exception as exc:
                 report["dtcs_error"] = str(exc)
         return report

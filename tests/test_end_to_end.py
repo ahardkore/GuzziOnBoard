@@ -82,9 +82,28 @@ def test_dtc_round_trip_with_descriptions(catalog):
     service, _, _ = build(catalog)
     service.connect()
     service.identify()
-    dtcs = service.read_dtcs()
-    assert {d["code"] for d in dtcs} == {"P0130", "P0505"}
-    assert dtcs[0]["description"]
+    result = service.read_dtcs()
+    assert {d["code"] for d in result["dtcs"]} == {"P0130", "P0505"}
+    assert result["dtcs"][0]["description"]
+    service.disconnect()
+
+
+def test_dtc_read_carries_the_observed_context(catalog):
+    """Codes come back with the live channels observed at the same moment.
+
+    Honest labelling: these ECUs expose no ECU-stored freeze frame, so the
+    context is what the workstation itself read - never presented as more.
+    """
+    service, _ecu, _gate = build(catalog, "5am")
+    service.connect()
+    service.identify()
+    result = service.read_dtcs()
+    assert result["context"], "the 5AM has default channels to observe"
+    assert "rpm" in result["context"]
+    assert result["context"]["rpm"]["value"] > 200   # the sim idles
+    assert result["context"]["rpm"]["unit"] == "rpm"
+    # reading the context must not have disturbed the gate's view
+    assert service.gate.state.engine_running is True
     service.disconnect()
 
 

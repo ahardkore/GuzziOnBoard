@@ -24,6 +24,7 @@ from .maps import XDF_DIR, XdfError, XdfFile, load_xdfs
 from .programming import ProgrammingError, ProgrammingService
 from .safety import SafetyViolation
 from .security import SecurityUnavailable, describe_all, load_plugins
+from . import sessiondiff
 from .sessionlog import SessionLog
 from .transports.base import TransportError, TransportUnavailable
 from .workstation import Workstation
@@ -188,9 +189,17 @@ class Api:
 
     def get_dtcs(self, query: dict) -> tuple[int, dict]:
         service = self.ws.require_service()
-        dtcs = service.read_dtcs()
+        result = service.read_dtcs()
         decision = service.check_clear_dtcs()
-        return 200, {"dtcs": dtcs, "clear": decision.as_dict()}
+        return 200, {
+            "dtcs": result["dtcs"],
+            "context": result["context"],
+            "context_note": (
+                "Observed by the workstation at read time - these ECUs do not "
+                "expose an ECU-stored freeze frame, and this is not one."
+            ),
+            "clear": decision.as_dict(),
+        }
 
     def post_dtcs_clear(self, body: dict) -> tuple[int, dict]:
         return 200, self.ws.require_service().clear_dtcs(body.get("token", ""))
@@ -237,6 +246,24 @@ class Api:
     # -- sessions and reports ---------------------------------------------
     def get_sessions(self, query: dict) -> tuple[int, dict]:
         return 200, {"sessions": SessionLog.list_sessions(self.ws.session_dir)}
+
+    def post_sessions_compare(self, body: dict) -> tuple[int, dict]:
+        a, b = body.get("a"), body.get("b")
+        if not (a and b):
+            return 400, {"error": "two session names, 'a' and 'b', are required"}
+        if a == b:
+            return 400, {"error": "pick two different sessions"}
+        paths = {}
+        for name in (a, b):
+            candidate = Path(self.ws.session_dir) / name
+            if not name or not candidate.is_file() or \
+                    candidate.parent != Path(self.ws.session_dir):
+                return 404, {"error": f"no such session: {name!r}"}
+            paths[name] = candidate
+        try:
+            return 200, sessiondiff.compare(paths[a], paths[b])
+        except sessiondiff.SessionDiffError as exc:
+            return 400, {"error": str(exc)}
 
     def get_session_events(self, query: dict) -> tuple[int, dict]:
         name = (query.get("name") or [""])[0]
@@ -513,6 +540,7 @@ ROUTES_POST = {
     "/api/programming/disable": "post_programming_disable",
     "/api/adapter/latency": "post_adapter_latency",
     "/api/tools/canlog": "post_tools_canlog",
+    "/api/sessions/compare": "post_sessions_compare",
 }
 
 

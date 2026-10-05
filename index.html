@@ -1,0 +1,480 @@
+<!doctype html>
+<!-- GuzziOnBoard — GitHub Pages landing page (served from the repo root).
+     Self-contained: no CDN, no JS, no build step. The interactive workstation
+     itself is a local tool (python3 run_server.py) — this page is the front
+     door, plus links to the host-anywhere tour and engine-simulator demos. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="A safety-first diagnostic workstation for Moto Guzzi motorcycles — and the same Magneti Marelli ECUs on Ducati and Aprilia. KWP2000 over K-Line and CAN, live data, fault codes, verified backups, TunerPro XDF maps.">
+<title>GuzziOnBoard — safety-first Moto Guzzi diagnostics</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🏍️</text></svg>">
+<style>
+:root {
+  --bg: #14161b; --panel: #1c1f26; --panel2: #22262f; --line: #31363f;
+  --ink: #e8eaee; --muted: #8b93a1; --accent: #d2492e; --accent2: #e06a4f;
+  --ok: #3fb27f; --warn: #d9a441; --bad: #d25050;
+  --mono: ui-monospace, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.6 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+a { color: var(--accent2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: var(--mono); font-size: .92em; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
+.section { padding: 58px 0 8px; }
+h2 { font-size: 26px; letter-spacing: .2px; margin: 0 0 6px; }
+.sub { color: var(--muted); margin: 0 0 28px; max-width: 760px; }
+
+/* ---------- header ---------- */
+header.site {
+  position: sticky; top: 0; z-index: 10; backdrop-filter: blur(8px);
+  background: rgba(20,22,27,.88); border-bottom: 1px solid var(--line);
+}
+header.site .wrap { display: flex; align-items: center; gap: 18px; height: 60px; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); }
+.brand:hover { text-decoration: none; }
+.brand-mark {
+  width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--accent), #a33420);
+  font: 700 13px/1 var(--mono); color: #fff; letter-spacing: .5px;
+}
+.brand strong { font-size: 16px; }
+.brand small { display: block; color: var(--muted); font-size: 11px; margin-top: 1px; }
+nav.top { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+nav.top a { color: var(--muted); font-size: 14px; padding: 7px 11px; border-radius: 7px; }
+nav.top a:hover { color: var(--ink); background: var(--panel2); text-decoration: none; }
+nav.top a.gh { color: var(--ink); border: 1px solid var(--line); margin-left: 6px; }
+nav.top a.gh:hover { border-color: var(--accent); }
+
+/* ---------- hero ---------- */
+.hero { padding: 74px 0 20px; display: flex; gap: 44px; align-items: center; flex-wrap: wrap; }
+.hero-copy { flex: 1 1 480px; }
+.overline { color: var(--accent2); font: 600 12px/1 var(--mono); letter-spacing: 2px; text-transform: uppercase; }
+h1 { font-size: clamp(30px, 4.6vw, 44px); line-height: 1.12; margin: 14px 0 16px; letter-spacing: -.5px; }
+h1 em { color: var(--accent2); font-style: normal; }
+.lede { color: var(--muted); font-size: 17.5px; max-width: 640px; }
+.lede strong { color: var(--ink); font-weight: 600; }
+.cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 26px 0 18px; }
+.btn {
+  display: inline-block; padding: 11px 20px; border-radius: 9px; font-weight: 600; font-size: 15px;
+  border: 1px solid var(--line); color: var(--ink); background: var(--panel2);
+}
+.btn:hover { text-decoration: none; border-color: var(--muted); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: var(--accent2); border-color: var(--accent2); }
+.btn.ghost { background: transparent; }
+.status {
+  display: flex; gap: 10px; align-items: flex-start; max-width: 640px;
+  border: 1px solid #4a3d24; background: #241f14; border-radius: 10px; padding: 12px 14px;
+  font-size: 14px; color: #d9c9a0;
+}
+.status b { color: var(--warn); }
+/* gauge */
+.gauge-card {
+  flex: 0 1 360px; border: 1px solid var(--line); background: var(--panel);
+  border-radius: 14px; padding: 22px 22px 16px; box-shadow: 0 18px 50px rgba(0,0,0,.35);
+}
+.gauge-card svg { width: 100%; height: auto; display: block; }
+.gauge-cap { color: var(--muted); font-size: 12.5px; text-align: center; margin: 10px 0 0; }
+.gauge-cap b { color: var(--ink); }
+@keyframes needle {
+  0%, 100% { transform: rotate(-1.6deg); }
+  50% { transform: rotate(1.9deg); }
+}
+.needle { transform-origin: 100px 100px; animation: needle 2.4s ease-in-out infinite; }
+
+/* ---------- stat chips ---------- */
+.stats { display: flex; gap: 12px; flex-wrap: wrap; margin: 34px 0 6px; }
+.stat {
+  border: 1px solid var(--line); background: var(--panel); border-radius: 10px;
+  padding: 12px 18px; min-width: 128px;
+}
+.stat b { display: block; font-size: 22px; letter-spacing: -.3px; }
+.stat span { color: var(--muted); font-size: 12.5px; }
+
+/* ---------- cards ---------- */
+.grid { display: grid; gap: 14px; }
+.grid.two { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.grid.three { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.card {
+  border: 1px solid var(--line); background: var(--panel); border-radius: 12px;
+  padding: 20px 20px 18px;
+}
+.card h3 { margin: 0 0 8px; font-size: 16.5px; }
+.card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+.card .k { color: var(--accent2); font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 8px; }
+.card ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 14.5px; }
+.card li { margin: 4px 0; }
+.card li b { color: var(--ink); font-weight: 600; }
+
+/* ---------- safety ladder ---------- */
+.ladder { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.lvl { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 16px 18px; }
+.lvl .pill { display: inline-block; font: 600 11.5px/1 var(--mono); letter-spacing: 1px; padding: 6px 10px; border-radius: 999px; }
+.lvl.ok .pill { color: #0e1512; background: var(--ok); }
+.lvl.warn .pill { color: #171207; background: var(--warn); }
+.lvl.mut .pill { color: var(--ink); background: var(--panel2); border: 1px solid var(--line); }
+.lvl h3 { margin: 10px 0 6px; font-size: 15.5px; }
+.lvl p { margin: 0; color: var(--muted); font-size: 14px; }
+.quote {
+  margin: 26px 0 0; padding: 16px 20px; border-left: 3px solid var(--accent);
+  background: var(--panel); border-radius: 0 10px 10px 0; color: var(--ink); font-size: 16px;
+}
+.quote small { display: block; color: var(--muted); margin-top: 4px; font-size: 13px; }
+
+/* ---------- run / terminal ---------- */
+.term {
+  background: #101216; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  max-width: 760px;
+}
+.term-bar { display: flex; gap: 6px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.term-bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); display: inline-block; }
+.term-bar span { color: var(--muted); font: 12px var(--mono); margin-left: 8px; }
+.term pre { margin: 0; padding: 18px 20px; font: 13.5px/1.75 var(--mono); color: #cdd3dc; overflow-x: auto; }
+.term .c { color: #6c7686; } .term .p { color: var(--ok); } .term .a { color: var(--accent2); }
+.run-note { color: var(--muted); font-size: 14.5px; max-width: 760px; margin: 16px 0 0; }
+.run-note code { background: var(--panel2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
+
+/* ---------- coverage table ---------- */
+.tbl-wrap { border: 1px solid var(--line); border-radius: 12px; overflow: auto; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 720px; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font: 600 11.5px/1.4 var(--mono); letter-spacing: 1px; text-transform: uppercase; }
+tr:last-child td { border-bottom: none; }
+td.fam { font-weight: 600; white-space: nowrap; }
+td.models { color: var(--muted); }
+.tag { display: inline-block; font: 600 11px/1 var(--mono); letter-spacing: .5px; padding: 5px 9px; border-radius: 999px; white-space: nowrap; }
+.tag.ok { color: #0e1512; background: var(--ok); }
+.tag.warn { color: #171207; background: var(--warn); }
+.tag.mut { color: var(--ink); background: var(--panel2); border: 1px solid var(--line); }
+.footnote { color: var(--muted); font-size: 14px; margin: 14px 0 0; max-width: 820px; }
+
+/* ---------- footer ---------- */
+footer.site { border-top: 1px solid var(--line); margin-top: 70px; padding: 34px 0 46px; }
+.foot-grid { display: flex; gap: 40px; flex-wrap: wrap; }
+.foot-grid h4 { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); font-family: var(--mono); letter-spacing: 1.5px; text-transform: uppercase; }
+.foot-grid ul { list-style: none; margin: 0; padding: 0; }
+.foot-grid li { margin: 6px 0; font-size: 14.5px; }
+.foot-note { color: var(--muted); font-size: 13px; margin-top: 26px; max-width: 760px; }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="./">
+      <span class="brand-mark">GO</span>
+      <span><strong>GuzziOnBoard</strong><small>diagnostic workstation</small></span>
+    </a>
+    <nav class="top">
+      <a href="#try">Demos</a>
+      <a href="#features">Features</a>
+      <a href="#safety">Safety</a>
+      <a href="#run">Run it</a>
+      <a href="#coverage">Coverage</a>
+      <a class="gh" href="https://github.com/ahardkore/GuzziOnBoard">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- ================= HERO ================= -->
+<section class="wrap">
+  <div class="hero">
+    <div class="hero-copy">
+      <span class="overline">Open source · MIT · Python 3.11+</span>
+      <h1>A safety-first diagnostic workstation for <em>Moto&nbsp;Guzzi</em> motorcycles.</h1>
+      <p class="lede">
+        The Magneti Marelli ECUs fitted from the mid-1990s to today — identified,
+        interrogated, backed up and compared, over <strong>K-Line (KWP2000)</strong> and
+        <strong>CAN (ISO-TP)</strong>. The same Marelli hardware on Ducati and Aprilia
+        is covered too, read-only until its identifier tables are confirmed.
+      </p>
+      <div class="cta-row">
+        <a class="btn primary" href="web/tour.html">Take the tour →</a>
+        <a class="btn" href="web/sim.html">🏍 Try the engine simulator</a>
+        <a class="btn ghost" href="#run">Run it locally</a>
+      </div>
+      <div class="status">
+        <span>⚠</span>
+        <span><b>Status: working software, unproven on a motorcycle.</b>
+        The protocol stack, catalog, safety gate, memory stack and UI are real and
+        tested — the hardware transports are written but not yet validated against a
+        bike, and ECU writing stays gated.</span>
+      </div>
+    </div>
+
+    <div class="gauge-card">
+      <!-- tachometer: idle, closed loop, warmed up -->
+      <svg viewBox="0 0 200 118" role="img" aria-label="Tachometer at 1350 rpm">
+        <path d="M 22 100 A 78 78 0 0 1 178 100" fill="none" stroke="#31363f" stroke-width="7" stroke-linecap="round"/>
+        <path d="M 167.5 61 A 78 78 0 0 1 178 100" fill="none" stroke="#d2492e" stroke-width="7" stroke-linecap="round"/>
+        <g stroke="#8b93a1" stroke-width="2.5" stroke-linecap="round">
+          <line x1="22"    y1="100"  x2="34"    y2="100"/>
+          <line x1="26.7"  y1="73.3" x2="38"    y2="77.4"/>
+          <line x1="40.3"  y1="49.9" x2="49.4"  y2="57.6"/>
+          <line x1="61"    y1="32.5" x2="67"    y2="42.8"/>
+          <line x1="86.5"  y1="23.2" x2="88.5"  y2="35"/>
+          <line x1="113.5" y1="23.2" x2="111.5" y2="35"/>
+          <line x1="139"   y1="32.5" x2="133"   y2="42.8"/>
+          <line x1="159.7" y1="49.9" x2="150.6" y2="57.6"/>
+          <line x1="173.3" y1="73.3" x2="162"   y2="77.4"/>
+          <line x1="178"   y1="100"  x2="166"   y2="100"/>
+        </g>
+        <g fill="#8b93a1" font-family="ui-monospace, Menlo, monospace" font-size="11" text-anchor="middle">
+          <text x="46"   y="106">0</text>
+          <text x="49"   y="87">1</text>
+          <text x="58"   y="71">2</text>
+          <text x="72"   y="59">3</text>
+          <text x="90"   y="52">4</text>
+          <text x="110"  y="52">5</text>
+          <text x="128"  y="59">6</text>
+          <text x="142"  y="71">7</text>
+          <text x="151"  y="87">8</text>
+          <text x="154"  y="106">9</text>
+        </g>
+        <g class="needle">
+          <line x1="100" y1="100" x2="134.7" y2="48.6" stroke="#e8eaee" stroke-width="3.5" stroke-linecap="round"/>
+        </g>
+        <circle cx="100" cy="100" r="7" fill="#22262f" stroke="#8b93a1" stroke-width="2"/>
+        <text x="100" y="92" fill="#8b93a1" font-family="ui-monospace, Menlo, monospace" font-size="9" text-anchor="middle" letter-spacing="1">×1000 r/min</text>
+      </svg>
+      <p class="gauge-cap"><b>Griso 1200 8V · IAW 5AM</b> — idle, warmed up, closed loop.<br>
+      The simulator idles at 1350&nbsp;rpm. The safety gate still refuses the stupid stuff.</p>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b>10</b><span>ECU families</span></div>
+    <div class="stat"><b>118</b><span>model variants</span></div>
+    <div class="stat"><b>1992–2026</b><span>years covered</span></div>
+    <div class="stat"><b>266</b><span>unit tests</span></div>
+    <div class="stat"><b>3</b><span>brands, one Marelli stack</span></div>
+  </div>
+</section>
+
+<!-- ================= TRY ================= -->
+<section class="section wrap" id="try">
+  <h2>Try it right now — nothing to install</h2>
+  <p class="sub">Two self-contained pages, hosted here. No server, no CDN, no network calls:
+     this is what the workstation feels like, minus the real wire protocol underneath.</p>
+  <div class="grid two">
+    <div class="card">
+      <span class="k">Standalone demo</span>
+      <h3>🏍 Engine simulator</h3>
+      <p>The same engine model the workstation's simulator runs: start it, rev it, watch the
+         live channels move — then inject a fault and watch the safety gate refuse the
+         stupid stuff. Single file, works offline.</p>
+      <p style="margin-top:12px"><a class="btn primary" href="web/sim.html">Open the simulator →</a></p>
+    </div>
+    <div class="card">
+      <span class="k">Guided walkthrough</span>
+      <h3>🗺 Tour &amp; setup</h3>
+      <p>A walk through every view of the workstation — Garage, live data, fault codes,
+         ECU memory, maps &amp; tables — plus the setup side: the cables and adapters that
+         matter for a real bike.</p>
+      <p style="margin-top:12px"><a class="btn" href="web/tour.html">Take the tour →</a></p>
+    </div>
+  </div>
+  <p class="run-note">These are the static demos. The <b>full workstation</b> runs on your
+     machine and speaks actual KWP2000 / ISO-TP over K-Line or CAN — see below.</p>
+</section>
+
+<!-- ================= FEATURES ================= -->
+<section class="section wrap" id="features">
+  <h2>What it actually does</h2>
+  <p class="sub">No decorative features. Everything below is implemented, and what isn't
+     proven on hardware says so.</p>
+  <div class="grid three">
+    <div class="card">
+      <h3>Real protocol stack</h3>
+      <p>KWP2000 (ISO&nbsp;14230) application and data-link layer — fast init, 5-baud init,
+         framing, checksums — plus ISO-TP (ISO&nbsp;15765-2) segmentation for the CAN bikes.
+         Unit tested down to the timing.</p>
+    </div>
+    <div class="card">
+      <h3>A catalog with teeth</h3>
+      <p>10 Marelli ECU families, 118 model variants across Moto Guzzi, Ducati and Aprilia
+         (1992–2026), each with a confidence level that governs what the workstation will
+         let you do. Enforced in code, not in the docs.</p>
+    </div>
+    <div class="card">
+      <h3>A simulator that isn't fake</h3>
+      <p>The simulated ECU speaks the actual wire protocol and drives the whole stack —
+         and a virtual-CAN rehearsal exercises the complete ISO-TP path: segmentation,
+         flow control, reassembly. No bike required.</p>
+    </div>
+    <div class="card">
+      <h3>Identify · live data · fault codes</h3>
+      <p>ECU identification, live channels with proper scaling, DTC read and clear with the
+         workstation-observed context, actuator tests, TPS and adaptation resets — gated by
+         confidence and safety.</p>
+    </div>
+    <div class="card">
+      <h3>Memory: read, verify, back up</h3>
+      <p>ECU memory read with the 5AM path grounded in a verified capture, and backups
+         verified by a second independent read before you're told they're good.</p>
+    </div>
+    <div class="card">
+      <h3>Maps, sessions, reports</h3>
+      <p>TunerPro XDF table rendering and named diffs of two dumps (by table and axis
+         value, not raw offset), session recording and channel-by-channel comparison,
+         text/JSON reports and PDF export.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SAFETY ================= -->
+<section class="section wrap" id="safety">
+  <h2>Safety is the feature</h2>
+  <p class="sub">A workstation that commands a motorcycle ECU must know what it doesn't
+     know. Every family in the catalog carries a confidence level — and the level decides
+     what's permitted.</p>
+  <div class="ladder">
+    <div class="lvl ok">
+      <span class="pill">VERIFIED-CAPTURE</span>
+      <h3>Grounded in a real capture</h3>
+      <p>The IAW 5AM / 5AM2 path is anchored to a verified bus capture: full diagnostics
+         and memory read. Writing is implemented and simulator-tested, but stays gated
+         pending bench confirmation.</p>
+    </div>
+    <div class="lvl warn">
+      <span class="pill">DOCUMENTED</span>
+      <h3>Documented protocol</h3>
+      <p>Full diagnostics — identification, live data, fault codes, routines — for families
+         whose protocol behavior is documented across the GuzziDiag ecosystem.</p>
+    </div>
+    <div class="lvl mut">
+      <span class="pill">INFERRED</span>
+      <h3>Inferred only</h3>
+      <p>Degrades to identification, fault codes and the read-only discovery sweep. The
+         workstation will not command an ECU it does not genuinely understand — including
+         every cross-brand Ducati and Aprilia entry.</p>
+    </div>
+  </div>
+  <div class="grid three" style="margin-top:14px">
+    <div class="card">
+      <h3>Backups you can trust</h3>
+      <p>Two independent reads must agree before a backup is called good; interrupted
+         writes leave checkpoints with recovery guidance.</p>
+    </div>
+    <div class="card">
+      <h3>No fake keys</h3>
+      <p>SecurityAccess seed/key plumbing supports key-provider plugins — but no unverified
+         key algorithm ships as if it worked. The transcribed 5AM key stays hardware-gated.</p>
+    </div>
+    <div class="card">
+      <h3>Careful by construction</h3>
+      <p>Read-only discovery sweeps, adapter pre-flight (including the FTDI latency timer),
+         a connect checklist, and CAN capture analysis that only ever listens.</p>
+    </div>
+  </div>
+  <div class="quote">
+    "Confidence is enforced, not decorative. Anything below <code>documented</code> degrades
+    to identification, fault codes and the read-only discovery sweep."
+    <small>— the rule the whole workstation is built around</small>
+  </div>
+</section>
+
+<!-- ================= RUN ================= -->
+<section class="section wrap" id="run">
+  <h2>Run the real thing</h2>
+  <p class="sub">Simulator mode needs nothing but Python&nbsp;3.11+ — no serial port is
+     opened until you ask for one.</p>
+  <div class="term">
+    <div class="term-bar"><i></i><i></i><i></i><span>workstation — terminal</span></div>
+<pre><span class="c"># simulator mode: the whole workstation, no bike, no cable</span>
+<span class="p">$</span> python3 run_server.py
+<span class="c">#  → open http://127.0.0.1:8000 — pick a bike in the Garage</span>
+
+<span class="c"># real hardware (pyserial + python-can)</span>
+<span class="p">$</span> pip install -e <span class="a">'.[hardware]'</span>
+<span class="p">$</span> python3 run_server.py</pre>
+  </div>
+  <p class="run-note">
+    Try <code>Griso 1200 8V</code> / <code>2012</code> in the Garage, connect in simulator
+    mode, and the rest of the workstation comes alive. TunerPro XDF definitions for the maps
+    view are yours to supply (third-party, see the README) — rendering and diffing are
+    strictly read-only.
+  </p>
+</section>
+
+<!-- ================= COVERAGE ================= -->
+<section class="section wrap" id="coverage">
+  <h2>Coverage</h2>
+  <p class="sub">Marelli ECU families in the catalog, with the confidence level that
+     governs what the workstation will let you do.</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Family</th><th>Years</th><th>Bus</th><th>Confidence</th><th>Representative models</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="fam">IAW P8</td><td>1993–1997</td><td>K-Line</td><td><span class="tag mut">inferred</span></td><td class="models">Daytona 1000, Quota 1000, California III i.e.</td></tr>
+        <tr><td class="fam">IAW 16M</td><td>1996–2001</td><td>K-Line</td><td><span class="tag warn">documented</span></td><td class="models">Sport 1100, V10 Centauro, Daytona RS</td></tr>
+        <tr><td class="fam">IAW 15M</td><td>1997–2002</td><td>K-Line</td><td><span class="tag warn">documented</span></td><td class="models">California EV / Jackal / Stone, V11 Sport</td></tr>
+        <tr><td class="fam">IAW 15RC</td><td>2002–2012</td><td>K-Line</td><td><span class="tag warn">documented</span></td><td class="models">V7 Classic, Nevada 750, Breva 750, Bellagio</td></tr>
+        <tr><td class="fam">IAW 5AM / 5AM2</td><td>2005–2016</td><td>K-Line</td><td><span class="tag ok">verified-capture</span></td><td class="models">All CARC: Griso, Norge, Breva 850–1200, Stelvio, 1200 Sport</td></tr>
+        <tr><td class="fam">IAW 7SM</td><td>2013–2021</td><td>K-Line</td><td><span class="tag warn">documented</span></td><td class="models">California 1400, Audace, Eldorado, MGX-21, early V85 TT</td></tr>
+        <tr><td class="fam">MIU G3</td><td>2012–2016</td><td>K-Line</td><td><span class="tag warn">documented</span></td><td class="models">V7 (single throttle body), V7 II, V9</td></tr>
+        <tr><td class="fam">MIU G4</td><td>2017–2021</td><td>CAN</td><td><span class="tag mut">inferred</span></td><td class="models">V7 III, V7 850</td></tr>
+        <tr><td class="fam">Marelli 11MP</td><td>2019–2026</td><td>CAN</td><td><span class="tag mut">inferred</span></td><td class="models">Later V85 TT, V100 Mandello</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="footnote">Ducati and Aprilia bought the same Magneti Marelli ECUs — 748, 916,
+     996, 999, Monster, Multistrada; RSV Mille, Tuono, Caponord, RSV4 — and the catalog
+     resolves those bikes to the shared families. Every cross-brand entry ships read-only
+     by design, until its identifier tables are confirmed.</p>
+</section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <h4>Project</h4>
+        <ul>
+          <li><a href="https://github.com/ahardkore/GuzziOnBoard">GitHub repository ↗</a></li>
+          <li><a href="web/tour.html">Tour &amp; setup</a></li>
+          <li><a href="web/sim.html">Engine simulator demo</a></li>
+          <li><a href="https://github.com/ahardkore/GuzziOnBoard/releases">Releases ↗</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Documentation</h4>
+        <ul>
+          <li><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/ARCHITECTURE.md">Architecture</a></li>
+          <li><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/PROTOCOL_NOTES.md">Protocol notes</a></li>
+          <li><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/PROGRAMMING.md">ECU programming</a></li>
+          <li><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/USER_WORKFLOWS.md">User workflows</a></li>
+          <li><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/PRIOR_ART.md">Prior art</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Quick start</h4>
+        <ul>
+          <li class="mono">python3 run_server.py</li>
+          <li class="mono">pip install -e '.[hardware]'</li>
+          <li class="mono">pip install -e '.[dev]' &amp;&amp; pytest</li>
+        </ul>
+      </div>
+    </div>
+    <p class="foot-note">GuzziOnBoard is MIT-licensed. It is a hobby project, not affiliated
+       with Moto Guzzi, Piaggio, Ducati, Aprilia or Magneti Marelli. Working software,
+       unproven on a motorcycle — read the safety notes before you connect anything to a
+       real ECU.</p>
+  </div>
+</footer>
+
+</body>
+</html>

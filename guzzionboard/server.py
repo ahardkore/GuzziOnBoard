@@ -19,6 +19,7 @@ from . import tools
 from .catalog import CatalogError
 from .diagnostics import NotConnected
 from .firmware import FirmwareImage, FirmwareError
+from .maps import XDF_DIR, XdfError, XdfFile, load_xdfs
 from .programming import ProgrammingError, ProgrammingService
 from .safety import SafetyViolation
 from .security import SecurityUnavailable, describe_all, load_plugins
@@ -302,6 +303,75 @@ class Api:
         decision = self._programming().check_write(body.get("region", "flash"))
         return 200, decision.as_dict()
 
+    # -- maps (TunerPro XDF) -----------------------------------------------
+    def get_maps(self, query: dict) -> tuple[int, dict]:
+        xdfs = load_xdfs()
+        return 200, {
+            "directory": str(XDF_DIR),
+            "xdfs": [x.describe() for x in xdfs],
+        }
+
+    def _load_xdf(self, ref: str) -> XdfFile:
+        """An XDF from the plugin directory (by title or filename), or a path."""
+        for xdf in load_xdfs():
+            if ref in (xdf.title, Path(xdf.path).name if xdf.path else None):
+                return xdf
+        if Path(ref).suffix.lower() == ".xdf":
+            return XdfFile.from_file(ref)
+        raise XdfError(
+            f"no XDF named {ref!r} in {XDF_DIR}, and not a .xdf path either"
+        )
+
+    @staticmethod
+    def _address_base(body: dict) -> int | None:
+        base = body.get("address_base")
+        if base in (None, ""):
+            return None
+        try:
+            return int(str(base), 0)
+        except ValueError:
+            raise XdfError(f"address_base {base!r} is not a number") from None
+
+    def post_maps_render(self, body: dict) -> tuple[int, dict]:
+        path, ref = body.get("path"), body.get("xdf")
+        if not path:
+            return 400, {"error": "an image 'path' is required"}
+        if not ref:
+            return 400, {"error": "an 'xdf' (title or .xdf path) is required"}
+        try:
+            image = FirmwareImage.from_file(path)
+        except OSError as exc:
+            return 400, {"error": str(exc)}
+        try:
+            xdf = self._load_xdf(ref)
+        except XdfError as exc:
+            return 400, {"error": str(exc)}
+        try:
+            render = xdf.render(image, address_base=self._address_base(body))
+        except XdfError as exc:
+            return 400, {"error": str(exc)}
+        return 200, {**render, "image": image.describe()}
+
+    def post_maps_diff(self, body: dict) -> tuple[int, dict]:
+        a, b, ref = body.get("path_a"), body.get("path_b"), body.get("xdf")
+        if not (a and b):
+            return 400, {"error": "'path_a' and 'path_b' are both required"}
+        if not ref:
+            return 400, {"error": "an 'xdf' (title or .xdf path) is required"}
+        try:
+            before, after = FirmwareImage.from_file(a), FirmwareImage.from_file(b)
+        except OSError as exc:
+            return 400, {"error": str(exc)}
+        try:
+            xdf = self._load_xdf(ref)
+        except XdfError as exc:
+            return 400, {"error": str(exc)}
+        try:
+            diff = xdf.diff(before, after, address_base=self._address_base(body))
+        except XdfError as exc:
+            return 400, {"error": str(exc)}
+        return 200, {**diff, "image": before.describe()}
+
     def post_programming_enable(self, body: dict) -> tuple[int, dict]:
         self.ws.gate.enable_programming(body.get("acknowledgement", ""))
         return 200, {"programming_enabled": True}
@@ -377,6 +447,7 @@ ROUTES_GET = {
     "/api/sessions": "get_sessions",
     "/api/sessions/events": "get_session_events",
     "/api/report": "get_report",
+    "/api/maps": "get_maps",
     "/api/memory": "get_memory",
     "/api/memory/progress": "get_memory_progress",
     "/api/security": "get_security",
@@ -400,6 +471,8 @@ ROUTES_POST = {
     "/api/memory/validate": "post_memory_validate",
     "/api/memory/write": "post_memory_write",
     "/api/memory/check-write": "post_memory_check_write",
+    "/api/maps/render": "post_maps_render",
+    "/api/maps/diff": "post_maps_diff",
     "/api/programming/enable": "post_programming_enable",
     "/api/programming/disable": "post_programming_disable",
     "/api/adapter/latency": "post_adapter_latency",

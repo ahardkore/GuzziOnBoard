@@ -429,3 +429,21 @@ b.bad { color: #ef8d78; }
 
 #adapterOut { white-space: pre-wrap; font-size: .78rem; max-height: 320px; }
 #memProgressText { font-variant-numeric: tabular-nums; }
+
+/* maps view: XDF-rendered tables */
+#mapsOut details {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 8px 0;
+  padding: 0 10px;
+  background: var(--panel);
+}
+#mapsOut details > summary {
+  cursor: pointer;
+  padding: 8px 0;
+  font-weight: 600;
+  list-style: none;
+}
+#mapsOut details > summary::before { content: "▸ "; color: var(--muted); }
+#mapsOut details[open] > summary::before { content: "▾ "; }
+#mapsOut details > .table-wrap { margin: 4px 0 10px; }

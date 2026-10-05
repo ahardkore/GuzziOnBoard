@@ -32,15 +32,16 @@ Magneti Marelli ECU families fitted from the mid-1990s to the current bikes.
 | ECU memory **read** | Implemented; 5AM path grounded in a verified capture |
 | Backup with two-read verification | Implemented |
 | Firmware image validation (size, vector table, entropy, HW family) | Implemented |
+| **Maps & tables**: TunerPro XDF render + named diff of dumps | Implemented; XDFs supplied by the user |
 | ECU memory **write / erase / program / verify** | Implemented and simulator-tested; **gated on hardware** |
 | Interrupted-write checkpoints and recovery guidance | Implemented |
 | SecurityAccess seed/key plumbing + key-provider plugins | Implemented; **no verified algorithm ships** |
 | Adapter pre-flight incl. FTDI latency timer | Implemented |
 | Gearing / road-speed calculator, CSV + JSON log export | Implemented |
 
-176 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
-image validation, the full read/backup/write/verify round trip, fault
-injection and complete simulated sessions.
+228 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
+image validation, XDF parsing/render/diff, the full read/backup/write/verify
+round trip, fault injection and complete simulated sessions.
 
 ## Run it
 
@@ -59,6 +60,25 @@ For real hardware:
 pip install -e '.[hardware]'       # pyserial + python-can
 python3 run_server.py
 ```
+
+### Named maps from a dump
+
+The **Firmware → Maps & tables** panel renders a dump as named fuel and
+ignition tables using TunerPro XDF definitions — the same files the GuzziDiag
+ecosystem uses. None ship with this repo (they are third-party); get them
+from
+<https://www.von-der-salierburg.de/download/GuzziDiag/> (TunerPro XDF
+section) and drop them in:
+
+```bash
+mkdir -p ~/.guzzionboard/xdfs && cp ~/Downloads/*5AM*.xdf ~/.guzzionboard/xdfs/
+```
+
+Then point the panel at an image (a previous read lands in
+`~/.guzzionboard/images/`) and render, or diff it against a second image —
+every changed cell is reported by table name and axis value, not raw offset.
+A region read of a full-device XDF is handled automatically (address base
+0x4000, detected and reported). Strictly read-only.
 
 Run the tests with:
 

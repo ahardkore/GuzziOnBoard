@@ -258,6 +258,25 @@
       <div id="validateOut"></div>
     </article>
 
+    <article class="panel">
+      <h2>Maps &amp; tables</h2>
+      <p class="muted small">Render a dump as named fuel and ignition tables with a TunerPro XDF definition (the GuzziDiag files live at von-der-salierburg.de). Drop <code>.xdf</code> files into <code>~/.guzzionboard/xdfs/</code> &mdash; none ship with this project. Strictly read-only.</p>
+      <div class="toolbar">
+        <label class="inline">Definitions <select id="xdfSelect"><option value="">&mdash; none found &mdash;</option></select></label>
+        <button class="btn" id="mapsRefreshBtn">Reload</button>
+        <span class="muted small" id="mapsXdfDir"></span>
+      </div>
+      <div class="toolbar">
+        <label class="inline">Image path <input type="text" id="mapsImagePath" placeholder="~/.guzzionboard/images/....bin" size="44"></label>
+        <button class="btn primary" id="mapsRenderBtn">Render tables</button>
+      </div>
+      <div class="toolbar">
+        <label class="inline">Compare with <input type="text" id="mapsDiffPath" placeholder="second image, e.g. the factory backup" size="44"></label>
+        <button class="btn" id="mapsDiffBtn">Diff</button>
+      </div>
+      <div id="mapsOut"></div>
+    </article>
+
     <article class="panel danger-zone">
       <h2>4 &middot; Write</h2>
       <p class="muted small">Writing is an opt-in, not a hidden feature. It stays refused until every precondition below is green.</p>

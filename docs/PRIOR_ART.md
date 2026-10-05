@@ -216,6 +216,24 @@ is: ground truth for `firmware.py`'s future map-diff view, and a per-family
 sanity check that a dump is the right image for the right bike. The XDFs are
 plain XML; a parser is an afternoon, not a project.
 
+**Parser notes (captured from a real TunerPro v5 file, `XDFFORMAT 1.60`,
+because the Guzzi XDF zip could not be downloaded from the sandbox):**
+
+- The MATH `equation` is an *attribute* of `<MATH>`, e.g.
+  `<MATH equation="X/45.5">`. Only value-only equations (a bare `X` plus
+  arithmetic) are interpreted; per-cell or address-linked `<VAR
+  type="address">` equations are reported unsupported, never guessed.
+- `EMBEDDEDDATA mmedtypeflags & 0x1` marks signed data, overriding
+  `DEFAULTS signed`; `DEFAULTS lsbfirst` sets endianness (absent/0 =
+  big-endian). `mmedcolcount` may be omitted for 2D tables; the axis
+  `indexcount` wins. Strides are in *bits*; zero means contiguous.
+- `BASEOFFSET`: bin offset = address + offset, or address − offset when
+  `subtract="1"`. Separately, the 5AM XDFs address the full 0x50000 device
+  while a flash read returns the 0x4C000 region from device 0x4000 —
+  `maps.py` auto-detects that shift and reports the base it used.
+- `CATEGORY index` is hex, `CATEGORYMEM category` is decimal (0xA ↔ 10).
+- XDF checksum plugins are GM-specific GUID records; informational only.
+
 ---
 
 ## 4. Open-source protocol stacks to mine for the transports
@@ -278,11 +296,14 @@ relevant if pass-thru hardware support is ever wanted).
 | 3 | Only 5AM has characterised identifiers | GuzziDiag + IAWDiag captures (§2), TuneECU (§5) | serial-tap the closed tools against bench ECUs, decode into catalog | 15RC / MIU G3 / 7SM identifier tables at `documented`+ |
 | 4 | Transports never met a bike | aster94 lib, RPMSensorEmu, AdapterTest (§4, §6) | diff timing against aster94; bench ECU + wheel emulator; port-permission preflight vs AdapterTest | one full identify + live-data session per transport on real hardware |
 | 5 | Write path unproven (5AM) | 5am_util (§1.2, §1.3) | adopt write sequence + encoder into firmware/programming, simulator-tested first | a sacrificial 5AM is read, written with its own dump, read back equal |
-| 6 | No map-level view of dumps | XDF library (§3) | XDF parser + map diff in firmware.py | a 5AM dump renders named fuel/ignition tables |
+| 6 | No map-level view of dumps | XDF library (§3) | ~~XDF parser + map diff in firmware.py~~ **Done** — shipped as the standalone `guzzionboard/maps.py` (parser, render, named diff; `GET /api/maps`, `/api/maps/render`, `/api/maps/diff`; "Maps & tables" panel in the UI) | a 5AM dump renders named fuel/ignition tables |
 
 Items 1 and 6 are pure software and can land without hardware. Items 2–5
 need a bench: one ECU per family of interest, a KKL adapter, an STN or
 ELM327-class CAN adapter, and ideally the phonic-wheel emulator.
+Item 6 landed: the parser is grounded on a real TunerPro v5 XDF (§3), and
+XDFs are user-supplied at runtime from `~/.guzzionboard/xdfs/` because none
+of the Guzzi files may be redistributed with this repo.
 
 ---
 

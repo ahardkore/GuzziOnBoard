@@ -947,3 +947,154 @@ $$('.nav').forEach((b) => {
     b.onclick = () => { previous?.(); loadMemory(); };
   }
 });
+
+/* ------------------------------------------------------------------ maps */
+/* TunerPro XDF definitions turn a raw dump into named tables. The XDFs are
+ * third-party files (the GuzziDiag ones live at von-der-salierburg.de) and
+ * live in ~/.guzzionboard/xdfs — nothing ships with the app. This view is
+ * strictly read-only: it renders and diffs, it never writes. */
+
+const maps = { xdfs: [] };
+
+const fmtValue = (v) => (Number.isInteger(v) ? String(v) : String(+v.toPrecision(4)));
+
+async function loadXdfs() {
+  try {
+    const data = await api('/api/maps');
+    maps.xdfs = data.xdfs || [];
+    $('#mapsXdfDir').textContent = maps.xdfs.length
+      ? `${maps.xdfs.length} definition file(s) in ${data.directory}`
+      : `none in ${data.directory} yet`;
+    $('#xdfSelect').innerHTML = maps.xdfs.length
+      ? maps.xdfs.map((x) => `<option value="${esc(x.title)}">`
+          + `${esc(x.title)} — ${x.tables} tables, ${x.constants} constants</option>`).join('')
+      : '<option value="">— none found —</option>';
+  } catch (err) {
+    toast(`Could not list XDFs: ${err.message}`, 'bad');
+  }
+}
+
+function mapsTableHtml(t) {
+  const head = `<tr><th>${esc(t.units || '')}</th>`
+    + t.x.map((x) => `<th>${esc(x)}</th>`).join('') + '</tr>';
+  const body = t.values.map((row, r) => `<tr><th>${esc(t.y[r] ?? '')}</th>`
+    + row.map((v) => `<td>${esc(fmtValue(v))}</td>`).join('') + '</tr>').join('');
+  return `<div class="table-wrap"><table class="data"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+
+function mapsNotices(render) {
+  const out = [];
+  const base = render.address_base ? (
+    `Rendered with address base 0x${render.address_base.toString(16)} — `
+    + 'the image is a region read, the XDF addresses the full device.') : null;
+  if (base) out.push(`<p class="muted small">${esc(base)}</p>`);
+  if (render.unsupported?.length) {
+    out.push(`<div class="gate-card warn"><h4>${render.unsupported.length} item(s) not interpreted</h4>`
+      + render.unsupported.map((u) => `<p class="small">${esc(u.title || 'untitled')}: ${esc(u.reason)}</p>`).join('')
+      + '</div>');
+  }
+  if (render.errors?.length) {
+    out.push(`<div class="gate-card bad"><h4>${render.errors.length} item(s) outside this image</h4>`
+      + render.errors.map((e) => `<p class="small">${esc(e.title)}: ${esc(e.reason)}</p>`).join('')
+      + '</div>');
+  }
+  return out.join('');
+}
+
+function renderMapsResult(render) {
+  const meta = render.xdf || {};
+  const constants = render.constants?.length ? `
+    <details><summary>Constants (${render.constants.length})</summary>
+      <div class="table-wrap"><table class="data">
+        <thead><tr><th>Constant</th><th>Category</th><th>Value</th><th>Address</th></tr></thead>
+        <tbody>${render.constants.map((c) => `
+          <tr><td>${esc(c.title)}</td><td>${esc(c.category)}</td>
+              <td><b>${esc(fmtValue(c.value))}</b> ${esc(c.units)}</td>
+              <td><code>${esc(c.address)}</code></td></tr>`).join('')}
+        </tbody></table></div></details>` : '';
+  $('#mapsOut').innerHTML = `
+    <div class="gate-card ok">
+      <h4>${esc(meta.title || 'Definitions')}</h4>
+      <p class="small">${esc(meta.description || '')}</p>
+      <p class="muted small">${render.tables.length} table(s) · ${render.constants.length} constant(s)
+        · image ${(render.image_size / 1024).toFixed(0)} KiB</p>
+    </div>`
+    + mapsNotices(render)
+    + render.tables.map((t, i) => `
+      <details ${i === 0 ? 'open' : ''}>
+        <summary>${esc(t.title)}
+          <span class="muted small"> — ${esc(t.category)} · ${esc(t.units)} · ${t.rows}×${t.cols} · <code>${esc(t.address)}</code></span>
+        </summary>${mapsTableHtml(t)}</details>`).join('')
+    + constants;
+}
+
+$('#mapsRefreshBtn').onclick = loadXdfs;
+
+$('#mapsRenderBtn').onclick = async () => {
+  const path = $('#mapsImagePath').value.trim() || $('#imagePath').value.trim();
+  const xdf = $('#xdfSelect').value;
+  if (!xdf) return toast('No XDF definitions found — drop .xdf files into ~/.guzzionboard/xdfs/.', 'bad');
+  if (!path) return toast('Give the path of an image to render.', 'bad');
+  if (!path.startsWith('/') && !path.startsWith('~')) {
+    return toast('Give an absolute path, e.g. /home/you/.guzzionboard/images/5am-flash-read.bin', 'bad');
+  }
+  $('#mapsOut').innerHTML = '<p class="muted">Rendering…</p>';
+  try {
+    renderMapsResult(await api('/api/maps/render', { method: 'POST', body: { path, xdf } }));
+  } catch (err) {
+    $('#mapsOut').innerHTML = `<div class="gate-card bad"><h4>Could not render</h4><p class="small">${esc(err.message)}</p></div>`;
+  }
+};
+
+$('#mapsDiffBtn').onclick = async () => {
+  const a = $('#mapsImagePath').value.trim() || $('#imagePath').value.trim();
+  const b = $('#mapsDiffPath').value.trim();
+  const xdf = $('#xdfSelect').value;
+  if (!xdf) return toast('No XDF definitions found — drop .xdf files into ~/.guzzionboard/xdfs/.', 'bad');
+  if (!a || !b) return toast('Both images are needed to diff.', 'bad');
+  $('#mapsOut').innerHTML = '<p class="muted">Comparing…</p>';
+  try {
+    const d = await api('/api/maps/diff', {
+      method: 'POST', body: { path_a: a, path_b: b, xdf },
+    });
+    if (d.identical) {
+      $('#mapsOut').innerHTML = '<div class="gate-card ok"><h4>No differences</h4>'
+        + '<p class="small">Every table and constant in these definitions is identical between the two images.</p></div>';
+      return;
+    }
+    $('#mapsOut').innerHTML = `
+      <div class="gate-card warn"><h4>Images differ</h4>
+        <p class="small">${d.tables.length} table(s) and ${d.constants.length} constant(s) changed.</p></div>`
+      + d.tables.map((t) => `
+        <details open><summary>${esc(t.title)}
+          <span class="muted small"> — ${t.changed_cells} cell(s) changed</span></summary>
+        <div class="table-wrap"><table class="data">
+          <thead><tr><th>Row</th><th>Column</th><th>Before</th><th>After</th></tr></thead>
+          <tbody>${(t.cells || []).map((c) => `
+            <tr><td>${esc(c.y)}</td><td>${esc(c.x)}</td>
+                <td><b class="bad">${esc(fmtValue(c.before))}</b></td>
+                <td><b class="ok">${esc(fmtValue(c.after))}</b></td></tr>`).join('')}
+          </tbody></table></div>
+        ${t.cells_truncated ? '<p class="muted small">Only the first 512 changed cells are listed.</p>' : ''}
+        ${t.error ? `<p class="muted small">${esc(t.error)}</p>` : ''}
+        </details>`).join('')
+      + (d.constants.length ? `
+        <details open><summary>Constants</summary>
+        <div class="table-wrap"><table class="data">
+          <thead><tr><th>Constant</th><th>Before</th><th>After</th></tr></thead>
+          <tbody>${d.constants.map((c) => `
+            <tr><td>${esc(c.title)}</td>
+                <td><b class="bad">${esc(fmtValue(c.before))}</b> ${esc(c.units)}</td>
+                <td><b class="ok">${esc(fmtValue(c.after))}</b></td></tr>`).join('')}
+          </tbody></table></div></details>` : '');
+  } catch (err) {
+    $('#mapsOut').innerHTML = `<div class="gate-card bad"><h4>Could not diff</h4><p class="small">${esc(err.message)}</p></div>`;
+  }
+};
+
+$$('.nav').forEach((b) => {
+  if (b.dataset.view === 'firmware') {
+    const previous = b.onclick;
+    b.onclick = () => { previous?.(); loadXdfs(); };
+  }
+});

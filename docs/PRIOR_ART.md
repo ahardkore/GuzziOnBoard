@@ -315,13 +315,75 @@ promotion path. Known but deliberately unmodelled for now: Aprilia 5DM
 
 ---
 
+## 8. The other families: what can be found, and what can only be captured
+
+Asked whether the identifier tables for 15M, 15RC, 16M, 59M, 7SM, MIU G3,
+MIU G4, P8 and 11MP can be found "the same way we did 5AM", the honest
+answer has two halves.
+
+**They cannot be found, because the 5AM table was not found either.** §5 of
+`PROTOCOL_NOTES.md` is a record of a wire tap: 0x30–0x7F read off a live bus
+while a tool talked to a bike, with the 38 slots that answered with zeroes
+marked dead. No public document publishes a per-family local-identifier
+table for any of these ECUs. The tables exist in two places only — compiled
+into the closed GuzziDiag/IAWDiag binaries, and on the K-Line of a running
+motorcycle. Searching produced no third place. Anything written into a
+catalog from a forum post or an analogy with 5AM would be an assertion
+wearing a measurement's clothes, which is exactly what this project refuses
+to do.
+
+**What the published changelogs do settle** is a layer above the
+identifiers: which values each family has at all, how they behave, and which
+of them the closed tool had to correct. That is real, citable, and it tells
+a capture what to look for. From the GuzziDiag (V0.61) and IAWDiag (V0.52)
+changelogs:
+
+| Family | Established from the changelogs |
+| --- | --- |
+| 5AM | Fast init only — slow init was removed as unsupported. Service reset is done from the dashboard, not the tool. TPS-Reset does not apply with the PF3C throttle body. The stepper test requires the engine running. Has dwell, lambda-2 state, lambda status, corrected injection timing, integrator and lambda mV. Injectors 3 and 4 exist as actuators. |
+| 15M | The only family with a usable CO-Trim, and only above 80 °C coolant (the threshold was raised twice). |
+| 15RC | Lambda is reported in mV. "Partial load", "idle speed" and "rich multiplier" are **signed**. CO-Trim is only meaningful with lambda control off. PF3C shows raw throttle only; PF1C shows corrected throttle only. |
+| 16M | CO-Trim is impossible on the original firmware. Error "unknown 03" is the right injector. The two injector actuators were swapped in the tool for years. |
+| 59M | Has CO-Trim. Shares the tip-over sensor state encoding with 5AM (both were corrected together). |
+| P7 / P8 | **No stored faults at all** — nothing to read, nothing to clear. P8's "unknown 12" and "unknown 13" are one 16-bit integer (observed 16000–49536); "unknown 14" is a flag byte; "unknown 0B" is the CO trimmer. P7 reports rpm at half scale. |
+| 7SM | Front-wheel speed, throttle self-learning, exhaust-valve zero and self-learn, track-counter reset. |
+| MIU G3 | TPS-reset, stepper test, corrected injection time, front-wheel speed. |
+| MIU G4, 11MP | **Not covered by GuzziDiag or IAWDiag at all.** There is no closed tool session to tap on these; they are CAN-era and belong to the CAN discovery path in §7, not this one. |
+
+These facts belong in catalog `notes`, not in parameter definitions — they
+constrain and sanity-check a capture, they do not substitute for one.
+
+**So the method is the deliverable.** `guzzionboard/klinelog.py` is the 5AM
+procedure made repeatable by anyone with a bike and the closed tool:
+
+1. Tap the K-Line while GuzziDiag/IAWDiag runs a live-data session.
+2. Have that tool write its own CSV log over the same minutes.
+3. `POST /api/tools/klinelog` (or the K-Line panel in Discovery) pairs every
+   `21 <rli>` with its answer, reports what each identifier did, and solves
+   each named CSV column against the raw series by least squares — including
+   the signed reading, which is how 15RC's signed values will be settled.
+4. A channel whose straight line fits to r² ≥ 0.999 comes out as
+   `verified-capture` with its scale, bias and the fit that earned it.
+   Everything else comes out as `unknown` or as a dead slot. Nothing is
+   written to the catalog automatically.
+
+A capture that never revs the engine solves nothing, and the tool says so
+rather than fitting a constant.
+
+---
+
 ## Sources
 
 - `5am_util` source, `main.c` / `util.c` —
   <https://github.com/denandz/5am_util> (fetched and transcribed 2026-10;
   key algorithm and write path verified against the README transcript pairs)
 - GuzziDiag / IAWDiag / GuzziCanDiag download page and changelogs —
-  <https://www.von-der-salierburg.de/download/GuzziDiag/>
+  <https://www.von-der-salierburg.de/download/GuzziDiag/>; the per-family
+  facts in §8 are from
+  <https://www.von-der-salierburg.de/download/GuzziDiag/GuzziDiag_Changelog.txt>
+  (V0.61, 2026.06.07) and
+  <https://www.von-der-salierburg.de/download/GuzziDiag/IAWDiag_Changelog.txt>
+  (V0.52, 2023.05.30), both fetched 2026-10
 - IAWDiag ecosystem overview —
   <https://www.ducati.ms/threads/magneti-marelli-ecu-access-with-iawdiag-and-using-tunerpro.745787/>
 - GuzziDiag beginner tutorial —

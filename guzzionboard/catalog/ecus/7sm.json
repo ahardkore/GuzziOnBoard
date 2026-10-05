@@ -5,7 +5,7 @@
   "transport": "kline",
   "confidence": "documented",
   "years": "2013-2021",
-  "notes": "California 1400, Audace, Eldorado, MGX-21 and the V85 TT. Ride-by-wire: there is no cable to the throttle bodies, so the handle (grip) and the throttle plates are learned as two separate routines and the order matters. The 7SM has no CO trim. Identification is confirmed to return Drawing / Hardware / Software / Omologation / Serial / Tester, and the session switches baud rate after init. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only.",
+  "notes": "California 1400, Audace, Eldorado, MGX-21 and the V85 TT. Ride-by-wire: there is no cable to the throttle bodies, so the handle (grip) and the throttle plates are learned as two separate routines and the order matters. The 7SM has no CO trim. Identification is confirmed to return Drawing / Hardware / Software / Omologation / Serial / Tester, and the session switches baud rate after init. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Front-wheel speed, throttle self-learning, exhaust-valve zero and self-learn, and a track-counter reset all exist on this family.",
   "kline": {
     "baud": 10400,
     "init": "fast",

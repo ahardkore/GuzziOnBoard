@@ -370,6 +370,33 @@
       </details>
       <div id="canlogOut"></div>
     </article>
+
+    <article class="panel">
+      <h2>K-Line identifier discovery</h2>
+      <p class="muted">Only the 5AM has a characterised identifier table here, and it was built by tapping the wire while another tool talked to a real bike. No document publishes the tables for 15M, 15RC, 16M, 59M, 7SM or the P-series — they only exist on the wire. This does the second half of that job for any family: it reads a capture, reports every identifier that answered, and — given the CSV the other tool wrote <i>at the same time</i> — solves the scalings instead of guessing them.</p>
+      <details class="advanced">
+        <summary>How to take the capture</summary>
+        <ol class="muted small">
+          <li>Tap the K-Line between the adapter and the laptop (a second FTDI on the same line, or a logging passthrough) and log everything while GuzziDiag or IAWDiag runs a normal live-data session on the bike.</li>
+          <li>In that tool, log its own values to CSV over the same minutes. That second file is what turns "0x42 answered" into "0x42 is battery volts × 0.01".</li>
+          <li>Sweep the engine through its range while logging: a value that never moves cannot be solved, and will be reported as unsolved rather than invented.</li>
+          <li>Analyse both here. Nothing is written to the catalog automatically — you get a draft to check.</li>
+        </ol>
+      </details>
+      <div class="toolbar">
+        <label class="inline">Family <input type="text" id="klinelogFamily" placeholder="15M" size="8"></label>
+        <label class="inline">Capture path <input type="text" id="klinelogPath" placeholder="~/captures/15m-kline.log" size="30"></label>
+        <label class="inline">Reference CSV <input type="text" id="klinelogRefPath" placeholder="~/captures/guzzidiag.csv" size="26"></label>
+        <button class="btn primary" id="klinelogBtn">Analyse capture</button>
+      </div>
+      <details class="advanced">
+        <summary>or paste the capture</summary>
+        <textarea id="klinelogText" rows="5" placeholder="0.000 tx 80 10 F1 02 21 30 1D&#10;0.020 rx 80 F1 10 04 61 30 0B B8 ..." spellcheck="false"></textarea>
+        <div class="toolbar"><button class="btn" id="klinelogPasteBtn">Analyse pasted capture</button>
+          <span class="muted small">session JSONL, timestamped hex lines, or a bare hex dump — auto-detected</span></div>
+      </details>
+      <div id="klinelogOut"></div>
+    </article>
   </section>
 
   <!-- ===================================================== FIRMWARE -->

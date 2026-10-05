@@ -5,7 +5,7 @@
   "transport": "kline",
   "confidence": "documented",
   "years": "1997-2002",
-  "notes": "California 1997-2001 (EV, Jackal, Stone, Special), Quota 1100 ES, V11 Sport and LeMans up to 2002. Open loop - no lambda sensor on most images, so there is no closed-loop trim to read. The TPS is set mechanically with a voltmeter; there is no electronic reset. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only.",
+  "notes": "California 1997-2001 (EV, Jackal, Stone, Special), Quota 1100 ES, V11 Sport and LeMans up to 2002. Open loop - no lambda sensor on most images, so there is no closed-loop trim to read. The TPS is set mechanically with a voltmeter; there is no electronic reset. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: CO-Trim is supported on this family alone, and only once the engine is above 80 °C.",
   "kline": {
     "baud": 10400,
     "init": "auto",

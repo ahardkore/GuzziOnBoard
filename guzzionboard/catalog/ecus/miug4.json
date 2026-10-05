@@ -5,7 +5,7 @@
   "transport": "can",
   "confidence": "inferred",
   "years": "2017-2021",
-  "notes": "V7 III 850 generation on CAN bus. Diagnostics move inside ISO-TP, so the application layer is unchanged but the framing is not. Request and response identifiers below are the ISO 15765-4 defaults and have not been confirmed on a Guzzi - verify with a passive sniff before trusting them. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only.",
+  "notes": "V7 III 850 generation on CAN bus. Diagnostics move inside ISO-TP, so the application layer is unchanged but the framing is not. Request and response identifiers below are the ISO 15765-4 defaults and have not been confirmed on a Guzzi - verify with a passive sniff before trusting them. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Neither GuzziDiag nor IAWDiag covers this family, so there is no closed tool session to tap: identifiers here have to come from the CAN discovery path.",
   "can": {
     "interface": "socketcan",
     "channel": "can0",

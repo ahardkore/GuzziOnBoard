@@ -5,7 +5,7 @@
   "transport": "kline",
   "confidence": "inferred",
   "years": "1993-1997",
-  "notes": "Daytona 1000, Quota 1000, California 1100 i.e., California III from 1993. Outside the 25-year window for most owners and only partially supported by the open tools. Read-only identification here. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only.",
+  "notes": "Daytona 1000, Quota 1000, California 1100 i.e., California III from 1993. Outside the 25-year window for most owners and only partially supported by the open tools. Read-only identification here. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: This family stores no faults at all - there is nothing to read and nothing to clear. 'Unknown 0B' is the CO trimmer value, 'unknown 12' and 'unknown 13' are one 16-bit integer, and 'unknown 14' is a flag byte.",
   "kline": {
     "baud": 10400,
     "init": "slow",

@@ -1861,6 +1861,95 @@ $('#canlogPasteBtn').onclick = () => {
   analyseCanlog({ text });
 };
 
+/* ---------------------------------------------- K-Line capture analysis */
+/* The 5AM identifier table in the catalog came from a wire tap, because no
+ * published document carries one for any of these families. This makes that
+ * method repeatable: characterise what answered, and solve the scalings
+ * against the other tool's own CSV so a number earns 'verified-capture'
+ * instead of being asserted. */
+
+function renderKlinelog(result) {
+  const out = $('#klinelogOut');
+  const s = result.summary;
+  const solved = result.matches.length;
+  const head = `
+    <div class="gate-card ${s.answered ? 'ok' : 'warn'}">
+      <h4>${s.answered} identifier(s) answered · ${solved} scaling(s) solved</h4>
+      <p class="small">${result.frames} frames · ${s.moved} moved · ${s.always_zero} always zero
+        · ${s.refused} refused${result.identification.length
+          ? ` · ECU says <code>${esc(result.identification[0].ascii)}</code>` : ''}</p>
+    </div>`;
+
+  if (!s.answered) {
+    out.innerHTML = head + `<p class="muted small">${esc(result.note)}</p>`;
+    return;
+  }
+
+  const solvedRows = result.matches.map((m) => `
+    <tr><td><code>${esc(m.hex)}</code></td><td>${esc(m.channel)}</td>
+      <td>${m.length} byte${m.length === 1 ? '' : 's'}${m.signed ? ', signed' : ''}</td>
+      <td>× ${m.scale}${m.bias ? ` ${m.bias > 0 ? '+' : '−'} ${Math.abs(m.bias)}` : ''}</td>
+      <td class="muted">r² ${m.fit} · ${m.points} pts</td></tr>`).join('');
+
+  const unsolved = result.identifiers.filter(
+    (e) => e.answers && !result.matches.some((m) => m.local_id === e.local_id));
+  const unsolvedRows = unsolved.map((e) => `
+    <tr><td><code>${esc(e.hex)}</code></td>
+      <td class="muted">${e.always_zero ? 'always zero — dead slot'
+        : e.moved ? 'moved, meaning unknown' : 'answered, never moved'}</td>
+      <td>${e.length} byte${e.length === 1 ? '' : 's'}</td>
+      <td class="muted">${e.min} … ${e.max}</td>
+      <td class="muted">${e.samples} sample(s)</td></tr>`).join('');
+
+  out.innerHTML = head
+    + (solved ? `<h4>Solved against the reference log
+         <span class="conf ok">verified-capture</span></h4>
+       <table class="data"><thead><tr><th>Id</th><th>Channel</th><th>Width</th>
+         <th>Scaling</th><th>Fit</th></tr></thead><tbody>${solvedRows}</tbody></table>`
+      : `<p class="muted small">No scalings solved. Add the reference CSV the other
+         tool wrote during the same capture — without it an identifier can only be
+         shown to exist, not to mean anything.</p>`)
+    + (unsolved.length ? `<h4>Answered but unsolved
+         <span class="conf low">unknown</span></h4>
+       <table class="data"><thead><tr><th>Id</th><th>What was seen</th><th>Width</th>
+         <th>Range</th><th>Samples</th></tr></thead><tbody>${unsolvedRows}</tbody></table>` : '')
+    + (result.services_seen.length ? `<p class="muted small">Services used by that tool:
+        ${result.services_seen.map((x) => `${esc(x.name)} (${esc(x.service)})`).join(', ')}</p>` : '')
+    + `<details class="advanced"><summary>Draft catalog fragment</summary>
+        <p class="muted small">${esc(result.draft.note)}</p>
+        <textarea rows="12" spellcheck="false" readonly>${esc(JSON.stringify(result.draft, null, 2))}</textarea>
+       </details>`;
+}
+
+async function analyseKlinelog(body) {
+  $('#klinelogOut').innerHTML = '<p class="muted">Analysing…</p>';
+  try {
+    renderKlinelog(await api('/api/tools/klinelog', { method: 'POST', body }));
+  } catch (err) {
+    $('#klinelogOut').innerHTML =
+      `<div class="gate-card bad"><h4>Could not analyse</h4><p class="small">${esc(err.message)}</p></div>`;
+  }
+}
+
+$('#klinelogBtn').onclick = () => {
+  const path = $('#klinelogPath').value.trim();
+  if (!path) return toast('Give the path of a capture file.', 'bad');
+  analyseKlinelog({
+    path,
+    reference_path: $('#klinelogRefPath').value.trim() || undefined,
+    family: $('#klinelogFamily').value.trim() || undefined,
+  });
+};
+$('#klinelogPasteBtn').onclick = () => {
+  const text = $('#klinelogText').value.trim();
+  if (!text) return toast('Paste a capture first.', 'bad');
+  analyseKlinelog({
+    text,
+    reference_path: $('#klinelogRefPath').value.trim() || undefined,
+    family: $('#klinelogFamily').value.trim() || undefined,
+  });
+};
+
 /* ---------------------------------------------------------- compare view */
 /* Two recorded sessions, side by side, channel by channel. Sessions are
  * not aligned in time, so the server compares means, not point-by-point. */

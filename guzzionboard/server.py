@@ -16,6 +16,7 @@ from urllib.parse import parse_qs, urlparse
 
 from . import adapter as adapter_mod
 from . import canlog
+from . import klinelog
 from . import tools
 from .catalog import CatalogError
 from .derived import CHANNELS as DERIVED_CHANNELS, Analyzer
@@ -680,6 +681,37 @@ class Api:
             return 400, {"error": str(exc)}
         return 200, result
 
+    def post_tools_klinelog(self, body: dict) -> tuple[int, dict]:
+        """Characterise a K-Line capture: which local identifiers answered?
+
+        This is how the 5AM table was built, made repeatable. Give it a tap
+        of a diagnostic session (``path`` or pasted ``text``); give it the
+        CSV the other tool wrote at the same time (``reference`` /
+        ``reference_path``) and the scalings are solved rather than guessed.
+        Read-only: it touches files, never hardware.
+        """
+        path, text = body.get("path"), body.get("text")
+        if not path and not text:
+            return 400, {"error": "a capture 'path' or pasted 'text' is required"}
+        family = str(body.get("family") or "unknown")
+        try:
+            if path:
+                result = klinelog.analyze_file(
+                    str(path), body.get("reference_path"), family=family)
+            else:
+                reference = body.get("reference")
+                if not reference and body.get("reference_path"):
+                    from pathlib import Path as _Path
+                    ref_file = _Path(str(body["reference_path"]))
+                    if not ref_file.is_file():
+                        return 400, {"error": f"no such reference log: {ref_file}"}
+                    reference = ref_file.read_text(encoding="utf-8", errors="replace")
+                result = klinelog.analyze(
+                    str(text), str(reference) if reference else None, family=family)
+        except klinelog.KLineLogError as exc:
+            return 400, {"error": str(exc)}
+        return 200, result
+
     def get_gearing(self, query: dict) -> tuple[int, dict]:
         def number(name, default):
             try:
@@ -771,6 +803,7 @@ ROUTES_POST = {
     "/api/programming/disable": "post_programming_disable",
     "/api/adapter/latency": "post_adapter_latency",
     "/api/tools/canlog": "post_tools_canlog",
+    "/api/tools/klinelog": "post_tools_klinelog",
     "/api/sessions/compare": "post_sessions_compare",
     "/api/sim/engine": "post_sim_engine",
     "/api/sim/faults": "post_sim_faults",

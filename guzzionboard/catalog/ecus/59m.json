@@ -5,7 +5,7 @@
   "transport": "kline",
   "confidence": "unknown",
   "years": "2001-2009",
-  "notes": "Ducati's workhorse ECU of the 999/749/air-cooled-Monster era: 749 and 999 Superbikes, 998, the injected air-cooled Monsters (620 through 1000), Multistrada 1000/1100, SportClassic GT1000 / Paul Smart / Sport 1000, S2R, S4R and ST4S. The GuzziDiag and TuneECU ecosystems both speak to it. This entry is a placeholder built from those tools' compatibility lists: no identifier, session or memory sequence has been captured from a 59M here, so it is identification-only until one is. Identification, fault codes and the read-only discovery sweep are safe; everything else waits for a capture. If you own one of these bikes, a single recorded session upgrades the whole family.",
+  "notes": "Ducati's workhorse ECU of the 999/749/air-cooled-Monster era: 749 and 999 Superbikes, 998, the injected air-cooled Monsters (620 through 1000), Multistrada 1000/1100, SportClassic GT1000 / Paul Smart / Sport 1000, S2R, S4R and ST4S. The GuzziDiag and TuneECU ecosystems both speak to it. This entry is a placeholder built from those tools' compatibility lists: no identifier, session or memory sequence has been captured from a 59M here, so it is identification-only until one is. Identification, fault codes and the read-only discovery sweep are safe; everything else waits for a capture. If you own one of these bikes, a single recorded session upgrades the whole family. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: CO-Trim is supported. The tip-over sensor state uses the same encoding as 5AM.",
   "kline": {
     "baud": 10400,
     "init": "fast",
@@ -42,7 +42,11 @@
     "security_access": false,
     "regions": {}
   },
-  "capabilities": ["identify", "dtc_read", "discover"],
+  "capabilities": [
+    "identify",
+    "dtc_read",
+    "discover"
+  ],
   "sources": [
     "Ducati.ms Model/ECU list (2009)",
     "GuzziTek ECU master list (2011)",

@@ -5,7 +5,7 @@
   "transport": "kline",
   "confidence": "documented",
   "years": "1996-2001",
-  "notes": "Sport 1100, V10 Centauro, Daytona RS. Early generation - expect 5-baud slow init and a reduced service set. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only.",
+  "notes": "Sport 1100, V10 Centauro, Daytona RS. Early generation - expect 5-baud slow init and a reduced service set. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: CO-Trim is impossible on the original firmware. The fault reported as 'unknown 03' is the right injector, and the two injector actuators are easily swapped.",
   "kline": {
     "baud": 10400,
     "init": "slow",

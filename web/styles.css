@@ -102,7 +102,12 @@ main { padding: 22px 26px 60px; min-width: 0; }
 }
 .topbar h1 { font-size: 1.4rem; }
 .topbar p { color: var(--muted); margin: 0; font-size: .88rem; }
-.topbar-right { display: flex; gap: 8px; flex: none; }
+.topbar-right { display: flex; gap: 8px; flex: none; align-items: center; }
+
+/* Celsius / Fahrenheit picker — display only, the wire stays in Celsius. */
+.unit-pick { display: flex; align-items: center; gap: 6px; font-size: .76rem; }
+.unit-pick > span { color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.unit-pick select { padding: 3px 6px; font-size: .78rem; }
 
 .pill {
   background: var(--accent-dim); color: #d9fff0;

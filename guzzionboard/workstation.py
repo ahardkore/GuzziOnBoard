@@ -19,6 +19,13 @@ from .sessionlog import DEFAULT_DIR, SessionLog
 from .transports.base import Transport, TransportUnavailable
 from .transports.simulator import EngineModel, SimulatedEcu, SimulatorTransport
 
+#: Unit strings the catalog uses for a Celsius channel.
+_CELSIUS_UNITS = {"\u00b0c", "c", "deg c", "degc", "celsius"}
+
+
+def _is_celsius(unit: str | None) -> bool:
+    return str(unit or "").strip().lower() in _CELSIUS_UNITS
+
 
 @dataclass
 class Selection:
@@ -402,8 +409,13 @@ class Workstation:
                 report["dtcs_error"] = str(exc)
         return report
 
-    def report_text(self, report: dict | None = None) -> str:
+    def report_text(
+        self, report: dict | None = None, temp_unit: str = "C"
+    ) -> str:
+        """Render the report. ``temp_unit`` is display only: "C" (what the
+        ECU actually sends) or "F" for riders who think in Fahrenheit."""
         r = report or self.build_report()
+        fahrenheit = str(temp_unit).strip().upper().startswith("F")
         lines = [
             "GuzziOnBoard diagnostic report",
             "=" * 60,
@@ -442,7 +454,13 @@ class Workstation:
             if s.get("error"):
                 lines.append(f"{s['name']:<30} ERROR {s['error']}")
             else:
-                shown = s.get("text") or f"{s['value']} {s['unit']}".strip()
+                value, unit = s["value"], s["unit"]
+                if fahrenheit and _is_celsius(unit) and isinstance(value, (int, float)):
+                    value = round(value * 9 / 5 + 32, 1)
+                    if isinstance(s["value"], int):
+                        value = int(round(value))
+                    unit = "\u00b0F"
+                shown = s.get("text") or f"{value} {unit}".strip()
                 lines.append(
                     f"{s['name']:<30} {shown:<18} raw={s['raw']}  (0x{s['local_id']:02X})"
                 )

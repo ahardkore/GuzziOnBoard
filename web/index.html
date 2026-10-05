@@ -52,6 +52,13 @@
     <div class="topbar-right">
       <span class="pill" id="modePill">simulator</span>
       <span class="pill ghost" id="ecuPill">no ECU</span>
+      <label class="unit-pick no-print" title="Celsius is what the ECU sends; Fahrenheit is converted for display only">
+        <span>Temp</span>
+        <select id="tempUnit">
+          <option value="C">°C</option>
+          <option value="F">°F</option>
+        </select>
+      </label>
       <button class="btn small no-print" id="printBtn" title="Print this view or save it as PDF">Print / PDF</button>
       <a class="btn small no-print" href="sim.html" target="_blank" rel="noopener">Simulator demo</a>
       <a class="btn small no-print" href="tour.html" target="_blank" rel="noopener">Tour &amp; setup</a>

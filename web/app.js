@@ -23,6 +23,7 @@ const state = {
   scan: null,
   baseline: null,
   report: null,
+  lastSamples: [],
 };
 
 const HISTORY_LEN = 90;
@@ -67,6 +68,51 @@ const Prefs = {
   },
   set(key, value) {
     try { localStorage.setItem(`guzzionboard.${key}`, value ?? ''); } catch (_) { /* private mode */ }
+  },
+};
+
+/* ------------------------------------------------------- temperature units
+ *
+ * The ECUs always answer in Celsius — that is what the wire says and that is
+ * what the raw bytes column keeps showing. Everything a human reads can be
+ * flipped to Fahrenheit, because plenty of these bikes are ridden where the
+ * thermometer in the garage is marked in °F.
+ */
+
+const CELSIUS_RE = /^\s*(°|deg\.?\s*)?C(elsius)?\s*$/i;
+const isCelsiusUnit = (unit) => CELSIUS_RE.test(String(unit ?? ''));
+
+const Temp = {
+  unit() { return Prefs.get('tempUnit', 'C') === 'F' ? 'F' : 'C'; },
+  setUnit(u) { Prefs.set('tempUnit', u === 'F' ? 'F' : 'C'); },
+
+  /* The label to print next to a converted value. */
+  label(unit) {
+    return isCelsiusUnit(unit) && Temp.unit() === 'F' ? '°F' : unit;
+  },
+
+  /* Convert a Celsius value if (and only if) the channel is a temperature
+   * and the user asked for Fahrenheit. Non-numeric values pass through. */
+  value(v, unit) {
+    if (!isCelsiusUnit(unit) || Temp.unit() === 'C') return v;
+    const n = Number(v);
+    if (!Number.isFinite(n)) return v;
+    const f = n * 9 / 5 + 32;
+    return Number.isInteger(n) ? Math.round(f) : +f.toFixed(1);
+  },
+
+  /* A difference in Celsius is 1.8x as large in Fahrenheit, with no offset. */
+  delta(v, unit) {
+    if (!isCelsiusUnit(unit) || Temp.unit() === 'C') return v;
+    const n = Number(v);
+    if (!Number.isFinite(n)) return v;
+    return +(n * 9 / 5).toFixed(2);
+  },
+
+  /* "92.4 °F" — value and unit together, both escaped. */
+  text(v, unit) {
+    const u = Temp.label(unit);
+    return `${esc(Temp.value(v, unit))}${u ? ` ${esc(u)}` : ''}`;
   },
 };
 
@@ -461,6 +507,7 @@ function sparkline(values, min, max) {
 }
 
 function renderLive(samples) {
+  state.lastSamples = samples;
   const byKey = new Map(state.parameters.map((p) => [p.key, p]));
 
   $('#liveGrid').innerHTML = samples.map((s) => {
@@ -471,11 +518,17 @@ function renderLive(samples) {
         <label>${esc(s.error.slice(0, 80))}</label></article>`;
     }
     const history = state.history.get(s.key) || [];
-    const display = s.text || `${s.value}`;
+    const display = s.text || `${Temp.value(s.value, s.unit)}`;
+    const span = isCelsiusUnit(s.unit)
+      ? [Temp.value(meta.min, s.unit), Temp.value(meta.max, s.unit)]
+      : [meta.min, meta.max];
+    const trace = isCelsiusUnit(s.unit)
+      ? history.map((v) => Temp.value(v, s.unit))
+      : history;
     return `<article class="metric">
       <small>${esc(s.name)}</small>
-      <strong>${esc(display)} <em>${esc(s.unit)}</em></strong>
-      ${s.text ? '' : sparkline(history, meta.min, meta.max)}
+      <strong>${esc(display)} <em>${esc(Temp.label(s.unit))}</em></strong>
+      ${s.text ? '' : sparkline(trace, span[0], span[1])}
       <label>0x${s.local_id.toString(16).toUpperCase().padStart(2, '0')} · ${esc(s.raw)}</label>
     </article>`;
   }).join('');
@@ -486,7 +539,7 @@ function renderLive(samples) {
       <td>${esc(s.name)}</td>
       <td><code>0x${s.local_id.toString(16).toUpperCase().padStart(2, '0')}</code></td>
       <td><code>${esc(s.raw || '—')}</code></td>
-      <td>${s.error ? `<span class="err">${esc(s.error.slice(0, 60))}</span>` : `${esc(s.text || s.value)} ${esc(s.unit)}`}</td>
+      <td>${s.error ? `<span class="err">${esc(s.error.slice(0, 60))}</span>` : `${s.text ? esc(s.text) : Temp.text(s.value, s.unit)}`}</td>
       <td><span class="conf ${confidenceClass(meta.confidence)}">${esc(meta.confidence || '?')}</span></td>
     </tr>`;
   }).join('');
@@ -565,7 +618,7 @@ async function readDtcs() {
     ? `<div class="fault-context"><span class="muted small">Context observed at read time
         ${data.context_note ? `<span title="${esc(data.context_note)}">(?)</span>` : ''}:</span>
        ${context.map(([k, c]) =>
-         `<span class="tag">${esc(c.name)} <b>${esc(c.value)}${esc(c.unit ? ' ' + c.unit : '')}</b></span>`
+         `<span class="tag">${esc(c.name)} <b>${esc(Temp.value(c.value, c.unit))}${c.unit ? ' ' + esc(Temp.label(c.unit)) : ''}</b></span>`
        ).join(' ')}</div>`
     : '';
 
@@ -756,7 +809,7 @@ async function loadSessionEvents(name) {
       const time = new Date(e.t * 1000).toLocaleTimeString();
       let body = '';
       if (e.kind === 'frame') body = `<span class="dir ${e.dir}">${e.dir}</span> <code>${esc(e.hex)}</code>`;
-      else if (e.kind === 'sample') body = `${esc(e.key)} = ${esc(e.value)} ${esc(e.unit)} <code>${esc(e.raw)}</code>`;
+      else if (e.kind === 'sample') body = `${esc(e.key)} = ${Temp.text(e.value, e.unit)} <code>${esc(e.raw)}</code>`;
       else if (e.kind === 'safety') body = `${e.allowed ? '<span class="yes">allowed</span>' : '<span class="no">refused</span>'} ${esc(e.operation)} — ${esc(e.reason)}`;
       else if (e.kind === 'action') body = `<b>${esc(e.name)}</b> ${esc(JSON.stringify(e.detail).slice(0, 160))}`;
       else if (e.kind === 'error') body = `<span class="no">${esc(e.where)}</span> ${esc(e.message)}`;
@@ -769,7 +822,7 @@ async function loadSessionEvents(name) {
 
 async function buildReport() {
   try {
-    state.report = await api('/api/report');
+    state.report = await api(`/api/report?temp_unit=${Temp.unit()}`);
     $('#reportText').textContent = state.report.text;
     $('#downloadReportBtn').disabled = false;
     $('#downloadJsonBtn').disabled = false;
@@ -781,6 +834,11 @@ async function buildReport() {
 
 $('#yearSelect').onchange = resolveVehicle;
 $('#printBtn').onclick = () => window.print();
+$('#tempUnit').onchange = (e) => {
+  Temp.setUnit(e.target.value);
+  if (state.lastSamples.length) renderLive(state.lastSamples);
+  toast(`Temperatures shown in ${Temp.unit() === 'F' ? 'Fahrenheit' : 'Celsius'}.`, 'ok');
+};
 $('#ecuOverride').onchange = updateConnectEnabled;
 $('#checklistAccept').onchange = updateConnectEnabled;
 $('#connectBtn').onclick = connect;
@@ -803,6 +861,7 @@ window.addEventListener('beforeunload', () => {
 
 (async function boot() {
   try {
+    $('#tempUnit').value = Temp.unit();
     await loadCatalog();
     await refreshStatus();
     setInterval(() => { if (!state.polling) refreshStatus().catch(() => {}); }, 5000);
@@ -1375,9 +1434,10 @@ function fillCompareSelects() {
   }
 }
 
-function fmtStat(s) {
+function fmtStat(s, unit) {
   if (!s) return '<span class="muted">—</span>';
-  return `${s.mean} <span class="muted small">(${s.min}…${s.max}, n=${s.count})</span>`;
+  const v = (x) => esc(Temp.value(x, unit));
+  return `${v(s.mean)} <span class="muted small">(${v(s.min)}…${v(s.max)}, n=${s.count})</span>`;
 }
 
 $('#compareBtn').onclick = async () => {
@@ -1403,10 +1463,10 @@ $('#compareBtn').onclick = async () => {
       + `<div class="table-wrap"><table class="data">
         <thead><tr><th>Channel</th><th>A (mean, range)</th><th>B (mean, range)</th><th>Δ mean</th></tr></thead>
         <tbody>${d.channels.map((c) => `
-          <tr><td><b>${esc(c.key)}</b> ${esc(c.unit)}</td>
-              <td>${fmtStat(c.a)}</td><td>${fmtStat(c.b)}</td>
+          <tr><td><b>${esc(c.key)}</b> ${esc(Temp.label(c.unit))}</td>
+              <td>${fmtStat(c.a, c.unit)}</td><td>${fmtStat(c.b, c.unit)}</td>
               <td>${c.delta_mean === null ? '<span class="muted">—</span>'
-                : `<b class="${Math.abs(c.delta_mean) < 1e-9 ? '' : 'warn'}">${c.delta_mean > 0 ? '+' : ''}${c.delta_mean}</b>`}</td>
+                : `<b class="${Math.abs(c.delta_mean) < 1e-9 ? '' : 'warn'}">${c.delta_mean > 0 ? '+' : ''}${esc(Temp.delta(c.delta_mean, c.unit))}</b>`}</td>
           </tr>`).join('')}
         </tbody></table></div>`;
   } catch (err) {

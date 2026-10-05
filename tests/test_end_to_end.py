@@ -347,6 +347,31 @@ def test_workstation_drives_a_whole_simulated_session(tmp_path):
     ws.disconnect()
 
 
+def test_report_can_be_printed_in_fahrenheit(tmp_path):
+    """Celsius is what the ECU sends; Fahrenheit is a display choice."""
+    ws = Workstation(session_dir=tmp_path)
+    ws.select(model="Griso 1200 8V", year=2012, transport="simulator")
+    ws.connect(mode="simulator")
+    ws.require_service().read_parameters(["rpm", "coolant_temp", "air_temp"])
+    report = ws.build_report()
+
+    celsius = ws.report_text(report)
+    fahrenheit = ws.report_text(report, temp_unit="F")
+    assert "\u00b0C" in celsius and "\u00b0F" not in celsius
+    assert "\u00b0F" in fahrenheit and "\u00b0C" not in fahrenheit
+
+    def value_of(text, name):
+        line = next(l for l in text.splitlines() if l.startswith(name))
+        return float(line[30:].split()[0])
+
+    c = value_of(celsius, "Head/oil temperature")
+    f = value_of(fahrenheit, "Head/oil temperature")
+    assert abs(f - (c * 9 / 5 + 32)) <= 1.0
+    # non-temperature channels are untouched
+    assert value_of(celsius, "Engine speed") == value_of(fahrenheit, "Engine speed")
+    ws.disconnect()
+
+
 def test_workstation_warns_loudly_about_inferred_families(tmp_path):
     ws = Workstation(session_dir=tmp_path)
     result = ws.select(model="V100 Mandello", year=2023, transport="simulator")

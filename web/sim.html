@@ -78,6 +78,10 @@ footer { color: var(--muted); font-size: 12.5px; margin-top: 26px;
 .toolbar { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
 .tag { border: 1px solid var(--line); border-radius: 11px; padding: 1px 9px;
   font-size: 12px; color: var(--muted); }
+.unitpick { display: flex; align-items: center; gap: 6px; font-size: 12.5px;
+  color: var(--muted); }
+.unitpick select { font: inherit; background: var(--panel2); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; }
 </style>
 </head>
 <body>
@@ -89,6 +93,13 @@ footer { color: var(--muted); font-size: 12.5px; margin-top: 26px;
       <div class="sub">The engine model the workstation's ECU simulator runs, in your browser. The real thing speaks the actual KWP2000 wire protocol.</div>
     </div>
     <div class="spacer"></div>
+    <label class="unitpick" title="The model runs in Celsius; Fahrenheit is a display conversion">
+      <span>Temp</span>
+      <select id="tempUnit">
+        <option value="C">&deg;C</option>
+        <option value="F">&deg;F</option>
+      </select>
+    </label>
     <a href="..">&larr; the workstation</a>
     <a href="tour.html">Tour &amp; setup</a>
   </header>
@@ -143,7 +154,8 @@ footer { color: var(--muted); font-size: 12.5px; margin-top: 26px;
         <h2>What you are looking at</h2>
         <p class="note">Every value here is computed by the same physics the
         built-in simulator uses: exponential coolant warm-up from ambient
-        towards 92&nbsp;&deg;C, a soft rev limiter at 8500&nbsp;rpm (the
+        (<span id="ambientNote">18&nbsp;&deg;C</span>)
+        towards <span id="warmTarget">92&nbsp;&deg;C</span>, a soft rev limiter at 8500&nbsp;rpm (the
         catalogued 5AM cut-off), idle around 1250&nbsp;rpm, a charging system
         that holds 14.2&nbsp;V, closed-loop lambda once warm. In the
         workstation these values are not a demo — they arrive as KWP2000
@@ -177,6 +189,15 @@ footer { color: var(--muted); font-size: 12.5px; margin-top: 26px;
     faults: {}, milSeen: false, confirmed: false,
     history: [], pump: 0, pumpUntil: 0,
   };
+
+  // ---- display units -------------------------------------------------
+  // The physics is Celsius throughout (so is the KWP2000 wire format);
+  // Fahrenheit is applied at the moment a number is drawn.
+  var tempUnit = "C";
+  try { tempUnit = localStorage.getItem("guzzionboard.tempUnit") === "F" ? "F" : "C"; }
+  catch (e) { tempUnit = "C"; }
+  function tc(c) { return tempUnit === "F" ? c * 9 / 5 + 32 : c; }
+  function tunit() { return tempUnit === "F" ? "\u00b0F" : "\u00b0C"; }
 
   function step(dt) {
     state.t += dt;
@@ -273,15 +294,17 @@ footer { color: var(--muted); font-size: 12.5px; margin-top: 26px;
       sctx.stroke();
     }
     series(function (p) { return p.rpm; }, 0, 9000, "#d2492e");
-    series(function (p) { return p.coolant; }, 0, 100, "#3fb27f");
+    var cLo = tc(0), cHi = tc(100);
+    series(function (p) { return tc(p.coolant); }, cLo, cHi, "#3fb27f");
     sctx.fillStyle = "#8b93a1"; sctx.font = "11px ui-monospace, Menlo, monospace";
-    sctx.fillText("rpm (0–9k)  ·  coolant °C (0–100)", 10, 14);
+    sctx.fillText("rpm (0–9k)  ·  coolant " + tunit()
+      + " (" + Math.round(cLo) + "–" + Math.round(cHi) + ")", 10, 14);
   }
 
   var METRICS = [
     ["RPM", function () { return Math.round(state.rpm); }, "rpm"],
-    ["Coolant", function () { return state.coolant.toFixed(1); }, "°C"],
-    ["Air", function () { return state.air.toFixed(1); }, "°C"],
+    ["Coolant", function () { return tc(state.coolant).toFixed(1); }, tunit],
+    ["Air", function () { return tc(state.air).toFixed(1); }, tunit],
     ["Throttle", function () { return Math.round(state.thrActual); }, "%"],
     ["Battery", function () { return state.battery.toFixed(1); }, "V"],
     ["Injection", function () { return state.inj.toFixed(1); }, "ms"],
@@ -290,16 +313,25 @@ footer { color: var(--muted); font-size: 12.5px; margin-top: 26px;
   ];
   var metricEls = METRICS.map(function () { return null; });
 
+  var unitEls = [];
+
+  function unitOf(m) { return typeof m[2] === "function" ? m[2]() : m[2]; }
+
   function renderMetrics() {
     if (!metricEls[0]) {
       $("metrics").innerHTML = METRICS.map(function (m) {
         return '<div class="metric"><div class="k">' + m[0] + '</div>'
-          + '<div class="v"><span>0</span><span class="u">' + m[2] + '</span></div></div>';
+          + '<div class="v"><span>0</span><span class="u">' + unitOf(m) + '</span></div></div>';
       }).join("");
       metricEls = Array.prototype.map.call(
         $("metrics").querySelectorAll(".v span:first-child"), function (e) { return e; });
+      unitEls = Array.prototype.map.call(
+        $("metrics").querySelectorAll(".v .u"), function (e) { return e; });
     }
-    METRICS.forEach(function (m, i) { metricEls[i].textContent = String(m[1]()); });
+    METRICS.forEach(function (m, i) {
+      metricEls[i].textContent = String(m[1]());
+      if (unitEls[i]) unitEls[i].textContent = unitOf(m);
+    });
     $("rpmDigit").textContent = String(Math.round(state.rpm));
     $("stateTag").textContent = state.starter > 0 ? "cranking"
       : state.running ? (state.rpm > REDLINE - 60 ? "REV LIMITER" : "running")
@@ -317,6 +349,15 @@ footer { color: var(--muted); font-size: 12.5px; margin-top: 26px;
     this.textContent = state.running ? "Stop engine" : "Start engine";
     this.classList.toggle("on", state.running);
   };
+  $("tempUnit").value = tempUnit;
+  $("tempUnit").onchange = function () {
+    tempUnit = this.value === "F" ? "F" : "C";
+    try { localStorage.setItem("guzzionboard.tempUnit", tempUnit); } catch (e) { /* private mode */ }
+    $("warmTarget").textContent = tc(92).toFixed(0) + "\u00a0" + tunit();
+    $("ambientNote").textContent = tc(AMBIENT).toFixed(0) + "\u00a0" + tunit();
+    renderMetrics();
+  };
+
   $("throttle").oninput = function () {
     state.throttle = parseInt(this.value, 10);
     $("thrLabel").textContent = state.throttle + "%";
@@ -386,6 +427,8 @@ footer { color: var(--muted); font-size: 12.5px; margin-top: 26px;
     renderMetrics();
     requestAnimationFrame(frame);
   }
+  $("warmTarget").textContent = tc(92).toFixed(0) + "\u00a0" + tunit();
+  $("ambientNote").textContent = tc(AMBIENT).toFixed(0) + "\u00a0" + tunit();
   drawTach(); renderMetrics();
   requestAnimationFrame(frame);
 })();

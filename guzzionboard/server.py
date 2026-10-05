@@ -276,7 +276,12 @@ class Api:
 
     def get_report(self, query: dict) -> tuple[int, dict]:
         report = self.ws.build_report()
-        return 200, {"report": report, "text": self.ws.report_text(report)}
+        unit = (query.get("temp_unit") or ["C"])[0]
+        return 200, {
+            "report": report,
+            "temp_unit": "F" if unit.upper().startswith("F") else "C",
+            "text": self.ws.report_text(report, temp_unit=unit),
+        }
 
     # -- memory and programming ------------------------------------------
     def _programming(self) -> ProgrammingService:

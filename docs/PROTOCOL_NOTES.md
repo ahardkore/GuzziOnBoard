@@ -126,9 +126,20 @@ Each measurement is its **own** request; there is no block read.
 <- 61 <rli> <value ...>      big-endian, length taken from the frame
 ```
 
-The IAW 5AM answers every identifier in `0x30`–`0x7F`. **38 of those 79 are
+The IAW 5AM answers every identifier in `0x30`–`0x7F`. **40 of those 79 are
 served from three shared zero slots** and carry no variable at all — they are
-marked `dead` in the catalog and excluded from polling.
+marked `dead` in the catalog and excluded from polling. (Re-synchronised
+2026-10 with the upstream map this table came from; it was 38 when first
+transcribed, and all 40 dead slots are now listed individually rather than
+counted.)
+
+Two slots moved the other way. `0x4A` and `0x4C` were recorded here as dead
+because they read as constant zero during the capture; upstream now names
+them as the rear-bank twins of the lambda loop (`0x49`) and lambda phase
+(`0x4B`) flags, unproven. They are carried as `inferred` with that
+disagreement written into their `source_note` — a slot that reads zero on a
+single-lambda session and a slot with no variable behind it look identical
+from the outside, and nothing here will pretend to know which it is.
 
 Verified channels and formulas (source: live capture of an IAW 5AM HW610 on a
 Moto Guzzi, cross-checked against GuzziDiag changelog corrections):

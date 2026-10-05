@@ -372,6 +372,47 @@ rather than fitting a constant.
 
 ---
 
+## 9. Is GuzziDiag open source? (GitHub survey, 2026-10)
+
+Asked directly, and searched directly. **No.** GuzziDiag, IAWDiag and
+GuzziCanDiag are freeware binaries from von-der-salierburg.de; no source has
+ever been published. A GitHub-wide search for the tools returns exactly one
+repository, `MerrimanInd/guzzidiag-nix` — a Nix flake that *packages the
+closed binary*, nothing more. So §8 stands: the per-family identifier tables
+are not reachable by reading somebody's source.
+
+The search was still worth doing, because the neighbours are real:
+
+| Repository | Licence | What it is worth |
+| --- | --- | --- |
+| [`Vasiy/onboard-logger`](https://github.com/Vasiy/onboard-logger) | MIT | **Already the source of our 5AM table.** A NanoPi K-Line logger for an IAW 5AM HW610 with a `config/params.json` map, an actuator list, status maps and — most usefully — a *full `0x00`–`0xFF` identifier scan* with event markers (flip the side stand, mark the log, see which rli moved). That is the same method `klinelog.py` automates, from the other end: it sweeps the bike, we decode a tap of someone else's tool. Re-synced this session (see below). |
+| [`intilinux-eng/iaw-scan-3`](https://github.com/intilinux-eng/iaw-scan-3) | NOASSERTION | A maintained .NET/Avalonia fork of IAW Scan 2, the Fiat/Lancia/Alfa Marelli IAW tool, with ECU definitions in source. Car IAW families, not the bike ones, but it is an open implementation of the same vendor's diagnostic dialect — useful for session handling and actuator framing, not for our identifier tables. Unclear licence: read, do not copy. |
+| [`trainer400/IAW5AF_EEPROM`](https://github.com/trainer400/IAW5AF_EEPROM), [`lozziboy/IAW_4AF_keylock_remover`](https://github.com/lozziboy/IAW_4AF_keylock_remover) | — | IAW EEPROM access on car ECUs; background for the memory path. |
+| [`andreibaw/Honda_K-Line_KWP2000`](https://github.com/andreibaw/Honda_K-Line_KWP2000) | — | An independent motorcycle KWP2000 implementation worth comparing init timings against. |
+
+### What the re-sync changed
+
+Our 5AM table was transcribed from `onboard-logger` some time ago and had
+drifted. Reconciled against its current map: 33 scalings agree exactly, and
+
+- `0x60` barometric pressure (mbar) added — upstream `known`, so
+  `verified-capture`;
+- `0x3D` CO trim, `0x74` and `0x77` added as `inferred` — upstream `check`,
+  meaning named but not proven on a bike. The GuzziDiag changelog says CO
+  trim is not usable on 5AM, so that reading is carried as a stored number,
+  not an adjustment;
+- `0x4A` / `0x4C` promoted out of `dead` to `inferred` rear-bank lambda flags,
+  with the disagreement recorded (see `PROTOCOL_NOTES.md` §5);
+- the dead-slot count corrected from 38 to 40, now listed slot by slot
+  instead of counted.
+
+The lesson for the catalog is the one this project keeps relearning: there is
+one upstream capture behind the only characterised family we have, so
+"corroborated by two sources" has to be checked, not assumed — these two were
+the same source.
+
+---
+
 ## Sources
 
 - `5am_util` source, `main.c` / `util.c` —
@@ -388,6 +429,9 @@ rather than fitting a constant.
   <https://www.ducati.ms/threads/magneti-marelli-ecu-access-with-iawdiag-and-using-tunerpro.745787/>
 - GuzziDiag beginner tutorial —
   <https://www.thisoldtractor.com/moto_guzzi_quota_guzzidiag_howto_-_a_tutorial_for_beginners.html>
+- GitHub survey of the IAW/Guzzi ecosystem (§9) — Vasiy/onboard-logger,
+  intilinux-eng/iaw-scan-3, MerrimanInd/guzzidiag-nix, trainer400/IAW5AF_EEPROM,
+  andreibaw/Honda_K-Line_KWP2000 (searched 2026-10)
 - aster94/Keyword-Protocol-2000, python-udsoncan, python-isotp,
   slava-fm/moto-service-tool, rnd-ash/OpenVehicleDiag, cedricp/ddt4all,
   collin82/SavvyCAN — see §4 links

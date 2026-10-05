@@ -18,6 +18,7 @@ from . import adapter as adapter_mod
 from . import canlog
 from . import tools
 from .catalog import CatalogError
+from .derived import CHANNELS as DERIVED_CHANNELS, Analyzer
 from .diagnostics import NotConnected
 from .firmware import FirmwareImage, FirmwareError
 from .maps import XDF_DIR, XdfError, XdfFile, load_xdfs
@@ -95,6 +96,11 @@ class Api:
     def __init__(self, workstation: Workstation):
         self.ws = workstation
         self._prog: ProgrammingService | None = None
+        #: Derived channels and plausibility checks keep a short rolling
+        #: window, so the analyzer outlives a single request but is thrown
+        #: away whenever the underlying conversation changes.
+        self._analyzer: Analyzer | None = None
+        self._analyzer_for = None
         self.jobs = JobRunner()
 
     # -- catalog ----------------------------------------------------------
@@ -172,14 +178,37 @@ class Api:
     def get_identify(self, query: dict) -> tuple[int, dict]:
         return 200, self.ws.require_service().identify().as_dict()
 
+    def _analysis(self) -> Analyzer:
+        service = self.ws.require_service()
+        if self._analyzer is None or self._analyzer_for is not service:
+            self._analyzer = Analyzer(service.profile)
+            self._analyzer_for = service
+        return self._analyzer
+
     def get_live(self, query: dict) -> tuple[int, dict]:
         keys = (query.get("keys") or [""])[0]
         selected = [k for k in keys.split(",") if k] or None
-        samples = self.ws.require_service().read_parameters(selected)
+        service = self.ws.require_service()
+        samples = service.read_parameters(selected)
+        analysis = self._analysis().update(samples)
         return 200, {
             "at": samples[0].at if samples else 0,
             "samples": [s.as_dict() for s in samples],
+            "derived": analysis["derived"],
+            "findings": analysis["findings"],
+            "analysis_note": (
+                "Derived values are computed by the workstation from the "
+                "samples above, not read from the ECU. Findings are "
+                "interpretations, not measurements."
+            ),
         }
+
+    def get_derived_catalog(self, query: dict) -> tuple[int, dict]:
+        return 200, {"channels": [
+            {"key": c.key, "name": c.name, "unit": c.unit, "group": c.group,
+             "sources": list(c.sources), "note": c.note, "delta": c.delta}
+            for c in DERIVED_CHANNELS
+        ]}
 
     def get_parameters(self, query: dict) -> tuple[int, dict]:
         profile = self.ws.selection.profile
@@ -508,6 +537,7 @@ ROUTES_GET = {
     "/api/status": "get_status",
     "/api/identify": "get_identify",
     "/api/live": "get_live",
+    "/api/derived": "get_derived_catalog",
     "/api/parameters": "get_parameters",
     "/api/dtcs": "get_dtcs",
     "/api/actuators": "get_actuators",

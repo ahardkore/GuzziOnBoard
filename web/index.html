@@ -172,6 +172,24 @@
       </div>
     </article>
     <div id="liveGrid" class="metrics"></div>
+
+    <article class="panel">
+      <h2>Derived by the workstation</h2>
+      <p class="muted small">These are not ECU readings. They are arithmetic on
+      the channels above, labelled with what they were computed from, and they
+      inherit the worst confidence of their inputs.</p>
+      <div id="derivedGrid" class="metrics"></div>
+      <div id="derivedMissing"></div>
+    </article>
+
+    <article class="panel">
+      <h2>Plausibility checks</h2>
+      <p class="muted small">Opinions, not measurements. Each one names the
+      numbers it is reacting to and the usual suspects behind them — it is a
+      place to start looking, never a diagnosis.</p>
+      <div id="findingList"><p class="muted">Start polling to run the checks.</p></div>
+    </article>
+
     <article class="panel">
       <h2>Raw provenance</h2>
       <p class="muted small">Every decoded value keeps the bytes it came from. If a scaling is wrong, this is what you send with the bug report.</p>

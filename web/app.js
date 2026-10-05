@@ -24,6 +24,8 @@ const state = {
   baseline: null,
   report: null,
   lastSamples: [],
+  lastAnalysis: null,
+  derivedCatalog: null,
 };
 
 const HISTORY_LEN = 90;
@@ -107,6 +109,23 @@ const Temp = {
     const n = Number(v);
     if (!Number.isFinite(n)) return v;
     return +(n * 9 / 5).toFixed(2);
+  },
+
+  /* Units built on Celsius, such as "°C/min". */
+  labelFor(unit) {
+    const u = String(unit ?? '');
+    return Temp.unit() === 'F' && u.includes('\u00b0C') ? u.replace('\u00b0C', '\u00b0F') : u;
+  },
+
+  /* A derived value. `delta` marks a difference or a rate: Fahrenheit
+   * scales it by 9/5 but must not shift it by 32. */
+  valueFor(v, unit, delta) {
+    const u = String(unit ?? '');
+    if (Temp.unit() === 'C' || !u.includes('\u00b0C')) return v;
+    const n = Number(v);
+    if (!Number.isFinite(n)) return v;
+    const rate = delta || u !== '\u00b0C';
+    return +(rate ? n * 9 / 5 : n * 9 / 5 + 32).toFixed(1);
   },
 
   /* "92.4 °F" — value and unit together, both escaped. */
@@ -479,6 +498,18 @@ async function loadParameters() {
   if (!state.selectedChannels.size) {
     state.parameters.slice(0, 8).forEach((p) => state.selectedChannels.add(p.key));
   }
+  await loadDerivedCatalog();
+  renderChannelPicker();
+}
+
+async function loadDerivedCatalog() {
+  if (state.derivedCatalog) return;
+  try {
+    state.derivedCatalog = (await api('/api/derived')).channels;
+  } catch (_) { state.derivedCatalog = []; }
+}
+
+function renderChannelPicker() {
   $('#channelList').innerHTML = state.parameters.map((p) => `
     <label class="check">
       <input type="checkbox" value="${esc(p.key)}" ${state.selectedChannels.has(p.key) ? 'checked' : ''}>
@@ -489,7 +520,71 @@ async function loadParameters() {
   $$('#channelList input').forEach((cb) => (cb.onchange = () => {
     if (cb.checked) state.selectedChannels.add(cb.value);
     else state.selectedChannels.delete(cb.value);
+    renderDerivedGaps();
   }));
+  renderDerivedGaps();
+}
+
+/* ------------------------------------------------- derived and findings
+ *
+ * The server computes both; this only draws them. Everything here is
+ * visually separated from the metric grid above, because a value the
+ * workstation worked out is not a value the ECU reported.
+ */
+
+function renderAnalysis(derived, findings) {
+  state.lastAnalysis = { derived, findings };
+  $('#derivedGrid').innerHTML = (derived || []).map((c) => {
+    const unit = Temp.labelFor(c.unit);
+    const value = Temp.valueFor(c.value, c.unit, c.delta);
+    return `<article class="metric derived" title="${esc(c.note)}">
+      <small>${esc(c.name)}</small>
+      <strong>${esc(value)} <em>${esc(unit)}</em></strong>
+      <label><span class="conf ${confidenceClass(c.confidence)}">${esc(c.confidence)}</span>
+        ${esc(c.sources.join(' + '))}</label>
+    </article>`;
+  }).join('') || '<p class="muted">Nothing to derive from the channels being polled.</p>';
+
+  const box = $('#findingList');
+  if (!findings || !findings.length) {
+    box.innerHTML = '<p class="muted">Every check that could run on the current '
+      + 'channels is happy. That is not a clean bill of health — it is the '
+      + 'absence of the specific problems these rules know about.</p>';
+    return;
+  }
+  box.innerHTML = findings.map((f) => `
+    <div class="finding ${esc(f.level)}">
+      <div class="finding-head"><b>${esc(f.title)}</b>
+        <span class="finding-level ${esc(f.level)}">${esc(f.level)}</span></div>
+      <p class="small">${esc(f.detail)}</p>
+      ${f.suspects.length ? `<p class="small muted">Usual suspects: ${esc(f.suspects.join(' · '))}</p>` : ''}
+      <p class="small muted">Reacting to ${Object.entries(f.evidence)
+        .map(([k, v]) => `<code>${esc(k)}</code> ${esc(v)}`).join(', ')}</p>
+    </div>`).join('');
+}
+
+/* Which derived channels cannot be computed because their inputs are not
+ * being polled — with one click to start polling them. */
+function renderDerivedGaps() {
+  const known = new Set(state.parameters.map((p) => p.key));
+  const gaps = (state.derivedCatalog || []).map((c) => ({
+    ...c,
+    missing: c.sources.filter((k) => known.has(k) && !state.selectedChannels.has(k)),
+    unmapped: c.sources.filter((k) => !known.has(k)),
+  })).filter((c) => !c.unmapped.length && c.missing.length);
+
+  const el = $('#derivedMissing');
+  if (!el) return;
+  if (!gaps.length) { el.innerHTML = ''; return; }
+  const needed = Array.from(new Set(gaps.flatMap((c) => c.missing)));
+  el.innerHTML = `<p class="muted small">Not computed yet: ${gaps
+    .map((c) => `<b>${esc(c.name)}</b> (needs ${esc(c.missing.join(', '))})`).join('; ')}
+    <button class="btn small" id="addDerivedChannels">Poll the ${needed.length} missing channel${needed.length > 1 ? 's' : ''}</button></p>`;
+  $('#addDerivedChannels').onclick = () => {
+    needed.forEach((k) => state.selectedChannels.add(k));
+    renderChannelPicker();
+    toast('Added the channels those derived values need.', 'ok');
+  };
 }
 
 function sparkline(values, min, max) {
@@ -559,6 +654,7 @@ async function pollOnce() {
       state.history.set(s.key, arr);
     });
     renderLive(data.samples);
+    renderAnalysis(data.derived, data.findings);
     const elapsed = performance.now() - started;
     $('#pollRate').textContent =
       `${keys.length} channels · ${elapsed.toFixed(0)} ms/sweep · ${(1000 / Math.max(elapsed, 1)).toFixed(1)} Hz max`;
@@ -837,6 +933,7 @@ $('#printBtn').onclick = () => window.print();
 $('#tempUnit').onchange = (e) => {
   Temp.setUnit(e.target.value);
   if (state.lastSamples.length) renderLive(state.lastSamples);
+  if (state.lastAnalysis) renderAnalysis(state.lastAnalysis.derived, state.lastAnalysis.findings);
   toast(`Temperatures shown in ${Temp.unit() === 'F' ? 'Fahrenheit' : 'Celsius'}.`, 'ok');
 };
 $('#ecuOverride').onchange = updateConnectEnabled;

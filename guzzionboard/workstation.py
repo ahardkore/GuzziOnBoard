@@ -16,6 +16,7 @@ from .catalog import Catalog, EcuProfile, VehicleEntry, load_catalog
 from .diagnostics import DiagnosticsService, NotConnected
 from .safety import Mode, SafetyGate, VehicleState
 from .sessionlog import DEFAULT_DIR, SessionLog
+from .derived import Analyzer
 from .transports.base import Transport, TransportUnavailable
 from .transports.simulator import EngineModel, SimulatedEcu, SimulatorTransport
 
@@ -25,6 +26,11 @@ _CELSIUS_UNITS = {"\u00b0c", "c", "deg c", "degc", "celsius"}
 
 def _is_celsius(unit: str | None) -> bool:
     return str(unit or "").strip().lower() in _CELSIUS_UNITS
+
+
+def _is_celsius_like(unit: str | None) -> bool:
+    """True for "\u00b0C" and for rates built on it such as "\u00b0C/min"."""
+    return "\u00b0c" in str(unit or "").lower()
 
 
 @dataclass
@@ -407,6 +413,13 @@ class Workstation:
                 report["dtcs"] = service.read_dtcs()["dtcs"]
             except Exception as exc:
                 report["dtcs_error"] = str(exc)
+
+        # Derived channels and findings are the workstation's arithmetic and
+        # the workstation's opinion. They are kept in their own sections so a
+        # reader never mistakes them for something the ECU said.
+        analysis = Analyzer(profile).update(report["samples"])
+        report["derived"] = analysis["derived"]
+        report["findings"] = analysis["findings"]
         return report
 
     def report_text(
@@ -464,6 +477,29 @@ class Workstation:
                 lines.append(
                     f"{s['name']:<30} {shown:<18} raw={s['raw']}  (0x{s['local_id']:02X})"
                 )
+
+        if r.get("derived"):
+            lines += ["", "Derived by the workstation (not read from the ECU)", "-" * 60]
+            for c in r["derived"]:
+                value, unit = c["value"], c["unit"]
+                if fahrenheit and _is_celsius_like(unit):
+                    # A split or a rate is a difference: scale it, do not
+                    # shift it by 32 degrees.
+                    value = round(value * 9 / 5, 1) if c.get("delta") else \
+                        round(value * 9 / 5 + 32, 1)
+                    unit = unit.replace("\u00b0C", "\u00b0F")
+                shown = f"{value} {unit}".strip()
+                lines.append(
+                    f"{c['name']:<30} {shown:<18} from {', '.join(c['sources'])}"
+                )
+
+        if r.get("findings"):
+            lines += ["", "Plausibility checks (interpretation, not measurement)", "-" * 60]
+            for f in r["findings"]:
+                lines.append(f"[{f['level'].upper():<4}] {f['title']}")
+                lines.append(f"        {f['detail']}")
+                if f["suspects"]:
+                    lines.append(f"        Usual suspects: {'; '.join(f['suspects'])}")
 
         if r["safety_audit"]:
             lines += ["", "Safety decisions", "-" * 60]

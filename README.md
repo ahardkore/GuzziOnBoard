@@ -1,7 +1,9 @@
 # GuzziOnBoard
 
 A safety-first diagnostic workstation for Moto Guzzi motorcycles, covering the
-Magneti Marelli ECU families fitted from the mid-1990s to the current bikes.
+Magneti Marelli ECU families fitted from the mid-1990s to the current bikes —
+plus the same Marelli ECUs as Ducati and Aprilia fitted to their bikes of the
+same era, read-only until their identifier tables are confirmed.
 
 > **Status: working software, unproven on a motorcycle.**
 > The protocol stack, capability catalog, safety gate, memory/programming
@@ -21,10 +23,13 @@ Magneti Marelli ECU families fitted from the mid-1990s to the current bikes.
 | KWP2000 / ISO 14230 application + data link layer | Implemented and unit tested |
 | ISO-TP (ISO 15765-2) segmentation for CAN bikes | Implemented and unit tested |
 | Simulated ECU **speaking the real wire protocol** | Implemented; drives the whole stack |
-| Capability catalog: 9 ECU families, 81 model variants, 1992–2026 | Implemented, data-driven |
+| Capability catalog: 10 ECU families, 118 model variants across Moto Guzzi, Ducati and Aprilia, 1992–2026 | Implemented, data-driven |
 | K-Line transport (fast init + 5-baud init, echo cancelling) | Written, **untested on hardware** |
 | CAN transport (python-can + ISO-TP) | Written, **identifiers unconfirmed** |
 | ECU identification, live data, DTC read/clear | Implemented |
+| Make / model / year vehicle selection (Moto Guzzi, Ducati, Aprilia) | Implemented; cross-brand bikes read-only by design |
+| CAN request/response identifiers configurable per session | Implemented (the pair is unconfirmed on CAN bikes) |
+| Print / save any view as PDF; maps export as standalone HTML | Implemented |
 | Actuator tests, TPS reset, adaptation resets | Implemented, gated by confidence + safety |
 | Read-only local-identifier discovery sweep | Implemented |
 | Session recording (raw frames + decoded samples) | Implemented |
@@ -39,7 +44,7 @@ Magneti Marelli ECU families fitted from the mid-1990s to the current bikes.
 | Adapter pre-flight incl. FTDI latency timer | Implemented |
 | Gearing / road-speed calculator, CSV + JSON log export | Implemented |
 
-228 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
+235 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
 image validation, XDF parsing/render/diff, the full read/backup/write/verify
 round trip, fault injection and complete simulated sessions.
 
@@ -106,6 +111,26 @@ workstation will let you do:
 **Confidence is enforced, not decorative.** Anything below `documented`
 degrades to identification, fault codes and the read-only discovery sweep —
 the workstation will not command an ECU it does not genuinely understand.
+
+### The same ECUs in other makes — Ducati and Aprilia
+
+Ducati and Aprilia bought the same Magneti Marelli ECUs, and the GuzziDiag
+ecosystem has always tuned them all. The catalog now resolves those bikes to
+the shared families, with one deliberate limit:
+
+| Make | Families | Examples |
+|---|---|---|
+| Ducati | P8, 15M, 16M, 59M, 5AM | 748, 916, 996, 999, 749, Monster 620–1000, Multistrada, 848/1098/1198, ST2/ST3/ST4 |
+| Aprilia | 16M, 5AM, 7SM | RSV Mille, Tuono 1000, Falco, Caponord, Futura, Mana 850, RSV4 Factory |
+
+Every cross-brand entry ships as `inferred`: the model→ECU mapping is
+documented (GuzziTek master list, Ducati.ms ECU list, TuneECU), but this
+project's identifier tables were all captured in a Moto Guzzi context — so the
+workstation selects the stricter confidence level and keeps those bikes at
+identification, fault codes and the read-only discovery sweep until someone
+records a session on the real machine. One capture promotes the whole family.
+The Ducati-only IAW 59M (999/749 and the injected air-cooled Monsters) is
+modelled as its own family at `unknown` for the same reason.
 
 The IAW 5AM is the fully mapped family: 41 live identifiers with scalings
 decoded from a real bus capture, 17 actuators, TPS reset and self-adaptation

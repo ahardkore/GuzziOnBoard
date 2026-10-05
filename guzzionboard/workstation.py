@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from . import __version__
@@ -26,20 +26,75 @@ class Selection:
 
     model: str = ""
     year: int = 0
+    make: str = ""
     entry: VehicleEntry | None = None
     profile: EcuProfile | None = None
     transport_kind: str = "simulator"
     device: str = ""
+    #: CAN identifier overrides for this session (the catalog pair is
+    #: unconfirmed on the CAN families, so the operator can try another).
+    can_overrides: dict = field(default_factory=dict)
 
     def as_dict(self) -> dict:
         return {
+            "make": self.make,
             "model": self.model,
             "year": self.year,
             "entry": self.entry.as_dict() if self.entry else None,
             "ecu": self.profile.as_dict() if self.profile else None,
             "transport": self.transport_kind,
             "device": self.device,
+            "can_overrides": self.can_overrides,
         }
+
+    def can_spec(self) -> dict:
+        """The CAN spec in force: ECU defaults <- vehicle entry <- operator."""
+        spec = dict(self.profile.can) if self.profile else {}
+        if self.entry and self.entry.can:
+            spec.update(self.entry.can)
+        spec.update(self.can_overrides)
+        return spec
+
+
+def _parse_id(value: str | int, what: str) -> int:
+    """A CAN identifier: 0x7E0, 2016 or 0x18DA10F1 all accepted."""
+    if isinstance(value, int):
+        ident = value
+    else:
+        try:
+            ident = int(str(value).strip(), 0)
+        except ValueError:
+            raise ValueError(f"{what} {value!r} is not a number") from None
+    if not 0 <= ident <= 0x1FFFFFFF:
+        raise ValueError(f"{what} 0x{ident:X} is outside the 29-bit id range")
+    return ident
+
+
+def _effective_profile(entry: VehicleEntry | None, profile: EcuProfile) -> EcuProfile:
+    """The profile with the vehicle's own honesty applied.
+
+    A Ducati 748 and a Guzzi V11 Sport share the 16M, but every identifier
+    table in this catalog was captured in a Moto Guzzi context. When the
+    *vehicle* entry is less confident than the ECU definition - which is how
+    every cross-brand entry is marked - the worse level wins and the note
+    says why. Control actions gate off this, so a cross-brand bike is
+    read-only until someone confirms the identifiers on the real machine.
+    """
+    if entry is None or entry.confidence == profile.confidence:
+        return profile
+    from .catalog import confidence_rank
+
+    if confidence_rank(entry.confidence) > confidence_rank(profile.confidence):
+        note = (
+            f"Selected as {entry.make} {entry.model}: this vehicle mapping is "
+            f"'{entry.confidence}' while the {profile.family} definition is "
+            f"'{profile.confidence}'. The stricter level applies - the "
+            "identifier tables below were captured on another make and are "
+            "unverified here, so control actions stay disabled. A single "
+            "recorded session on this bike promotes the whole family."
+        )
+        return replace(profile, confidence=entry.confidence, notes=note)
+    return profile
 
 
 class Workstation:
@@ -61,25 +116,36 @@ class Workstation:
         model: str = "",
         year: int = 0,
         ecu: str = "",
+        make: str = "",
         transport: str = "simulator",
         device: str = "",
+        can_tx_id: str | int = "",
+        can_rx_id: str | int = "",
     ) -> dict:
         with self._lock:
             entry = None
             if ecu:
                 profile = self.catalog.ecu(ecu)
             elif model and year:
-                entry, profile = self.catalog.resolve(model, year)
+                entry, profile = self.catalog.resolve(model, year, make)
             else:
                 raise ValueError("select needs either an ecu id or a model and year")
 
+            overrides = {}
+            for key, value in (("tx_id", can_tx_id), ("rx_id", can_rx_id)):
+                if value not in ("", None):
+                    overrides[key] = _parse_id(value, key)
+
+            profile = _effective_profile(entry, profile)
             self.selection = Selection(
                 model=model or profile.family,
                 year=year,
+                make=make or (entry.make if entry else ""),
                 entry=entry,
                 profile=profile,
                 transport_kind=transport,
                 device=device,
+                can_overrides=overrides,
             )
             self.notices = self._selection_notices(entry, profile, transport)
             return self.describe_selection()
@@ -151,7 +217,7 @@ class Workstation:
         if kind == "can":
             from .transports.can import CanTransport
 
-            spec = profile.can or {}
+            spec = self.selection.can_spec()
             return CanTransport(
                 channel=self.selection.device or spec.get("channel", "can0"),
                 interface=spec.get("interface", "socketcan"),

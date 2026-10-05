@@ -447,3 +447,26 @@ b.bad { color: #ef8d78; }
 #mapsOut details > summary::before { content: "▸ "; color: var(--muted); }
 #mapsOut details[open] > summary::before { content: "▾ "; }
 #mapsOut details > .table-wrap { margin: 4px 0 10px; }
+
+/* printing: the workstation is its own documentation */
+@media print {
+  @page { margin: 12mm; }
+  body { background: #fff !important; color: #000 !important; }
+  aside.sidebar, .no-print, #notices, .toolbar, button, .btn, .progress,
+  .nav, input, select, textarea { display: none !important; }
+  .view.hidden { display: none !important; }
+  main { margin: 0 !important; padding: 0 !important; }
+  .panel {
+    border: 1px solid #999 !important; background: #fff !important;
+    color: #000 !important; box-shadow: none !important; break-inside: avoid;
+  }
+  .panel h2, .panel h4, .resolve-card, .gate-card { color: #000 !important; }
+  .muted { color: #444 !important; }
+  .log-view, pre { border: 1px solid #999 !important; background: #fff !important; color: #000 !important; }
+  table.data { font-size: 9px; }
+  #mapsOut details { border: none !important; }
+  #mapsOut details > *:not(summary) { display: block !important; }
+  #mapsOut details > summary { font-weight: 700; }
+  #mapsOut details > summary::before { content: ""; }
+  .table-wrap { overflow: visible !important; }
+}

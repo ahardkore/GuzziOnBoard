@@ -281,6 +281,8 @@ class EcuProfile:
             "effective_capabilities": [c for c in self.capabilities if self.supports(c)],
             "sources": list(self.sources),
             "memory": self.memory,
+            "kline": self.kline,
+            "can": self.can,
             "actuators": [a.as_dict() for a in self.actuators],
             "routines": [r.as_dict() for r in self.routines],
         }
@@ -297,10 +299,13 @@ class VehicleEntry:
     year_from: int
     year_to: int | None
     ecu: str
+    make: str = "Moto Guzzi"
     displacement: str = ""
     tps: str = ""
     notes: str = ""
     confidence: str = "documented"
+    #: Per-model CAN overrides; merged over the ECU-level spec.
+    can: dict = field(default_factory=dict)
 
     @property
     def label(self) -> str:
@@ -312,9 +317,11 @@ class VehicleEntry:
 
     def as_dict(self) -> dict:
         return {
+            "make": self.make,
             "model": self.model, "year_from": self.year_from, "year_to": self.year_to,
             "ecu": self.ecu, "displacement": self.displacement, "tps": self.tps,
             "notes": self.notes, "confidence": self.confidence, "label": self.label,
+            "can": self.can,
         }
 
 
@@ -334,19 +341,32 @@ class Catalog:
                 f"unknown ECU {ecu_id!r}; known: {', '.join(sorted(self.ecus))}"
             ) from None
 
-    def models(self) -> list[str]:
+    def makes(self) -> list[str]:
+        return sorted({v.make for v in self.vehicles})
+
+    def models(self, make: str = "") -> list[str]:
+        if make:
+            return sorted({v.model for v in self.vehicles
+                           if v.make.lower() == make.lower()})
         return sorted({v.model for v in self.vehicles})
 
-    def find(self, model: str, year: int | None = None) -> list[VehicleEntry]:
+    def find(
+        self, model: str, year: int | None = None, make: str = ""
+    ) -> list[VehicleEntry]:
         matches = [v for v in self.vehicles if v.model.lower() == model.lower()]
+        if make:
+            matches = [v for v in matches if v.make.lower() == make.lower()]
         if year is not None:
             matches = [v for v in matches if v.covers(year)]
         return matches
 
-    def resolve(self, model: str, year: int) -> tuple[VehicleEntry, EcuProfile]:
-        matches = self.find(model, year)
+    def resolve(
+        self, model: str, year: int, make: str = ""
+    ) -> tuple[VehicleEntry, EcuProfile]:
+        matches = self.find(model, year, make)
         if not matches:
-            raise CatalogError(f"no catalog entry for {model} {year}")
+            scope = f" in {make}" if make else ""
+            raise CatalogError(f"no catalog entry{scope} for {model} {year}")
         if len(matches) > 1:
             # Overlapping running changes exist (Guzzi changed ECUs mid-year).
             # Prefer the entry with the narrower window, then the later start.

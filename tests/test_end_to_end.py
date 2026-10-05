@@ -340,3 +340,56 @@ def test_workstation_refuses_an_unknown_motorcycle(tmp_path):
     ws = Workstation(session_dir=tmp_path)
     with pytest.raises(Exception):
         ws.select(model="Harley Sportster", year=2010)
+
+
+# -- cross-brand selection and CAN identifiers -------------------------------
+
+
+def test_cross_brand_selection_degrades_to_read_only(catalog):
+    """A Ducati 748 shares the 16M with the V11 Sport, but honesty wins.
+
+    The selection applies the stricter of the vehicle and ECU confidence
+    levels, so control actions stay gated while identification, DTCs and
+    the discovery sweep keep working.
+    """
+    ws = Workstation(record=False)
+    selection = ws.select(model="748", year=2000, make="Ducati")
+    assert selection["ecu"]["id"] == "16m"
+    assert selection["ecu"]["confidence"] == "inferred"
+    assert selection["make"] == "Ducati"
+    assert "unverified here" in selection["ecu"]["notes"]
+    # the same ECU selected as a Guzzi keeps its own level
+    guzzi = ws.select(model="V11 Sport", year=2001)
+    assert guzzi["ecu"]["confidence"] == catalog.ecu("16m").confidence
+
+
+def test_cross_brand_bike_still_identifies_over_the_simulator(catalog):
+    ws = Workstation(record=False)
+    ws.select(model="RSV Mille", year=2001, make="Aprilia")
+    ws.connect()
+    identity = ws.require_service().identify()
+    assert identity.raw
+
+
+def test_can_identifiers_are_configurable(catalog):
+    """The CAN pair is unconfirmed on the CAN families, so it is a setting."""
+    ws = Workstation(record=False)
+    ws.select(
+        model="V7 III Stone", year=2019, transport="can",
+        can_tx_id="0x18DA10F1", can_rx_id="0x18DAF110",
+    )
+    transport = ws._build_transport()
+    assert (transport.tx_id, transport.rx_id) == (0x18DA10F1, 0x18DAF110)
+
+    # defaults come from the catalog when nothing is overridden
+    ws.select(model="V7 III Stone", year=2019, transport="can")
+    transport = ws._build_transport()
+    assert (transport.tx_id, transport.rx_id) == (0x7E0, 0x7E8)
+
+    # garbage is refused, not guessed
+    with pytest.raises(ValueError):
+        ws.select(model="V7 III Stone", year=2019, transport="can",
+                  can_tx_id="whatever")
+    with pytest.raises(ValueError):
+        ws.select(model="V7 III Stone", year=2019, transport="can",
+                  can_rx_id=0x200000000)

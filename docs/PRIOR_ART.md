@@ -292,7 +292,7 @@ relevant if pass-thru hardware support is ever wanted).
 | # | Gap (from PROTOCOL_NOTES) | Program | Action | Done when |
 |---|---|---|---|---|
 | 1 | No verified SecurityAccess key | 5am_util (§1.1) | register `iaw5am-kwp-divmod`, retire affine hypothesis | provider ships, one bench unlock on a real 5AM promotes it to `verified` |
-| 2 | CAN IDs 0x7E0/0x7E8 unconfirmed | GuzziCanDiag + SavvyCAN (§2, §4) | passive-sniff a GuzziCanDiag↔V7 850/V85 session; also test 29-bit `0x18DA10F1`/`0x18DAF110` | catalog `can_ids` flips from `inferred`; simulator speaks the same IDs |
+| 2 | CAN IDs 0x7E0/0x7E8 unconfirmed | GuzziCanDiag + SavvyCAN (§2, §4) | passive-sniff a GuzziCanDiag↔V7 850/V85 session; also test 29-bit `0x18DA10F1`/`0x18DAF110` | catalog `can_ids` flips from `inferred`; simulator speaks the same IDs. **Software half landed:** the pair is now a per-session setting (catalog default ← vehicle override ← operator), 29-bit accepted, exposed in the Garage UI; only the capture remains |
 | 3 | Only 5AM has characterised identifiers | GuzziDiag + IAWDiag captures (§2), TuneECU (§5) | serial-tap the closed tools against bench ECUs, decode into catalog | 15RC / MIU G3 / 7SM identifier tables at `documented`+ |
 | 4 | Transports never met a bike | aster94 lib, RPMSensorEmu, AdapterTest (§4, §6) | diff timing against aster94; bench ECU + wheel emulator; port-permission preflight vs AdapterTest | one full identify + live-data session per transport on real hardware |
 | 5 | Write path unproven (5AM) | 5am_util (§1.2, §1.3) | adopt write sequence + encoder into firmware/programming, simulator-tested first | a sacrificial 5AM is read, written with its own dump, read back equal |
@@ -304,6 +304,14 @@ ELM327-class CAN adapter, and ideally the phonic-wheel emulator.
 Item 6 landed: the parser is grounded on a real TunerPro v5 XDF (§3), and
 XDFs are user-supplied at runtime from `~/.guzzionboard/xdfs/` because none
 of the Guzzi files may be redistributed with this repo.
+Item 2's software half landed with it (see the table). Cross-brand coverage
+(Ducati P8/15M/16M/59M/5AM, Aprilia 16M/5AM/7SM) is in the catalog at
+`inferred`/`unknown` — model→ECU mappings from the GuzziTek master list
+(guzzitek.org/documents/injection/ECU_MasterList_2011.pdf), the Ducati.ms
+model/ECU list and tuneecu.net; identifier captures on those bikes are the
+promotion path. Known but deliberately unmodelled for now: Aprilia 5DM
+(Shiver/Dorsoduro 750) and 5SM (RSV4 R), and Ducati's Siemens era
+(696/796/1100).
 
 ---
 

@@ -114,8 +114,12 @@ async function loadCatalog() {
   state.catalog = await api('/api/catalog');
   const { summary } = state.catalog;
 
-  $('#modelList').innerHTML = state.catalog.models
-    .map((m) => `<option value="${esc(m.model)}">`).join('');
+  const make = $('#makeSelect');
+  make.innerHTML = state.catalog.makes
+    .map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  make.value = state.catalog.makes.includes('Moto Guzzi') ? 'Moto Guzzi' : state.catalog.makes[0];
+  make.onchange = () => { fillModels(); updateConnectEnabled(); };
+  fillModels();
 
   $('#ecuOverride').innerHTML = '<option value="">— use the model lookup —</option>'
     + state.catalog.ecus.map((e) =>
@@ -139,16 +143,44 @@ async function loadCatalog() {
     </tr>`).join('');
 }
 
-async function resolveVehicle() {
-  const model = $('#modelInput').value.trim();
-  const year = parseInt($('#yearInput').value, 10);
-  const box = $('#resolveResult');
-  if (!model || !year) { box.innerHTML = ''; updateConnectEnabled(); return; }
+function vehiclesOf(make) {
+  return (state.catalog.vehicles || []).filter((v) => v.make === make);
+}
 
-  const data = await api(`/api/catalog/resolve?model=${encodeURIComponent(model)}&year=${year}`);
+function fillModels() {
+  const make = $('#makeSelect').value || (state.catalog.makes || ['Moto Guzzi'])[0];
+  const models = [...new Set(vehiclesOf(make).map((v) => v.model))].sort();
+  $('#modelSelect').innerHTML = '<option value="">— pick a model —</option>'
+    + models.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  $('#modelSelect').onchange = () => { fillYears(); resolveVehicle(); };
+  fillYears();
+}
+
+function fillYears() {
+  const make = $('#makeSelect').value;
+  const model = $('#modelSelect').value;
+  const entries = vehiclesOf(make).filter((v) => v.model === model);
+  const years = new Set();
+  entries.forEach((v) => {
+    const end = Math.min(v.year_to || new Date().getFullYear(), new Date().getFullYear() + 1);
+    for (let y = v.year_from; y <= end; y++) years.add(y);
+  });
+  const sorted = [...years].sort((a, b) => b - a);
+  $('#yearSelect').innerHTML = '<option value="">— pick a year —</option>'
+    + sorted.map((y) => `<option value="${y}">${y}</option>`).join('');
+}
+
+async function resolveVehicle() {
+  const make = $('#makeSelect').value;
+  const model = $('#modelSelect').value;
+  const year = parseInt($('#yearSelect').value, 10);
+  const box = $('#resolveResult');
+  if (!model || !year) { box.innerHTML = ''; state.resolved = null; updateConnectEnabled(); return; }
+
+  const data = await api(`/api/catalog/resolve?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${year}`);
   if (!data.matches.length) {
-    box.innerHTML = `<div class="resolve-card bad">No catalog entry for <b>${esc(model)} ${year}</b>.
-      Check the spelling, or use the ECU override below if you know the family.</div>`;
+    box.innerHTML = `<div class="resolve-card bad">No catalog entry for <b>${esc(make)} ${esc(model)} ${year}</b>.
+      Pick another year, or use the ECU override below if you know the family.</div>`;
     state.resolved = null; updateConnectEnabled(); return;
   }
 
@@ -199,7 +231,13 @@ function onTransportChange() {
   const physical = kind !== 'simulator';
   $('#deviceField').hidden = !physical;
   $('#checklistBox').hidden = !physical;
+  $('#canFields').hidden = kind !== 'can';
   $('#deviceInput').placeholder = kind === 'can' ? 'can0' : '/dev/ttyUSB0';
+  if (kind === 'can') {
+    const spec = (state.resolved && state.resolved.ecu_detail && state.resolved.ecu_detail.can) || {};
+    $('#canTxId').value = spec.tx_id !== undefined ? `0x${spec.tx_id.toString(16).toUpperCase()}` : '0x7E0';
+    $('#canRxId').value = spec.rx_id !== undefined ? `0x${spec.rx_id.toString(16).toUpperCase()}` : '0x7E8';
+  }
   if (physical && $('#modeSelect').value === 'simulator') $('#modeSelect').value = 'read_only';
   if (!physical) $('#modeSelect').value = 'simulator';
   updateConnectEnabled();
@@ -219,11 +257,16 @@ async function connect() {
   const body = ecuOverride
     ? { ecu: ecuOverride, transport: currentTransport(), device: $('#deviceInput').value }
     : {
-        model: $('#modelInput').value.trim(),
-        year: parseInt($('#yearInput').value, 10),
+        make: $('#makeSelect').value,
+        model: $('#modelSelect').value,
+        year: parseInt($('#yearSelect').value, 10),
         transport: currentTransport(),
         device: $('#deviceInput').value,
       };
+  if (currentTransport() === 'can') {
+    body.can_tx_id = $('#canTxId').value.trim();
+    body.can_rx_id = $('#canRxId').value.trim();
+  }
 
   $('#connectBtn').disabled = true;
   try {
@@ -681,8 +724,8 @@ async function buildReport() {
 
 /* ----------------------------------------------------------------- wire */
 
-$('#modelInput').oninput = () => { clearTimeout($('#modelInput')._t); $('#modelInput')._t = setTimeout(resolveVehicle, 180); };
-$('#yearInput').oninput = () => { clearTimeout($('#yearInput')._t); $('#yearInput')._t = setTimeout(resolveVehicle, 180); };
+$('#yearSelect').onchange = resolveVehicle;
+$('#printBtn').onclick = () => window.print();
 $('#ecuOverride').onchange = updateConnectEnabled;
 $('#checklistAccept').onchange = updateConnectEnabled;
 $('#connectBtn').onclick = connect;
@@ -954,7 +997,7 @@ $$('.nav').forEach((b) => {
  * live in ~/.guzzionboard/xdfs — nothing ships with the app. This view is
  * strictly read-only: it renders and diffs, it never writes. */
 
-const maps = { xdfs: [] };
+const maps = { xdfs: [], lastDoc: null };
 
 const fmtValue = (v) => (Number.isInteger(v) ? String(v) : String(+v.toPrecision(4)));
 
@@ -1001,8 +1044,63 @@ function mapsNotices(render) {
   return out.join('');
 }
 
+const MAPS_DOC_CSS = `body{font-family:Georgia,serif;margin:24px;color:#111}
+h1{font-size:20px}h2{font-size:15px;margin:20px 0 4px}
+table{border-collapse:collapse;margin:6px 0 18px}
+th,td{border:1px solid #999;padding:3px 8px;font-size:12px;text-align:center}
+thead th,tbody th{background:#eee}
+.meta{color:#555;font-size:12px}
+.cell-note{color:#333;font-size:13px;margin:2px 0 14px;padding-left:8px;border-left:3px solid #999}`;
+
+function mapsTablesHtml(tables) {
+  return tables.map((t) => `
+    <h2>${esc(t.title)} <small>(${esc(t.category || '')} · ${esc(t.units || '')})</small></h2>
+    <table><thead><tr><th>${esc(t.units || '')} \ ${esc(t.x_units || '')}</th>`
+    + t.x.map((x) => `<th>${esc(x)}</th>`).join('') + '</tr></thead>'
+    + '<tbody>' + t.values.map((row, r) => `<tr><th>${esc(t.y[r] ?? '')}</th>`
+      + row.map((v) => `<td>${esc(fmtValue(v))}</td>`).join('') + '</tr>').join('') + '</tbody></table>').join('');
+}
+
+function mapsDoc(title, bodyHtml) {
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
+<style>${MAPS_DOC_CSS}</style></head><body><h1>${esc(title)}</h1>${bodyHtml}</body></html>`;
+}
+
+function mapsResultToolbar() {
+  return `<div class="toolbar no-export">
+    <button class="btn small" data-act="save-html">Save as HTML</button>
+    <button class="btn small" data-act="print">Print / PDF</button>
+    <span class="muted small">Saved documents are standalone: tables, units and values, nothing else.</span>
+  </div>`;
+}
+
+function wireMapsToolbar() {
+  document.querySelectorAll('[data-act="save-html"]').forEach((btn) => {
+    btn.onclick = () => {
+      if (!maps.lastDoc) return;
+      download(`guzzionboard-maps-${Date.now()}.html`,
+        maps.lastDoc.html, 'text/html');
+    };
+  });
+  document.querySelectorAll('[data-act="print"]').forEach((btn) => {
+    btn.onclick = () => window.print();
+  });
+}
+
 function renderMapsResult(render) {
   const meta = render.xdf || {};
+  maps.lastDoc = {
+    title: `${meta.title || 'Maps'} — rendered tables`,
+    html: mapsDoc(`${meta.title || 'Maps'} — rendered tables`,
+      `<p class="meta">${esc(render.image ? '' : '')}${render.tables.length} table(s), `
+      + `${render.constants.length} constant(s) · image ${(render.image_size / 1024).toFixed(0)} KiB`
+      + (render.address_base ? ` · address base 0x${render.address_base.toString(16)} (region read)` : '')
+      + `</p>`
+      + mapsTablesHtml(render.tables)
+      + (render.constants.length ? `<h2>Constants</h2><table><thead><tr><th>Constant</th><th>Value</th><th>Units</th></tr></thead><tbody>`
+        + render.constants.map((c) => `<tr><td>${esc(c.title)}</td><td>${esc(fmtValue(c.value))}</td><td>${esc(c.units)}</td></tr>`).join('')
+        + '</tbody></table>' : '')),
+  };
   const constants = render.constants?.length ? `
     <details><summary>Constants (${render.constants.length})</summary>
       <div class="table-wrap"><table class="data">
@@ -1012,7 +1110,7 @@ function renderMapsResult(render) {
               <td><b>${esc(fmtValue(c.value))}</b> ${esc(c.units)}</td>
               <td><code>${esc(c.address)}</code></td></tr>`).join('')}
         </tbody></table></div></details>` : '';
-  $('#mapsOut').innerHTML = `
+  $('#mapsOut').innerHTML = mapsResultToolbar() + `
     <div class="gate-card ok">
       <h4>${esc(meta.title || 'Definitions')}</h4>
       <p class="small">${esc(meta.description || '')}</p>
@@ -1026,6 +1124,7 @@ function renderMapsResult(render) {
           <span class="muted small"> — ${esc(t.category)} · ${esc(t.units)} · ${t.rows}×${t.cols} · <code>${esc(t.address)}</code></span>
         </summary>${mapsTableHtml(t)}</details>`).join('')
     + constants;
+  wireMapsToolbar();
 }
 
 $('#mapsRefreshBtn').onclick = loadXdfs;
@@ -1062,7 +1161,19 @@ $('#mapsDiffBtn').onclick = async () => {
         + '<p class="small">Every table and constant in these definitions is identical between the two images.</p></div>';
       return;
     }
-    $('#mapsOut').innerHTML = `
+    maps.lastDoc = {
+      title: `${(d.xdf || {}).title || 'Maps'} — diff`,
+      html: mapsDoc(`${(d.xdf || {}).title || 'Maps'} — differences`,
+        d.tables.map((t) => `<h2>${esc(t.title)} — ${t.changed_cells} cell(s) changed</h2>`
+        + `<table><thead><tr><th>Row</th><th>Column</th><th>Before</th><th>After</th></tr></thead><tbody>`
+        + (t.cells || []).map((c) => `<tr><td>${esc(c.y)}</td><td>${esc(c.x)}</td>`
+          + `<td>${esc(fmtValue(c.before))}</td><td>${esc(fmtValue(c.after))}</td></tr>`).join('')
+        + '</tbody></table>').join('')
+        + (d.constants.length ? `<h2>Constants</h2><table><thead><tr><th>Constant</th><th>Before</th><th>After</th></tr></thead><tbody>`
+          + d.constants.map((c) => `<tr><td>${esc(c.title)}</td><td>${esc(fmtValue(c.before))}</td><td>${esc(fmtValue(c.after))}</td></tr>`).join('')
+          + '</tbody></table>' : '')),
+    };
+    $('#mapsOut').innerHTML = mapsResultToolbar() + `
       <div class="gate-card warn"><h4>Images differ</h4>
         <p class="small">${d.tables.length} table(s) and ${d.constants.length} constant(s) changed.</p></div>`
       + d.tables.map((t) => `
@@ -1087,6 +1198,7 @@ $('#mapsDiffBtn').onclick = async () => {
                 <td><b class="bad">${esc(fmtValue(c.before))}</b> ${esc(c.units)}</td>
                 <td><b class="ok">${esc(fmtValue(c.after))}</b></td></tr>`).join('')}
           </tbody></table></div></details>` : '');
+    wireMapsToolbar();
   } catch (err) {
     $('#mapsOut').innerHTML = `<div class="gate-card bad"><h4>Could not diff</h4><p class="small">${esc(err.message)}</p></div>`;
   }

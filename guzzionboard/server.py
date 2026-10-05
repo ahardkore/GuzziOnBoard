@@ -100,6 +100,7 @@ class Api:
         catalog = self.ws.catalog
         return 200, {
             "summary": catalog.summary(),
+            "makes": catalog.makes(),
             "models": [
                 {
                     "model": model,
@@ -107,15 +108,25 @@ class Api:
                 }
                 for model in catalog.models()
             ],
+            "vehicles": [
+                {
+                    "make": v.make, "model": v.model,
+                    "year_from": v.year_from, "year_to": v.year_to,
+                    "ecu": v.ecu,
+                }
+                for v in catalog.vehicles
+            ],
             "ecus": [e.as_dict() for e in catalog.ecus.values()],
         }
 
     def get_resolve(self, query: dict) -> tuple[int, dict]:
         model = (query.get("model") or [""])[0]
+        make = (query.get("make") or [""])[0]
         year = int((query.get("year") or ["0"])[0] or 0)
-        matches = self.ws.catalog.find(model, year or None)
+        matches = self.ws.catalog.find(model, year or None, make)
         return 200, {
             "model": model,
+            "make": make,
             "year": year,
             "ambiguous": len(matches) > 1,
             "matches": [
@@ -126,13 +137,19 @@ class Api:
 
     # -- lifecycle --------------------------------------------------------
     def post_select(self, body: dict) -> tuple[int, dict]:
-        return 200, self.ws.select(
-            model=body.get("model", ""),
-            year=int(body.get("year") or 0),
-            ecu=body.get("ecu", ""),
-            transport=body.get("transport", "simulator"),
-            device=body.get("device", ""),
-        )
+        try:
+            return 200, self.ws.select(
+                model=body.get("model", ""),
+                year=int(body.get("year") or 0),
+                ecu=body.get("ecu", ""),
+                make=body.get("make", ""),
+                transport=body.get("transport", "simulator"),
+                device=body.get("device", ""),
+                can_tx_id=body.get("can_tx_id", ""),
+                can_rx_id=body.get("can_rx_id", ""),
+            )
+        except ValueError as exc:
+            return 400, {"error": str(exc)}
 
     def post_connect(self, body: dict) -> tuple[int, dict]:
         return 200, self.ws.connect(

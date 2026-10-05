@@ -17,6 +17,7 @@ import math
 import random
 import time
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from ..catalog import EcuProfile
 from ..firmware import IAW5AM_CHECKSUM_LEN, iaw5am_decode, iaw5am_decode_byte
@@ -33,18 +34,126 @@ from ..protocol.kwp2000 import (
 from .base import Connection, InitResult, Transport
 
 
+#: Seedable faults. Each one changes what the channels report *and* what
+#: eventually appears in fault memory, so a practice session looks like the
+#: real thing: the numbers go wrong first, the code arrives later.
+@dataclass(frozen=True)
+class SimulatedFault:
+    key: str
+    name: str
+    description: str
+    dtc: str = ""
+    teaches: str = ""
+
+    def as_dict(self) -> dict:
+        return {
+            "key": self.key, "name": self.name, "description": self.description,
+            "dtc": self.dtc, "teaches": self.teaches,
+        }
+
+
+FAULTS: tuple[SimulatedFault, ...] = (
+    SimulatedFault(
+        "coolant_sensor_open", "Head sensor, open circuit",
+        "The head temperature sensor reads the bottom rail (-40 C). The ECU "
+        "fuels for a frozen engine, so it runs rich and never closes the loop.",
+        "P0117", "A railed sensor reading, and what the rest of the channels "
+        "do when the ECU believes it.",
+    ),
+    SimulatedFault(
+        "coolant_sensor_short", "Head sensor, shorted",
+        "The head temperature sensor pins at 135 C. The ECU pulls fuelling "
+        "back and the temperature lamp comes on.",
+        "P0118", "The other rail - same sensor, opposite failure.",
+    ),
+    SimulatedFault(
+        "tps_fault", "Throttle position sensor dead",
+        "The throttle angle stays at zero no matter what the rider does.",
+        "P0120", "A channel that disagrees with the engine speed next to it.",
+    ),
+    SimulatedFault(
+        "lambda_dead_front", "Lambda sensor lazy (front)",
+        "The front sensor sits at 450 mV instead of switching. The ECU has "
+        "not noticed yet and is still in closed loop.",
+        "P0130", "What a dead narrowband sensor looks like before the ECU "
+        "gives up on it - the plausibility check sees it first.",
+    ),
+    SimulatedFault(
+        "charging_failure", "Charging system down",
+        "The alternator is not contributing. Bus voltage sits around 12.1 V "
+        "and sags as the ride goes on.",
+        "P0562", "Why every other reading drifts when the volts go away.",
+    ),
+    SimulatedFault(
+        "air_leak", "Air leak after the throttle",
+        "Unmetered air raises idle, the stepper closes down to compensate and "
+        "both lambda integrators go positive.",
+        "P0505", "The classic Guzzi idle complaint, with the three channels "
+        "that prove it.",
+    ),
+    SimulatedFault(
+        "stepper_stuck", "Idle stepper jammed",
+        "The stepper no longer moves. Idle sits well off target and the "
+        "position never tracks the base.",
+        "P0505", "Same stored code as the air leak, different fingerprint in "
+        "the live data.",
+    ),
+    SimulatedFault(
+        "injector_blocked_front", "Front injector partially blocked",
+        "The front cylinder runs lean and its integrator climbs while the "
+        "rear stays put.",
+        "P0201", "A bank split: one map, two cylinders, very different "
+        "corrections.",
+    ),
+    SimulatedFault(
+        "misfire_rear", "Rear cylinder misfire",
+        "Combustion drops out intermittently on the rear cylinder. Speed gets "
+        "rough and the rear mixture goes rich with unburnt oxygen.",
+        "P0302", "Roughness you can see in the rpm trace.",
+    ),
+)
+
+FAULTS_BY_KEY = {f.key: f for f in FAULTS}
+
+
 @dataclass
 class EngineModel:
-    """A small deterministic physical model behind the simulated channels."""
+    """A small physical model behind the simulated channels.
+
+    It is deliberately controllable: ignition, throttle, ambient temperature
+    and a set of seeded faults are all inputs, so the workstation can drive
+    the engine the same way a rider would and practise on failures that are
+    inconvenient to arrange on a real motorcycle.
+
+    Temperatures are integrated rather than evaluated from a formula, so
+    stopping the engine really does let it cool, and changing the ambient
+    temperature moves the whole model.
+    """
 
     ambient_c: float = 18.0
     started_at: float = field(default_factory=time.monotonic)
     running: bool = True
     #: Set non-zero to make the simulation repeatable across runs.
     seed: int | None = 7
+    #: Rider inputs.
+    throttle_pct: float = 0.0
+    in_gear: bool = False
+    #: Blip the throttle by itself when nobody is driving, so the stock demo
+    #: still shows moving needles.
+    auto_blip: bool = True
+    #: 1.0 is a healthy battery; lower is a tired one.
+    battery_health: float = 1.0
+    #: Seeded fault keys, from :data:`FAULTS`.
+    faults: set = field(default_factory=set)
+
+    IDLE_RPM: ClassVar[float] = 1250.0
+    REDLINE_RPM: ClassVar[float] = 8500.0
 
     def __post_init__(self) -> None:
         self._rng = random.Random(self.seed)
+        self._coolant = float(self.ambient_c)
+        self._last_tick = time.monotonic()
+        self._stepper_frozen: float | None = None
 
     @property
     def t(self) -> float:
@@ -53,40 +162,140 @@ class EngineModel:
     def noise(self, amplitude: float) -> float:
         return self._rng.uniform(-amplitude, amplitude)
 
+    def has(self, fault: str) -> bool:
+        return fault in self.faults
+
+    # -- controls ---------------------------------------------------------
+    def set_faults(self, keys) -> set:
+        """Replace the seeded fault set, ignoring anything unknown."""
+        self.faults = {k for k in keys if k in FAULTS_BY_KEY}
+        if not self.has("stepper_stuck"):
+            self._stepper_frozen = None
+        return set(self.faults)
+
+    def advance(self, seconds: float) -> None:
+        """Fast-forward the model.
+
+        Wall-clock time drives the simulation, so tests and demos need a way
+        to say "pretend ten minutes went by" without waiting for them.
+        """
+        self._tick()
+        self.started_at -= seconds
+        step = 5.0
+        remaining = float(seconds)
+        while remaining > 0:
+            dt = min(step, remaining)
+            remaining -= dt
+            if self.running:
+                self._coolant += (92.0 - self._coolant) * (dt / 180.0)
+            else:
+                self._coolant += (self.ambient_c - self._coolant) * (dt / 900.0)
+
+    def start(self) -> None:
+        self.running = True
+
+    def stop(self) -> None:
+        self.running = False
+        self.throttle_pct = 0.0
+
+    # -- thermal integration ----------------------------------------------
+    def _tick(self) -> None:
+        now = time.monotonic()
+        dt = max(0.0, min(30.0, now - self._last_tick))
+        self._last_tick = now
+        if dt == 0.0:
+            return
+        # Warm-up towards 92 C with a 180 s time constant; cooling back to
+        # ambient is much slower.
+        if self.running:
+            self._coolant += (92.0 - self._coolant) * (dt / 180.0)
+        else:
+            self._coolant += (self.ambient_c - self._coolant) * (dt / 900.0)
+
     # -- channels ---------------------------------------------------------
     @property
+    def true_coolant_c(self) -> float:
+        """What the metal is actually doing, before any sensor fault."""
+        self._tick()
+        return self._coolant
+
+    @property
     def coolant_c(self) -> float:
-        """Exponential warm-up from ambient towards 92 C."""
-        return self.ambient_c + (92.0 - self.ambient_c) * (1 - math.exp(-self.t / 180.0))
+        """What the sensor reports - which is not always the truth."""
+        truth = self.true_coolant_c
+        if self.has("coolant_sensor_open"):
+            return -40.0
+        if self.has("coolant_sensor_short"):
+            return 135.0
+        return truth
+
+    @property
+    def air_c(self) -> float:
+        return self.ambient_c + self.noise(0.4)
+
+    @property
+    def idle_target_rpm(self) -> float:
+        """Fast idle when cold, settling as the head warms."""
+        cold = max(0.0, min(1.0, (70.0 - self.true_coolant_c) / 55.0))
+        return self.IDLE_RPM + 320.0 * cold
 
     @property
     def rpm(self) -> float:
         if not self.running:
             return 0.0
-        # Idle settles as the engine warms, with a slow hunt and a blip cycle.
-        target = 1250 - 120 * (1 - math.exp(-self.t / 180.0))
-        blip = 1400 * max(0.0, math.sin(self.t / 23.0) ** 8)
-        return target + blip + 28 * math.sin(self.t * 1.7) + self.noise(12)
+        target = self.idle_target_rpm
+
+        # Idle disturbances from seeded faults.
+        if self.has("air_leak"):
+            target += 380
+        if self.has("stepper_stuck"):
+            target -= 260
+        if self.has("coolant_sensor_open"):
+            target += 180      # the ECU thinks it is -40 C and fast-idles
+
+        if self.throttle_pct > 0:
+            target += self.throttle_pct / 100.0 * (self.REDLINE_RPM - target) * 1.02
+        elif self.auto_blip:
+            target += 1400 * max(0.0, math.sin(self.t / 23.0) ** 8)
+
+        hunt = 28 * math.sin(self.t * 1.7) + self.noise(12)
+        if self.has("misfire_rear"):
+            hunt += self.noise(160)
+        return max(0.0, min(self.REDLINE_RPM, target + hunt))
 
     @property
     def throttle_deg(self) -> float:
+        if self.has("tps_fault"):
+            return 0.0
         if not self.running:
             return 1.6
-        blip = 42 * max(0.0, math.sin(self.t / 23.0) ** 8)
-        return 4.7 + blip + self.noise(0.05)
+        base = 4.7 + self.throttle_pct * 0.85
+        if self.throttle_pct == 0 and self.auto_blip:
+            base += 42 * max(0.0, math.sin(self.t / 23.0) ** 8)
+        return base + self.noise(0.05)
 
     @property
     def battery_v(self) -> float:
+        rest = 12.4 * self.battery_health + 0.2
+        if self.has("charging_failure"):
+            # Running off the battery: it falls away as the minutes pass.
+            return max(10.8, 12.3 * self.battery_health
+                       - 0.004 * self.t + self.noise(0.04))
         if not self.running:
-            return 12.4 + self.noise(0.05)
+            return rest + self.noise(0.05)
         return 14.1 - 0.0004 * self.rpm + self.noise(0.04)
 
     @property
     def injection_ms(self) -> float:
         if not self.running:
             return 0.0
-        enrich = 1.0 + 0.9 * math.exp(-self.t / 120.0)   # cold enrichment
-        return (1.35 + 0.0008 * (self.rpm - 1200)) * enrich + self.noise(0.02)
+        enrich = 1.0 + 0.9 * max(0.0, min(1.0, (70.0 - self.coolant_c) / 70.0))
+        if self.has("coolant_sensor_open"):
+            enrich = 2.0        # fuelling for a frozen engine
+        if self.has("coolant_sensor_short"):
+            enrich = 0.8
+        load = 1.0 + self.throttle_pct / 55.0
+        return (1.35 + 0.0008 * (self.rpm - 1200)) * enrich * load + self.noise(0.02)
 
     @property
     def advance_deg(self) -> float:
@@ -96,25 +305,77 @@ class EngineModel:
 
     @property
     def closed_loop(self) -> bool:
+        if self.has("coolant_sensor_open"):
+            return False        # the ECU never thinks it is warm
         return self.running and self.coolant_c > 45
 
     def lambda_mv(self, bank: int = 0) -> float:
+        if bank == 0 and self.has("lambda_dead_front"):
+            return 450 + self.noise(6)
         if not self.closed_loop:
             return 450 + self.noise(5)
+        if bank == 1 and self.has("misfire_rear"):
+            return 180 + self.noise(20)     # unburnt oxygen reads lean
         return 450 + 380 * math.sin(self.t * (2.1 + 0.3 * bank) + bank)
 
     def lambda_integrator(self, bank: int = 0) -> float:
         if not self.closed_loop:
             return 0.0
-        return 3.0 * math.sin(self.t / 9.0 + bank) + self.noise(0.3)
+        base = 3.0 * math.sin(self.t / 9.0 + bank) + self.noise(0.3)
+        if self.has("air_leak"):
+            base += 9.0
+        if bank == 0 and self.has("injector_blocked_front"):
+            base += 18.0
+        if bank == 1 and self.has("misfire_rear"):
+            base += 12.0
+        return base
 
     @property
     def road_speed(self) -> float:
-        return 0.0
+        if not self.in_gear or not self.running:
+            return 0.0
+        return max(0.0, (self.rpm - 1100) / 7400 * 180.0)
+
+    @property
+    def stepper_base(self) -> int:
+        """Where the ECU's map says the stepper should sit."""
+        cold = max(0.0, min(1.0, (70.0 - self.true_coolant_c) / 55.0))
+        return int(100 + 17 * cold)
+
+    @property
+    def stepper_position(self) -> int:
+        """Where it actually is after the idle controller has had its say."""
+        if self.has("stepper_stuck"):
+            if self._stepper_frozen is None:
+                self._stepper_frozen = self.stepper_base + 25
+            return int(self._stepper_frozen)
+        position = self.stepper_base + 2
+        if self.has("air_leak"):
+            position -= 24      # closing down to claw back the extra air
+        return int(max(0, position))
 
     @property
     def stepper(self) -> int:
-        return int(117 - 17 * (1 - math.exp(-self.t / 180.0)))
+        """Backwards-compatible alias for :attr:`stepper_base`."""
+        return self.stepper_base
+
+    # -- reporting ---------------------------------------------------------
+    def as_dict(self) -> dict:
+        return {
+            "running": self.running,
+            "throttle_pct": round(self.throttle_pct, 1),
+            "ambient_c": round(self.ambient_c, 1),
+            "in_gear": self.in_gear,
+            "auto_blip": self.auto_blip,
+            "battery_health": round(self.battery_health, 2),
+            "coolant_c": round(self.true_coolant_c, 1),
+            "rpm": round(self.rpm),
+            "battery_v": round(self.battery_v, 2),
+            "road_speed": round(self.road_speed),
+            "closed_loop": self.closed_loop,
+            "faults": sorted(self.faults),
+            "seconds_since_start": round(self.t, 1),
+        }
 
 
 class SimulatedEcu:
@@ -141,6 +402,14 @@ class SimulatedEcu:
         self.active_outputs: dict[int, float] = {}
         self.routine_log: list[tuple[float, int, int]] = []
         self.cleared_at: float | None = None
+        #: Fault maturation. A seeded fault does not appear in memory the
+        #: instant it starts: it matures to "pending" and only later to
+        #: "confirmed", exactly like the thing being simulated. Clearing the
+        #: memory while the cause is still there restarts the clock, so the
+        #: code comes back - which is the lesson.
+        self.dtc_pending_after = 2.0
+        self.dtc_confirm_after = 8.0
+        self._fault_since: dict[str, float] = {}
         self.security_unlocked = False
         self._pending_remaining = 0
         self._last_seed = b""
@@ -206,13 +475,13 @@ class SimulatedEcu:
         e = self.engine
         inverse = {
             "rpm": lambda: int(max(0, e.rpm)),
-            "air_temp": lambda: int(e.ambient_c + 40 + e.noise(0.4)),
+            "air_temp": lambda: int(e.air_c + 40),
             "coolant_temp": lambda: int(e.coolant_c + 40),
             "throttle": lambda: int(e.throttle_deg * 10),
             "advance": lambda: int(e.advance_deg * 10),
             "advance_latched": lambda: int(e.advance_deg * 10),
             "injection_ms": lambda: int(e.injection_ms * 1000),
-            "idle_target": lambda: int(1571 - 170 * (1 - math.exp(-e.t / 180.0))),
+            "idle_target": lambda: int(e.idle_target_rpm),
             "battery": lambda: int(e.battery_v * 10),
             "lambda_f": lambda: int(max(0, e.lambda_mv(0))),
             "lambda_r": lambda: int(max(0, e.lambda_mv(1))),
@@ -221,14 +490,14 @@ class SimulatedEcu:
             "lambda_loop": lambda: 2 if e.closed_loop else 0,
             "lambda_phase_f": lambda: (5 if e.closed_loop else 2),
             "road_speed": lambda: int(e.road_speed),
-            "stepper_base": lambda: e.stepper,
-            "stepper_position": lambda: e.stepper + 2,
-            "stepper_trim": lambda: 2,
+            "stepper_base": lambda: e.stepper_base,
+            "stepper_position": lambda: e.stepper_position,
+            "stepper_trim": lambda: e.stepper_position - e.stepper_base,
             "engine_state": lambda: (0x04 | 0x02 | 0x01) if e.running else 0x00,
             "stop_state": lambda: 4 if e.running else 8,
             "throttle_closed": lambda: 1 if e.throttle_deg < 5 else 4,
             "engine_run_flag": lambda: 4 if e.running else 0,
-            "neutral": lambda: 1,
+            "neutral": lambda: 0 if e.in_gear else 1,
             "sidestand": lambda: 1,
             "clutch": lambda: 0,
             "kill_run": lambda: 1 if e.running else 0,
@@ -281,6 +550,12 @@ class SimulatedEcu:
                 return self._nrc(service, NRC.SERVICE_NOT_SUPPORTED)
             self.dtcs.clear()
             self.cleared_at = time.time()
+            # Restart maturation: a cause that is still present will set its
+            # code again, after the same delay it took the first time.
+            self._fault_since = {
+                key: time.monotonic()
+                for key in getattr(self.engine, "faults", set())
+            }
             return bytes([0x54])
         if service == Service.IO_CONTROL_BY_LOCAL_ID:
             return self._io_control(payload)
@@ -376,7 +651,42 @@ class SimulatedEcu:
             return self._nrc(payload[0], NRC.REQUEST_OUT_OF_RANGE)
         return bytes([0x61, local_id]) + raw
 
+    #: Status bytes used for matured faults.
+    PENDING_STATUS = 0x24
+    CONFIRMED_STATUS = 0x2A
+
+    def _mature_faults(self) -> None:
+        """Let seeded faults age into fault memory."""
+        now = time.monotonic()
+        active = set(getattr(self.engine, "faults", set()))
+        for key in active:
+            self._fault_since.setdefault(key, now)
+        for key in list(self._fault_since):
+            if key not in active:
+                # The cause went away; whatever was stored stays stored until
+                # somebody clears it, which is how fault memory works.
+                self._fault_since.pop(key)
+
+        stored = {code: i for i, (code, _) in enumerate(self.dtcs)}
+        for key, since in self._fault_since.items():
+            fault = FAULTS_BY_KEY.get(key)
+            if fault is None or not fault.dtc:
+                continue
+            age = now - since
+            if age < self.dtc_pending_after:
+                continue
+            status = (self.CONFIRMED_STATUS if age >= self.dtc_confirm_after
+                      else self.PENDING_STATUS)
+            if fault.dtc in stored:
+                index = stored[fault.dtc]
+                if self.dtcs[index][1] < status:
+                    self.dtcs[index] = (fault.dtc, status)
+            else:
+                stored[fault.dtc] = len(self.dtcs)
+                self.dtcs.append((fault.dtc, status))
+
     def _read_dtcs(self) -> bytes:
+        self._mature_faults()
         from ..protocol.kwp2000 import _DTC_PREFIX
 
         body = bytearray([0x58, len(self.dtcs)])

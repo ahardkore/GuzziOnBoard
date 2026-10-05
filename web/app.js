@@ -26,6 +26,7 @@ const state = {
   lastSamples: [],
   lastAnalysis: null,
   derivedCatalog: null,
+  sim: null,
 };
 
 const HISTORY_LEN = 90;
@@ -149,6 +150,7 @@ const VIEW_META = {
   faults: ['Fault codes', 'Stored and current diagnostic trouble codes.'],
   service: ['Service actions', 'Everything here changes something on the bike.'],
   discovery: ['Discovery', 'Read-only sweep for unmapped local identifiers.'],
+  simulator: ['Simulated bike', 'Drive the simulated engine and seed faults to practise on.'],
   sessions: ['Sessions', 'Recorded frames, samples and safety decisions.'],
   report: ['Report', 'A shareable snapshot of this session.'],
 };
@@ -162,9 +164,109 @@ function show(view) {
   if (view === 'sessions') loadSessions();
   if (view === 'service') loadServiceActions();
   if (view === 'overview') renderOverview();
+  if (view === 'simulator') loadSim();
 }
 
 $$('.nav').forEach((b) => (b.onclick = () => show(b.dataset.view)));
+
+/* ----------------------------------------------------- simulated bike
+ *
+ * Controls for the built-in simulator. None of this can reach a real
+ * motorcycle: the endpoints behind it refuse unless the transport in use is
+ * the simulator or the virtual CAN bus.
+ */
+
+async function loadSim() {
+  let data;
+  try { data = await api('/api/sim'); }
+  catch (err) { return toast(err.message, 'bad'); }
+  state.sim = data;
+
+  $('#simPanels').classList.toggle('hidden', !data.available);
+  $('#simUnavailable').classList.toggle('hidden', !!data.available);
+  if (!data.available) {
+    $('#simUnavailableText').textContent = data.reason;
+    renderSimFaults(data.faults, false);
+    return;
+  }
+  renderSimEngine(data);
+  renderSimFaults(data.faults, true);
+  renderSimComms(data.comms);
+}
+
+function renderSimEngine(data) {
+  const e = data.engine;
+  const btn = $('#simRunBtn');
+  btn.textContent = e.running ? 'Stop engine' : 'Start engine';
+  btn.classList.toggle('primary', !e.running);
+  $('#simStatePill').textContent = e.running
+    ? `running · ${e.rpm} rpm` : 'engine stopped';
+  $('#simThrottle').value = e.throttle_pct;
+  $('#simThrottleLabel').textContent = `${Math.round(e.throttle_pct)}%`;
+  $('#simAmbient').value = Math.round(e.ambient_c);
+  $('#simAmbientLabel').textContent = `${Temp.value(Math.round(e.ambient_c), '\u00b0C')} ${Temp.label('\u00b0C')}`;
+  $('#simBattery').value = Math.round(e.battery_health * 100);
+  $('#simBatteryLabel').textContent = e.battery_health >= 0.95 ? 'healthy'
+    : e.battery_health >= 0.8 ? 'tired' : 'flat';
+  $('#simInGear').checked = e.in_gear;
+  $('#simAutoBlip').checked = e.auto_blip;
+  $('#simReadout').innerHTML = `
+    <div><span>Head temperature</span><b>${esc(Temp.value(e.coolant_c, '\u00b0C'))} ${esc(Temp.label('\u00b0C'))}</b></div>
+    <div><span>Battery</span><b>${e.battery_v} V</b></div>
+    <div><span>Road speed</span><b>${e.road_speed} km/h</b></div>
+    <div><span>Lambda loop</span><b>${e.closed_loop ? 'closed' : 'open'}</b></div>
+    <div><span>Running for</span><b>${Math.round(e.seconds_since_start)} s</b></div>`;
+}
+
+function renderSimFaults(faults, live) {
+  $('#simFaultList').innerHTML = faults.map((f) => `
+    <div class="action ${f.active ? 'armed' : ''}">
+      <div class="action-main">
+        <strong>${esc(f.name)}</strong>
+        <p class="small muted">${esc(f.description)}</p>
+        <p class="small muted">${f.dtc ? `Stores <code>${esc(f.dtc)}</code> once it matures. ` : ''}${esc(f.teaches || '')}</p>
+      </div>
+      <button class="btn small ${f.active ? 'danger' : ''}" data-fault="${esc(f.key)}"
+        ${live ? '' : 'disabled'}>${f.active ? 'Clear fault' : 'Seed fault'}</button>
+    </div>`).join('');
+
+  $$('#simFaultList button[data-fault]').forEach((b) => (b.onclick = async () => {
+    const key = b.dataset.fault;
+    const active = !(state.sim.faults.find((f) => f.key === key) || {}).active;
+    try {
+      state.sim = await api('/api/sim/faults', { method: 'POST', body: { key, active } });
+      renderSimFaults(state.sim.faults, true);
+      toast(active ? 'Fault seeded — watch the live data before the code arrives.'
+                   : 'Fault cleared on the bike. Any stored code stays until you erase it.',
+        active ? 'warn' : 'ok');
+    } catch (err) { toast(err.message, 'bad'); }
+  }));
+}
+
+function renderSimComms(c) {
+  $('#simDrop').value = Math.round(c.drop_rate * 100);
+  $('#simDropLabel').textContent = `${Math.round(c.drop_rate * 100)}%`;
+  $('#simCorrupt').value = Math.round(c.corrupt_rate * 100);
+  $('#simCorruptLabel').textContent = `${Math.round(c.corrupt_rate * 100)}%`;
+  $('#simPending').value = Math.round(c.pending_rate * 100);
+  $('#simPendingLabel').textContent = `${Math.round(c.pending_rate * 100)}%`;
+  $('#simLatency').value = Math.round(c.extra_latency * 1000);
+  $('#simLatencyLabel').textContent = `${Math.round(c.extra_latency * 1000)} ms`;
+}
+
+async function simEngine(body) {
+  try {
+    state.sim = await api('/api/sim/engine', { method: 'POST', body });
+    renderSimEngine(state.sim);
+  } catch (err) { toast(err.message, 'bad'); }
+}
+
+async function simComms(body) {
+  try {
+    state.sim = await api('/api/sim/comms', { method: 'POST', body });
+    renderSimComms(state.sim.comms);
+  } catch (err) { toast(err.message, 'bad'); }
+}
 
 /* --------------------------------------------------------------- modal */
 
@@ -947,6 +1049,20 @@ $('#clearDtcBtn').onclick = clearDtcs;
 $('#scanBtn').onclick = runScan;
 $('#snapshotBtn').onclick = () => { state.baseline = state.scan; toast('Baseline kept. Change the engine state and sweep again.', 'ok'); renderScan(); };
 $('#exportScanBtn').onclick = () => download(`guzzionboard-scan-${Date.now()}.json`, JSON.stringify(state.scan, null, 2), 'application/json');
+$('#simRunBtn').onclick = () => simEngine({ running: !(state.sim?.engine?.running) });
+$('#simWarmBtn').onclick = () => simEngine({ advance_s: 300 });
+$('#simThrottle').oninput = (e) => {
+  $('#simThrottleLabel').textContent = `${e.target.value}%`;
+  simEngine({ throttle_pct: Number(e.target.value) });
+};
+$('#simAmbient').oninput = (e) => simEngine({ ambient_c: Number(e.target.value) });
+$('#simBattery').oninput = (e) => simEngine({ battery_health: Number(e.target.value) / 100 });
+$('#simInGear').onchange = (e) => simEngine({ in_gear: e.target.checked });
+$('#simAutoBlip').onchange = (e) => simEngine({ auto_blip: e.target.checked });
+$('#simDrop').oninput = (e) => simComms({ drop_rate: Number(e.target.value) / 100 });
+$('#simCorrupt').oninput = (e) => simComms({ corrupt_rate: Number(e.target.value) / 100 });
+$('#simPending').oninput = (e) => simComms({ pending_rate: Number(e.target.value) / 100 });
+$('#simLatency').oninput = (e) => simComms({ extra_latency: Number(e.target.value) / 1000 });
 $('#refreshSessionsBtn').onclick = loadSessions;
 $('#buildReportBtn').onclick = buildReport;
 $('#downloadReportBtn').onclick = () => download(`guzzionboard-report-${Date.now()}.txt`, state.report.text);

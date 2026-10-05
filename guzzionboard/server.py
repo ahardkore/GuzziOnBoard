@@ -19,6 +19,7 @@ from . import canlog
 from . import tools
 from .catalog import CatalogError
 from .derived import CHANNELS as DERIVED_CHANNELS, Analyzer
+from .transports.simulator import FAULTS as SIM_FAULTS, FAULTS_BY_KEY as SIM_FAULTS_BY_KEY
 from .diagnostics import NotConnected
 from .firmware import FirmwareImage, FirmwareError
 from .maps import XDF_DIR, XdfError, XdfFile, load_xdfs
@@ -202,6 +203,110 @@ class Api:
                 "interpretations, not measurements."
             ),
         }
+
+    # -- the simulated motorcycle -----------------------------------------
+    #
+    # Controls for the built-in simulator only. There is deliberately no
+    # equivalent for a real bike: nothing here may ever reach down a K-Line.
+
+    def _simulated_ecu(self):
+        """The :class:`SimulatedEcu` behind the current connection, if any."""
+        service = self.ws.service
+        transport = getattr(service, "transport", None) if service else None
+        return getattr(transport, "ecu", None)
+
+    def _sim_payload(self, ecu) -> dict:
+        return {
+            "available": True,
+            "transport": self.ws.selection.transport_kind,
+            "engine": ecu.engine.as_dict(),
+            "faults": [
+                {**f.as_dict(), "active": f.key in ecu.engine.faults}
+                for f in SIM_FAULTS
+            ],
+            "comms": {
+                "drop_rate": ecu.drop_rate,
+                "corrupt_rate": ecu.corrupt_rate,
+                "pending_rate": ecu.pending_rate,
+                "extra_latency": ecu.extra_latency,
+            },
+            "dtc_timing": {
+                "pending_after": ecu.dtc_pending_after,
+                "confirm_after": ecu.dtc_confirm_after,
+            },
+            "note": (
+                "This is the simulated motorcycle, not a setting on a real "
+                "one. Seeded faults change the live channels first and mature "
+                "into fault memory afterwards."
+            ),
+        }
+
+    def get_sim(self, query: dict) -> tuple[int, dict]:
+        ecu = self._simulated_ecu()
+        if ecu is None:
+            return 200, {
+                "available": False,
+                "transport": self.ws.selection.transport_kind,
+                "faults": [f.as_dict() for f in SIM_FAULTS],
+                "reason": (
+                    "Connect with the simulator (or the virtual CAN bus) to "
+                    "drive the simulated engine."
+                ),
+            }
+        return 200, self._sim_payload(ecu)
+
+    def post_sim_engine(self, body: dict) -> tuple[int, dict]:
+        ecu = self._simulated_ecu()
+        if ecu is None:
+            return 400, {"error": "not connected to a simulated ECU"}
+        engine = ecu.engine
+        if "running" in body:
+            engine.start() if bool(body["running"]) else engine.stop()
+        if "throttle_pct" in body:
+            engine.throttle_pct = max(0.0, min(100.0, float(body["throttle_pct"])))
+            engine.auto_blip = False
+        if "ambient_c" in body:
+            engine.ambient_c = max(-30.0, min(55.0, float(body["ambient_c"])))
+        if "battery_health" in body:
+            engine.battery_health = max(0.5, min(1.1, float(body["battery_health"])))
+        if "in_gear" in body:
+            engine.in_gear = bool(body["in_gear"])
+        if "auto_blip" in body:
+            engine.auto_blip = bool(body["auto_blip"])
+        if "advance_s" in body:
+            engine.advance(max(0.0, min(3600.0, float(body["advance_s"]))))
+        return 200, self._sim_payload(ecu)
+
+    def post_sim_faults(self, body: dict) -> tuple[int, dict]:
+        ecu = self._simulated_ecu()
+        if ecu is None:
+            return 400, {"error": "not connected to a simulated ECU"}
+        if "faults" in body:
+            requested = list(body["faults"] or [])
+        else:
+            requested = list(ecu.engine.faults)
+            key = body.get("key")
+            if key:
+                if bool(body.get("active", True)):
+                    requested.append(key)
+                else:
+                    requested = [k for k in requested if k != key]
+        unknown = [k for k in requested if k not in SIM_FAULTS_BY_KEY]
+        if unknown:
+            return 400, {"error": f"unknown fault(s): {', '.join(unknown)}"}
+        ecu.engine.set_faults(requested)
+        return 200, self._sim_payload(ecu)
+
+    def post_sim_comms(self, body: dict) -> tuple[int, dict]:
+        ecu = self._simulated_ecu()
+        if ecu is None:
+            return 400, {"error": "not connected to a simulated ECU"}
+        for key in ("drop_rate", "corrupt_rate", "pending_rate"):
+            if key in body:
+                setattr(ecu, key, max(0.0, min(1.0, float(body[key]))))
+        if "extra_latency" in body:
+            ecu.extra_latency = max(0.0, min(2.0, float(body["extra_latency"])))
+        return 200, self._sim_payload(ecu)
 
     def get_derived_catalog(self, query: dict) -> tuple[int, dict]:
         return 200, {"channels": [
@@ -538,6 +643,7 @@ ROUTES_GET = {
     "/api/identify": "get_identify",
     "/api/live": "get_live",
     "/api/derived": "get_derived_catalog",
+    "/api/sim": "get_sim",
     "/api/parameters": "get_parameters",
     "/api/dtcs": "get_dtcs",
     "/api/actuators": "get_actuators",
@@ -576,6 +682,9 @@ ROUTES_POST = {
     "/api/adapter/latency": "post_adapter_latency",
     "/api/tools/canlog": "post_tools_canlog",
     "/api/sessions/compare": "post_sessions_compare",
+    "/api/sim/engine": "post_sim_engine",
+    "/api/sim/faults": "post_sim_faults",
+    "/api/sim/comms": "post_sim_comms",
 }
 
 

@@ -354,11 +354,20 @@ def _idle_control(r: Readings, d: dict) -> Finding | None:
         return None            # rider is on the throttle; the target is moot
     if abs(error) < 200:
         return None
+    # The stepper tells you *which* idle fault this is. Running fast while
+    # the stepper closes down means air is getting in somewhere the ECU
+    # cannot control; running fast with the stepper still open means the
+    # stepper itself is the problem.
     drift = d.get("stepper_drift")
-    suspects = ["Idle stepper", "Throttle body balance", "Air leak"]
-    if error > 0 and (drift is None or drift > 0):
+    if error > 0 and drift is not None and drift < -5:
         suspects = ["Air leak after the throttle", "Throttle stop adjustment",
-                    "Idle stepper stuck open"]
+                    "Throttle plate not closing"]
+    elif error > 0:
+        suspects = ["Idle stepper stuck open", "Air leak after the throttle",
+                    "Throttle stop adjustment"]
+    else:
+        suspects = ["Idle stepper jammed closed", "Idle fuelling",
+                    "Throttle body balance"]
     return Finding(
         "idle_control", "warn",
         "Idle is not sitting on its target",

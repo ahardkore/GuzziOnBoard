@@ -347,6 +347,21 @@ table.data tr.changed td { background: #12281e; }
   border-radius: 8px; padding: 12px 14px;
 }
 .action.blocked { opacity: .78; }
+/* A seeded fault is an abnormal state of the simulated bike: say so. */
+.action.armed { border-color: var(--warn); background: #241f12; }
+#simFaultList .action { display: flex; gap: 12px; align-items: flex-start; }
+.action-main { flex: 1; }
+.action-main p { margin: 4px 0 0; }
+
+.sim-readout {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
+}
+.sim-readout div { display: flex; flex-direction: column; gap: 2px; }
+.sim-readout span { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; }
+.sim-readout b { font-family: var(--mono); font-size: .95rem; }
+
+#simPanels input[type=range] { width: 100%; accent-color: var(--accent); padding: 0; }
 .action-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
 .action-head strong { font-size: .92rem; margin-right: 6px; }
 .action-head code { color: var(--muted); margin-left: 4px; }

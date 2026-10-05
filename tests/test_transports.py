@@ -82,9 +82,8 @@ def test_simulator_refuses_identification_with_the_wrong_option(profile):
 
 def test_engine_model_warms_up_and_settles(profile):
     cold = EngineModel()
-    cold.started_at -= 0           # t ~ 0
     warm = EngineModel()
-    warm.started_at -= 600         # ten minutes in
+    warm.advance(600)              # ten minutes in
     assert cold.coolant_c < warm.coolant_c
     assert warm.coolant_c == pytest.approx(92, abs=3.0)
     assert warm.closed_loop and not cold.closed_loop

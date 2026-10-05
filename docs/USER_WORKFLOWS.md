@@ -55,3 +55,40 @@ CO trim is an engine-running operation and must not be grouped with engine-off l
 - **Expert mode:** raw frames, selectable polling, actor commands, protocol timing, and exportable logs.
 
 Both modes must use the same safety gate and audit trail. Expert mode must not bypass power, compatibility, or backup requirements.
+
+## Practising on the simulated motorcycle
+
+The simulator is not only a development convenience; it is where somebody
+learns to read the data before they touch a bike. The **Simulated bike** view
+drives it directly and exists only while the transport in use is the simulator
+or the virtual CAN bus — the endpoints behind it refuse otherwise, so there is
+no path from these controls to a K-Line.
+
+What it offers:
+
+- **Engine controls** — ignition, throttle, ambient temperature, battery
+  condition, in-gear road speed, and a fast-forward for the thermal model so a
+  warm-up does not have to be waited out in real time.
+- **Seeded faults** — a railed head sensor (both rails), a dead TPS, a lazy
+  lambda sensor, a failed charging system, an air leak, a jammed idle stepper,
+  a partially blocked front injector and a rear-cylinder misfire. Each one
+  changes the physics first and stores its code later.
+- **Comms quality** — dropped requests, corrupt checksums, `responsePending`
+  and extra latency, because a marginal adapter is part of the job.
+
+The maturation behaviour is deliberate and worth teaching from:
+
+1. Seed a fault and watch the **live data** move — the derived channels and
+   the plausibility checks react long before anything is in fault memory.
+2. Read the fault memory: the code arrives as *pending* first, then
+   *confirmed*.
+3. Clear it with the cause still present and read again — it comes back, after
+   the same delay it took the first time. Clearing a code is not a repair.
+4. Remove the cause and read again — the stored code is still there until it
+   is erased, which is how fault memory actually works.
+
+Two of the faults (air leak, jammed stepper) store the same code, `P0505`, and
+are told apart only by the live data: both raise the idle error, but the air
+leak drives the stepper *closed* while the jammed stepper does not move at all.
+That pair is the best single demonstration of why this workstation shows
+channels rather than just codes.

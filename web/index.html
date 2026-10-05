@@ -26,6 +26,7 @@
     <button class="nav" data-view="service"><i>⚙</i> Service actions</button>
     <button class="nav" data-view="firmware"><i>▥</i> ECU memory</button>
     <button class="nav" data-view="discovery"><i>🔍</i> Discovery</button>
+    <button class="nav" data-view="simulator"><i>🧪</i> Simulated bike</button>
     <button class="nav" data-view="sessions"><i>▤</i> Sessions</button>
     <button class="nav" data-view="report"><i>⎙</i> Report</button>
   </nav>
@@ -229,6 +230,73 @@
       <p class="muted small">IAW ECUs have no output timer: an output stays energised until something turns it off. This workstation owns the deadline and releases on expiry, on disconnect, and if the browser goes away.</p>
       <div id="actuatorList" class="action-list"></div>
     </article>
+  </section>
+
+  <!-- ==================================================== SIMULATOR -->
+  <section class="view hidden" id="simulator">
+    <article class="panel warn-panel">
+      <h2>🧪 This drives the simulated motorcycle, not a real one</h2>
+      <p>Everything on this page changes the bike the workstation is talking
+      to, never the workstation's own behaviour. Seeded faults move the live
+      channels first and only mature into fault memory afterwards, so you can
+      practise reading the data before the code shows up — and watch a code
+      come straight back if you clear it while the cause is still there.</p>
+    </article>
+
+    <div id="simUnavailable" class="hidden">
+      <article class="panel"><p class="muted" id="simUnavailableText"></p></article>
+    </div>
+
+    <div id="simPanels">
+      <div class="grid-2">
+        <article class="panel">
+          <h2>Engine</h2>
+          <div class="toolbar">
+            <button class="btn primary" id="simRunBtn">Start engine</button>
+            <button class="btn" id="simWarmBtn" title="Fast-forward the thermal model by five minutes">Skip ahead 5 min</button>
+            <span class="pill ghost" id="simStatePill">—</span>
+          </div>
+          <label class="field">
+            <span>Throttle <b id="simThrottleLabel">0%</b></span>
+            <input type="range" id="simThrottle" min="0" max="100" value="0">
+          </label>
+          <label class="field">
+            <span>Ambient temperature <b id="simAmbientLabel">18 °C</b></span>
+            <input type="range" id="simAmbient" min="-20" max="45" value="18">
+          </label>
+          <label class="field">
+            <span>Battery condition <b id="simBatteryLabel">healthy</b></span>
+            <input type="range" id="simBattery" min="50" max="110" value="100">
+          </label>
+          <label class="check"><input type="checkbox" id="simInGear"> In gear (road speed follows rpm)</label>
+          <label class="check"><input type="checkbox" id="simAutoBlip" checked> Blip the throttle by itself when idle</label>
+          <div class="sim-readout" id="simReadout"></div>
+        </article>
+
+        <article class="panel">
+          <h2>Comms quality</h2>
+          <p class="muted small">The adapter and the wiring are part of the
+          job. These make the simulator behave like a bad connection so the
+          retry, checksum and timeout paths get exercised on purpose.</p>
+          <label class="field"><span>Dropped requests <b id="simDropLabel">0%</b></span>
+            <input type="range" id="simDrop" min="0" max="60" value="0"></label>
+          <label class="field"><span>Corrupt checksums <b id="simCorruptLabel">0%</b></span>
+            <input type="range" id="simCorrupt" min="0" max="60" value="0"></label>
+          <label class="field"><span>responsePending first <b id="simPendingLabel">0%</b></span>
+            <input type="range" id="simPending" min="0" max="100" value="0"></label>
+          <label class="field"><span>Extra latency <b id="simLatencyLabel">0 ms</b></span>
+            <input type="range" id="simLatency" min="0" max="500" step="10" value="0"></label>
+        </article>
+      </div>
+
+      <article class="panel">
+        <h2>Seeded faults</h2>
+        <p class="muted small">Each fault changes the physics, and the code it
+        eventually stores is listed with it. Nothing appears in fault memory
+        straight away.</p>
+        <div id="simFaultList" class="action-list"></div>
+      </article>
+    </div>
   </section>
 
   <!-- ==================================================== DISCOVERY -->

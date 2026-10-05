@@ -349,7 +349,15 @@ table.data tr.changed td { background: #12281e; }
 .action.blocked { opacity: .78; }
 /* A seeded fault is an abnormal state of the simulated bike: say so. */
 .action.armed { border-color: var(--warn); background: #241f12; }
-#simFaultList .action { display: flex; gap: 12px; align-items: flex-start; }
+#simFaultList .action, #procedureList .action { display: flex; gap: 12px; align-items: flex-start; }
+.tagline { font-size: .72rem; color: var(--muted); border: 1px solid var(--line);
+  border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
+.warn-text { color: var(--warn); }
+.session-item { border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 8px; }
+.session-item .toolbar { margin-top: 4px; }
+#replayScrub { flex: 1; min-width: 160px; accent-color: var(--accent); }
+#replayGrid { margin-top: 12px; }
+#replayFindings { margin-top: 12px; }
 .action-main { flex: 1; }
 .action-main p { margin: 4px 0 0; }
 

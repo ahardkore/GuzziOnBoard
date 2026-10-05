@@ -479,12 +479,13 @@ class Analyzer:
         self._texts.clear()
 
     # -- feeding ---------------------------------------------------------
-    def update(self, samples) -> dict:
+    def update(self, samples, at: float | None = None) -> dict:
         """Record one sweep and return ``{"derived": [...], "findings": [...]}``.
 
         ``samples`` is a list of :class:`~guzzionboard.diagnostics.Sample` or
         of the dicts they serialise to, so the server and the tests can both
-        use it.
+        use it. ``at`` overrides the timestamp, which is what replay needs:
+        the window has to mean the same thing then as it did live.
         """
         now, texts = {}, {}
         for s in samples:
@@ -495,7 +496,7 @@ class Analyzer:
             if d.get("text"):
                 texts[d["key"]] = d["text"]
 
-        t = time.monotonic()
+        t = time.monotonic() if at is None else float(at)
         self._history.append((t, now))
         while self._history and t - self._history[0][0] > self.window_s:
             self._history.popleft()

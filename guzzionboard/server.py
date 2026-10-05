@@ -26,6 +26,8 @@ from .maps import XDF_DIR, XdfError, XdfFile, load_xdfs
 from .programming import ProgrammingError, ProgrammingService
 from .safety import SafetyViolation
 from .security import SecurityUnavailable, describe_all, load_plugins
+from . import procedures
+from . import replay
 from . import sessiondiff
 from .sessionlog import SessionLog
 from .transports.base import TransportError, TransportUnavailable
@@ -102,6 +104,8 @@ class Api:
         #: away whenever the underlying conversation changes.
         self._analyzer: Analyzer | None = None
         self._analyzer_for = None
+        #: The guided procedure currently being worked through, if any.
+        self._run: procedures.ProcedureRun | None = None
         self.jobs = JobRunner()
 
     # -- catalog ----------------------------------------------------------
@@ -408,6 +412,72 @@ class Api:
         events = list(SessionLog.read(path))
         return 200, {"name": name, "total": len(events), "events": events[-limit:]}
 
+    def _session_path(self, name: str):
+        path = Path(self.ws.session_dir) / name
+        if not name or not path.is_file() or path.parent != Path(self.ws.session_dir):
+            return None
+        return path
+
+    def get_session_replay(self, query: dict) -> tuple[int, dict]:
+        """Scrubbable snapshots, with derived values and findings redone."""
+        name = (query.get("name") or [""])[0]
+        path = self._session_path(name)
+        if path is None:
+            return 404, {"error": "no such session"}
+        events = list(SessionLog.read(path))
+        profile = self.ws.selection.profile
+        payload = replay.frames(events, profile)
+        payload["name"] = name
+        return 200, payload
+
+    # -- guided procedures ------------------------------------------------
+
+    def get_procedures(self, query: dict) -> tuple[int, dict]:
+        run = self._run.as_dict() if self._run else None
+        return 200, {
+            "procedures": procedures.available(self.ws.selection.profile),
+            "run": run,
+            "note": (
+                "A procedure only puts together things the catalog already "
+                "describes. Observations are live reads, outputs go through "
+                "the safety gate, and the verdict is an interpretation."
+            ),
+        }
+
+    def post_procedure_start(self, body: dict) -> tuple[int, dict]:
+        key = body.get("key", "")
+        procedure = procedures.PROCEDURES_BY_KEY.get(key)
+        if procedure is None:
+            return 400, {"error": f"unknown procedure {key!r}"}
+        service = self.ws.require_service()
+        missing = procedure.missing_for(service.profile)
+        if missing:
+            return 400, {"error": "this ECU family is missing: " + ", ".join(missing)}
+        self._run = procedures.ProcedureRun(procedure, service)
+        service.log.action("procedure_start", {"key": key, "name": procedure.name})
+        return 200, {"run": self._run.as_dict()}
+
+    def post_procedure_advance(self, body: dict) -> tuple[int, dict]:
+        if self._run is None:
+            return 400, {"error": "no procedure is running"}
+        try:
+            state = self._run.advance(body.get("value"))
+        except procedures.ProcedureError as exc:
+            return 400, {"error": str(exc)}
+        if state["status"] in ("done", "blocked"):
+            self.ws.require_service().log.action(
+                "procedure_end",
+                {"key": state["procedure"], "status": state["status"],
+                 "verdict": state["verdict"]},
+            )
+        return 200, {"run": state}
+
+    def post_procedure_abort(self, body: dict) -> tuple[int, dict]:
+        if self._run is None:
+            return 400, {"error": "no procedure is running"}
+        state = self._run.abort()
+        return 200, {"run": state}
+
     def get_report(self, query: dict) -> tuple[int, dict]:
         report = self.ws.build_report()
         unit = (query.get("temp_unit") or ["C"])[0]
@@ -624,16 +694,34 @@ class Api:
         return 200, gearing.table()
 
     def get_export(self, query: dict) -> tuple[int, dict]:
+        """A recorded session as CSV or JSON.
+
+        The CSV is one row per polling sweep, with a units row and the raw
+        bytes beside every value - a spreadsheet that still carries its own
+        provenance.
+        """
         name = (query.get("name") or [""])[0]
         fmt = (query.get("format") or ["csv"])[0]
         if fmt not in tools.EXPORTERS:
             return 400, {"error": f"unknown format {fmt!r}"}
-        path = Path(self.ws.session_dir) / name
-        if not name or not path.is_file() or path.parent != Path(self.ws.session_dir):
+        path = self._session_path(name)
+        if path is None:
             return 404, {"error": "no such session"}
         events = list(SessionLog.read(path))
-        return 200, {"format": fmt, "name": name,
-                     "content": tools.EXPORTERS[fmt](events)}
+        content = tools.EXPORTERS[fmt](events)
+        header_rows = 2 if fmt == "csv" else 1
+        return 200, {
+            "format": fmt,
+            "name": name,
+            "filename": f"{Path(name).stem}.{'json' if fmt == 'json' else 'csv'}",
+            "rows": max(0, content.count("\n") - header_rows),
+            "content": content,
+            "csv": content if fmt != "json" else "",
+            "note": (
+                "One row per polling sweep. The second row carries the units, "
+                "and the raw bytes travel with every value."
+            ),
+        }
 
 
 ROUTES_GET = {
@@ -650,6 +738,8 @@ ROUTES_GET = {
     "/api/routines": "get_routines",
     "/api/sessions": "get_sessions",
     "/api/sessions/events": "get_session_events",
+    "/api/sessions/replay": "get_session_replay",
+    "/api/procedures": "get_procedures",
     "/api/report": "get_report",
     "/api/maps": "get_maps",
     "/api/memory": "get_memory",
@@ -685,6 +775,9 @@ ROUTES_POST = {
     "/api/sim/engine": "post_sim_engine",
     "/api/sim/faults": "post_sim_faults",
     "/api/sim/comms": "post_sim_comms",
+    "/api/procedures/start": "post_procedure_start",
+    "/api/procedures/advance": "post_procedure_advance",
+    "/api/procedures/abort": "post_procedure_abort",
 }
 
 

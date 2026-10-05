@@ -92,3 +92,41 @@ are told apart only by the live data: both raise the idle error, but the air
 leak drives the stepper *closed* while the jammed stepper does not move at all.
 That pair is the best single demonstration of why this workstation shows
 channels rather than just codes.
+
+## Getting the data out, and putting it back in
+
+A session that cannot leave the tool is of limited use to anybody.
+
+- **Export CSV** (Sessions view, or the Live view for whatever is on screen)
+  writes one row per polling sweep. The first row names the channels, the
+  second carries their units, and the raw bytes travel in their own columns —
+  so the spreadsheet still carries its provenance and a wrong scaling can be
+  recomputed from the file rather than re-measured on the bike.
+- **Replay** scrubs back through a recorded session. The derived channels and
+  the plausibility checks are recomputed at each point, from the bytes that
+  were recorded then, with the *recorded* timestamps driving the sixty-second
+  window — so what you see on replay is what you would have seen live.
+
+## Guided tests
+
+The Guided tests view runs multi-step procedures rather than single pulses.
+Each one is: put the bike in a known state, do one bounded thing, watch the
+right channels, say what it means.
+
+Shipped procedures: idle health check, charging system check, fuel pump prime
+and pressure decay, injector circuit test, cold-start sensor plausibility.
+
+Rules the runner follows:
+
+1. A procedure is only offered when the catalog says this ECU family has the
+   channels and actuators it needs — the list shows exactly what is missing
+   otherwise.
+2. Observations are ordinary live reads. Before any output is energised the
+   procedure *reads* the engine state rather than assuming it, because the
+   safety gate will not act on an assumption.
+3. Actuator steps go through the same gate and the same workstation-owned
+   deadline as a manual pulse. A refusal stops the run and says why; aborting
+   releases every output.
+4. The verdict is phrased like a plausibility check: a level, what was
+   measured, and the usual suspects. It is a place to start looking, never a
+   diagnosis.

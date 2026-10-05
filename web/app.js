@@ -27,6 +27,11 @@ const state = {
   lastAnalysis: null,
   derivedCatalog: null,
   sim: null,
+  procedures: [],
+  run: null,
+  liveLog: [],
+  replay: null,
+  replayTimer: null,
 };
 
 const HISTORY_LEN = 90;
@@ -149,6 +154,7 @@ const VIEW_META = {
   live: ['Live data', 'Decoded channels, with the raw bytes behind them.'],
   faults: ['Fault codes', 'Stored and current diagnostic trouble codes.'],
   service: ['Service actions', 'Everything here changes something on the bike.'],
+  procedures: ['Guided tests', 'Known state, one bounded action, the right channels, a verdict.'],
   discovery: ['Discovery', 'Read-only sweep for unmapped local identifiers.'],
   simulator: ['Simulated bike', 'Drive the simulated engine and seed faults to practise on.'],
   sessions: ['Sessions', 'Recorded frames, samples and safety decisions.'],
@@ -165,9 +171,117 @@ function show(view) {
   if (view === 'service') loadServiceActions();
   if (view === 'overview') renderOverview();
   if (view === 'simulator') loadSim();
+  if (view === 'procedures') loadProcedures();
 }
 
 $$('.nav').forEach((b) => (b.onclick = () => show(b.dataset.view)));
+
+/* ------------------------------------------------------- guided tests */
+
+async function loadProcedures() {
+  let data;
+  try { data = await api('/api/procedures'); }
+  catch (err) { return toast(err.message, 'bad'); }
+  state.procedures = data.procedures;
+
+  $('#procedureList').innerHTML = data.procedures.map((p) => `
+    <div class="action ${p.available ? '' : 'blocked'}">
+      <div class="action-main">
+        <strong>${esc(p.name)}</strong>
+        <span class="tagline">${esc({ off: 'engine stopped', running: 'engine running', any: 'both states' }[p.engine])}</span>
+        <p class="small muted">${esc(p.purpose)}</p>
+        ${p.caveat ? `<p class="small warn-text">⚠ ${esc(p.caveat)}</p>` : ''}
+        ${p.available ? `<p class="small muted">${p.steps.length} steps</p>`
+          : `<p class="small muted">Not offered on this ECU: ${esc(p.missing.join(', '))}</p>`}
+      </div>
+      <button class="btn small" data-procedure="${esc(p.key)}" ${p.available ? '' : 'disabled'}>Start</button>
+    </div>`).join('');
+
+  $$('#procedureList button[data-procedure]').forEach((b) => (b.onclick = async () => {
+    try {
+      const out = await api('/api/procedures/start', { method: 'POST', body: { key: b.dataset.procedure } });
+      renderProcedureRun(out.run);
+    } catch (err) { toast(err.message, 'bad'); }
+  }));
+
+  if (data.run) renderProcedureRun(data.run);
+}
+
+function renderProcedureRun(run) {
+  state.run = run;
+  const box = $('#procedureRun');
+  if (!run) { box.innerHTML = '<p class="muted">Pick a test to begin.</p>'; return; }
+
+  const done = run.status !== 'running';
+  const step = run.step;
+  const log = run.results.map((r) => `
+    <div class="log-line"><span class="log-k">${esc(r.kind)}</span>
+      <b>${esc(r.title || r.step)}</b> — ${esc(r.detail)}</div>`).join('');
+
+  let controls = '';
+  if (step && !done) {
+    const label = { instruct: 'Done — continue', observe: 'Start sampling',
+      actuate: 'Command it', input: 'Record', verdict: 'Show the result' }[step.kind];
+    const input = step.kind === 'input'
+      ? (step.input_kind === 'yesno'
+        ? `<div class="toolbar"><button class="btn primary" data-answer="1">Yes</button>
+             <button class="btn" data-answer="0">No</button></div>`
+        : `<label class="field"><span>${esc(step.input_label)} (${esc(step.input_unit)})</span>
+             <input type="number" step="0.1" id="procInput"></label>
+           <button class="btn primary" id="procNext">${esc(label)}</button>`)
+      : `<button class="btn primary" id="procNext">${esc(label)}</button>`;
+    controls = `
+      <div class="gate-card">
+        <h4>Step ${run.step_index + 1} of ${run.step_count} · ${esc(step.title)}</h4>
+        ${step.text ? `<p class="small">${esc(step.text)}</p>` : ''}
+        ${step.channels.length ? `<p class="small muted">Will sample ${esc(step.channels.join(', '))} for ${step.seconds} s.</p>` : ''}
+        ${step.actuator ? `<p class="small warn-text">⚠ Commands <code>${esc(step.actuator)}</code> for ${step.pulse_s} s.</p>` : ''}
+        ${input}
+      </div>`;
+  }
+
+  const verdict = run.verdict ? `
+    <div class="finding ${esc(run.verdict.level)}">
+      <div class="finding-head"><b>${esc(run.verdict.title)}</b>
+        <span class="finding-level ${esc(run.verdict.level)}">${esc(run.verdict.level)}</span></div>
+      <p class="small">${esc(run.verdict.detail)}</p>
+      ${run.verdict.suspects.length ? `<p class="small muted">Usual suspects: ${esc(run.verdict.suspects.join(' · '))}</p>` : ''}
+    </div>` : '';
+
+  box.innerHTML = `
+    <h4>${esc(run.name)} <span class="pill ghost">${esc(run.status)}</span></h4>
+    ${run.caveat ? `<p class="small warn-text">⚠ ${esc(run.caveat)}</p>` : ''}
+    ${controls}${verdict}
+    <div class="log-view">${log || '<span class="muted">No steps run yet.</span>'}</div>
+    <div class="toolbar">
+      ${done ? '<button class="btn" id="procRestart">Back to the list</button>'
+             : '<button class="btn danger" id="procAbort">Abort and release outputs</button>'}
+    </div>
+    <p class="muted small">${esc(run.note)}</p>`;
+
+  const advance = async (value) => {
+    const button = $('#procNext') || document.activeElement;
+    if (button && button.tagName === 'BUTTON') { button.disabled = true; button.textContent = 'Working…'; }
+    try {
+      const out = await api('/api/procedures/advance', { method: 'POST', body: { value } });
+      renderProcedureRun(out.run);
+      if (out.run.status === 'blocked') toast('The safety gate refused this step.', 'bad');
+    } catch (err) { toast(err.message, 'bad'); renderProcedureRun(run); }
+  };
+
+  if ($('#procNext')) {
+    $('#procNext').onclick = () => advance(
+      step.kind === 'input' ? Number($('#procInput').value) : undefined);
+  }
+  $$('#procedureRun button[data-answer]').forEach((b) => (b.onclick = () => advance(b.dataset.answer === '1')));
+  if ($('#procAbort')) {
+    $('#procAbort').onclick = async () => {
+      const out = await api('/api/procedures/abort', { method: 'POST', body: {} });
+      renderProcedureRun(out.run);
+    };
+  }
+  if ($('#procRestart')) $('#procRestart').onclick = () => renderProcedureRun(null);
+}
 
 /* ----------------------------------------------------- simulated bike
  *
@@ -755,6 +869,12 @@ async function pollOnce() {
       if (arr.length > HISTORY_LEN) arr.shift();
       state.history.set(s.key, arr);
     });
+    state.liveLog.push({
+      t: data.at || Date.now() / 1000,
+      values: Object.fromEntries(data.samples.map((s) => [s.key, s])),
+    });
+    if (state.liveLog.length > 5000) state.liveLog.shift();
+    $('#exportLiveBtn').disabled = false;
     renderLive(data.samples);
     renderAnalysis(data.derived, data.findings);
     const elapsed = performance.now() - started;
@@ -989,14 +1109,22 @@ async function loadSessions() {
   fillCompareSelects();
   $('#sessionDir').textContent = `${data.sessions.length} recorded session(s)`;
   $('#sessionList').innerHTML = data.sessions.length ? data.sessions.map((s) => `
-    <button class="session-row" data-name="${esc(s.name)}">
-      <div><strong>${esc(s.meta.model || s.meta.ecu_family || 'session')}</strong>
-        <small>${esc(s.meta.ecu_family || '')} · ${esc(s.meta.transport || '')} · ${esc(s.meta.mode || '')}</small></div>
-      <div class="muted small">${(s.size / 1024).toFixed(1)} kB · ${new Date(s.modified * 1000).toLocaleString()}</div>
-    </button>`).join('')
+    <div class="session-item">
+      <button class="session-row" data-name="${esc(s.name)}">
+        <div><strong>${esc(s.meta.model || s.meta.ecu_family || 'session')}</strong>
+          <small>${esc(s.meta.ecu_family || '')} · ${esc(s.meta.transport || '')} · ${esc(s.meta.mode || '')}</small></div>
+        <div class="muted small">${(s.size / 1024).toFixed(1)} kB · ${new Date(s.modified * 1000).toLocaleString()}</div>
+      </button>
+      <div class="toolbar">
+        <button class="btn small" data-csv="${esc(s.name)}">Export CSV</button>
+        <button class="btn small" data-replay="${esc(s.name)}">Replay</button>
+      </div>
+    </div>`).join('')
     : '<p class="muted">No sessions recorded yet. Connect to create one.</p>';
 
   $$('.session-row').forEach((b) => (b.onclick = () => loadSessionEvents(b.dataset.name)));
+  $$('#sessionList button[data-csv]').forEach((b) => (b.onclick = () => exportSessionCsv(b.dataset.csv)));
+  $$('#sessionList button[data-replay]').forEach((b) => (b.onclick = () => loadReplay(b.dataset.replay)));
 }
 
 async function loadSessionEvents(name) {
@@ -1014,6 +1142,106 @@ async function loadSessionEvents(name) {
       else body = esc(JSON.stringify(e).slice(0, 200));
       return `<div class="log-line"><span class="log-t">${time}</span><span class="log-k">${esc(e.kind)}</span>${body}</div>`;
     }).join('');
+}
+
+/* ------------------------------------------------------- export, replay */
+
+async function exportSessionCsv(name) {
+  try {
+    const data = await api(`/api/sessions/export?name=${encodeURIComponent(name)}&format=csv`);
+    if (!data.rows) return toast('That session has no samples in it to export.', 'warn');
+    download(data.filename, data.content, 'text/csv');
+    toast(`${data.rows} sweeps exported.`, 'ok');
+  } catch (err) { toast(err.message, 'bad'); }
+}
+
+/* Everything polled since the page was opened, as CSV. Same shape as the
+ * server-side export, so the two files can sit in the same spreadsheet. */
+function exportLiveCsv() {
+  const log = state.liveLog;
+  if (!log.length) return toast('Nothing polled yet.', 'warn');
+  const keys = [];
+  log.forEach((row) => Object.keys(row.values).forEach((k) => {
+    if (!keys.includes(k)) keys.push(k);
+  }));
+  const units = {};
+  log.forEach((row) => Object.entries(row.values).forEach(([k, v]) => {
+    if (units[k] === undefined) units[k] = v.unit || '';
+  }));
+  const t0 = log[0].t;
+  const lines = [
+    ['time_unix', 'elapsed_s', ...keys, ...keys.map((k) => `${k}_raw`)].join(','),
+    ['', 's', ...keys.map((k) => units[k]), ...keys.map(() => 'bytes')].join(','),
+    ...log.map((row) => [
+      row.t.toFixed(4), (row.t - t0).toFixed(3),
+      ...keys.map((k) => (row.values[k]?.value ?? '')),
+      ...keys.map((k) => (row.values[k]?.raw ?? '')),
+    ].join(',')),
+  ];
+  download(`guzzionboard-live-${Date.now()}.csv`, lines.join('\n'), 'text/csv');
+  toast(`${log.length} sweeps exported.`, 'ok');
+}
+
+async function loadReplay(name) {
+  try {
+    state.replay = await api(`/api/sessions/replay?name=${encodeURIComponent(name)}`);
+  } catch (err) { return toast(err.message, 'bad'); }
+  const frames = state.replay.frames;
+  if (!frames.length) {
+    $('#replayClock').textContent = 'this session recorded no samples';
+    return toast('That session has no samples to replay.', 'warn');
+  }
+  $('#replayScrub').max = String(frames.length - 1);
+  $('#replayScrub').value = '0';
+  $('#replayScrub').disabled = false;
+  $('#replayPlayBtn').disabled = false;
+  showReplayFrame(0);
+  toast(`${frames.length} sweeps over ${state.replay.duration_s} s.`, 'ok');
+}
+
+function showReplayFrame(index) {
+  const frame = state.replay?.frames?.[index];
+  if (!frame) return;
+  $('#replayClock').textContent =
+    `${frame.elapsed.toFixed(1)} s of ${state.replay.duration_s} s · sweep ${index + 1}/${state.replay.frames.length}`;
+
+  const measured = Object.values(frame.values).map((v) => `
+    <article class="metric">
+      <small>${esc(v.key)}</small>
+      <strong>${Temp.text(v.value, v.unit)}</strong>
+      <label>${esc(v.raw || '—')}</label>
+    </article>`).join('');
+  const derived = frame.derived.map((c) => `
+    <article class="metric derived">
+      <small>${esc(c.name)}</small>
+      <strong>${esc(Temp.valueFor(c.value, c.unit, c.delta))} <em>${esc(Temp.labelFor(c.unit))}</em></strong>
+      <label>${esc(c.sources.join(' + '))}</label>
+    </article>`).join('');
+  $('#replayGrid').innerHTML = measured + derived;
+
+  $('#replayFindings').innerHTML = frame.findings.map((f) => `
+    <div class="finding ${esc(f.level)}">
+      <div class="finding-head"><b>${esc(f.title)}</b>
+        <span class="finding-level ${esc(f.level)}">${esc(f.level)}</span></div>
+      <p class="small">${esc(f.detail)}</p>
+    </div>`).join('');
+}
+
+function toggleReplayPlay() {
+  if (state.replayTimer) {
+    clearInterval(state.replayTimer);
+    state.replayTimer = null;
+    $('#replayPlayBtn').textContent = 'Play';
+    return;
+  }
+  $('#replayPlayBtn').textContent = 'Pause';
+  state.replayTimer = setInterval(() => {
+    const scrub = $('#replayScrub');
+    const next = Number(scrub.value) + 1;
+    if (next > Number(scrub.max)) return toggleReplayPlay();
+    scrub.value = String(next);
+    showReplayFrame(next);
+  }, 300);
 }
 
 /* --------------------------------------------------------------- report */
@@ -1063,6 +1291,9 @@ $('#simDrop').oninput = (e) => simComms({ drop_rate: Number(e.target.value) / 10
 $('#simCorrupt').oninput = (e) => simComms({ corrupt_rate: Number(e.target.value) / 100 });
 $('#simPending').oninput = (e) => simComms({ pending_rate: Number(e.target.value) / 100 });
 $('#simLatency').oninput = (e) => simComms({ extra_latency: Number(e.target.value) / 1000 });
+$('#exportLiveBtn').onclick = exportLiveCsv;
+$('#replayScrub').oninput = (e) => showReplayFrame(Number(e.target.value));
+$('#replayPlayBtn').onclick = toggleReplayPlay;
 $('#refreshSessionsBtn').onclick = loadSessions;
 $('#buildReportBtn').onclick = buildReport;
 $('#downloadReportBtn').onclick = () => download(`guzzionboard-report-${Date.now()}.txt`, state.report.text);

@@ -24,6 +24,7 @@
     <button class="nav" data-view="live"><i>∿</i> Live data</button>
     <button class="nav" data-view="faults"><i>⚠</i> Fault codes <b id="faultBadge" class="badge hidden">0</b></button>
     <button class="nav" data-view="service"><i>⚙</i> Service actions</button>
+    <button class="nav" data-view="procedures"><i>✓</i> Guided tests</button>
     <button class="nav" data-view="firmware"><i>▥</i> ECU memory</button>
     <button class="nav" data-view="discovery"><i>🔍</i> Discovery</button>
     <button class="nav" data-view="simulator"><i>🧪</i> Simulated bike</button>
@@ -164,6 +165,7 @@
     <article class="panel toolbar-panel">
       <div class="toolbar">
         <button class="btn primary" id="pollBtn" disabled>Start polling</button>
+        <button class="btn small" id="exportLiveBtn" disabled title="Everything polled since this page was opened">Export CSV</button>
         <span class="muted small" id="pollRate">idle</span>
         <div class="spacer"></div>
         <details class="channel-picker">
@@ -295,6 +297,30 @@
         eventually stores is listed with it. Nothing appears in fault memory
         straight away.</p>
         <div id="simFaultList" class="action-list"></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- =================================================== PROCEDURES -->
+  <section class="view hidden" id="procedures">
+    <article class="panel">
+      <h2>What a guided test is</h2>
+      <p class="muted">A single actuator pulse is a twitch. A procedure puts
+      the engine in a known state, does one bounded thing, watches the right
+      channels and says what the result means. Observations are ordinary live
+      reads; anything that moves on the bike goes through the same safety gate
+      and the same output deadline as the Service view. The verdict at the end
+      is an interpretation — a place to start looking, not a diagnosis.</p>
+    </article>
+
+    <div class="grid-2">
+      <article class="panel">
+        <h2>Available tests</h2>
+        <div id="procedureList" class="action-list"></div>
+      </article>
+      <article class="panel">
+        <h2>Running test</h2>
+        <div id="procedureRun"><p class="muted">Pick a test to begin.</p></div>
       </article>
     </div>
   </section>
@@ -452,6 +478,20 @@
         <div id="sessionEvents" class="log-view">Pick a session.</div>
       </article>
     </div>
+
+    <article class="panel" id="replayPanel">
+      <h2>Replay</h2>
+      <p class="muted small">Scrub back through a recorded session. The
+      derived values and the plausibility checks are recomputed at each point,
+      from the bytes that were recorded then.</p>
+      <div class="toolbar">
+        <button class="btn" id="replayPlayBtn" disabled>Play</button>
+        <input type="range" id="replayScrub" min="0" max="0" value="0" disabled>
+        <span class="muted small" id="replayClock">no session loaded</span>
+      </div>
+      <div id="replayGrid" class="metrics"></div>
+      <div id="replayFindings"></div>
+    </article>
 
     <article class="panel">
       <h2>Compare two sessions</h2>

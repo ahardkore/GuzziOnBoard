@@ -109,7 +109,10 @@ def samples_to_csv(events: list[dict], *, include_raw: bool = False) -> str:
     for event in events:
         if event.get("kind") != "sample":
             continue
-        at = round(float(event.get("at", 0)), 2)
+        # Session files timestamp with "t"; the older in-memory shape used
+        # "at". Reading only one of them silently collapsed every sweep of a
+        # real recording into a single row at time zero.
+        at = round(float(event.get("at", event.get("t", 0))), 2)
         key = event.get("key") or event.get("parameter") or "value"
         row = rows.setdefault(at, {"time": at})
         row[key] = event.get("value")
@@ -143,15 +146,24 @@ def samples_to_json(events: list[dict]) -> str:
     for event in events:
         if event.get("kind") != "sample":
             continue
-        at = round(float(event.get("at", 0)), 2)
+        at = round(float(event.get("at", event.get("t", 0))), 2)
         rows.setdefault(at, {"time": at})[
             event.get("key") or "value"
         ] = event.get("value")
     return json.dumps([rows[a] for a in sorted(rows)], indent=2)
 
 
-#: Export formats offered to the UI.
+def samples_to_analysis_csv(events: list[dict]) -> str:
+    """The wide CSV with a units row and the raw bytes beside every value."""
+    from .replay import to_csv
+
+    return to_csv(events)
+
+
+#: Export formats offered to the UI. "csv" is the one with provenance in it:
+#: units on the second row and the raw bytes next to every value.
 EXPORTERS = {
-    "csv": samples_to_csv,
+    "csv": samples_to_analysis_csv,
+    "csv_plain": samples_to_csv,
     "json": samples_to_json,
 }

@@ -466,6 +466,111 @@ check('rendered tables carry a grid of values',
   && !!table.title);
 check('the render is labelled simulated', rendered.payload.simulated === true);
 
+const overlayTable = rendered.payload.tables.find((candidate) =>
+  candidate.x.every((value) => Number.isFinite(Number(value)))
+  && candidate.y.every((value) => Number.isFinite(Number(value))));
+if (overlayTable) {
+  const stableRows = [0, 1, 2, 3].map(() => ({
+    x: Number(overlayTable.x[0]), y: Number(overlayTable.y[0]),
+    measured: 15, target: 14,
+  }));
+  const overlay = await post('/api/maps/analyze-log', {
+    path: imagePath, xdf: fitted.filename, table: overlayTable.id,
+    rows: stableRows, x_channel: 'x', y_channel: 'y',
+    measured_afr_channel: 'measured', target_afr_channel: 'target',
+    min_samples: 3, max_correction_percent: 5, max_afr_stddev: 0.5,
+  });
+  check('offline AFR overlay requires stable measured and target populations',
+    overlay.status === 200 && overlay.payload.review_only === true
+      && overlay.payload.proposals.length === 1
+      && overlay.payload.cells[0].measured_afr_stddev === 0,
+    JSON.stringify(overlay.payload).slice(0, 180));
+  const timed = await post('/api/maps/analyze-log', {
+    path: imagePath, xdf: fitted.filename, table: overlayTable.id,
+    rows: [0, 0.5, 1, 1.5].map((time) => ({
+      time, x: Number(overlayTable.x[0]), y: Number(overlayTable.y[0]),
+      measured: 15, target: 14,
+    })),
+    x_channel: 'x', y_channel: 'y', measured_afr_channel: 'measured',
+    target_afr_channel: 'target', time_channel: 'time', timestamp_unit: 'seconds',
+    wideband_delay_ms: 0, settle_time_ms: 500, max_time_gap_ms: 500,
+    min_cell_duration_ms: 500,
+    min_samples: 2, max_correction_percent: 5, max_afr_stddev: 0.5,
+  });
+  check('hosted log analysis aligns timestamps and filters unsettled edges',
+    timed.status === 200 && timed.payload.time_alignment.enabled === true
+      && /linearly interpolated/.test(timed.payload.time_alignment.method)
+      && timed.payload.skipped.transient === 2
+      && timed.payload.time_alignment.timeline_points === 4
+      && timed.payload.time_alignment.min_cell_duration_ms === 500
+      && timed.payload.proposals.length === 1,
+    JSON.stringify(timed.payload).slice(0, 220));
+  const unstable = await post('/api/maps/analyze-log', {
+    path: imagePath, xdf: fitted.filename, table: overlayTable.id,
+    rows: [12, 14, 16, 18].map((measured) => ({
+      x: Number(overlayTable.x[0]), y: Number(overlayTable.y[0]),
+      measured, target: 14,
+    })),
+    x_channel: 'x', y_channel: 'y', measured_afr_channel: 'measured',
+    target_afr_channel: 'target', min_samples: 3,
+    max_correction_percent: 5, max_afr_stddev: 0.5,
+  });
+  check('variable AFR cells are overlaid but excluded from proposals',
+    unstable.status === 200 && unstable.payload.proposals.length === 0
+      && /variable/.test(unstable.payload.cells[0].eligibility),
+    JSON.stringify(unstable.payload.cells[0] || {}));
+}
+
+/* The advanced builder changes a copy of the protected base map only when an
+ * inspectable recommendation and exact liability acknowledgement accompany
+ * explicit, optimistic-locked cells. No generic tune values are bundled. */
+const buildDefinition = mapList.payload.xdfs.find((x) => x.family === '5AM' && x.tables > 20);
+const buildRendered = buildDefinition.filename === fitted.filename
+  ? rendered : await post('/api/maps/render', { path: imagePath, xdf: buildDefinition.filename });
+const editable = buildRendered.payload.tables.find((t) => t.equation === 'X'
+  && t.raw_values && t.raw_values[0]
+  && Number.isFinite(Number(t.raw_values[0][0]))
+  && Number(t.raw_values[0][0]) < (t.signed
+    ? (2 ** (t.size_bits - 1)) - 1 : (2 ** t.size_bits) - 1));
+if (editable) {
+  const beforeValue = Number(editable.values[0][0]);
+  const buildBody = {
+    use_base_map: true, region: 'flash', xdf: buildDefinition.filename,
+    changes: [{
+      kind: 'table', id: editable.id, row: 0, col: 0,
+      expected_raw: editable.raw_values[0][0], value: beforeValue + 1,
+      x: editable.x[0], y: editable.y[0],
+    }],
+    recommendation: {
+      title: 'Hosted demo evidence fixture',
+      url: 'https://example.org/traceable-demo-recommendation',
+      rationale: 'A synthetic recommendation for the synthetic browser image only.',
+    },
+    acknowledgement: 'I understand modified maps can damage the engine and accept responsibility',
+  };
+  const previewed = await post('/api/maps/preview', buildBody);
+  check('a map plan is quantized and diffed without writing a file',
+    previewed.status === 200 && previewed.payload.writes_file === false
+      && previewed.payload.changes.length === 1
+      && previewed.payload.diff.identical === false,
+    JSON.stringify(previewed.payload).slice(0, 160));
+  buildBody.expected_plan_sha256 = previewed.payload.plan_sha256;
+  const built = await post('/api/maps/build', buildBody);
+  check('an evidence-backed map build creates a new image',
+    built.status === 201 && built.payload.path !== imagePath
+      && built.payload.changes.length === 1,
+    String(built.payload.error || built.payload.path));
+  check('the build records evidence and liability acknowledgement',
+    built.payload.manifest.liability_acknowledged === true
+      && built.payload.manifest.recommendation.status === 'traceable-not-endorsed'
+      && built.payload.manifest.source.is_base_map === true,
+    JSON.stringify(built.payload.manifest).slice(0, 180));
+  check('the build includes a named review diff',
+    built.payload.diff.identical === false
+      && built.payload.diff.tables.some((t) => t.title === editable.title),
+    JSON.stringify(built.payload.diff).slice(0, 160));
+}
+
 /* The read also leaves a lightly re-tuned copy alongside, so the diff has
  * two images to compare without inventing a second ECU. */
 const tunedPath = imagePath.replace(/-[0-9]{8}-[0-9]{6}\.bin$/, '-tuned-demo.bin');

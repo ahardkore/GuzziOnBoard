@@ -191,6 +191,34 @@ guzzionboard/firmware.py      image container, checksums, structural
                               validation, hardware-compatibility, diffing.
                               Pure data. Never touches a transport.
 
+guzzionboard/maps.py          XDF render/diff/structural audit plus bounded
+                              table, constant and embedded-axis encoding.
+                              Changes carry expected raw values, so they cannot
+                              drift onto a different source image.
+
+guzzionboard/map_analysis.py  pure offline AFR-log binning and bounded,
+                              review-only fuel proposals. Never writes images.
+
+guzzionboard/tuning.py        non-destructive map previews/builds: quantised
+                              plans, source/XDF/output/plan hashes,
+                              recommendation evidence, liability opt-in and a
+                              complete exact-change manifest. No tune values.
+
+guzzionboard/checksums.py     explicit local checksum-plugin contract. Exact
+                              supported XDF titles, deterministic update,
+                              verification, plugin hash and byte-range audit;
+                              no bundled calibration checksum algorithm.
+
+guzzionboard/recommendations.py
+                              strict local third-party recommendation package
+                              registry with fitment/XDF/raw/evidence locks. No
+                              bundled package and no community endorsement.
+
+guzzionboard/physical_validation.py
+                              operator evidence-manifest registry with local
+                              artifact hash checks. An evidence index is never
+                              promoted to core certification.
+
 guzzionboard/security.py      SecurityAccess key providers: an interface, a
                               registry, a file-based plugin loader. Ships no
                               working algorithm for any Guzzi ECU.
@@ -289,3 +317,11 @@ spoiling the simulated wire → virtual connector and adapter pre-flight), and
 `tests/demo_xdf_parity.mjs` renders a definition the browser's way so the
 Python side can compare. `tests/test_demo_mode.py` runs both when Node is
 available.
+
+That script-level harness is complemented by `tests/browser/map-editor.spec.mjs`.
+Playwright runs the static workstation in Chromium and exercises real focus,
+keyboard, pointer, modal, file, download, clipboard, local-storage, SVG and
+class-state behavior. It covers the protected-base editor, transforms and
+project round-trips, explicit live-channel mappings, and time-aware log
+analysis; `npm run test:browser` is therefore the browser-level editor gate,
+not a synonym for the Node API harness.

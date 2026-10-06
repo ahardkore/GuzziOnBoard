@@ -603,8 +603,8 @@
 
     <article class="panel">
       <h2>Maps &amp; tables</h2>
-      <p class="muted small">Render a dump as named fuel and ignition tables with a TunerPro XDF definition &mdash; all 94 cataloged GuzziDiag definitions ship bundled. Drop <code>.xdf</code> files into <code>~/.guzzionboard/xdfs/</code> to correct or extend them. Strictly read-only.</p>
-      <p class="muted small">The chooser is grouped by motorcycle, not by the title the definition's author happened to type: definitions for the ECU family on the bench come first, everything else is listed under the bikes it was published for and marked as not matching. Picking a map from the wrong family does not give slightly wrong numbers &mdash; it reads a different calibration layout at the same addresses.</p>
+      <p class="muted small">Render a dump as named fuel and ignition tables with a TunerPro XDF definition &mdash; all 94 cataloged GuzziDiag definitions ship bundled. Drop <code>.xdf</code> files into <code>~/.guzzionboard/xdfs/</code> to correct or extend them. Rendering and comparison are read-only; the advanced builder below always writes a new file and never changes its source.</p>
+      <p class="muted small">The chooser is grouped by motorcycle, not by the title the definition's author happened to type: definitions for the ECU family on the bench come first, everything else is listed under the bikes it was published for and marked as not matching. Picking a map from the wrong family does not give slightly wrong numbers &mdash; it reads a different calibration layout at the same addresses. A mismatched definition can be viewed, but the builder refuses to use it.</p>
       <div class="toolbar">
         <label class="inline">Bike
           <select id="xdfBrand"><option value="">&mdash; all motorcycles &mdash;</option></select>
@@ -617,13 +617,117 @@
         <span class="muted small" id="mapsXdfDir"></span>
       </div>
       <div id="xdfFitNote"></div>
+      <div id="xdfValidationOut"></div>
+      <div id="physicalValidationOut" class="gate-card warn">
+        <h4>Physical validation not established</h4>
+        <p class="small">Software tests and simulation are not real-ECU or dyno evidence. See <code>docs/PHYSICAL_VALIDATION.md</code> and load hashed operator records through the validation registry.</p>
+      </div>
       <div class="toolbar">
         <label class="inline">Image path <input type="text" id="mapsImagePath" placeholder="~/.guzzionboard/images/....bin" size="44"></label>
         <button class="btn primary" id="mapsRenderBtn">Render tables</button>
+        <button class="btn" id="mapsValidateDefinitionBtn">Validate definition</button>
       </div>
       <div class="toolbar">
         <label class="inline">Compare with <input type="text" id="mapsDiffPath" placeholder="second image, e.g. the factory backup" size="44"></label>
         <button class="btn" id="mapsDiffBtn">Diff</button>
+        <button class="btn" id="mapsBaseBtn" disabled>Load protected base map</button>
+      </div>
+
+      <div class="map-builder danger-zone" id="mapBuilder">
+        <h3>Advanced &middot; Evidence-backed map builder</h3>
+        <p class="muted small">Load a map, select known values, then double-click or use the transformation tools to stage changes. Every build needs an inspectable recommendation, previews the exact quantized plan, records source/XDF/plan/output hashes and byte changes, and requires the liability acknowledgement below. No fuel, spark, lambda or limiter recommendations are invented or bundled by this app.</p>
+        <div id="mapBuildSource" class="gate-card warn">
+          <h4>No source loaded</h4>
+          <p>Use <b>Load protected base map</b> whenever possible. A normal rendered image can also be edited, but needs an extra non-base acknowledgement.</p>
+        </div>
+        <div class="map-editor-tools" id="mapEditorTools">
+          <div class="toolbar">
+            <b id="mapSelectionCount">0 cells selected</b>
+            <span class="muted small">Click to select · Shift-click for a rectangle · double-click or Enter to edit</span>
+          </div>
+          <p class="muted small" id="mapLiveTraceStatus">Live tracing is read-only and starts only after both table axes are mapped explicitly to validated channels.</p>
+          <div class="toolbar">
+            <button class="btn small" id="mapSetBtn" disabled>Set…</button>
+            <button class="btn small" id="mapAddBtn" disabled>Add…</button>
+            <button class="btn small" id="mapPercentBtn" disabled>Percent…</button>
+            <button class="btn small" id="mapInterpolateRowsBtn" disabled>Interpolate rows →</button>
+            <button class="btn small" id="mapInterpolateColsBtn" disabled>Interpolate columns ↓</button>
+            <button class="btn small" id="mapSmoothBtn" disabled>Smooth</button>
+            <button class="btn small" id="mapBlendBtn" disabled>Bilinear blend</button>
+            <button class="btn small" id="mapCopyBtn" disabled>Copy TSV</button>
+            <button class="btn small" id="mapPasteBtn" disabled>Paste TSV…</button>
+            <button class="btn small" id="mapUndoBtn" disabled>Undo</button>
+            <button class="btn small" id="mapRedoBtn" disabled>Redo</button>
+          </div>
+        </div>
+        <div id="mapBuildChanges"><p class="muted small">No staged changes. Render a map and select table values or constants.</p></div>
+        <details class="map-log-tools">
+          <summary><b>Offline log overlay &amp; bounded fuel-correction review</b></summary>
+          <p class="muted small">Import a CSV containing time, load/RPM, and separately measured and target AFR. When a time column is selected, ECU state is interpolated at the measured-wideband time minus the explicitly configured delay; gaps, unsettled cells, excessive axis rates, and insufficient aligned cell dwell are rejected. Analysis never changes the image and caps proposed fuel changes. Confirm the selected table really controls fuel quantity under the logged conditions.</p>
+          <div class="toolbar">
+            <label class="inline">Log CSV <input type="file" id="mapLogFile" accept="text/csv,.csv"></label>
+            <span class="muted small" id="mapLogSummary">No log loaded.</span>
+          </div>
+          <div class="form-grid compact">
+            <label>Fuel table<select id="mapLogTable"></select></label>
+            <label>X-axis column<select id="mapLogX"></select></label>
+            <label>Y-axis column<select id="mapLogY"></select></label>
+            <label>Measured AFR column<select id="mapLogMeasured"></select></label>
+            <label>Target AFR column<select id="mapLogTarget"></select></label>
+            <label>Time column (recommended)<select id="mapLogTime"><option value="">— no time alignment —</option></select></label>
+            <label>Timestamp unit<select id="mapLogTimeUnit"><option value="seconds">seconds</option><option value="milliseconds">milliseconds</option></select></label>
+            <label>Wideband delay (ms)<input type="number" id="mapLogDelay" min="0" max="5000" step="1" value="0"></label>
+            <label>Same-cell settling (ms)<input type="number" id="mapLogSettle" min="0" max="5000" step="1" value="500"></label>
+            <label>Minimum aligned dwell/cell (ms)<input type="number" id="mapLogDuration" min="0" max="60000" step="1" value="1000"></label>
+            <label>Maximum timeline gap (ms)<input type="number" id="mapLogGap" min="1" max="5000" step="1" value="250"></label>
+            <label>Maximum X-axis rate/unit/s (optional)<input type="number" id="mapLogXRate" min="0.000001" step="any" placeholder="disabled"></label>
+            <label>Maximum Y-axis rate/unit/s (optional)<input type="number" id="mapLogYRate" min="0.000001" step="any" placeholder="disabled"></label>
+            <label>Minimum samples/cell<input type="number" id="mapLogMinSamples" min="1" max="1000" value="3"></label>
+            <label>Correction cap (%)<input type="number" id="mapLogCap" min="0.1" max="15" step="0.1" value="10"></label>
+            <label>Max AFR std. deviation<input type="number" id="mapLogStddev" min="0.05" max="3" step="0.05" value="0.5"></label>
+          </div>
+          <div class="toolbar">
+            <button class="btn" id="mapLogAnalyzeBtn" disabled>Analyze log</button>
+            <button class="btn danger" id="mapLogStageBtn" disabled>Stage eligible proposals…</button>
+          </div>
+          <div id="mapLogOut"></div>
+        </details>
+        <div class="toolbar">
+          <button class="btn" id="mapClearChangesBtn" disabled>Clear staged changes</button>
+          <button class="btn" id="mapExportProjectBtn" disabled>Export project</button>
+          <button class="btn" id="mapImportProjectBtn">Import project…</button>
+          <input type="file" id="mapProjectFile" accept="application/json,.json" hidden>
+        </div>
+        <details class="recommendation-packages">
+          <summary><b>User/community recommendation packages</b></summary>
+          <p class="muted small" id="mapPackageNote">No values are bundled or endorsed. Validated local packages are source-locked and still pass the same preview and liability gates.</p>
+          <div class="toolbar">
+            <label class="inline">Package <select id="mapPackageSelect"><option value="">— none loaded —</option></select></label>
+            <button class="btn" id="mapPackageReviewBtn" disabled>Review package</button>
+            <button class="btn danger" id="mapPackageStageBtn" disabled>Stage locked changes…</button>
+          </div>
+          <div id="mapPackageOut"></div>
+        </details>
+        <fieldset class="builder-evidence">
+          <legend>Recommendation evidence &middot; required</legend>
+          <label class="field"><span>Source title</span><input type="text" id="mapEvidenceTitle" placeholder="publication, bulletin, or named test report"></label>
+          <label class="field"><span>Source URL</span><input type="url" id="mapEvidenceUrl" placeholder="https://…"></label>
+          <label class="field"><span>Why it applies here</span><textarea id="mapEvidenceRationale" rows="3" placeholder="motorcycle, hardware, exhaust/intake configuration, fuel, and the recommendation being followed"></textarea></label>
+          <label class="field"><span>Exact excerpt (optional)</span><textarea id="mapEvidenceQuote" rows="2" placeholder="quote the recommendation so the build can be reviewed later"></textarea></label>
+        </fieldset>
+        <label class="field"><span>Calibration checksum provider</span>
+          <select id="mapChecksumProvider"><option value="">None — only valid when the XDF declares no checksum</option></select>
+          <small class="muted" id="mapChecksumNote">No checksum algorithm is guessed or bundled. Local plugins run in isolated, resource-limited workers and must explicitly match every checksum declared by the XDF.</small>
+        </label>
+        <label class="inline"><input type="checkbox" id="mapNonBaseAccept"> I understand this source is not the protected base map (required only when shown above).</label>
+        <label class="field"><span>Liability acknowledgement &middot; type exactly</span>
+          <code id="mapAckText" class="ack-text">Load definitions to see the required text.</code>
+          <input type="text" id="mapAckInput" autocomplete="off" placeholder="type the acknowledgement shown above">
+        </label>
+        <div class="toolbar">
+          <button class="btn danger" id="mapBuildBtn" disabled>Build modified map file</button>
+        </div>
+        <div id="mapBuildOut"></div>
       </div>
       <div id="mapsOut"></div>
     </article>

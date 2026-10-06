@@ -11,3 +11,7 @@ venv/
 *.bin
 captures/
 .venv/
+node_modules/
+test-results/
+playwright-report/
+blob-report/

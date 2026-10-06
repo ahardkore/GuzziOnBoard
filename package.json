@@ -1,0 +1,14 @@
+{
+  "name": "guzzionboard-browser-tests",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Browser-level tests for the GuzziOnBoard workstation editor",
+  "scripts": {
+    "test:browser": "playwright test",
+    "test:browser:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "@sparticuz/chromium": "^153.0.0"
+  }
+}

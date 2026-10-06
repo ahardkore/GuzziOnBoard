@@ -520,22 +520,174 @@ b.bad { color: #ef8d78; }
 #memProgressText { font-variant-numeric: tabular-nums; }
 
 /* maps view: XDF-rendered tables */
-#mapsOut details {
+#mapsOut details, #mapBuildOut details {
   border: 1px solid var(--line);
   border-radius: 8px;
   margin: 8px 0;
   padding: 0 10px;
   background: var(--panel);
 }
-#mapsOut details > summary {
+#mapsOut details > summary, #mapBuildOut details > summary {
   cursor: pointer;
   padding: 8px 0;
   font-weight: 600;
   list-style: none;
 }
-#mapsOut details > summary::before { content: "▸ "; color: var(--muted); }
-#mapsOut details[open] > summary::before { content: "▾ "; }
-#mapsOut details > .table-wrap { margin: 4px 0 10px; }
+#mapsOut details > summary::before, #mapBuildOut details > summary::before { content: "▸ "; color: var(--muted); }
+#mapsOut details[open] > summary::before, #mapBuildOut details[open] > summary::before { content: "▾ "; }
+#mapsOut details > .table-wrap, #mapBuildOut details > .table-wrap { margin: 4px 0 10px; }
+
+.map-builder {
+  margin: 18px 0 14px;
+  padding: 14px;
+  border: 1px solid #653227;
+  border-radius: 9px;
+  background: #1d1513;
+}
+.map-builder > h3 { color: #ef8d78; margin: 0 0 7px; }
+.map-builder > h3::before { content: '⚠ '; }
+.builder-evidence {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 12px 0;
+  padding: 10px 12px 12px;
+}
+.builder-evidence legend { color: var(--text); font-size: .82rem; padding: 0 5px; }
+.builder-evidence .field:nth-last-child(-n+2) { grid-column: 1 / -1; }
+.ack-text {
+  display: block;
+  width: fit-content;
+  margin: 5px 0 7px;
+  padding: 5px 8px;
+  border: 1px solid #653227;
+  border-radius: 4px;
+  color: #efb09f;
+  background: #160f0e;
+}
+.map-editor-tools {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.map-trace-mapping {
+  margin: 5px 0 10px;
+  padding: 0 9px 9px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel));
+}
+.trace-axis-grid { display: grid; grid-template-columns: repeat(2, minmax(230px, 1fr)); gap: 10px; }
+.trace-axis { display: grid; grid-template-columns: minmax(170px, 1fr) 90px 90px; gap: 8px; border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+.trace-axis legend { color: var(--muted); padding: 0 4px; }
+.trace-axis label { display: grid; gap: 4px; font-size: .76rem; color: var(--muted); }
+.trace-axis select, .trace-axis input { min-width: 0; }
+.trace-axis small { grid-column: 1 / -1; }
+.map-grid td { padding: 2px !important; }
+.map-value {
+  width: 100%;
+  min-width: 48px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: #f0f5f8;
+  background: color-mix(in srgb, #a34d2f var(--map-heat, 50%), #16475b);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  padding: 5px 7px;
+  cursor: cell;
+}
+.map-value:hover, .map-value:focus { border-color: #d3e5ef; filter: brightness(1.16); outline: none; }
+.map-value.selected {
+  border-color: #fff;
+  box-shadow: inset 0 0 0 1px #111, 0 0 0 1px var(--accent);
+}
+.map-value.modified {
+  border-color: var(--warn);
+  background: #3b2c12;
+  color: #ffd87b;
+  font-weight: 700;
+}
+.map-value.modified.selected { border-color: #fff; }
+.map-value.live-trace-weight {
+  outline: 1px dashed color-mix(in srgb, var(--accent) calc(35% + var(--trace-weight, 0) * 55%), #fff);
+  outline-offset: -2px;
+  filter: brightness(calc(.9 + var(--trace-weight, 0) * .28));
+}
+.map-value.live-trace {
+  outline: 3px solid #fff;
+  outline-offset: -3px;
+  box-shadow: 0 0 0 2px var(--accent), 0 0 14px color-mix(in srgb, var(--accent) 70%, transparent);
+  animation: map-trace-pulse 1.15s ease-in-out infinite alternate;
+}
+@keyframes map-trace-pulse { to { box-shadow: 0 0 0 3px var(--accent), 0 0 20px var(--accent); } }
+.map-value.log-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-bottom: 4px solid hsl(calc(45 - var(--log-error) * 3) 88% 58%);
+  pointer-events: none;
+}
+.map-log-tools { margin: .85rem 0; border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+.map-axis-value {
+  appearance: none;
+  border: 1px dashed color-mix(in srgb, var(--accent) 48%, var(--line));
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  min-width: 3.4rem;
+  padding: .24rem .34rem;
+  cursor: cell;
+}
+.map-axis-value:hover, .map-axis-value:focus-visible, .map-axis-value.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.map-axis-value.modified {
+  border-style: solid;
+  border-color: var(--warn);
+  color: #ffd87b;
+}
+.map-viz-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem;
+  margin-top: .8rem;
+}
+.map-viz {
+  margin: 0;
+  padding: .65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 88%, black);
+}
+.map-viz figcaption {
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 700;
+  margin: 0 0 .35rem;
+}
+.map-viz svg { display: block; width: 100%; height: auto; min-height: 150px; }
+.map-viz-axis { stroke: var(--muted); stroke-width: 1; opacity: .55; }
+@media (max-width: 850px) {
+  .map-viz-grid, .trace-axis-grid { grid-template-columns: 1fr; }
+  .trace-axis { grid-template-columns: 1fr 1fr; }
+  .trace-axis label:first-of-type, .trace-axis small { grid-column: 1 / -1; }
+}
+.preview-scroll { max-height: 280px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+.preview-scroll table.data { font-size: .75rem; }
+.preview-scroll table.data th, .preview-scroll table.data td { padding: 5px 7px; }
+@media (max-width: 760px) {
+  .builder-evidence { grid-template-columns: 1fr; }
+  .builder-evidence .field { grid-column: 1 !important; }
+}
 
 /* printing: the workstation is its own documentation */
 @media print {

@@ -8,8 +8,10 @@ from guzzionboard.diagnostics import DiagnosticsService
 from guzzionboard.protocol.kwp2000 import ProtocolError
 from guzzionboard.protocol.legacy_iaw import LegacyIAWSession
 from guzzionboard.safety import Mode, SafetyGate
+from guzzionboard.server import Api
 from guzzionboard.transports.base import Connection, InitResult, Transport
 from guzzionboard.transports.simulator import SimulatorTransport
+from guzzionboard.workstation import Workstation
 
 
 class ByteConnection(Connection):
@@ -140,3 +142,18 @@ def test_legacy_faults_are_reported_as_raw_bits_not_kwp_dtcs():
     ]
     assert all(item["kind"] == "legacy-raw-bit" for item in result["dtcs"])
     service.disconnect()
+
+
+def test_http_fault_response_preserves_legacy_register_provenance(tmp_path):
+    ws = Workstation(session_dir=tmp_path, record=False)
+    ws.select(ecu="16m", transport="simulator")
+    ws.connect(mode="simulator")
+    ws.require_service().identify()
+
+    status, result = Api(ws).get_dtcs({})
+
+    assert status == 200
+    assert result["format"] == "legacy-fault-bitfields"
+    assert len(result["registers"]) == 12
+    assert "Raw legacy fault registers" in result["note"]
+    ws.disconnect()

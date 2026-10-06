@@ -348,8 +348,7 @@ class Api:
         result = service.read_dtcs()
         decision = service.check_clear_dtcs()
         return 200, {
-            "dtcs": result["dtcs"],
-            "context": result["context"],
+            **result,
             "context_note": (
                 "Observed by the workstation at read time - these ECUs do not "
                 "expose an ECU-stored freeze frame, and this is not one."

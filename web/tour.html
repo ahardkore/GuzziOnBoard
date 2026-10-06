@@ -267,8 +267,11 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <div class="card">
     <h3>2 · Talk to a real bike (K-Line)</h3>
-    <p>The 1990s&ndash;2010s Marelli ECUs speak KWP2000 over a single-wire K-Line at
-    10400 baud, through the bike&rsquo;s 3-pin diagnostic connector:</p>
+    <p>Many 1990s&ndash;2010s Marelli ECUs use the bike&rsquo;s single-wire K-Line,
+    but K-Line does not imply one application protocol: 5AM and the captured
+    7SM identity path use KWP2000, while 16M uses a separate 1200/7680-baud
+    legacy byte protocol. Incomplete families stay blocked. For the supported
+    physical paths you need:</p>
     <ul class="tight">
       <li>A <b>KKL &ldquo;VAG-COM 409&rdquo; USB cable</b> — this is a plain
       FTDI-based serial adapter with the K-Line driver transistor built in. Get one
@@ -285,26 +288,22 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <div class="card">
     <h3>3 · Newer CAN bikes</h3>
-    <p>The CAN-era ECUs (V7 III / V7 850, later V85 TT, V100) wrap the same
-    diagnostics in ISO-TP over CAN. You need a CAN adapter python-can can drive —
-    a USB OBD-II dongle with ELM327-class firmware is the cheap route, a
-    genuine OBDLink or a socketcan interface the reliable one. The request/response
-    CAN identifiers are <b>not yet confirmed</b> on these bikes; the workstation
-    assumes the standard pair and lets you override it per session. To settle it
-    for good: log the bus while GuzziCanDiag talks to the bike, then run the
-    capture through <b>Discovery &rarr; CAN identifier discovery</b> — it names
-    the pair, shows its evidence, and tells you if it is neither standard
-    pair. Meanwhile the <b>CAN rehearsal</b> transport (with the
-    <code>.[hardware]</code> extra installed) runs the whole ISO-TP path
-    against the simulated ECU on a virtual bus — using exactly the ids you
-    set, so the pair you are about to try can be dry-run first.</p>
+    <p>Service material establishes CAN diagnosis on MIU G4 and 11MP, but the
+    project did not recover family-specific bitrate, identifiers, addressing,
+    transport, or application payloads. ISO-TP and KWP/UDS are therefore not
+    assumed, and physical CAN sessions are blocked before an adapter is opened.
+    <b>Discovery &rarr; CAN identifier discovery</b> can analyze an existing
+    research capture offline without probing a motorcycle. The <b>CAN
+    rehearsal</b> transport (with the <code>.[hardware]</code> extra installed)
+    uses explicit virtual-lab IDs to exercise generic ISO-TP mechanics against
+    the simulator; those IDs are not presented as Piaggio protocol evidence.</p>
   </div>
 
   <div class="card">
     <h3>4 · Maps from a dump</h3>
-    <p>Download the TunerPro XDF definitions for your ECU from the GuzziDiag
-    archive at <code>von-der-salierburg.de</code> and drop them into
-    <code>~/.guzzionboard/xdfs/</code>. The Maps &amp; tables view then renders any
+    <p>The repository includes a provenance-tracked TunerPro XDF library; a
+    local definition in <code>~/.guzzionboard/xdfs/</code> can override a bundled
+    file. The Maps &amp; tables view then renders any
     image — including your verified backups — as named tables, and diffs two
     images by table and cell.</p>
   </div>

@@ -29,6 +29,8 @@ const state = {
   sim: null,
   procedures: [],
   run: null,
+  actions: new Map(),
+  promptedProcedureStep: '',
   liveLog: [],
   replay: null,
   replayTimer: null,
@@ -198,6 +200,14 @@ async function loadProcedures() {
     </div>`).join('');
 
   $$('#procedureList button[data-procedure]').forEach((b) => (b.onclick = async () => {
+    const procedure = state.procedures.find((item) => item.key === b.dataset.procedure);
+    if (procedure?.engine === 'off' || procedure?.engine === 'running') {
+      const ready = await prepareEngineState(
+        procedure.engine,
+        `Prepare to begin “${procedure.name}”.`,
+      );
+      if (!ready) return;
+    }
     try {
       const out = await api('/api/procedures/start', { method: 'POST', body: { key: b.dataset.procedure } });
       renderProcedureRun(out.run);
@@ -207,10 +217,43 @@ async function loadProcedures() {
   if (data.run) renderProcedureRun(data.run);
 }
 
+function procedureInstructionBody(step) {
+  const title = `${step.title || ''} ${step.text || ''}`.toLowerCase();
+  let steps = [step.text || step.title];
+  let callout = 'Complete this physical step before continuing.';
+  if (title.includes('stop the engine') || title.includes('engine stopped')) {
+    steps = [
+      'Stop the engine with the kill switch.',
+      'Wait for the engine and rear wheel to stop completely.',
+      'Leave the ignition key ON so the diagnostic session stays connected.',
+    ];
+  } else if (title.includes('start the engine') || title.includes('warm the engine')) {
+    steps = [
+      'Make sure the area is well ventilated and the motorcycle is stable in neutral.',
+      'Put the kill switch in RUN and start the engine.',
+      title.includes('warm') ? 'Let the engine reach normal operating temperature.' : 'Let the engine settle at idle.',
+    ];
+    callout = 'Keep the cable away from the exhaust and moving parts.';
+  } else if (title.includes('3000 rpm') || title.includes('revs')) {
+    steps = [
+      'Keep the motorcycle stable in neutral with ventilation running.',
+      'Raise engine speed smoothly to about 3000 rpm.',
+      'Hold it steady, then continue so the workstation can sample.',
+    ];
+  } else if (title.includes('wait')) {
+    steps = [step.text || 'Wait for the stated time.', 'Leave the ignition key ON.', 'Do not disturb the test setup.'];
+  }
+  return guideBody(step.title, steps, callout);
+}
+
 function renderProcedureRun(run) {
   state.run = run;
   const box = $('#procedureRun');
-  if (!run) { box.innerHTML = '<p class="muted">Pick a test to begin.</p>'; return; }
+  if (!run) {
+    state.promptedProcedureStep = '';
+    box.innerHTML = '<p class="muted">Pick a test to begin.</p>';
+    return;
+  }
 
   const done = run.status !== 'running';
   const step = run.step;
@@ -281,6 +324,23 @@ function renderProcedureRun(run) {
     };
   }
   if ($('#procRestart')) $('#procRestart').onclick = () => renderProcedureRun(null);
+
+  if (!done && step?.kind === 'instruct') {
+    const signature = `${run.procedure}:${run.step_index}`;
+    if (state.promptedProcedureStep !== signature) {
+      state.promptedProcedureStep = signature;
+      setTimeout(async () => {
+        const ready = await confirmDialog(
+          `Step ${run.step_index + 1}: ${step.title}`,
+          procedureInstructionBody(step),
+          'Done — continue',
+          { tone: 'primary' },
+        );
+        if (ready && state.run?.procedure === run.procedure
+            && state.run?.step_index === run.step_index) advance();
+      }, 0);
+    }
+  }
 }
 
 /* ----------------------------------------------------- simulated bike
@@ -384,21 +444,141 @@ async function simComms(body) {
 
 /* --------------------------------------------------------------- modal */
 
-function confirmDialog(title, bodyHtml, confirmLabel = 'Confirm') {
+let modalResolve = null;
+let modalPreviousFocus = null;
+
+function closeModal(value = false) {
+  $('#modal').classList.add('hidden');
+  $('#modalActions').hidden = false;
+  $('.modal-card', $('#modal')).classList.remove('busy');
+  $('#modalConfirm').onclick = null;
+  $('#modalCancel').onclick = null;
+  const resolve = modalResolve;
+  modalResolve = null;
+  if (resolve) resolve(value);
+  if (modalPreviousFocus && modalPreviousFocus.focus) modalPreviousFocus.focus();
+  modalPreviousFocus = null;
+}
+
+function openModal(title, bodyHtml) {
+  modalPreviousFocus = document.activeElement;
+  $('#modalTitle').textContent = title;
+  $('#modalBody').innerHTML = bodyHtml;
+  $('#modal').classList.remove('hidden');
+  $('.modal-card', $('#modal')).focus();
+}
+
+function confirmDialog(title, bodyHtml, confirmLabel = 'Confirm', options = {}) {
   return new Promise((resolve) => {
-    $('#modalTitle').textContent = title;
-    $('#modalBody').innerHTML = bodyHtml;
+    openModal(title, bodyHtml);
+    modalResolve = resolve;
+    $('#modalActions').hidden = false;
+    $('#modalConfirm').hidden = false;
+    $('#modalCancel').hidden = options.cancel === false;
+    $('#modalCancel').textContent = options.cancelLabel || 'Cancel';
     $('#modalConfirm').textContent = confirmLabel;
-    $('#modal').classList.remove('hidden');
-    const done = (value) => {
-      $('#modal').classList.add('hidden');
-      $('#modalConfirm').onclick = null;
-      $('#modalCancel').onclick = null;
-      resolve(value);
-    };
-    $('#modalConfirm').onclick = () => done(true);
-    $('#modalCancel').onclick = () => done(false);
+    $('#modalConfirm').className = `btn ${options.tone || 'danger'}`;
+    $('#modalConfirm').onclick = () => closeModal(true);
+    $('#modalCancel').onclick = () => closeModal(false);
+    $('#modalConfirm').focus();
   });
+}
+
+function infoDialog(title, bodyHtml, label = 'Got it') {
+  return confirmDialog(title, bodyHtml, label, { tone: 'primary', cancel: false });
+}
+
+function showBusyDialog(title, bodyHtml) {
+  openModal(title, `${bodyHtml}<div class="guide-spinner" aria-hidden="true"></div>`);
+  modalResolve = null;
+  $('#modalActions').hidden = true;
+  $('.modal-card', $('#modal')).classList.add('busy');
+}
+
+function choiceDialog(title, bodyHtml, choices) {
+  return new Promise((resolve) => {
+    openModal(title, `${bodyHtml}<div class="guide-choice">${choices.map((choice) =>
+      `<button class="btn ${esc(choice.tone || '')}" data-modal-choice="${esc(choice.value)}">${esc(choice.label)}</button>`
+    ).join('')}</div>`);
+    modalResolve = resolve;
+    $('#modalActions').hidden = false;
+    $('#modalConfirm').hidden = true;
+    $('#modalCancel').hidden = false;
+    $('#modalCancel').textContent = 'Cancel';
+    $$('[data-modal-choice]', $('#modal')).forEach((button) => {
+      button.onclick = () => closeModal(button.dataset.modalChoice);
+    });
+    $('#modalCancel').onclick = () => closeModal(null);
+    const first = $('[data-modal-choice]', $('#modal'));
+    if (first) first.focus();
+  });
+}
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !$('#modal').classList.contains('hidden')
+      && !$('#modalActions').hidden) closeModal(false);
+});
+
+function guideBody(intro, steps, callout = '', dangerous = false) {
+  return `<p class="guide-intro">${esc(intro)}</p>
+    <ol class="guide-steps">${steps.map((step) => `<li>${esc(step)}</li>`).join('')}</ol>
+    ${callout ? `<div class="guide-callout ${dangerous ? 'danger' : ''}">${esc(callout)}</div>` : ''}`;
+}
+
+function isPhysicalSelection() {
+  const transport = state.selection?.transport || currentTransport();
+  return !['simulator', 'cansim'].includes(transport);
+}
+
+async function refreshSafetyObservations() {
+  if (!state.connected) return;
+  const useful = ['rpm', 'stop_state', 'battery'].filter((key) =>
+    state.parameters.some((parameter) => parameter.key === key));
+  if (!useful.length) return;
+  try {
+    await api(`/api/live?keys=${useful.join(',')}`);
+    await refreshStatus();
+  } catch (_) { /* The safety gate will keep unknown conditions blocked. */ }
+}
+
+async function prepareEngineState(required, purpose) {
+  if (!isPhysicalSelection()) return true;
+  let ready;
+  if (required === 'running') {
+    ready = await confirmDialog(
+      'Start the motorcycle',
+      guideBody(
+        purpose,
+        [
+          'Move the motorcycle into a well-ventilated area and keep exhaust away from people.',
+          'Select neutral, apply the brake, and make sure the motorcycle and rear wheel are secure.',
+          'Put the kill switch in RUN, then start the engine.',
+          'Let the engine settle at idle. Do not touch the throttle unless the procedure tells you to.',
+        ],
+        'Leave the ignition key ON and keep the diagnostic cable clear of hot or moving parts.',
+      ),
+      'Engine running — continue',
+      { tone: 'primary' },
+    );
+  } else {
+    ready = await confirmDialog(
+      'Engine off, ignition on',
+      guideBody(
+        purpose,
+        [
+          'If the engine is running, stop it with the kill switch. Do not turn the key off yet.',
+          'Select neutral and wait until the engine and rear wheel have completely stopped.',
+          'Leave the ignition key ON so the ECU and diagnostic link stay powered.',
+          'Keep hands, tools, fuel, and loose clothing away from anything the test can move or energise.',
+        ],
+        'The workstation will still enforce its measured safety checks. This confirmation does not bypass them.',
+      ),
+      'Engine off, key on — continue',
+      { tone: 'primary' },
+    );
+  }
+  if (ready) await refreshSafetyObservations();
+  return ready;
 }
 
 /* -------------------------------------------------------------- catalog */
@@ -551,9 +731,11 @@ function currentTransport() {
   return checked ? checked.value : 'simulator';
 }
 
+const isPhysicalTransport = (kind) => !['simulator', 'cansim'].includes(kind);
+
 function onTransportChange() {
   const kind = currentTransport();
-  const physical = !['simulator', 'cansim'].includes(kind);
+  const physical = isPhysicalTransport(kind);
   Prefs.set('transport', kind);
   $('#deviceField').hidden = !physical;
   $('#checklistBox').hidden = !physical;
@@ -562,8 +744,17 @@ function onTransportChange() {
   $('#deviceInput').placeholder = kind === 'can' ? 'can0' : '/dev/ttyUSB0';
   if (['can', 'cansim'].includes(kind) && !$('#canTxId').value) {
     const spec = (state.resolved && state.resolved.ecu_detail && state.resolved.ecu_detail.can) || {};
-    $('#canTxId').value = spec.tx_id !== undefined ? `0x${spec.tx_id.toString(16).toUpperCase()}` : '0x7E0';
-    $('#canRxId').value = spec.rx_id !== undefined ? `0x${spec.rx_id.toString(16).toUpperCase()}` : '0x7E8';
+    if (spec.tx_id !== undefined && spec.rx_id !== undefined) {
+      $('#canTxId').value = `0x${spec.tx_id.toString(16).toUpperCase()}`;
+      $('#canRxId').value = `0x${spec.rx_id.toString(16).toUpperCase()}`;
+    } else if (kind === 'cansim') {
+      // A virtual pair for transport rehearsal only, never a motorcycle claim.
+      $('#canTxId').value = '0x7E0';
+      $('#canRxId').value = '0x7E8';
+    } else {
+      $('#canTxId').value = '';
+      $('#canRxId').value = '';
+    }
   }
   if (physical && $('#modeSelect').value === 'simulator') $('#modeSelect').value = 'read_only';
   if (!physical) $('#modeSelect').value = 'simulator';
@@ -572,12 +763,81 @@ function onTransportChange() {
 
 function updateConnectEnabled() {
   const haveVehicle = Boolean(state.resolved) || Boolean($('#ecuOverride').value);
-  const physical = currentTransport() !== 'simulator';
+  const physical = isPhysicalTransport(currentTransport());
   const ok = haveVehicle && (!physical || $('#checklistAccept').checked);
   $('#connectBtn').disabled = !ok || state.connected;
 }
 
 /* ------------------------------------------------------------- connect */
+
+async function preparePhysicalConnection(selection) {
+  const ecu = selection.ecu || {};
+  if (ecu.session?.physical_supported === false) {
+    await infoDialog(
+      'This ECU is not available on hardware',
+      guideBody(
+        `${ecu.display_name || ecu.family || 'This ECU'} is in the catalog, but its physical diagnostic protocol is not validated.`,
+        [
+          'No adapter port has been opened.',
+          'No request has been sent to the motorcycle.',
+          'Use the simulator to explore the workstation without touching hardware.',
+        ],
+        ecu.session.physical_blocked_reason || 'Protocol evidence is incomplete.',
+        true,
+      ),
+      'Return to Garage',
+    );
+    return false;
+  }
+
+  if (ecu.id === '16m') {
+    return confirmDialog(
+      'Prepare the 16M key-on connection',
+      guideBody(
+        'This older ECU sends its wake-up code only when power is switched on. Timing matters.',
+        [
+          'Turn the ignition key OFF now. The engine must be stopped.',
+          'Put the motorcycle in neutral and put the kill switch in RUN.',
+          'Connect the diagnostic cable and make sure its power and ground are secure.',
+          'Press “Begin listening”, then immediately turn the ignition key ON. Do not press the starter.',
+        ],
+        'The workstation listens for the six-byte key-on code for 8 seconds. If it times out, turn the key OFF and repeat.',
+      ),
+      'Begin listening',
+      { tone: 'primary' },
+    );
+  }
+
+  return confirmDialog(
+    'Prepare the motorcycle',
+    guideBody(
+      'Establish a quiet key-on, engine-off diagnostic session.',
+      [
+        'Stop the engine and select neutral. Keep the motorcycle stable.',
+        'Connect the diagnostic cable before switching the ignition on.',
+        'Put the kill switch in RUN.',
+        'Turn the ignition key ON and wait for the dashboard self-check to finish. Do not start the engine.',
+      ],
+      'Leave the key ON while the workstation connects. If the engine must run, a later prompt will tell you when to start it.',
+    ),
+    'Key on — connect',
+    { tone: 'primary' },
+  );
+}
+
+function connectionBusyMessage(selection) {
+  if (selection.ecu?.id === '16m') {
+    return guideBody(
+      'The adapter is listening now.',
+      ['Turn the ignition key ON immediately.', 'Do not start the engine.', 'Wait while the ECU key-on code is received.'],
+      'Keep the cable connected and do not cycle the kill switch.',
+    );
+  }
+  return guideBody(
+    'Opening the diagnostic session.',
+    ['Keep the ignition key ON.', 'Keep the engine stopped.', 'Do not unplug the adapter.'],
+  );
+}
 
 async function connect() {
   const ecuOverride = $('#ecuOverride').value;
@@ -596,25 +856,51 @@ async function connect() {
   }
 
   $('#connectBtn').disabled = true;
+  let busy = false;
   try {
     const selection = await api('/api/select', { method: 'POST', body });
+    state.selection = selection;
     renderNotices(selection.notices);
-    if (currentTransport() !== 'simulator') {
+    const physical = isPhysicalTransport(currentTransport());
+    if (physical && !(await preparePhysicalConnection(selection))) return;
+    if (physical) {
       await api('/api/checklist', { method: 'POST', body: { accepted: $('#checklistAccept').checked } });
     }
     const initMethod = currentTransport() === 'kline' ? $('#initMethod').value : '';
     Prefs.set('initMethod', initMethod);
+    if (physical) {
+      showBusyDialog(selection.ecu?.id === '16m' ? 'Listening for key-on' : 'Connecting',
+        connectionBusyMessage(selection));
+      busy = true;
+    }
     await api('/api/connect', {
       method: 'POST',
       body: { mode: $('#modeSelect').value, init_method: initMethod || undefined },
     });
-    toast('Connected. Read the ECU identification next.', 'ok');
+    if (busy) { closeModal(); busy = false; }
     await refreshStatus();
     await loadParameters();
     await api('/api/identify').then(renderIdentity).catch(() => {});
     await refreshStatus();
     show('overview');
+    if (physical) {
+      await infoDialog(
+        'Diagnostic link connected',
+        guideBody(
+          'The ECU is online and the workstation will keep the session alive.',
+          [
+            'Leave the ignition key ON.',
+            'Keep the engine stopped until a test explicitly asks you to start it.',
+            'Use Disconnect before turning the key OFF or unplugging the adapter.',
+          ],
+        ),
+        'Continue',
+      );
+    } else {
+      toast('Connected to the simulator.', 'ok');
+    }
   } catch (err) {
+    if (busy) closeModal();
     toast(err.message, 'bad');
   } finally {
     updateConnectEnabled();
@@ -623,10 +909,54 @@ async function connect() {
 
 async function disconnect() {
   stopPolling();
-  try { await api('/api/disconnect', { method: 'POST' }); } catch (_) {}
+  const physical = isPhysicalSelection();
+  if (physical) {
+    const running = state.status?.diagnostics?.vehicle_state?.engine_running;
+    const ok = await confirmDialog(
+      running ? 'Stop the engine before disconnecting' : 'End the diagnostic session',
+      guideBody(
+        'Close the ECU session in the right order.',
+        running
+          ? [
+              'Use the kill switch to stop the engine. Keep the ignition key ON.',
+              'Wait until the engine and rear wheel are completely stopped.',
+              'Press “End session”. The workstation will release outputs and close communications.',
+            ]
+          : [
+              'Keep the ignition key ON for this step.',
+              'Press “End session”. The workstation will release outputs and close communications.',
+            ],
+        'Do not unplug the adapter or turn the key OFF until the workstation confirms the session is closed.',
+      ),
+      'End session',
+      { tone: 'primary' },
+    );
+    if (!ok) return;
+    showBusyDialog('Ending diagnostic session',
+      guideBody('Closing communication safely.', ['Keep the key ON for a moment.', 'Wait for confirmation.']));
+  }
+  try {
+    await api('/api/disconnect', { method: 'POST' });
+  } catch (err) {
+    if (physical) closeModal();
+    toast(`Could not confirm disconnect: ${err.message}. Keep the key ON and try again.`, 'bad');
+    return;
+  }
+  if (physical) closeModal();
   state.history.clear();
-  toast('Disconnected.');
   await refreshStatus();
+  if (physical) {
+    await infoDialog(
+      'Safe to power down',
+      guideBody(
+        'The diagnostic session is closed.',
+        ['Turn the ignition key OFF.', 'Return the kill switch to its normal position.', 'Unplug the diagnostic cable if the work is finished.'],
+      ),
+      'Done',
+    );
+  } else {
+    toast('Disconnected.');
+  }
 }
 
 /* --------------------------------------------------------------- status */
@@ -658,8 +988,12 @@ async function refreshStatus() {
     : 'Pick a motorcycle in the Garage';
   $('#disconnectBtn').disabled = !state.connected;
 
-  ['identifyBtn', 'pollBtn', 'readDtcBtn', 'scanBtn'].forEach((id) => {
-    $(`#${id}`).disabled = !state.connected;
+  const capabilities = new Set(state.selection?.ecu?.effective_capabilities || []);
+  const buttonCapabilities = {
+    identifyBtn: 'identify', pollBtn: 'live', readDtcBtn: 'dtc_read', scanBtn: 'discover',
+  };
+  Object.entries(buttonCapabilities).forEach(([id, capability]) => {
+    $(`#${id}`).disabled = !state.connected || !capabilities.has(capability);
   });
 
   if (state.status.transports && !$('#transportList').children.length) {
@@ -675,6 +1009,16 @@ async function refreshStatus() {
 }
 
 /* ------------------------------------------------------------- overview */
+
+async function identifyWithGuide() {
+  if (!(await prepareEngineState('off', 'Read the ECU identity with the engine stopped.'))) return;
+  try {
+    const identity = await api('/api/identify');
+    renderIdentity(identity);
+    toast('ECU identified.', 'ok');
+    await refreshStatus();
+  } catch (err) { toast(err.message, 'bad'); }
+}
 
 function renderIdentity(identity) {
   if (!identity || !identity.fields) return;
@@ -898,6 +1242,29 @@ async function pollOnce() {
   }
 }
 
+async function prepareAndStartPolling() {
+  if (state.polling) { stopPolling(); return; }
+  if (isPhysicalSelection()) {
+    const wanted = await choiceDialog(
+      'Choose the motorcycle state',
+      '<p class="guide-intro">Live values mean different things with the engine stopped and running. Pick the state this check needs.</p>',
+      [
+        { value: 'off', label: 'Key ON · engine OFF', tone: 'primary' },
+        { value: 'running', label: 'Start and idle the engine', tone: 'primary' },
+      ],
+    );
+    if (!wanted) return;
+    const ready = await prepareEngineState(
+      wanted,
+      wanted === 'running'
+        ? 'Prepare for running live data.'
+        : 'Prepare for key-on, engine-off sensor checks.',
+    );
+    if (!ready) return;
+  }
+  startPolling();
+}
+
 function startPolling() {
   if (state.polling) return;
   state.polling = true;
@@ -934,6 +1301,11 @@ function renderGate(decision, container) {
   </div>`;
 }
 
+async function readDtcsWithGuide() {
+  if (!(await prepareEngineState('off', 'Read fault memory in a stable key-on, engine-off state.'))) return;
+  try { await readDtcs(); } catch (err) { toast(err.message, 'bad'); }
+}
+
 async function readDtcs() {
   const data = await api('/api/dtcs');
   const list = data.dtcs;
@@ -944,6 +1316,12 @@ async function readDtcs() {
     : 'Fault memory is clean.';
 
   const context = Object.entries(data.context || {});
+  const legacyHtml = data.format === 'legacy-fault-bitfields'
+    ? `<div class="gate blocked"><b>Legacy raw fault flags.</b> ${esc(data.note || '')}
+       ${(data.registers || []).map((r) =>
+         `<span class="tag">${esc(r.hex_request)} = <b>${esc(r.hex_value)}</b></span>`
+       ).join(' ')}</div>`
+    : '';
   const contextHtml = context.length
     ? `<div class="fault-context"><span class="muted small">Context observed at read time
         ${data.context_note ? `<span title="${esc(data.context_note)}">(?)</span>` : ''}:</span>
@@ -952,7 +1330,7 @@ async function readDtcs() {
        ).join(' ')}</div>`
     : '';
 
-  $('#faultList').innerHTML = contextHtml + (list.length ? list.map((d) => `
+  $('#faultList').innerHTML = legacyHtml + contextHtml + (list.length ? list.map((d) => `
     <article class="fault ${d.warning_indicator ? 'warn' : ''}">
       <div class="fault-code">${esc(d.code)}</div>
       <div class="fault-info">
@@ -971,6 +1349,12 @@ async function readDtcs() {
 }
 
 async function clearDtcs() {
+  if (!(await prepareEngineState('off', 'Clear stored fault history only with the engine stopped.'))) return;
+  try { await readDtcs(); } catch (err) { toast(err.message, 'bad'); return; }
+  if (!state.clearDecision?.allowed) {
+    toast('The safety gate still blocks fault clearing. Review the failed checks.', 'bad');
+    return;
+  }
   const ok = await confirmDialog('Clear fault memory',
     `<p>This erases stored codes from the ECU. If the underlying fault is still
      present it will come back, but the <b>history is gone</b> — including freeze-frame
@@ -996,6 +1380,9 @@ async function loadServiceActions() {
   const [routines, actuators] = await Promise.all([
     api('/api/routines'), api('/api/actuators'),
   ]);
+  state.actions.clear();
+  routines.routines.forEach((item) => state.actions.set(`routine:${item.key}`, item));
+  actuators.actuators.forEach((item) => state.actions.set(`actuator:${item.key}`, item));
 
   $('#routineList').innerHTML = routines.routines.length
     ? routines.routines.map((r) => actionCard(r, 'routine')).join('')
@@ -1013,6 +1400,8 @@ async function loadServiceActions() {
 function actionCard(item, kind) {
   const d = item.decision;
   const blocked = !d.allowed;
+  const hardChecks = new Set(['mode', 'capability', 'definition-confidence', 'operation-confidence']);
+  const hardBlocked = (d.checks || []).some((check) => !check.passed && hardChecks.has(check.name));
   return `<article class="action ${blocked ? 'blocked' : ''}">
     <div class="action-head">
       <div>
@@ -1020,9 +1409,9 @@ function actionCard(item, kind) {
         <span class="conf ${confidenceClass(item.confidence)}">${esc(item.confidence)}</span>
         <code>0x${item.local_id.toString(16).toUpperCase().padStart(2, '0')}</code>
       </div>
-      <button class="btn ${blocked ? '' : 'danger'}" ${blocked ? 'disabled' : ''}
+      <button class="btn ${blocked ? '' : 'danger'}" ${hardBlocked ? 'disabled' : ''}
         data-action="${kind}" data-key="${esc(item.key)}" data-token="${esc(d.token || '')}">
-        ${kind === 'actuator' ? `Pulse ${item.max_pulse_s}s` : 'Run'}
+        ${blocked ? 'Prepare' : (kind === 'actuator' ? `Pulse ${item.max_pulse_s}s` : 'Run')}
       </button>
     </div>
     ${item.description ? `<p>${esc(item.description)}</p>` : ''}
@@ -1034,21 +1423,74 @@ function actionCard(item, kind) {
 }
 
 async function runAction(kind, key, token) {
+  let item = state.actions.get(`${kind}:${key}`) || {};
   const label = kind === 'actuator' ? 'Energise output' : 'Run routine';
-  const ok = await confirmDialog(`${label}: ${key}`,
+  const required = item.requires_engine_running ? 'running' : 'off';
+  if (!(await prepareEngineState(
+    required,
+    `${item.name || key} requires the engine ${required === 'running' ? 'running' : 'stopped'}.`,
+  ))) return;
+
+  // Preparation can take longer than a safety token is valid. Re-evaluate all
+  // measured conditions now and use a freshly issued operation-bound token.
+  try {
+    const latest = await api(kind === 'actuator' ? '/api/actuators' : '/api/routines');
+    item = (latest[kind === 'actuator' ? 'actuators' : 'routines'] || [])
+      .find((candidate) => candidate.key === key) || item;
+    if (!item.decision?.allowed) {
+      const failed = (item.decision?.checks || []).filter((check) => !check.passed)
+        .map((check) => check.detail).join(' ');
+      toast(failed || 'The safety gate still blocks this action.', 'bad');
+      loadServiceActions();
+      return;
+    }
+    token = item.decision.token;
+  } catch (err) {
+    toast(`Could not refresh the safety checks: ${err.message}`, 'bad');
+    return;
+  }
+
+  const ok = await confirmDialog(`${label}: ${item.name || key}`,
     kind === 'actuator'
-      ? `<p>This energises a real output on the motorcycle. Make sure nothing is
-         in the way of moving parts, and that you understand what this output does.</p>
-         <p class="muted">The workstation releases it automatically when the pulse expires.</p>`
-      : `<p>This changes values the ECU has learned. It cannot be undone, and the
-         bike may idle or run differently until it relearns.</p>`,
+      ? guideBody(
+          'This command energises a real output on the motorcycle.',
+          [
+            'Confirm the motorcycle is stable and nobody is touching the component under test.',
+            'Keep fuel away from sparks, hot exhaust parts, and electrical connectors.',
+            `The workstation will release the output after ${item.max_pulse_s || '?'} seconds.`,
+          ],
+          item.warning || 'Be ready to use the kill switch if anything unexpected happens.',
+          true,
+        )
+      : guideBody(
+          'This changes values the ECU has learned.',
+          [
+            'Do not touch the throttle or controls while the routine runs.',
+            'Keep the ignition key ON and do not unplug the diagnostic cable.',
+            'Wait for the completion message before doing the follow-up step.',
+          ],
+          item.warning || 'The motorcycle may idle or run differently until it relearns.',
+          true,
+        ),
     label);
   if (!ok) return;
 
   try {
     const path = kind === 'actuator' ? '/api/actuators/pulse' : '/api/routines/run';
     const result = await api(path, { method: 'POST', body: { key, token } });
-    toast(result.follow_up || `${key}: done.`, 'ok');
+    if (kind === 'routine') {
+      await infoDialog(
+        'Routine complete — next step',
+        guideBody(
+          `${item.name || key} completed.`,
+          [result.follow_up || item.follow_up || 'Keep the key ON and verify the result before starting the engine.'],
+          'When the work is finished, use Disconnect before turning the ignition key OFF.',
+        ),
+        'Continue',
+      );
+    } else {
+      toast(`${item.name || key}: pulse complete and output released.`, 'ok');
+    }
     setTimeout(loadServiceActions, kind === 'actuator' ? 1200 : 400);
   } catch (err) {
     toast(err.message, 'bad');
@@ -1065,6 +1507,17 @@ const parseId = (v) => {
 };
 
 async function runScan() {
+  if (isPhysicalSelection()) {
+    const wanted = await choiceDialog(
+      'Prepare this discovery sweep',
+      '<p class="guide-intro">Use a known motorcycle state so two sweeps can be compared honestly.</p>',
+      [
+        { value: 'off', label: 'Key ON · engine OFF', tone: 'primary' },
+        { value: 'running', label: 'Start and idle the engine', tone: 'primary' },
+      ],
+    );
+    if (!wanted || !(await prepareEngineState(wanted, 'Set the motorcycle state for this read-only sweep.'))) return;
+  }
   $('#scanBtn').disabled = true;
   $('#scanSummary').textContent = 'sweeping…';
   try {
@@ -1075,7 +1528,10 @@ async function runScan() {
     renderScan();
     toast(`${state.scan.answered} of ${state.scan.scanned} identifiers answered.`, 'ok');
   } catch (err) { toast(err.message, 'bad'); }
-  finally { $('#scanBtn').disabled = !state.connected; }
+  finally {
+    const capabilities = new Set(state.selection?.ecu?.effective_capabilities || []);
+    $('#scanBtn').disabled = !state.connected || !capabilities.has('discover');
+  }
 }
 
 function renderScan() {
@@ -1282,9 +1738,9 @@ $('#ecuOverride').onchange = updateConnectEnabled;
 $('#checklistAccept').onchange = updateConnectEnabled;
 $('#connectBtn').onclick = connect;
 $('#disconnectBtn').onclick = disconnect;
-$('#identifyBtn').onclick = () => api('/api/identify').then((i) => { renderIdentity(i); toast('ECU identified.', 'ok'); refreshStatus(); }).catch((e) => toast(e.message, 'bad'));
-$('#pollBtn').onclick = () => (state.polling ? stopPolling() : startPolling());
-$('#readDtcBtn').onclick = () => readDtcs().catch((e) => toast(e.message, 'bad'));
+$('#identifyBtn').onclick = identifyWithGuide;
+$('#pollBtn').onclick = prepareAndStartPolling;
+$('#readDtcBtn').onclick = readDtcsWithGuide;
 $('#clearDtcBtn').onclick = clearDtcs;
 $('#scanBtn').onclick = runScan;
 $('#snapshotBtn').onclick = () => { state.baseline = state.scan; toast('Baseline kept. Change the engine state and sweep again.', 'ok'); renderScan(); };
@@ -1524,21 +1980,38 @@ $('#latencyBtn').onclick = async () => {
 
 $('#backupBtn').onclick = async () => {
   const region = $('#memRegion').value;
+  if (!(await prepareEngineState('off', `Prepare to back up the ECU ${region}.`))) return;
   const minutes = fw.caps?.capabilities?.estimated_read_minutes;
-  const warning = minutes
-    ? `This reads ${region} twice to verify it, so expect roughly ${minutes * 2} minutes. `
-      + 'Put the battery on a charger and do not let the machine sleep.'
-    : 'This can take a long time. Put the battery on a charger.';
-  if (!window.confirm(warning)) return;
+  const ready = await confirmDialog(
+    'Keep power stable for the whole backup',
+    guideBody(
+      'The workstation reads the region twice and accepts the backup only if both copies match.',
+      [
+        'Connect an appropriate motorcycle battery charger or stable bench supply.',
+        'Disable laptop sleep and connect laptop power.',
+        'Leave the ignition key ON, engine stopped, and kill switch in RUN.',
+        `Allow ${minutes ? `about ${minutes * 2} minutes` : 'plenty of time'}; do not touch the cable or key.`,
+      ],
+      'Interrupting a read does not erase the ECU, but the resulting file will not be accepted as a verified backup.',
+    ),
+    'Start verified backup',
+    { tone: 'primary' },
+  );
+  if (!ready) return;
   $('#memResult').innerHTML = '';
-  await api('/api/memory/backup', { method: 'POST', body: { region } });
-  startMemoryPoll();
+  try {
+    await api('/api/memory/backup', { method: 'POST', body: { region } });
+    startMemoryPoll();
+  } catch (err) { toast(err.message, 'bad'); }
 };
 
 $('#readBtn').onclick = async () => {
+  if (!(await prepareEngineState('off', 'Prepare for a single ECU memory read.'))) return;
   $('#memResult').innerHTML = '';
-  await api('/api/memory/read', { method: 'POST', body: { region: $('#memRegion').value } });
-  startMemoryPoll();
+  try {
+    await api('/api/memory/read', { method: 'POST', body: { region: $('#memRegion').value } });
+    startMemoryPoll();
+  } catch (err) { toast(err.message, 'bad'); }
 };
 
 $('#validateBtn').onclick = async () => {
@@ -1581,17 +2054,37 @@ $('#disableProgBtn').onclick = async () => {
 
 $('#writeBtn').onclick = async () => {
   const path = $('#imagePath').value.trim();
-  const token = $('#writeBtn').dataset.token;
   if (!path) return toast('Validate an image first.', 'bad');
-  if (!window.confirm(
-    'This will erase and rewrite the ECU.\n\n'
-    + 'Confirm the battery is on a charger, nothing will interrupt the machine, '
-    + 'and you have a verified backup you can restore.\n\nContinue?')) return;
+  if (!(await prepareEngineState('off', 'Prepare for ECU programming.'))) return;
+  const ready = await confirmDialog(
+    'Final programming check',
+    guideBody(
+      'This operation erases and rewrites ECU memory.',
+      [
+        'Confirm the verified backup can be found and restored.',
+        'Connect stable battery and laptop power; disable sleep and updates.',
+        'Leave the ignition key ON and the engine stopped.',
+        'Do not touch the key, kill switch, cable, charger, or laptop until verification completes.',
+      ],
+      'A power or communication interruption can leave the motorcycle unable to start.',
+      true,
+    ),
+    'Erase and write ECU',
+  );
+  if (!ready) return;
+  await renderWriteGate();
+  const token = $('#writeBtn').dataset.token;
+  if ($('#writeBtn').disabled || !token) {
+    toast('The refreshed safety checks no longer allow this write.', 'bad');
+    return;
+  }
   $('#memResult').innerHTML = '';
-  await api('/api/memory/write', {
-    method: 'POST', body: { path, token, region: $('#memRegion').value },
-  });
-  startMemoryPoll();
+  try {
+    await api('/api/memory/write', {
+      method: 'POST', body: { path, token, region: $('#memRegion').value },
+    });
+    startMemoryPoll();
+  } catch (err) { toast(err.message, 'bad'); }
 };
 
 $('#memRegion').onchange = renderWriteGate;

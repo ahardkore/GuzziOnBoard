@@ -134,7 +134,7 @@ def test_finds_the_standard_pair_through_the_noise():
     assert top["request_id"] == "0x7E0"
     assert top["response_id"] == "0x7E8"
     assert top["confidence"] == "strong"
-    assert "assumes" in top["matches"]         # it is the catalog default
+    assert "reference pair" in top["matches"]  # recognition label, not a bike default
     assert top["tester_present_interval_s"] == 2.0
     assert top["padding_byte"] == "0xAA"
     assert "0x3E tester present" in top["request_sids"]

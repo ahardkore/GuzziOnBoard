@@ -1,4 +1,6 @@
 """The safety gate is the most important code in the project."""
+from dataclasses import replace
+
 import pytest
 
 from guzzionboard.catalog import load_catalog
@@ -112,6 +114,24 @@ def test_low_confidence_definitions_cannot_run_control_actions():
     )
     assert not decision.allowed
     assert any(c.name in ("capability", "definition-confidence") for c in decision.failures)
+
+
+def test_inferred_actuator_cannot_hide_inside_documented_profile(profile):
+    actuator = replace(profile.actuator("fuel_pump"), confidence="inferred")
+    decision = ready(SafetyGate(mode=Mode.SERVICE)).evaluate_actuator(
+        profile, actuator
+    )
+    assert not decision.allowed
+    assert any(c.name == "operation-confidence" for c in decision.failures)
+
+
+def test_inferred_routine_cannot_hide_inside_documented_profile(profile):
+    routine = replace(profile.routine("tps_reset"), confidence="inferred")
+    decision = ready(SafetyGate(mode=Mode.SERVICE)).evaluate_routine(
+        profile, routine
+    )
+    assert not decision.allowed
+    assert any(c.name == "operation-confidence" for c in decision.failures)
 
 
 # ------------------------------------------------------- programming

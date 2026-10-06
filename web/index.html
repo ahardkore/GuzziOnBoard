@@ -117,13 +117,13 @@
         <div id="canFields" hidden>
           <label class="field">
             <span>Request id (tester &rarr; ECU)</span>
-            <input id="canTxId" placeholder="0x7E0">
+            <input id="canTxId" placeholder="not validated">
           </label>
           <label class="field">
             <span>Response id (ECU &rarr; tester)</span>
-            <input id="canRxId" placeholder="0x7E8">
+            <input id="canRxId" placeholder="not validated">
           </label>
-          <p class="muted small">The 11-bit pair 0x7E0/0x7E8 is assumed but <b>unconfirmed</b> on these bikes. If a capture shows different ids (for example the 29-bit pair 0x18DA10F1/0x18DAF110), set them here — they apply to this session only.</p>
+          <p class="muted small">These IDs are for virtual CAN rehearsal or a future evidence-backed profile. Physical MIU G4 and 11MP sessions are blocked before the adapter opens: generic <code>0x7E0/0x7E8</code> IDs are not treated as Piaggio protocol evidence.</p>
         </div>
         <label class="field">
           <span>Session mode</span>
@@ -153,7 +153,7 @@
         <thead><tr><th>ECU family</th><th>Years</th><th>Transport</th><th>Confidence</th><th>Capabilities</th></tr></thead>
         <tbody></tbody>
       </table></div>
-      <p class="muted small">Confidence drives what the workstation will let you do. <b>verified-capture</b> means the scalings came off a real bus; <b>documented</b> means a service manual or a mature open tool; <b>inferred</b> means pattern-matched from a sibling ECU and read-only here.</p>
+      <p class="muted small">Confidence drives what the workstation will let you do. <b>verified-capture</b> means the bytes came off a real bus; <b>documented</b> means a primary manual or mature open implementation; <b>inferred</b> never enables controls, and families without a validated physical protocol are blocked before the adapter opens.</p>
     </article>
   </section>
 
@@ -162,7 +162,7 @@
     <div class="grid-2">
       <article class="panel" id="identityPanel">
         <h2>ECU identification</h2>
-        <p class="muted">Mandatory before any command. Read with service <code>1A 80</code>.</p>
+        <p class="muted">Mandatory before any command. The workstation uses the family-specific identification exchange; legacy 16M does not use KWP service <code>1A 80</code>.</p>
         <div id="identityBody" class="kv-empty">Connect and identify to populate this.</div>
         <button class="btn" id="identifyBtn" disabled>Read identification</button>
       </article>
@@ -469,7 +469,7 @@
   <section class="view hidden" id="discovery">
     <article class="panel">
       <h2>Local identifier discovery</h2>
-      <p class="muted">A read-only sweep of <code>21 &lt;rli&gt;</code> across a range. Safe on any bike — it only reads. This is how an unmapped ECU family gets characterised: sweep with the engine off, sweep again with it running, and whatever moved is a live channel.</p>
+      <p class="muted">A sweep of <code>21 &lt;rli&gt;</code> is offered only where that service and range are established as non-mutating for the selected ECU. Compare a key-on/engine-off sweep with an instructed running sweep; unknown families are never probed on a customer's motorcycle.</p>
       <div class="toolbar">
         <label class="inline">Start <input type="text" id="scanStart" value="0x30" size="5"></label>
         <label class="inline">End <input type="text" id="scanEnd" value="0x7F" size="5"></label>
@@ -489,7 +489,7 @@
 
     <article class="panel">
       <h2>CAN identifier discovery</h2>
-      <p class="muted">The CAN-era bikes wrap the same diagnostics in ISO-TP, and the request/response id pair has never been confirmed on one. Capture the bus while another tool (GuzziCanDiag) talks to the bike, then let this find the pair — read-only by construction.</p>
+      <p class="muted">CAN-era bikes use a CAN diagnostic path, but ISO-TP, CAN IDs, and the application protocol are not assumed to match K-Line. This offline analyzer can identify likely pairs in an existing capture; the workstation will not create that capture by probing an unknown ECU.</p>
       <details class="advanced">
         <summary>How to take the capture</summary>
         <ol class="muted small">
@@ -513,7 +513,7 @@
 
     <article class="panel">
       <h2>K-Line identifier discovery</h2>
-      <p class="muted">Only the 5AM has a characterised identifier table here, and it was built by tapping the wire while another tool talked to a real bike. No document publishes the tables for 15M, 15RC, 16M, 59M, 7SM or the P-series — they only exist on the wire. This does the second half of that job for any family: it reads a capture, reports every identifier that answered, and — given the CSV the other tool wrote <i>at the same time</i> — solves the scalings instead of guessing them.</p>
+      <p class="muted">The 5AM table is capture-verified; 16M now has documented legacy registers, 7SM has captured identification only, and MIU G3 has OEM identifier names without enough framing or scaling to execute them. Other families remain blocked. This offline research tool reads an existing capture, reports identifiers that answered, and — given a reference CSV recorded at the same time — tests possible scalings instead of guessing. Its output does not enable a motorcycle profile by itself.</p>
       <details class="advanced">
         <summary>How to take the capture</summary>
         <ol class="muted small">
@@ -695,13 +695,14 @@
   </section>
 </main>
 
-<div id="toast" class="toast"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<div id="modal" class="modal hidden">
-  <div class="modal-card">
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true"
+     aria-labelledby="modalTitle" aria-describedby="modalBody">
+  <div class="modal-card" tabindex="-1">
     <h2 id="modalTitle">Confirm</h2>
     <div id="modalBody"></div>
-    <div class="modal-actions">
+    <div class="modal-actions" id="modalActions">
       <button class="btn" id="modalCancel">Cancel</button>
       <button class="btn danger" id="modalConfirm">Confirm</button>
     </div>

@@ -1,11 +1,10 @@
 """Passive CAN capture analysis: find the diagnostic id pair in a log.
 
-The CAN-era Guzzi ECUs (MIU G4, Marelli 11MP) wrap KWP2000/UDS payloads in
-ISO-TP over CAN, and the request/response identifiers are the one thing this
-project has never been able to confirm without a bike (PRIOR_ART §7 item 2).
-The capture method is settled, though: passively log the bus while a
-GuzziCanDiag laptop talks to the bike, then look for the pair that behaves
-like diagnostics.
+Commercial and service material establishes that CAN-era Guzzi ECUs (MIU G4,
+Marelli 11MP) support CAN diagnosis, but not their identifiers, addressing,
+transport, or KWP/UDS application. This optional offline research tool looks
+for ISO-TP-shaped diagnostic exchanges in an existing capture; it does not
+probe a motorcycle and its output does not enable an ECU profile by itself.
 
 This module reads the three capture formats that matter and finds that pair:
 
@@ -31,17 +30,18 @@ What counts as evidence, strongest first:
 
 The result is a ranked list of candidate pairs with the evidence attached,
 so a human can check the reasoning, plus a note comparing each pair against
-the standard ISO 15765-4 pairs this workstation assumes by default.
+conventional ISO 15765-4 reference pairs. Those references are recognition
+labels, not defaults or Piaggio-family protocol claims.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
 
-#: The pairs the workstation assumes until a capture says otherwise.
+#: Conventional reference pairs for labelling an observed capture, not defaults.
 STANDARD_PAIRS = {
-    (0x7E0, 0x7E8): "the 11-bit ISO 15765-4 pair this workstation assumes",
-    (0x18DA10F1, 0x18DAF110): "the 29-bit ISO 15765-4 pair",
+    (0x7E0, 0x7E8): "the conventional 11-bit ISO 15765-4 reference pair",
+    (0x18DA10F1, 0x18DAF110): "the conventional 29-bit ISO 15765-4 reference pair",
 }
 FUNCTIONAL_ID = 0x7DF
 

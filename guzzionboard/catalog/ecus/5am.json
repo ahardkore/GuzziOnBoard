@@ -20,7 +20,9 @@
     "diagnostic_session": 129,
     "diagnostic_session_note": "Session 0x81. The 5AM rejects 0x85 with NRC 0x22 outside the programming flow.",
     "lazy_session": true,
-    "tester_present_interval": 2.0
+    "tester_present_interval": 2.0,
+    "physical_supported": true,
+    "physical_evidence_note": "Validated by the project capture and transcript evidence documented in PROTOCOL_NOTES.md."
   },
   "identification": {
     "service": 26,
@@ -211,6 +213,7 @@
   },
   "capabilities": [
     "actuators",
+    "discover",
     "dtc_clear",
     "dtc_read",
     "eeprom_read",

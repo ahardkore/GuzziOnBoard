@@ -54,6 +54,15 @@ class Connection(abc.ABC):
     def read_frame(self, timeout: float) -> bytes:
         """Read one complete frame, or return ``b""`` on timeout."""
 
+    def read_bytes(self, size: int, timeout: float) -> bytes:
+        """Read an exact-size unframed reply when a protocol requires it.
+
+        Framed transports may use the default implementation. Byte-stream
+        transports should override it so a one-byte legacy answer is not
+        mistaken for the first byte of a KWP header.
+        """
+        return self.read_frame(timeout)[:size]
+
     @abc.abstractmethod
     def close(self) -> None: ...
 

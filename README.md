@@ -1,9 +1,10 @@
 # GuzziOnBoard
 
-A safety-first diagnostic workstation for Moto Guzzi motorcycles, covering the
-Magneti Marelli ECU families fitted from the mid-1990s to the current bikes —
-plus the same Marelli ECUs as Ducati and Aprilia fitted to their bikes of the
-same era, read-only until their identifier tables are confirmed.
+A safety-first diagnostic workstation and evidence catalog for Moto Guzzi
+motorcycles from the mid-1990s to current bikes, plus related Ducati and
+Aprilia fitments. Only family-specific operations supported by recovered wire
+evidence are enabled; incomplete ECU profiles are blocked before hardware is
+opened.
 
 > **Status: working software, unproven on a motorcycle.**
 > The protocol stack, capability catalog, safety gate, memory/programming
@@ -25,10 +26,10 @@ same era, read-only until their identifier tables are confirmed.
 | Simulated ECU **speaking the real wire protocol** | Implemented; drives the whole stack |
 | Capability catalog: 11 cataloged controllers, 118 model variants across Moto Guzzi, Ducati and Aprilia, 1992–2026 — engine ECU families plus the Aprilia Mana CVT TCU | Implemented, data-driven |
 | K-Line transport (validated fast init + validated 5-baud keyword handshake, standards-safe auto fallback, echo cancelling) | Written and unit tested, **untested on hardware** |
-| CAN transport (python-can + ISO-TP) | Written, **identifiers unconfirmed** |
-| ECU identification, live data, DTC read/clear | Implemented |
+| CAN transport (python-can + ISO-TP) | Written; physical ECU profiles remain blocked because family-specific identifiers and application protocols were not recovered |
+| ECU identification, live data, DTC read/clear | Implemented and exposed only where the family catalog declares the evidence-backed capability |
 | Make / model / year vehicle selection (Moto Guzzi, Ducati, Aprilia) | Implemented; cross-brand bikes read-only by design |
-| CAN request/response identifiers configurable per session | Implemented (the pair is unconfirmed on CAN bikes) |
+| CAN request/response identifiers configurable for virtual rehearsal and capture analysis | Implemented; no generic pair is presented as a motorcycle default |
 | CAN capture analysis: find the id pair from a passive sniff (candump / SavvyCAN / CRTD) | Implemented; read-only by construction |
 | **Virtual CAN rehearsal**: the whole ISO-TP path (segmentation, flow control, reassembly) against the simulated ECU | Implemented (needs `.[hardware]` extra; the pair you set is the pair it speaks) |
 | Remembers the garage, transport, paths and XDF choices between sessions | Implemented (browser-local) |
@@ -53,7 +54,7 @@ same era, read-only until their identifier tables are confirmed.
 | Standalone browser engine simulator (`web/sim.html`) | Implemented; single self-contained page |
 | **Hosted workstation demo** — the real UI with the simulated ECU running in the browser (`web/demo-api.js` + `web/demo-lab.js`) | Implemented; every view works against the simulated bike, including memory, maps, sessions, reports, guided tests and the tools. Simulated and time-compressed processes are labelled as such. Only hardware transports (serial, CAN) are refused rather than faked |
 
-426 tests cover framing, checksums, scaling, DTC decoding, handshake negotiation, the safety gate,
+More than 440 tests cover framing, checksums, scaling, DTC decoding, handshake negotiation, the safety gate,
 image validation, XDF parsing/render/diff, the full read/backup/write/verify
 round trip, fault injection, session comparison, the packaging entry point,
 the reference-tool inclusions (log conversion, bench signal, driver bundle,
@@ -157,20 +158,21 @@ workstation will let you do:
 
 | Family | Years | Bus | Confidence | Representative models |
 |---|---|---|---|---|
-| IAW P8 | 1993–1997 | K-Line | inferred | Daytona 1000, Quota 1000, California III i.e. |
-| IAW 16M | 1996–2001 | K-Line | documented | Sport 1100, V10 Centauro, Daytona RS |
-| IAW 15M | 1997–2002 | K-Line | documented | California EV/Jackal/Stone, Quota 1100 ES, V11 Sport |
-| IAW 15RC | 2002–2012 | K-Line | documented | V7 Classic, Nevada 750, Breva 750, California Vintage, Bellagio |
+| IAW P8 | 1993–1997 | K-Line | inferred / blocked | Daytona 1000, Quota 1000, California III i.e. |
+| IAW 16M | 1996–2001 | legacy K-Line | documented / read-only | Sport 1100, V10 Centauro, Daytona RS |
+| IAW 15M | 1997–2002 | K-Line | inferred / blocked | California EV/Jackal/Stone, Quota 1100 ES, V11 Sport |
+| IAW 15RC | 2002–2012 | K-Line | inferred / blocked | V7 Classic, Nevada 750, Breva 750, California Vintage, Bellagio |
 | **IAW 5AM / 5AM2** | 2005–2016 | K-Line | **verified-capture** | All CARC: Griso, Norge, Breva 850–1200, Stelvio, 1200 Sport |
-| IAW 7SM | 2013–2021 | K-Line | documented | California 1400, Audace, Eldorado, MGX-21, early V85 TT |
-| MIU G3 | 2012–2016 | K-Line | documented | V7 (single throttle body), V7 II, V9 |
-| MIU G4 | 2017–2021 | CAN | inferred | V7 III, V7 850 |
-| Marelli 11MP | 2019–2026 | CAN | inferred | Later V85 TT, V100 Mandello |
-| Aprilia Mana CVT TCU | 2007–2016 | K-Line | unknown | Transmission controller; identification + discovery only — flashing stays with ManaTCU; the Mana's engine side is the 5AM above |
+| IAW 7SM | 2013–2021 | K-Line | inferred / identification only | California 1400, Audace, Eldorado, MGX-21, early V85 TT |
+| MIU G3 | 2012–2016 | K-Line | inferred / blocked | V7 (single throttle body), V7 II, V9 |
+| MIU G4 | 2017–2021 | CAN | unknown / blocked | V7 III, V7 850 |
+| Marelli 11MP | 2019–2026 | CAN | unknown / blocked | Later V85 TT, V100 Mandello |
+| Aprilia Mana CVT TCU | 2007–2016 | K-Line | inferred / blocked | Exact captured routine bytes are documented but not executable; the engine side is 5AM |
 
-**Confidence is enforced, not decorative.** Anything below `documented`
-degrades to identification, fault codes and the read-only discovery sweep —
-the workstation will not command an ECU it does not genuinely understand.
+**Confidence is enforced, not decorative.** A capability is available only
+when its family-specific wire definition supports it. Incomplete physical
+protocols fail before the adapter port opens; a generic K-Line, KWP, CAN, or
+ISO-TP resemblance is not enough.
 
 ### The same ECUs in other makes — Ducati and Aprilia
 
@@ -183,25 +185,26 @@ the shared families, with one deliberate limit:
 | Ducati | P8, 15M, 16M, 59M, 5AM | 748, 916, 996, 999, 749, Monster 620–1000, Multistrada, 848/1098/1198, ST2/ST3/ST4 |
 | Aprilia | 16M, 5AM, 7SM | RSV Mille, Tuono 1000, Falco, Caponord, Futura, Mana 850, RSV4 Factory |
 
-Every cross-brand entry ships as `inferred`: the model→ECU mapping is
-documented (GuzziTek master list, Ducati.ms ECU list, TuneECU), but this
-project's identifier tables were all captured in a Moto Guzzi context — so the
-workstation selects the stricter confidence level and keeps those bikes at
-identification, fault codes and the read-only discovery sweep until someone
-records a session on the real machine. One capture promotes the whole family.
-The Ducati-only IAW 59M (999/749 and the injected air-cooled Monsters) is
-modelled as its own family at `unknown` for the same reason.
+Every cross-brand entry ships as `inferred`: a documented model→ECU mapping
+does not prove that another make uses the same diagnostic identifiers or
+controls. The stricter vehicle/family boundary applies automatically. The
+workstation does not ask an owner to validate those assumptions on a customer
+motorcycle.
 
-The IAW 5AM is the fully mapped family: 41 live identifiers with scalings
-decoded from a real bus capture, 17 actuators, TPS reset and self-adaptation
-reset. For the others, see "Contributing a capture" below.
+The IAW 5AM is the fully mapped family. Legacy 16M now has evidence-bounded
+read-only identification, live registers, and raw fault flags. 7SM exposes only
+the identification exchange established by its published session log. The
+remaining families stay unavailable where the deep evidence search did not
+recover a complete transport and application definition; see
+[`docs/PROTOCOL_NOTES.md`](docs/PROTOCOL_NOTES.md).
 
 ## Safety model
 
 Three independent layers, in order:
 
 1. **Capability + confidence.** A family must declare the capability *and*
-   carry a trustworthy definition. `inferred` families are read-only, full stop.
+   carry a trustworthy definition. An incomplete physical protocol is blocked
+   before opening the adapter; inferred control operations are unavailable.
 2. **The safety gate** (`guzzionboard/safety.py`). Every control action is
    evaluated against named preconditions — ECU identified, engine state
    *observed* (not assumed), battery voltage within range, checklist accepted
@@ -213,6 +216,11 @@ Three independent layers, in order:
 
 Additional properties:
 
+- **The UI guides physical state changes.** Modal, keyboard-accessible steps
+  tell the operator when to stop the engine with the kill switch, leave the key
+  on, start and idle the motorcycle, end the diagnostic session, turn the key
+  off, and connect stable power. The gate then re-reads RPM/battery where the
+  family supports those channels; clicking a prompt never bypasses a check.
 - **Actuator outputs are owned by this software.** IAW ECUs have no output
   timer: once energised, an output stays on until something turns it off. Every
   pulse has a catalog-clamped deadline, and outputs are released on expiry, on
@@ -265,21 +273,15 @@ simulator has actually demonstrated — the whole flash cycle, including
 read-back verification — and is shown as such; hardware sessions still read
 the same red capability check the catalogue declares.
 
-## Contributing a capture
+## Protocol evidence policy
 
-The bottleneck is wire-level data, not code. Every family except the 5AM needs
-its local identifiers characterised, and the workstation has a tool for exactly
-this:
-
-1. Connect read-only, go to **Discovery**, sweep `0x30`–`0x7F` with the engine
-   off, and press **Keep as baseline**.
-2. Start the engine, sweep again. Identifiers that moved are live channels;
-   ones that did not are usually shared zero slots.
-3. **Export JSON** and open an issue with it, plus the ECU label from your bike.
-
-That turns directly into a catalog entry under
-`guzzionboard/catalog/ecus/`. Adding a motorcycle is a data change, not a code
-change.
+Protocol confirmation is a project responsibility, not a setup step delegated
+to a customer. Discovery is exposed only on a family where the request service
+and scanned range are already established as non-mutating. Unknown ECUs are not
+probed. New support requires a primary definition, licensed open-source
+implementation, OEM technical document, or existing raw capture that fixes the
+transport, payload, response layout, and relevant safety conditions before the
+capability is enabled.
 
 ## Documentation
 

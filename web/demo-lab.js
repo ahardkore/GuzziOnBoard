@@ -3517,9 +3517,10 @@
     0x83: 'access timing parameter', 0x84: 'secured data transmission',
     0x85: 'control DTC setting', 0x86: 'response on event', 0x87: 'link control',
   };
+  // Recognition labels for observed logs, never motorcycle defaults.
   var STANDARD_PAIRS = {
-    '7E0:7E8': 'the 11-bit ISO 15765-4 pair this workstation assumes',
-    '18DA10F1:18DAF110': 'the 29-bit ISO 15765-4 pair',
+    '7E0:7E8': 'the conventional 11-bit ISO 15765-4 reference pair',
+    '18DA10F1:18DAF110': 'the conventional 29-bit ISO 15765-4 reference pair',
   };
   var FUNCTIONAL_ID = 0x7DF;
 

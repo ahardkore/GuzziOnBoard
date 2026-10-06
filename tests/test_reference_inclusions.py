@@ -26,17 +26,18 @@ def catalog():
 # ------------------------------------------------------------- Mana TCU
 
 
-def test_mana_tcu_is_cataloged_but_observation_only(catalog):
+def test_mana_tcu_records_capture_without_exposing_operations(catalog):
     profile = catalog.ecu("mana_tcu")
-    assert profile.confidence == "unknown"
-    # observed capabilities only: identify, dtc_read, discovery sweep —
-    # nothing state-changing on a controller nobody has captured here
-    assert set(profile.capabilities) <= {"identify", "dtc_read", "discover"}
+    assert profile.confidence == "inferred"
+    assert profile.kline["ecu_address"] == 0xEC
+    assert profile.kline["tester_address"] == 0xF1
+    # Exact routine payloads are provenance, not permission: the required
+    # security/session and motorcycle conditions are incomplete.
+    assert profile.capabilities == ()
     assert not profile.memory.get("read_supported")
     assert not profile.memory.get("write_supported")
-    assert not profile.actuators
-    # the evidence for its existence is the mirrored reference tool
-    assert "ManaTCU" in profile.notes
+    assert not profile.actuators and not profile.routines
+    assert "30 02 08" in profile.notes and "30 01 08" in profile.notes
 
 
 def test_mana_850_vehicle_points_at_engine_and_tcu(catalog):

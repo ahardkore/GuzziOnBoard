@@ -1,12 +1,10 @@
-"""CAN transport for the newer Moto Guzzi ECUs (MIU G4, Marelli 11MP).
+"""Generic ISO-TP transport over CAN.
 
-Diagnostics on these bikes run KWP2000/UDS payloads inside ISO-TP over CAN, so
-the application layer above is unchanged - only the framing differs. The
-``python-can`` import is lazy so the rest of the toolchain works without it.
-
-Request/response identifiers default to the ISO 15765-4 11-bit physical pair
-(0x7E0 / 0x7E8). Per-vehicle overrides live in the capability catalog, because
-Piaggio-group bikes do not always sit on the standard pair.
+ISO-TP segmentation does not establish any motorcycle's CAN identifiers,
+bitrate, addressing mode, or diagnostic application. Callers must supply those
+values from an evidence-backed family profile; this module deliberately has no
+physical-hardware defaults. The ``python-can`` import is lazy so the rest of
+the toolchain works without it.
 """
 from __future__ import annotations
 
@@ -33,8 +31,8 @@ class CanConnection(Connection):
     """ISO-TP framed view of a CAN bus."""
 
     bus: object                  # can.BusABC
-    tx_id: int = 0x7E0
-    rx_id: int = 0x7E8
+    tx_id: int
+    rx_id: int
     dlc: int = 8
     padding: int = 0xAA
     st_min: float = 0.001
@@ -110,13 +108,23 @@ class CanTransport(Transport):
 
     channel: str = "can0"
     interface: str = "socketcan"
-    bitrate: int = 500000
-    tx_id: int = 0x7E0
-    rx_id: int = 0x7E8
+    bitrate: int | None = None
+    tx_id: int | None = None
+    rx_id: int | None = None
     name: str = field(default="can", init=False)
     is_physical: bool = field(default=True, init=False)
 
     def open(self) -> CanConnection:
+        missing = [
+            name for name, value in (
+                ("bitrate", self.bitrate), ("tx_id", self.tx_id), ("rx_id", self.rx_id)
+            ) if value is None
+        ]
+        if missing:
+            raise TransportUnavailable(
+                "CAN hardware needs evidence-backed " + ", ".join(missing)
+                + "; generic defaults are not used"
+            )
         can = _require_can()
         try:
             bus = can.interface.Bus(
@@ -126,10 +134,15 @@ class CanTransport(Transport):
             raise TransportError(
                 f"cannot open CAN {self.interface}:{self.channel}: {exc}"
             ) from exc
-        return CanConnection(bus=bus, tx_id=self.tx_id, rx_id=self.rx_id)
+        # Values were validated above; keep the connection type strictly int.
+        return CanConnection(
+            bus=bus, tx_id=int(self.tx_id), rx_id=int(self.rx_id)
+        )
 
     def initialize(self, connection: CanConnection, **_) -> InitResult:
         """CAN needs no K-Line wake-up; ISO-TP is ready once the bus is open."""
+        if self.bitrate is None or self.tx_id is None or self.rx_id is None:
+            raise TransportUnavailable("CAN hardware profile is incomplete")
         return InitResult(
             ok=True,
             method="can",

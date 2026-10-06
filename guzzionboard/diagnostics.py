@@ -14,6 +14,7 @@ import time
 from dataclasses import dataclass, field
 
 from .catalog import Catalog, EcuProfile, Parameter, load_catalog
+from .protocol.legacy_iaw import LegacyIAWSession
 from .protocol.kwp2000 import (
     KWP2000Session,
     NegativeResponse,
@@ -25,7 +26,13 @@ from .protocol.kwp2000 import (
 )
 from .safety import Decision, Risk, SafetyGate, SafetyViolation
 from .sessionlog import NullSessionLog, SessionLog
-from .transports.base import Connection, InitResult, Transport, TransportError
+from .transports.base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportError,
+    TransportUnavailable,
+)
 
 
 @dataclass
@@ -87,7 +94,7 @@ class DiagnosticsService:
         self.catalog = catalog or load_catalog()
 
         self.connection: Connection | None = None
-        self.session: KWP2000Session | None = None
+        self.session: KWP2000Session | LegacyIAWSession | None = None
         self.init_result: InitResult | None = None
         self.identity: Identity | None = None
         self.last_samples: dict[str, Sample] = {}
@@ -110,6 +117,20 @@ class DiagnosticsService:
             if self.connected:
                 return self.init_result  # type: ignore[return-value]
 
+            if (
+                self.transport.is_physical
+                and self.profile.session.get("physical_supported") is False
+            ):
+                reason = self.profile.session.get(
+                    "physical_blocked_reason",
+                    "the physical diagnostic protocol is not validated",
+                )
+                raise TransportUnavailable(
+                    f"{self.profile.family}: {reason} "
+                    "The safety boundary stopped here: no port was opened and no "
+                    "request was sent."
+                )
+
             self.connection = self.transport.open()
             method = init_method or self.profile.kline.get("init", "fast")
             self.init_result = self.transport.initialize(
@@ -121,6 +142,8 @@ class DiagnosticsService:
                 ),
                 tester_address=self.profile.kline.get("tester_address", 0xF1),
                 fast_functional=self.profile.kline.get("fast_functional", True),
+                legacy_wakeup_timeout=self.profile.kline.get("wakeup_timeout", 8.0),
+                legacy_comm_baud=self.profile.kline.get("comm_baud", 7680),
             )
             # Fast K-Line initialisation occurs before KWP2000Session exists.
             # Preserve those raw bytes in the same provenance log as every
@@ -147,35 +170,60 @@ class DiagnosticsService:
                 self.connection = None
                 raise TransportError(f"ECU wake-up failed: {self.init_result.detail}")
 
-            timing = TimingParameters(
-                tester_present_interval=self.profile.session.get(
-                    "tester_present_interval", 2.0
+            # ISO-TP is only the CAN transport layer. The shipped CAN-family
+            # catalogs still lack validated Piaggio CAN IDs and an exact UDS
+            # or KWP-on-CAN application definition. Reusing K-Line frames
+            # inside ISO-TP would look plausible in a simulator but is not a
+            # real protocol, so physical CAN remains explicitly unavailable.
+            if self.init_result.protocol == "isotp" and self.transport.is_physical:
+                self.connection.close()
+                self.connection = None
+                raise TransportUnavailable(
+                    f"{self.profile.family}: CAN transport is available, but its "
+                    "diagnostic application protocol and CAN identifiers are not "
+                    "validated; no request was sent"
                 )
-            )
-            self.session = KWP2000Session(
-                connection=self.connection,
-                timing=timing,
-                target=self.profile.kline.get("ecu_address", 0x10),
-                source=self.profile.kline.get("tester_address", 0xF1),
-                addressed=self.profile.kline.get("addressed", True),
-                on_frame=self.log.frame,
-                write_guard=self.gate.session_guard(),
-            )
 
-            # A physical fast-init transport has already sent and validated
-            # StartCommunication.  Sending 0x81 again here was a real-hardware
-            # double-handshake bug.  The simulator deliberately leaves that
-            # exchange to the protocol session so its framing is still tested.
-            if (
-                self.init_result.protocol == "iso14230"
-                and not self.init_result.handshake_complete
-            ):
-                self.session.start_communication()
-            if self.profile.session.get("access_timing"):
-                self.session.access_timing_parameters()
+            if self.init_result.protocol == "legacy-iaw":
+                self.session = LegacyIAWSession(
+                    connection=self.connection,
+                    timeout=float(self.profile.session.get("response_timeout", 0.5)),
+                    inter_request_delay=float(
+                        self.profile.session.get("inter_request_delay", 0.005)
+                    ),
+                    on_frame=self.log.frame,
+                )
+            else:
+                timing = TimingParameters(
+                    tester_present_interval=self.profile.session.get(
+                        "tester_present_interval", 2.0
+                    )
+                )
+                self.session = KWP2000Session(
+                    connection=self.connection,
+                    timing=timing,
+                    target=self.profile.kline.get("ecu_address", 0x10),
+                    source=self.profile.kline.get("tester_address", 0xF1),
+                    addressed=self.profile.kline.get("addressed", True),
+                    on_frame=self.log.frame,
+                    write_guard=self.gate.session_guard(),
+                )
+
+                # A physical fast-init transport has already sent and validated
+                # StartCommunication. Sending 0x81 again here was a real-hardware
+                # double-handshake bug. The simulator deliberately leaves that
+                # exchange to the protocol session so its framing is still tested.
+                if (
+                    self.init_result.protocol == "iso14230"
+                    and not self.init_result.handshake_complete
+                ):
+                    self.session.start_communication()
+                if self.profile.session.get("access_timing"):
+                    self.session.access_timing_parameters()
 
             self._touch()
-            self._start_keepalive()
+            if isinstance(self.session, KWP2000Session):
+                self._start_keepalive()
             return self.init_result
 
     def disconnect(self) -> None:
@@ -187,8 +235,11 @@ class DiagnosticsService:
             if self.session is not None:
                 self.release_all_outputs()
                 try:
-                    self.session.stop_diagnostic_session()
-                    self.session.stop_communication()
+                    if isinstance(self.session, KWP2000Session):
+                        self.session.stop_diagnostic_session()
+                        self.session.stop_communication()
+                    else:
+                        self.session.close()
                 except Exception:
                     pass
             if self.connection is not None:
@@ -198,10 +249,22 @@ class DiagnosticsService:
             self.connection = None
             self.identity = None
 
-    def _require(self) -> KWP2000Session:
+    def _require(self) -> KWP2000Session | LegacyIAWSession:
         if self.session is None:
             raise NotConnected("not connected to an ECU")
         return self.session
+
+    def _require_kwp(self) -> KWP2000Session:
+        session = self._require()
+        if not isinstance(session, KWP2000Session):
+            raise ProtocolError("this operation requires a KWP2000 session")
+        return session
+
+    def _require_legacy(self) -> LegacyIAWSession:
+        session = self._require()
+        if not isinstance(session, LegacyIAWSession):
+            raise ProtocolError("this operation requires a legacy IAW session")
+        return session
 
     def _touch(self) -> None:
         self._last_tx = time.monotonic()
@@ -233,19 +296,50 @@ class DiagnosticsService:
     # -- identification ---------------------------------------------------
     def identify(self) -> Identity:
         with self._lock:
+            if "identify" not in self.profile.capabilities:
+                raise ProtocolError(
+                    f"{self.profile.family}: identification request is not validated"
+                )
             session = self._require()
             spec = self.profile.identification
-            raw = session.read_ecu_identification(spec.get("option", 0x80))
+            fields = {}
+
+            if isinstance(session, LegacyIAWSession):
+                chunks = []
+                wake = self.init_result.response if self.init_result else b""
+                if wake and spec.get("include_wakeup", True):
+                    fields[spec.get("wakeup_name", "ISO key-on code")] = wake.hex(
+                        " "
+                    ).upper()
+                    chunks.append(wake)
+                for block in spec.get("blocks", []):
+                    chunk = session.query_many(block.get("requests", []))
+                    chunks.append(chunk)
+                    if block.get("encoding", "ascii") == "hex":
+                        value = chunk.hex(" ").upper()
+                    else:
+                        value = (
+                            chunk.decode("ascii", "replace")
+                            .strip()
+                            .strip("\x00")
+                            .strip()
+                        )
+                    fields[block["name"]] = value
+                raw = b"".join(chunks)
+            else:
+                raw = session.read_ecu_identification(spec.get("option", 0x80))
+                for field_spec in spec.get("fields", []):
+                    chunk = raw[
+                        field_spec["offset"] : field_spec["offset"] + field_spec["length"]
+                    ]
+                    fields[field_spec["name"]] = (
+                        chunk.decode("ascii", "replace")
+                        .strip()
+                        .strip("\x00")
+                        .strip()
+                    )
             self._touch()
 
-            fields = {}
-            for field_spec in spec.get("fields", []):
-                chunk = raw[
-                    field_spec["offset"] : field_spec["offset"] + field_spec["length"]
-                ]
-                fields[field_spec["name"]] = (
-                    chunk.decode("ascii", "replace").strip().strip("\x00").strip()
-                )
             self.identity = Identity(
                 fields=fields, raw=raw, ecu_id=self.profile.id, family=self.profile.family
             )
@@ -258,7 +352,10 @@ class DiagnosticsService:
     def read_parameter(self, param: Parameter) -> Sample:
         session = self._require()
         try:
-            raw = session.read_data_by_local_id(param.local_id)
+            if isinstance(session, LegacyIAWSession):
+                raw = session.query_many(param.request_ids or (param.local_id,))
+            else:
+                raw = session.read_data_by_local_id(param.local_id)
             self._touch()
         except (NegativeResponse, ProtocolError) as exc:
             sample = Sample(
@@ -300,6 +397,10 @@ class DiagnosticsService:
 
     def read_parameters(self, keys: list[str] | None = None) -> list[Sample]:
         with self._lock:
+            if "live" not in self.profile.capabilities:
+                raise ProtocolError(
+                    f"{self.profile.family}: live-data requests are not validated"
+                )
             if keys is None:
                 params = self.profile.default_parameters or self.profile.live_parameters
             else:
@@ -327,7 +428,28 @@ class DiagnosticsService:
         labelled as exactly that.
         """
         with self._lock:
+            if "dtc_read" not in self.profile.capabilities:
+                raise ProtocolError(
+                    f"{self.profile.family}: fault-memory request is not validated"
+                )
             session = self._require()
+            if isinstance(session, LegacyIAWSession):
+                result = self._read_legacy_fault_registers(session)
+                self._touch()
+                context = self._read_context()
+                result["context"] = context
+                self.log.action(
+                    "read_dtcs",
+                    {
+                        "count": len(result["dtcs"]),
+                        "format": result["format"],
+                        "dtcs": result["dtcs"],
+                        "registers": result["registers"],
+                        "context": context,
+                    },
+                )
+                return result
+
             dtcs = session.read_dtcs(self.profile.dtc_descriptions)
             self._touch()
             payload = [d.as_dict() for d in dtcs]
@@ -338,8 +460,57 @@ class DiagnosticsService:
             )
             return {"dtcs": payload, "context": context}
 
+    def _read_legacy_fault_registers(self, session: LegacyIAWSession) -> dict:
+        """Return legacy fault flags without fabricating SAE/ISO DTCs.
+
+        These ECUs expose bitfields rather than KWP DTC records. Until a
+        family-specific bit map is supported by Moto Guzzi evidence, every set
+        bit is labelled only by its request byte and bit number.
+        """
+        requests = self.profile.session.get("fault_registers", [])
+        registers = []
+        flags = []
+        for request in requests:
+            identifier = int(request)
+            value = session.query(identifier)
+            set_bits = [bit for bit in range(8) if value & (1 << bit)]
+            registers.append(
+                {
+                    "request": identifier,
+                    "hex_request": f"0x{identifier:02X}",
+                    "value": value,
+                    "hex_value": f"0x{value:02X}",
+                    "set_bits": set_bits,
+                }
+            )
+            for bit in set_bits:
+                flags.append(
+                    {
+                        "code": f"REG-{identifier:02X}-BIT-{bit}",
+                        "description": (
+                            "Uninterpreted legacy fault flag; no validated "
+                            "Moto Guzzi bit description is available"
+                        ),
+                        "status_byte": value,
+                        "kind": "legacy-raw-bit",
+                        "status": "raw flag",
+                        "warning_indicator": False,
+                    }
+                )
+        return {
+            "format": "legacy-fault-bitfields",
+            "dtcs": flags,
+            "registers": registers,
+            "note": (
+                "Raw legacy fault registers. These are not SAE/ISO DTCs; "
+                "register and bit positions are shown without guessed meanings."
+            ),
+        }
+
     def _read_context(self, limit: int = 8) -> dict[str, dict]:
         """A handful of default channels, best effort, honestly labelled."""
+        if "live" not in self.profile.capabilities:
+            return {}
         out: dict[str, dict] = {}
         for param in self.profile.default_parameters[:limit]:
             try:
@@ -360,7 +531,7 @@ class DiagnosticsService:
 
     def clear_dtcs(self, token: str) -> dict:
         with self._lock:
-            session = self._require()
+            session = self._require_kwp()
             self.gate.consume(token, "clear-dtcs")
             session.write_guard = self.gate.session_guard(
                 {Service.CLEAR_DIAGNOSTIC_INFORMATION}
@@ -392,7 +563,7 @@ class DiagnosticsService:
         browser tab cannot leave a fuel pump running.
         """
         with self._lock:
-            session = self._require()
+            session = self._require_kwp()
             actuator = self.profile.actuator(key)
             self.gate.consume(token, f"actuator:{key}")
 
@@ -457,7 +628,7 @@ class DiagnosticsService:
 
     def run_routine(self, key: str, token: str) -> dict:
         with self._lock:
-            session = self._require()
+            session = self._require_kwp()
             routine = self.profile.routine(key)
             self.gate.consume(token, f"routine:{key}")
 
@@ -499,11 +670,16 @@ class DiagnosticsService:
     ) -> dict:
         """Read-only sweep of ``21 <rli>`` across a range.
 
-        This is how an unmapped ECU family gets characterised: the sweep is
-        pure reads, so it is safe on any bike, and the output is a contribution
-        ready to be turned into a catalog definition.
+        This is available only where a family definition establishes that
+        service 0x21 is a non-mutating read.  Unknown transports are not probed
+        on a customer's motorcycle merely because the intended operation is a
+        read.
         """
         with self._lock:
+            if "discover" not in self.profile.capabilities:
+                raise ProtocolError(
+                    f"{self.profile.family}: identifier discovery is not validated"
+                )
             session = self._require()
             found: dict[int, dict] = {}
             for local_id in range(start, end + 1):
@@ -576,7 +752,7 @@ class DiagnosticsService:
     ) -> bytes:
         """Read an ECU image. Read-only, but slow (tens of minutes on a 5AM)."""
         with self._lock:
-            session = self._require()
+            session = self._require_kwp()
             if not self.profile.memory.get("read_supported"):
                 raise SafetyViolation(
                     self.gate.evaluate(

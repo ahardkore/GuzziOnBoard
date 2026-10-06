@@ -17,10 +17,17 @@ Initialisation
           IAW ECUs), then complete the 0x55/KW1/KW2/complement handshake.
 ``auto``  try fast first; after failure wait long enough for a slow-init ECU
           to abandon the partial address it may have seen, then try slow.
+``legacy-iaw-16m``  receive the ECU's 1200-baud key-on code, send ``0F AA CC``,
+          then switch to the legacy one-byte protocol at 7680 baud.
+``legacy-iaw-direct``  switch directly to 7680-baud one-byte diagnostics as
+          documented by the automotive IAW-04K source; the Moto Guzzi P8
+          profile remains physically blocked because that application was not
+          established for it.
 
-The application above this transport speaks KWP2000. A slow-init response with
-ISO 9141-2 keywords is identified and reported, but deliberately not accepted
-as a KWP link: ISO 9141 uses a different header and application service set.
+The application above this transport selects KWP2000 or the legacy Marelli
+one-byte message layer from the validated initialization result. A slow-init
+response with ISO 9141-2 keywords is identified and reported, but deliberately
+not accepted as a KWP link: ISO 9141 uses a different header and service set.
 
 ``pyserial`` is imported lazily so the simulator and the test-suite keep
 working on a machine with no drivers installed.
@@ -48,6 +55,18 @@ FAST_RESPONSE_TIMEOUT_S = 1.000
 SLOW_BIT_S = 0.200
 SLOW_SYNC_TIMEOUT_S = 0.600
 W4_REPLY_S = 0.030
+
+# Marelli IAW 16F/1.6M passive diagnostic initialisation. The ECU emits its
+# six-byte ISO code at 1200 baud after key-on. The tester waits at least
+# 500 ms, sends 0F AA CC about 110 ms apart, then changes to the diagnostic
+# rate. 7812.5 is nominal; 7680 is the field-tested conventional UART setting.
+LEGACY_INIT_BAUD = 1200
+LEGACY_COMM_BAUD = 7680
+LEGACY_ISO_LENGTH = 6
+LEGACY_AFTER_ISO_S = 0.500
+LEGACY_INIT_GAP_S = 0.110
+LEGACY_WAKE_TIMEOUT_S = 8.0
+
 # If fast init wakes a 5-baud-only ECU, it can spend two seconds trying to
 # parse the pulse as an address, then W1 + W5.  Starting slow init after only
 # 300 ms (the old behaviour) can therefore fail forever.
@@ -131,6 +150,18 @@ class KLineConnection(Connection):
             return bytes(buffer[:needed])
         return bytes(buffer) if buffer else b""
 
+    def read_bytes(self, size: int, timeout: float) -> bytes:
+        """Read raw bytes without applying KWP's frame-length rules."""
+        deadline = time.monotonic() + timeout
+        buffer = bytearray()
+        while len(buffer) < size and time.monotonic() < deadline:
+            chunk = self.port.read(size - len(buffer))
+            if chunk:
+                buffer += chunk
+            else:
+                time.sleep(0.002)
+        return bytes(buffer)
+
     def close(self) -> None:
         try:
             self.port.close()
@@ -182,6 +213,8 @@ class KLineTransport(Transport):
         fast_target: int | None = None,
         tester_address: int = 0xF1,
         fast_functional: bool = True,
+        legacy_wakeup_timeout: float = LEGACY_WAKE_TIMEOUT_S,
+        legacy_comm_baud: int = LEGACY_COMM_BAUD,
         **_,
     ) -> InitResult:
         """Run one of the standard K-Line handshakes.
@@ -194,11 +227,25 @@ class KLineTransport(Transport):
             "slow": "slow", "5baud": "slow", "5-baud": "slow",
             "kwp-slow": "slow", "iso14230-slow": "slow",
             "auto": "auto",
+            "legacy-iaw-16m": "legacy-iaw-16m",
+            "legacy-16m": "legacy-iaw-16m",
+            "legacy-iaw-direct": "legacy-iaw-direct",
         }
         selected = aliases.get(str(method).strip().lower())
         if selected is None:
             raise ValueError(
-                f"unknown init method {method!r}; use auto, fast or slow"
+                f"unknown init method {method!r}; use auto, fast, slow, "
+                "legacy-iaw-16m or legacy-iaw-direct"
+            )
+        if selected == "legacy-iaw-16m":
+            return self._legacy_iaw_16m_init(
+                connection,
+                wakeup_timeout=float(legacy_wakeup_timeout),
+                comm_baud=int(legacy_comm_baud),
+            )
+        if selected == "legacy-iaw-direct":
+            return self._legacy_iaw_direct_init(
+                connection, comm_baud=int(legacy_comm_baud)
             )
         for value, label in ((address, "5-baud address"),
                              (fast_target if fast_target is not None else address,
@@ -235,6 +282,93 @@ class KLineTransport(Transport):
         attempts.append(f"slow: {result.detail}")
         result.attempts = attempts
         return result
+
+    def _legacy_iaw_16m_init(
+        self,
+        connection: KLineConnection,
+        *,
+        wakeup_timeout: float = LEGACY_WAKE_TIMEOUT_S,
+        comm_baud: int = LEGACY_COMM_BAUD,
+    ) -> InitResult:
+        """Enter IAW-16F/1.6M passive diagnostics without inventing KWP."""
+        if wakeup_timeout <= 0:
+            raise ValueError("legacy wake-up timeout must be positive")
+        if comm_baud <= 0:
+            raise ValueError("legacy communication baud must be positive")
+
+        port = connection.port
+        port.break_condition = False
+        port.baudrate = LEGACY_INIT_BAUD
+
+        # Do not reset the input buffer here: the ECU emits the ISO code on
+        # key-on and it may already be waiting when initialize() starts.
+        wake = connection.read_bytes(LEGACY_ISO_LENGTH, wakeup_timeout)
+        if len(wake) != LEGACY_ISO_LENGTH:
+            return InitResult(
+                ok=False,
+                method="legacy-iaw-16m",
+                baud=LEGACY_INIT_BAUD,
+                protocol="legacy-iaw",
+                detail=(
+                    "expected the six-byte 1200-baud ECU key-on code; cycle "
+                    f"the ignition after connecting (got {wake.hex(' ') or 'nothing'})"
+                ),
+                response=wake,
+            )
+        if wake[0] != 0x55:
+            return InitResult(
+                ok=False,
+                method="legacy-iaw-16m",
+                baud=LEGACY_INIT_BAUD,
+                protocol="legacy-iaw",
+                detail=f"legacy key-on code has no 0x55 sync: {wake.hex(' ')}",
+                response=wake,
+            )
+
+        time.sleep(LEGACY_AFTER_ISO_S)
+        init_request = bytes.fromhex("0F AA CC")
+        for index, byte in enumerate(init_request):
+            connection.write(bytes([byte]))
+            if index + 1 < len(init_request):
+                time.sleep(LEGACY_INIT_GAP_S)
+
+        # The ECU does not acknowledge the sequence. Leave enough time for
+        # the mode change, discard any adapter residue, then change UART rate.
+        time.sleep(0.150)
+        port.reset_input_buffer()
+        port.baudrate = comm_baud
+        return InitResult(
+            ok=True,
+            method="legacy-iaw-16m",
+            baud=comm_baud,
+            protocol="legacy-iaw",
+            handshake_complete=True,
+            request=init_request,
+            response=wake,
+            detail=(
+                f"received key-on code {wake.hex(' ')}; sent 0F AA CC at "
+                f"1200 baud and switched to {comm_baud} baud"
+            ),
+        )
+
+    def _legacy_iaw_direct_init(
+        self, connection: KLineConnection, *, comm_baud: int = LEGACY_COMM_BAUD
+    ) -> InitResult:
+        """Select direct one-byte diagnostics used by documented IAW-04K/P8."""
+        if comm_baud <= 0:
+            raise ValueError("legacy communication baud must be positive")
+        port = connection.port
+        port.break_condition = False
+        port.reset_input_buffer()
+        port.baudrate = comm_baud
+        return InitResult(
+            ok=True,
+            method="legacy-iaw-direct",
+            baud=comm_baud,
+            protocol="legacy-iaw",
+            handshake_complete=True,
+            detail=f"selected direct legacy one-byte diagnostics at {comm_baud} baud",
+        )
 
     @staticmethod
     def _request_start_communication(target: int, source: int, functional: bool) -> bytes:

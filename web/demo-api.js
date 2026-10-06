@@ -610,8 +610,8 @@
         + ": this vehicle mapping is '" + entry.confidence + "' while the "
         + profile.family + " definition is '" + base.confidence + "'. The stricter "
         + 'level applies - the identifier tables below were captured on another '
-        + 'make and are unverified here, so control actions stay disabled. A '
-        + 'single recorded session on this bike promotes the whole family.';
+        + 'make and are unverified here, so control actions stay disabled. The '
+        + 'workstation does not ask the owner to validate cross-brand assumptions.';
     }
     profile.effective_capabilities = profile.capabilities.filter(function (c) {
       return supports(profile, c);
@@ -690,6 +690,17 @@
   function requireService() {
     if (!WS.connected || !WS.ecu) throw httpError(409, 'connect to an ECU first', 'not_connected');
     return WS.ecu;
+  }
+
+  function requireCapability(capability, label) {
+    var profile = WS.sessionProfile;
+    if (!profile || profile.capabilities.indexOf(capability) === -1) {
+      throw httpError(
+        400,
+        (profile ? profile.family : 'This ECU') + ': ' + label + ' is not validated',
+        'protocol_error'
+      );
+    }
   }
 
   function bump(kind) { WS.counts[kind] = (WS.counts[kind] || 0) + 1; }
@@ -1098,6 +1109,7 @@
 
   GET['/api/identify'] = function () {
     var ecu = requireService();
+    requireCapability('identify', 'identification request');
     WS.identity = ecu.identity();
     WS.gate.state.identified = true;
     WS.gate.state.ecu_confidence = WS.sessionProfile.confidence;
@@ -1126,6 +1138,7 @@
 
   GET['/api/live'] = function (q) {
     requireService();
+    requireCapability('live', 'live-data requests');
     var keys = (q.get('keys') || '').split(',').filter(Boolean);
     if (!keys.length) keys = defaultParameterKeys(WS.sessionProfile);
     var samples = keys.map(function (k) { return readParameter(k); });
@@ -1146,9 +1159,12 @@
 
   GET['/api/dtcs'] = function () {
     var ecu = requireService();
+    requireCapability('dtc_read', 'fault-memory request');
     var dtcs = ecu.readDtcs();
     var context = {};
-    defaultParameterKeys(WS.sessionProfile).slice(0, 8).forEach(function (key) {
+    var contextKeys = WS.sessionProfile.capabilities.indexOf('live') !== -1
+      ? defaultParameterKeys(WS.sessionProfile).slice(0, 8) : [];
+    contextKeys.forEach(function (key) {
       try {
         var s = readParameter(key);
         context[key] = { name: s.name, value: s.value, unit: s.unit };
@@ -1252,6 +1268,7 @@
 
   POST['/api/discover'] = function (body) {
     var ecu = requireService();
+    requireCapability('discover', 'identifier discovery');
     var start = Math.max(0, Math.min(255, parseInt(body.start, 10) || 0x30));
     var end = Math.max(0, Math.min(255, parseInt(body.end, 10) || 0x7F));
     var byId = {};

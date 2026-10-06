@@ -41,6 +41,7 @@ class FakePort:
         self.rx = bytearray(response if not queue_on_write else b"")
         self.writes = []
         self.break_condition = False
+        self.baudrate = 0
         self.is_open = True
 
     def reset_input_buffer(self):
@@ -143,6 +144,64 @@ def test_iso9141_keywords_are_detected_but_not_misrepresented_as_kwp(monkeypatch
     assert "message layer is KWP2000" in result.detail
     assert keyword_protocol(0x94, 0x94) == "iso9141-2"
     assert keyword_protocol(0xEA, 0x8F) == "iso14230"
+
+
+def test_legacy_16m_init_receives_key_on_code_then_sends_0f_aa_cc(monkeypatch):
+    clock = _clock(monkeypatch)
+    wake = bytes.fromhex("55 B0 80 80 80 85")
+    port = FakePort(wake, queue_on_write=False)
+    connection = KLineConnection(port=port, echo=False, inter_byte_delay=0)
+
+    result = KLineTransport().initialize(
+        connection,
+        method="legacy-iaw-16m",
+        legacy_wakeup_timeout=1.0,
+        legacy_comm_baud=7680,
+    )
+
+    assert result.ok
+    assert result.protocol == "legacy-iaw"
+    assert result.response == wake
+    assert result.request == bytes.fromhex("0F AA CC")
+    assert result.handshake_complete
+    assert port.writes == [b"\x0f", b"\xaa", b"\xcc"]
+    assert port.baudrate == 7680
+    assert clock.now >= 0.5 + 0.110 + 0.110 + 0.150
+
+
+def test_legacy_16m_init_refuses_missing_or_invalid_sync(monkeypatch):
+    _clock(monkeypatch)
+    transport = KLineTransport()
+
+    short = transport.initialize(
+        KLineConnection(port=FakePort(b"\x55\xb0", queue_on_write=False), echo=False),
+        method="legacy-iaw-16m",
+        legacy_wakeup_timeout=0.1,
+    )
+    bad_sync = transport.initialize(
+        KLineConnection(
+            port=FakePort(bytes.fromhex("54 B0 80 80 80 85"), queue_on_write=False),
+            echo=False,
+        ),
+        method="legacy-iaw-16m",
+        legacy_wakeup_timeout=0.1,
+    )
+
+    assert not short.ok and "six-byte" in short.detail
+    assert not bad_sync.ok and "0x55" in bad_sync.detail
+
+
+def test_legacy_p8_direct_init_sends_no_kwp_handshake(monkeypatch):
+    _clock(monkeypatch)
+    port = FakePort()
+    result = KLineTransport().initialize(
+        KLineConnection(port=port, echo=False), method="legacy-iaw-direct"
+    )
+
+    assert result.ok and result.protocol == "legacy-iaw"
+    assert result.request == b""
+    assert port.writes == []
+    assert port.baudrate == 7680
 
 
 def test_auto_waits_for_a_slow_ecu_to_abandon_the_failed_fast_attempt(monkeypatch):

@@ -2,7 +2,7 @@
 
 This workflow is based on the community reference **GuzziDiag for the 7SM ECU** (PDF: https://www.griso.org/GuzziDiag%20for%207SM.pdf). It is included as a product-design reference, not as a claim that GuzziOnBoard can currently perform these operations.
 
-## Supported 7SM families to model
+## Referenced 7SM families to model
 
 The reference describes 7SM installations including California 1400, Audace, and V85 TT, with hardware families such as HW100 and HW310. A map must never be selected by motorcycle name alone: compatibility must be checked against the ECU hardware identifier and map metadata.
 
@@ -69,4 +69,11 @@ Resetting autolearning parameters clears handle and throttle learning, so the UI
 
 ## Current implementation status
 
-The current application only implements the simulator and safety model. The 7SM reader, writer, checksum parser, serial transport, and actor commands remain intentionally unimplemented until captured frames and a bench ECU test plan are available.
+A published real session log now grounds the 7SM K-Line session and `1A 80`
+identification layout, so that identification operation is exposed through the
+physical serial transport with guided key-on/engine-off setup. It returns and
+logs the captured field layout only; it does not claim a checksum. Live data,
+DTCs, identifier discovery, memory read/write, checksum handling, adaptations,
+and actuator commands remain unavailable because their family-specific frames,
+scaling, security, and safety conditions were not recovered. Future bench work
+is a project-maintainer validation task, not a customer protocol exercise.

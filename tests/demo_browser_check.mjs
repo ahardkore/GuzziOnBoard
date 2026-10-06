@@ -550,5 +550,22 @@ await post('/api/select', {
 const disconnected = await post('/api/disconnect', {});
 check('disconnect returns to the garage', disconnected.payload.connected === false);
 
+/* Research metadata must not become a simulator capability through the API. */
+await post('/api/select', { ecu: 'miug3', transport: 'simulator' });
+await post('/api/connect', { mode: 'simulator' });
+const unsupportedIdentity = await api('/api/identify');
+const unsupportedLive = await api('/api/live?keys=manifold_pressure_raw');
+const unsupportedDtcs = await api('/api/dtcs');
+const unsupportedDiscovery = await post('/api/discover', { start: 0x30, end: 0x31 });
+check('research-only identification is refused even in the simulator',
+  unsupportedIdentity.status === 400 && unsupportedIdentity.payload.code === 'protocol_error');
+check('research-only live identifiers are refused even in the simulator',
+  unsupportedLive.status === 400 && unsupportedLive.payload.code === 'protocol_error');
+check('research-only fault requests are refused even in the simulator',
+  unsupportedDtcs.status === 400 && unsupportedDtcs.payload.code === 'protocol_error');
+check('research-only discovery is refused even in the simulator',
+  unsupportedDiscovery.status === 400 && unsupportedDiscovery.payload.code === 'protocol_error');
+await post('/api/disconnect', {});
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed');
 process.exit(failures ? 1 : 0);

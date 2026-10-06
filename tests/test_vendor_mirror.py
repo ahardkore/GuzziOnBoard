@@ -19,6 +19,7 @@ from guzzionboard.maps import XdfFile, load_bundled_xdfs
 REPO_ROOT = Path(__file__).resolve().parent.parent
 VENDOR_ROOT = REPO_ROOT / "vendor" / "guzzidiag"
 MANIFEST_PATH = VENDOR_ROOT / "MANIFEST.json"
+IES2_ROOT = REPO_ROOT / "vendor" / "ies2"
 XDF_ROOT = REPO_ROOT / "guzzionboard" / "xdfs"
 
 
@@ -110,6 +111,21 @@ def test_vendored_xdfs_came_out_of_the_mirror_bytes_unchanged(manifest):
                 vendor_path
         checked += 1
     assert checked, "no vendored file could be traced back to the mirror"
+
+
+def test_ies2_evidence_snapshot_matches_upstream_hashes():
+    sums = IES2_ROOT / "SHA256SUMS"
+    assert (IES2_ROOT / "LICENSE.txt").is_file()
+    assert (IES2_ROOT / "PROVENANCE.md").is_file()
+    assert sums.is_file()
+    checked = 0
+    for line in sums.read_text(encoding="utf-8").splitlines():
+        expected, relative = line.split("  ", 1)
+        path = IES2_ROOT / relative.removeprefix("./")
+        assert path.is_file(), relative
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == expected, relative
+        checked += 1
+    assert checked >= 10
 
 
 def test_every_bundled_xdf_still_parses():

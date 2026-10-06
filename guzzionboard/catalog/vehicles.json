@@ -17,7 +17,7 @@
    "ecu": "p8",
    "displacement": "992",
    "tps": "PF09",
-   "notes": "Pre-OBD Marelli P8. Identification only.",
+   "notes": "Pre-OBD Marelli P8. Fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "make": "Moto Guzzi"
   },
@@ -28,7 +28,7 @@
    "ecu": "p8",
    "displacement": "992",
    "tps": "PF09",
-   "notes": "Pre-OBD Marelli P8. Identification only.",
+   "notes": "Pre-OBD Marelli P8. Fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "make": "Moto Guzzi"
   },
@@ -910,7 +910,7 @@
    "displacement": "888",
    "tps": "",
    "confidence": "inferred",
-   "notes": "Later 888s (from chassis s/n 000509) carry the P8, like the Guzzi Daytona 1000. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "Later 888s (from chassis s/n 000509) carry the P8, like the Guzzi Daytona 1000. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -921,7 +921,7 @@
    "displacement": "916",
    "tps": "",
    "confidence": "inferred",
-   "notes": "916 Strada / SP / SPS ran the P8; the later Biposto/Senna cars moved to the 16M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "916 Strada / SP / SPS ran the P8; the later Biposto/Senna cars moved to the 16M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -932,7 +932,7 @@
    "displacement": "916",
    "tps": "",
    "confidence": "inferred",
-   "notes": "Biposto / Monoposto / Senna versions moved to the 16M - the same ECU as the Guzzi V11 Sport. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "Biposto / Monoposto / Senna versions moved to the 16M - the same ECU as the Guzzi V11 Sport. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -943,7 +943,7 @@
    "displacement": "748",
    "tps": "",
    "confidence": "inferred",
-   "notes": "All 748 versions (E, Biposto, S, R, SP, SPS) ran the 16M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "All 748 versions (E, Biposto, S, R, SP, SPS) ran the 16M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -954,7 +954,7 @@
    "displacement": "996",
    "tps": "",
    "confidence": "inferred",
-   "notes": "996 and 996 S ran the 16M; the SPS kept the P8. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "996 and 996 S ran the 16M; the SPS kept the P8. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -965,7 +965,7 @@
    "displacement": "944",
    "tps": "",
    "confidence": "inferred",
-   "notes": "One injector per cylinder: 16M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "One injector per cylinder: 16M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -976,7 +976,7 @@
    "displacement": "916",
    "tps": "",
    "confidence": "inferred",
-   "notes": "ST4 (916 engine): 16M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "ST4 (916 engine): 16M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -987,7 +987,7 @@
    "displacement": "904",
    "tps": "",
    "confidence": "inferred",
-   "notes": "900SS ie. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "900SS ie. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -998,7 +998,7 @@
    "displacement": "748",
    "tps": "",
    "confidence": "inferred",
-   "notes": "750SS ie. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "750SS ie. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -1009,7 +1009,7 @@
    "displacement": "904",
    "tps": "",
    "confidence": "inferred",
-   "notes": "Monster 900 ie; 2002-on models moved to the 59M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "Monster 900 ie; 2002-on models moved to the 59M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -1020,7 +1020,7 @@
    "displacement": "749",
    "tps": "",
    "confidence": "inferred",
-   "notes": "All 749 versions. ECU family newly modelled here - identification only."
+   "notes": "All 749 versions. ECU family newly modelled here - fitment only; physical diagnostics are unavailable."
   },
   {
    "make": "Ducati",
@@ -1031,7 +1031,7 @@
    "displacement": "999",
    "tps": "",
    "confidence": "inferred",
-   "notes": "999 / 999S (2003-2005 shape). ECU family newly modelled here - identification only."
+   "notes": "999 / 999S (2003-2005 shape). ECU family newly modelled here - fitment only; physical diagnostics are unavailable."
   },
   {
    "make": "Ducati",
@@ -1042,7 +1042,7 @@
    "displacement": "998",
    "tps": "",
    "confidence": "inferred",
-   "notes": "998 / 998S / 998R (Testastretta). ECU family newly modelled here - identification only."
+   "notes": "998 / 998S / 998R (Testastretta). ECU family newly modelled here - fitment only; physical diagnostics are unavailable."
   },
   {
    "make": "Ducati",
@@ -1053,7 +1053,7 @@
    "displacement": "618",
    "tps": "",
    "confidence": "inferred",
-   "notes": "Injected air-cooled Monsters of this era all carry the 59M. Identification only."
+   "notes": "Injected air-cooled Monsters of this era all carry the 59M. Fitment only; physical diagnostics are unavailable."
   },
   {
    "make": "Ducati",
@@ -1064,7 +1064,7 @@
    "displacement": "803",
    "tps": "",
    "confidence": "inferred",
-   "notes": "Identification only."
+   "notes": "Fitment only; physical diagnostics are unavailable."
   },
   {
    "make": "Ducati",
@@ -1075,7 +1075,7 @@
    "displacement": "992",
    "tps": "",
    "confidence": "inferred",
-   "notes": "Monster 1000 / 1000 S ie (dual spark). Identification only."
+   "notes": "Monster 1000 / 1000 S ie (dual spark). Fitment only; physical diagnostics are unavailable."
   },
   {
    "make": "Ducati",
@@ -1086,7 +1086,7 @@
    "displacement": "803",
    "tps": "",
    "confidence": "inferred",
-   "notes": "S2R 800; the S2R 1000 shares the family. Identification only."
+   "notes": "S2R 800; the S2R 1000 shares the family. Fitment only; physical diagnostics are unavailable."
   },
   {
    "make": "Ducati",
@@ -1097,7 +1097,7 @@
    "displacement": "996",
    "tps": "",
    "confidence": "inferred",
-   "notes": "S4R Testastretta. Identification only."
+   "notes": "S4R Testastretta. Fitment only; physical diagnostics are unavailable."
   },
   {
    "make": "Ducati",
@@ -1108,7 +1108,7 @@
    "displacement": "992",
    "tps": "",
    "confidence": "inferred",
-   "notes": "Multistrada 1000 DS. Identification only."
+   "notes": "Multistrada 1000 DS. Fitment only; physical diagnostics are unavailable."
   },
   {
    "make": "Ducati",
@@ -1119,7 +1119,7 @@
    "displacement": "992",
    "tps": "",
    "confidence": "inferred",
-   "notes": "SportClassic GT 1000 Touring. Identification only."
+   "notes": "SportClassic GT 1000 Touring. Fitment only; physical diagnostics are unavailable."
   },
   {
    "make": "Ducati",
@@ -1130,7 +1130,7 @@
    "displacement": "992",
    "tps": "",
    "confidence": "inferred",
-   "notes": "SportClassic Paul Smart replica. Identification only."
+   "notes": "SportClassic Paul Smart replica. Fitment only; physical diagnostics are unavailable."
   },
   {
    "make": "Ducati",
@@ -1141,7 +1141,7 @@
    "displacement": "992",
    "tps": "",
    "confidence": "inferred",
-   "notes": "SportClassic Sport 1000 (early cars: 59M; later: 5AM running change). Identification only."
+   "notes": "SportClassic Sport 1000 (early cars: 59M; later: 5AM running change). Fitment only; physical diagnostics are unavailable."
   },
   {
    "make": "Ducati",
@@ -1152,7 +1152,7 @@
    "displacement": "996",
    "tps": "",
    "confidence": "inferred",
-   "notes": "ST4S. Identification only."
+   "notes": "ST4S. Fitment only; physical diagnostics are unavailable."
   },
   {
    "make": "Ducati",
@@ -1163,7 +1163,7 @@
    "displacement": "849",
    "tps": "",
    "confidence": "inferred",
-   "notes": "The 848/1098/1198 Superbikes run the 5AM - the same ECU family as the Guzzi CARC bikes. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "The 848/1098/1198 Superbikes run the 5AM - the same ECU family as the Guzzi CARC bikes. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -1174,7 +1174,7 @@
    "displacement": "1099",
    "tps": "",
    "confidence": "inferred",
-   "notes": "1098 / 1098 S. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "1098 / 1098 S. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -1185,7 +1185,7 @@
    "displacement": "1198",
    "tps": "",
    "confidence": "inferred",
-   "notes": "1198 / 1198 S / 1198 SP. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "1198 / 1198 S / 1198 SP. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -1196,7 +1196,7 @@
    "displacement": "1099",
    "tps": "",
    "confidence": "inferred",
-   "notes": "Streetfighter / Streetfighter S. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "Streetfighter / Streetfighter S. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -1207,7 +1207,7 @@
    "displacement": "1078",
    "tps": "",
    "confidence": "inferred",
-   "notes": "Hypermotard 1100 / 1100 S / SP. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "Hypermotard 1100 / 1100 S / SP. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Ducati",
@@ -1218,7 +1218,7 @@
    "displacement": "992",
    "tps": "",
    "confidence": "inferred",
-   "notes": "ST3 / ST3 ABS. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "ST3 / ST3 ABS. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Aprilia",
@@ -1229,7 +1229,7 @@
    "displacement": "998",
    "tps": "",
    "confidence": "inferred",
-   "notes": "The Rotax-twin Aprilias run the same IAW 16M as the Guzzi V11 family - GuzziDiag and TuneECU both cover them. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "The Rotax-twin Aprilias run the same IAW 16M as the Guzzi V11 family - GuzziDiag and TuneECU both cover them. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Aprilia",
@@ -1240,7 +1240,7 @@
    "displacement": "998",
    "tps": "",
    "confidence": "inferred",
-   "notes": "ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Aprilia",
@@ -1251,7 +1251,7 @@
    "displacement": "998",
    "tps": "",
    "confidence": "inferred",
-   "notes": "First-generation Tuono. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "First-generation Tuono. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Aprilia",
@@ -1262,7 +1262,7 @@
    "displacement": "998",
    "tps": "",
    "confidence": "inferred",
-   "notes": "ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Aprilia",
@@ -1273,7 +1273,7 @@
    "displacement": "998",
    "tps": "",
    "confidence": "inferred",
-   "notes": "Adventure twin; TuneECU lists full map support. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "Adventure twin; TuneECU lists full map support. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Aprilia",
@@ -1284,7 +1284,7 @@
    "displacement": "998",
    "tps": "",
    "confidence": "inferred",
-   "notes": "Sport-tourer. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "Sport-tourer. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   },
   {
    "make": "Aprilia",
@@ -1295,7 +1295,7 @@
    "displacement": "839",
    "tps": "",
    "confidence": "inferred",
-   "notes": "GuzziTek master list maps the Mana 850 to the 5AM. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed. The Mana also carries a CVT transmission controller: selectable directly as ECU 'mana_tcu' (identification and read-only discovery only; TCU flashing and gear/clutch learning stay with ManaTCU)."
+   "notes": "GuzziTek master list maps the Mana 850 to the 5AM. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled. The Mana also carries a CVT transmission controller selectable as ECU 'mana_tcu'; captured routine bytes are recorded for provenance, but every physical TCU operation remains blocked because session, security, and safety preconditions are incomplete."
   },
   {
    "make": "Aprilia",
@@ -1306,7 +1306,7 @@
    "displacement": "999",
    "tps": "",
    "confidence": "inferred",
-   "notes": "GuzziTek master list maps the 2009-2011 RSV4 Factory to the 7SM - the same ECU family as the Guzzi California 1400. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "GuzziTek master list maps the 2009-2011 RSV4 Factory to the 7SM - the same ECU family as the Guzzi California 1400. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
   }
  ]
 }

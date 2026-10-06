@@ -5,48 +5,23 @@
   "transport": "kline",
   "confidence": "unknown",
   "years": "2001-2009",
-  "notes": "Ducati's workhorse ECU of the 999/749/air-cooled-Monster era: 749 and 999 Superbikes, 998, the injected air-cooled Monsters (620 through 1000), Multistrada 1000/1100, SportClassic GT1000 / Paul Smart / Sport 1000, S2R, S4R and ST4S. The GuzziDiag and TuneECU ecosystems both speak to it. This entry is a placeholder built from those tools' compatibility lists: no identifier, session or memory sequence has been captured from a 59M here, so it is identification-only until one is. Identification, fault codes and the read-only discovery sweep are safe; everything else waits for a capture. If you own one of these bikes, a single recorded session upgrades the whole family. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: CO-Trim is supported. The tip-over sensor state uses the same encoding as 5AM.",
+  "notes": "Ducati 749/999, injected air-cooled Monsters, Multistrada, SportClassic, S2R/S4R and ST4S applications. GuzziDiag, TuneECU, and user documentation establish that tooling exists and mention slow initialization, but no primary family transcript, identifier table, or diagnostic payload definition was recovered. Compatibility is not a protocol definition: this remains an unknown zero-capability placeholder and physical use is blocked.",
   "kline": {
-    "baud": 10400,
-    "init": "fast",
-    "address": 51,
-    "addressed": true,
-    "tester_address": 241,
-    "ecu_address": 16,
-    "inter_byte_delay": 0.005,
-    "note": "10400 baud is the Marelli standard of this era; fast vs slow init and the ECU address follow the sibling Marelli ECUs and are unconfirmed on a 59M."
+    "note": "K-Line hardware is established by compatible tooling, but baud rate, initialization, addressing, and application framing are not claimed without a family-specific public definition or capture."
   },
   "session": {
-    "access_timing": false,
-    "diagnostic_session": null,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "physical_supported": false,
+    "physical_blocked_reason": "Compatibility evidence confirms tooling exists, but no family-specific initialization transcript or primary wire definition was recovered."
   },
-  "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
-      {
-        "name": "Identification",
-        "offset": 0,
-        "length": 40,
-        "note": "field layout unverified; shown as one raw block"
-      }
-    ]
-  },
+  "identification": {},
   "memory": {
     "image_size": null,
     "read_supported": false,
     "write_supported": false,
-    "write_blocked_reason": "TuneECU reads and writes the 59M, but no memory-access sequence has been captured for this project. Reading a 59M is a bench session plus one capture away; until then this build refuses.",
-    "security_access": false,
+    "write_blocked_reason": "TuneECU compatibility establishes that a path exists, but no public memory-access sequence, geometry, or security definition was recovered; this build refuses the operation.",
     "regions": {}
   },
-  "capabilities": [
-    "identify",
-    "dtc_read",
-    "discover"
-  ],
+  "capabilities": [],
   "sources": [
     "Ducati.ms Model/ECU list (2009)",
     "GuzziTek ECU master list (2011)",

@@ -10,9 +10,9 @@ reason is named.
 | Operation | State |
 |---|---|
 | Read flash, IAW 5AM | Implemented against a verified wire capture. Needs a SecurityAccess key provider. |
-| Read flash, 7SM / 15M / 15RC / MIU G3 | Implemented, but region geometry is uncaptured, so it refuses rather than guessing. |
-| Read flash, P8 / 16M | Not possible over K-Line. Socketed EPROM; use a programmer. |
-| Read EEPROM, any family | Implemented, geometry uncaptured. |
+| Read flash, 7SM / 15M / 15RC / MIU G3 | Generic memory framework exists, but these family profiles expose no read capability because session, security, and/or region geometry are incomplete. |
+| Read flash, P8 / 16M | Not exposed: no validated in-circuit read sequence is available here. P8 maps commonly live on a socketed EPROM that can be preserved with a programmer. |
+| Read EEPROM, non-5AM families | Generic framework only; no incomplete family profile declares a hardware capability. |
 | Backup with verification | Fully working. |
 | Image validation | Fully working. |
 | Write / erase / program | Fully implemented against the documented 5am_util sequence and simulator-tested. Disabled against hardware pending a bench-confirmed key and physical-layer validation. |

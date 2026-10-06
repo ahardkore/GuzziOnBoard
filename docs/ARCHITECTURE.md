@@ -39,7 +39,7 @@ Three implementations:
 |---|---|---|
 | `SimulatorTransport` | `simulator.py` | Complete, drives the test suite |
 | `KLineTransport` | `kline.py` | Written, untested on hardware |
-| `CanTransport` | `can.py` | Written, identifiers unconfirmed |
+| `CanTransport` | `can.py` | Generic ISO-TP mechanics written; no physical ECU profile is enabled without validated bitrate, identifiers, addressing, and application protocol |
 
 `pyserial` and `python-can` are imported lazily, so the simulator and the tests
 run on a machine with no drivers installed. A missing driver raises

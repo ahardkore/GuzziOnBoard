@@ -102,6 +102,34 @@ def test_landing_page_links_the_workstation_demo():
     assert 'href="web/index.html"' in html
 
 
+def test_workstation_has_accessible_guided_state_prompts():
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    source = (WEB / "app.js").read_text(encoding="utf-8")
+    assert 'role="dialog"' in html and 'aria-modal="true"' in html
+    assert "prepareEngineState" in source
+    for instruction in (
+        "stop it with the kill switch",
+        "Leave the ignition key ON",
+        "start the engine",
+        "Turn the ignition key OFF",
+        "Begin listening",
+    ):
+        assert instruction.lower() in source.lower()
+    assert "window.confirm" not in source
+
+
+def test_unvalidated_can_ids_are_only_defaults_in_the_virtual_rehearsal():
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    tour = (WEB / "tour.html").read_text(encoding="utf-8")
+    source = (WEB / "app.js").read_text(encoding="utf-8")
+    assert 'id="canTxId" placeholder="not validated"' in html
+    assert 'id="canRxId" placeholder="not validated"' in html
+    assert "else if (kind === 'cansim')" in source
+    assert "A virtual pair for transport rehearsal only" in source
+    assert "physical CAN sessions are blocked" in tour
+    assert "assumes the standard pair" not in tour
+
+
 # -- honesty --------------------------------------------------------------
 
 #: Still refused in the browser, and meant to stay that way: a web page

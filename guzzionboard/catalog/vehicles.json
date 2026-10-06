@@ -1295,7 +1295,7 @@
    "displacement": "839",
    "tps": "",
    "confidence": "inferred",
-   "notes": "GuzziTek master list maps the Mana 850 to the 5AM. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed."
+   "notes": "GuzziTek master list maps the Mana 850 to the 5AM. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed. The Mana also carries a CVT transmission controller: selectable directly as ECU 'mana_tcu' (identification and read-only discovery only; TCU flashing and gear/clutch learning stay with ManaTCU)."
   },
   {
    "make": "Aprilia",

@@ -90,7 +90,9 @@ def best_provider(ecu_id: str, *, allow_unverified: bool = False) -> Provider:
         raise SecurityUnavailable(
             f"{ecu_id}: only unverified key providers are available "
             f"({', '.join(p.name for p in candidates)}). "
-            "Enable unverified providers explicitly if you accept the lockout risk."
+            "Enable unverified providers explicitly if you accept the lockout "
+            "risk (gate.accept_unverified_key_risk(), allow_unverified_key=True "
+            "in-process, or POST /api/security/unverified over HTTP)."
         )
     raise SecurityUnavailable(
         f"{ecu_id}: no SecurityAccess key provider is available.\n"

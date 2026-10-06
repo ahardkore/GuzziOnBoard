@@ -27,6 +27,51 @@ RECOMMENDED_LATENCY_MS = 1
 #: sysfs location of the per-port latency timer on Linux.
 SYSFS_USB_SERIAL = Path("/sys/bus/usb-serial/devices")
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+#: The WHQL-certified FTDI CDM driver bundle mirrored unmodified with the
+#: rest of the GuzziDiag toolset (see vendor/guzzidiag/MANIFEST.json). This
+#: is exactly the installer the reference AdapterTest points users at; the
+#: pre-flight surfaces it instead of hunting the FTDI site.
+DRIVER_BUNDLE_ZIP = (
+    REPO_ROOT / "vendor" / "guzzidiag" / "tools"
+    / "CDM-v2.12.36.20-WHQL-Certified.zip"
+)
+
+
+def driver_bundle_info() -> dict:
+    """How to get a working host driver for the USB-KKL adapter, per OS."""
+    system = platform.system()
+    info = {
+        "os": system,
+        "bundle_path": str(DRIVER_BUNDLE_ZIP),
+        "bundle_available": DRIVER_BUNDLE_ZIP.exists(),
+        "bundle_version": "2.12.36.20 (WHQL certified)",
+    }
+    if system == "Windows":
+        info["hint"] = (
+            "If no COM port appears when the adapter is plugged in, extract "
+            "the mirrored FTDI CDM bundle and right-click the .inf files to "
+            "install (or point Device Manager's Update Driver wizard at the "
+            "extracted folder). Then set the latency timer to 1 ms per the "
+            "Port Settings -> Advanced dialog."
+        )
+    elif system == "Linux":
+        info["hint"] = (
+            "The kernel's ftdi_sio driver covers FT232 adapters out of the "
+            "box; if /dev/ttyUSB* never appears, check dmesg. The Windows CDM "
+            "bundle is irrelevant here — but do fix the 16 ms latency timer."
+        )
+    elif system == "Darwin":
+        info["hint"] = (
+            "macOS serialises FT232 adapters via the Apple-supplied driver "
+            "(modern versions) or FTDI's VCP driver (older); the mirrored CDM "
+            "bundle is Windows-only."
+        )
+    else:
+        info["hint"] = "Platform not recognised; the CDM bundle is Windows-only."
+    return info
+
 
 @dataclass
 class Check:
@@ -59,6 +104,7 @@ class AdapterReport:
         return {
             "port": self.port, "ok": self.ok,
             "checks": [c.as_dict() for c in self.checks],
+            "driver": driver_bundle_info(),
         }
 
     def text(self) -> str:
@@ -126,8 +172,14 @@ def latency_fix_instructions(port: str) -> str:
             f"  {UDEV_RULE}"
         )
     if system == "Windows":
+        bundle = (
+            f"If no driver is installed yet, extract the mirrored WHQL bundle "
+            f"at {DRIVER_BUNDLE_ZIP} first. "
+            if DRIVER_BUNDLE_ZIP.exists() else ""
+        )
         return (
-            "Device Manager -> Ports (COM & LPT) -> your adapter -> Properties "
+            bundle
+            + "Device Manager -> Ports (COM & LPT) -> your adapter -> Properties "
             "-> Port Settings -> Advanced -> Latency Timer (msec) -> 1"
         )
     return (
@@ -217,6 +269,12 @@ def check_adapter(port: str = "", *, loopback: bool = False) -> AdapterReport:
                     fix=(
                         "plug the adapter in. Linux: /dev/ttyUSB*, "
                         "macOS: /dev/tty.usbserial*, Windows: COMx"
+                        + (
+                            f" — no COM port on Windows usually means no "
+                            f"driver: extract the mirrored WHQL bundle at "
+                            f"{DRIVER_BUNDLE_ZIP} and install from it"
+                            if DRIVER_BUNDLE_ZIP.exists() else ""
+                        )
                     ),
                 )
             )

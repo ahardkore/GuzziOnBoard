@@ -193,6 +193,12 @@ class ProgrammingService:
             "read_supported": bool(memory.get("read_supported")),
             "write_supported": bool(memory.get("write_supported")),
             "write_blocked_reason": memory.get("write_blocked_reason", ""),
+            # These two are set only on simulated sessions — see
+            # Workstation._simulated_capable_profile.  They let the UI say
+            # "proved here means proved against the simulation" instead of
+            # letting a green Write row imply the same of real hardware.
+            "simulated": bool(memory.get("simulated")),
+            "simulation_note": memory.get("simulation_note", ""),
             "security_required": bool(self.spec.get("security", {}).get("required")),
             "security_available": self._security_available(),
             "hardware_note": memory.get("hardware_note", ""),
@@ -316,6 +322,12 @@ class ProgrammingService:
         self.log.action("write_session", {"steps": steps})
         return {"steps": steps}
 
+    def _unverified_key_accepted(self, explicit: bool) -> bool:
+        """In-process callers may pass a flag directly; users of the app
+        accept the same risk through the safety gate (audited, session-scoped).
+        """
+        return explicit or self.gate.allow_unverified_keys
+
     def unlock(self, *, allow_unverified: bool = False) -> dict:
         """SecurityAccess seed/key exchange."""
         spec = self.spec.get("security", {})
@@ -326,7 +338,8 @@ class ProgrammingService:
         session = self.diag._require()
         level = spec.get("level", 0x01)
         provider = self.key_provider or best_provider(
-            self.profile.id, allow_unverified=allow_unverified
+            self.profile.id,
+            allow_unverified=self._unverified_key_accepted(allow_unverified),
         )
 
         # On the write path 5am_util addresses the 27 exchange from tester
@@ -398,7 +411,9 @@ class ProgrammingService:
             )
         self.enter_programming_session()
         if self.spec.get("security", {}).get("required"):
-            self.unlock(allow_unverified=allow_unverified_key)
+            self.unlock(
+                allow_unverified=self._unverified_key_accepted(allow_unverified_key)
+            )
 
         protocol = self.spec.get("protocol", "read_memory_by_address")
         reader = {
@@ -657,7 +672,11 @@ class ProgrammingService:
         try:
             self._enter_write_session()
             if self.spec.get("security", {}).get("required"):
-                self.unlock(allow_unverified=allow_unverified_key)
+                self.unlock(
+                    allow_unverified=self._unverified_key_accepted(
+                        allow_unverified_key
+                    )
+                )
 
             session = self.diag._require()
             armed = {

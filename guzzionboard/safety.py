@@ -124,6 +124,16 @@ class SafetyGate:
     allow_programming: bool = False
     #: What the operator acknowledged when enabling programming.
     programming_acknowledgement: str = ""
+    #: Whether the operator accepts key providers that are not bench-verified
+    #: on Guzzi-fitted hardware. Off by default because a wrong key can lock
+    #: the ECU's security gate; enabled only through
+    #: :meth:`accept_unverified_key_risk`. Memory read/write paths consult
+    #: this when the caller passes no explicit flag.
+    allow_unverified_keys: bool = False
+    #: The mode a session was in before programming was enabled, so
+    #: :meth:`disable_programming` can put it back.  Enabling programming is
+    #: precisely the act that puts the session into programming mode.
+    _pre_programming_mode: "Mode | None" = None
 
     _tokens: dict[str, tuple[str, float]] = field(default_factory=dict, init=False)
     _audit: list[dict] = field(default_factory=list, init=False)
@@ -347,6 +357,11 @@ class SafetyGate:
             )
         self.allow_programming = True
         self.programming_acknowledgement = acknowledgement.strip()
+        # Irreversible operations require the programming mode; enabling
+        # programming is the operator's way to enter it.  The original mode
+        # is restored on disable so disabling really is "back to normal".
+        self._pre_programming_mode = self.mode
+        self.mode = Mode.PROGRAMMING
         self._audit.append(
             {"at": time.time(), "event": "programming_enabled"}
         )
@@ -354,7 +369,30 @@ class SafetyGate:
     def disable_programming(self) -> None:
         self.allow_programming = False
         self.programming_acknowledgement = ""
+        if self._pre_programming_mode is not None:
+            self.mode = self._pre_programming_mode
+            self._pre_programming_mode = None
         self._audit.append({"at": time.time(), "event": "programming_disabled"})
+
+    def accept_unverified_key_risk(self, accept: bool = True) -> None:
+        """Record the operator's decision on unverified key providers.
+
+        No shipped key algorithm is bench-verified on Guzzi-fitted hardware,
+        and a wrong key can lock the ECU's security gate, so these providers
+        are refused unless the operator explicitly accepts the risk for this
+        session. The choice is audited like every other gate decision.
+        """
+        self.allow_unverified_keys = bool(accept)
+        self._audit.append(
+            {
+                "at": time.time(),
+                "event": (
+                    "unverified_keys_accepted"
+                    if accept
+                    else "unverified_keys_declined"
+                ),
+            }
+        )
 
     def session_guard(self, armed_for: set[int] | None = None, *,
                       purpose: str = "write"):

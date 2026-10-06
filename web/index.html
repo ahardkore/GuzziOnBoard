@@ -26,6 +26,7 @@
     <button class="nav" data-view="service"><i>⚙</i> Service actions</button>
     <button class="nav" data-view="procedures"><i>✓</i> Guided tests</button>
     <button class="nav" data-view="firmware"><i>▥</i> ECU memory</button>
+    <button class="nav" data-view="tools"><i>🧰</i> Tools</button>
     <button class="nav" data-view="discovery"><i>🔍</i> Discovery</button>
     <button class="nav" data-view="simulator"><i>🧪</i> Simulated bike</button>
     <button class="nav" data-view="sessions"><i>▤</i> Sessions</button>
@@ -41,7 +42,7 @@
       </div>
     </div>
     <button class="btn block" id="disconnectBtn" disabled>Disconnect</button>
-    <p class="disclaimer">Not affiliated with Piaggio or the GuzziDiag author. ECU programming is disabled in this build.</p>
+    <p class="disclaimer">Not affiliated with Piaggio or the GuzziDiag author. ECU writes run on the simulator; against hardware they stay refused here &mdash; no bench-confirmed write path.</p>
   </div>
 </aside>
 
@@ -115,11 +116,15 @@
         <label class="field">
           <span>Session mode</span>
           <select id="modeSelect">
-            <option value="simulator">Simulator — no hardware</option>
+            <option value="simulator">Simulator — practise everything, no hardware</option>
             <option value="read_only">Read only — observe a real bike</option>
             <option value="service">Service — actuator tests and adaptations</option>
           </select>
         </label>
+        <p class="tip">The simulator is not a demo subset: live data, fault memory, actuator
+        tests, service adaptations, guided tests, discovery sweeps and the complete ECU-memory
+        cycle &mdash; backup, validate, flash, verify &mdash; all run against it, and every
+        result comes out labelled <b>simulated</b>.</p>
         <div class="checklist" id="checklistBox" hidden>
           <h3>Hardware checklist</h3>
           <ul id="checklistItems"></ul>
@@ -325,6 +330,129 @@
     </div>
   </section>
 
+  <!-- ==================================================== TOOLS -->
+  <section class="view hidden" id="tools">
+
+    <article class="panel">
+      <h2>Workshop utilities</h2>
+      <p class="muted">Standalone helpers that need no ECU connection. They cover the ground the
+      classic GuzziDiag-era utilities covered — GearSpeed, ZT2CSVToLogWorksDIF, RPMSensorEmu —
+      with the same data those tools shipped, where it could be read out of them.</p>
+    </article>
+
+    <article class="panel">
+      <h2>Gearing &amp; road speed</h2>
+      <p class="tip">
+        <b>What it does:</b> tells you the road speed each gear gives you at a given engine speed
+        (handy for sprocket/final-drive choices, or for labelling logs that have no gear signal).
+        <b>Pick your bike</b> from the presets — the gearbox ratios are the same table the
+        GearSpeed utility ships, read out of the mirrored copy — then set your tyre and final drive.
+      </p>
+      <div class="toolbar">
+        <label class="inline">Bike preset
+          <select id="gearPreset"><option value="">— loading presets… —</option></select>
+        </label>
+      </div>
+      <div class="toolbar">
+        <label class="inline">Final drive ratio <input type="text" id="gearFinal" size="6" value="4.125"></label>
+        <label class="inline">Rear tyre <input type="text" id="gearTyre" size="10" value="180/55-17"></label>
+        <label class="inline">Gears, 1st&rarr;top <input type="text" id="gearRatios" size="34" placeholder="2.3636, 1.6429, 1.2778, 1.0556, 0.9"></label>
+      </div>
+      <p class="muted small">Leave <em>Gears</em> empty to use the selected preset's ratios. Primary
+      reduction is already folded into the presets, exactly like the reference app handles it.</p>
+      <div class="toolbar">
+        <button class="btn primary" id="gearCalcBtn">Compute speeds</button>
+        <span class="muted small" id="gearMeta"></span>
+      </div>
+      <div id="gearOut"></div>
+    </article>
+
+    <article class="panel">
+      <h2>Wideband log converter &middot; Zeitronix ZT-2 &rarr; LogWorks</h2>
+      <p class="tip">
+        <b>What it does:</b> turns a CSV saved by the Zeitronix ZDL logger (AFR, RPM, TPS, MAP, EGT…)
+        into the DIF table that Innovate LogWorks and Excel import.
+        <b>Timeline note:</b> the old ZT2CSVToLogWorksDIF tool documented its own flaw — the ZT-2
+        “logs 4 times more data”, so its timeline was wrong by a factor of 4. The corrected clock is
+        the default here; pick reference behaviour only when you need byte-comparable output with
+        the old tool.
+      </p>
+      <div class="toolbar">
+        <label class="inline">Timeline
+          <select id="z2Factor">
+            <option value="4">Corrected (÷4 fix applied) — recommended</option>
+            <option value="1">Reference tool behaviour (incorrect ×1)</option>
+          </select>
+        </label>
+        <label class="inline">Samples per second <input type="number" id="z2Rate" size="5" value="65" step="1" min="1"></label>
+      </div>
+      <p class="muted small">Paste the ZDL CSV export below (both comma- and semicolon-delimited
+      exports, and comma decimals, are understood):</p>
+      <textarea id="z2In" class="mono-in" rows="6" spellcheck="false"
+        placeholder="AFR,RPM,TPS&#10;11.2,2400,12&#10;11.4,2450,13&#10;11.3,2500,14"></textarea>
+      <div class="toolbar">
+        <button class="btn primary" id="z2ConvertBtn">Convert to DIF</button>
+        <span class="muted small" id="z2Meta"></span>
+      </div>
+      <textarea id="z2Out" class="mono-out" rows="8" readonly spellcheck="false"
+        placeholder="The DIF table appears here after conversion."></textarea>
+      <div class="toolbar">
+        <button class="btn" id="z2DownloadBtn" disabled>Download .dif</button>
+        <button class="btn" id="z2CopyBtn" disabled>Copy to clipboard</button>
+      </div>
+    </article>
+
+    <article class="panel">
+      <h2>Bench RPM trigger signal</h2>
+      <p class="tip">
+        <b>What it does:</b> makes an ECU believe the engine is turning, on the bench, with no engine.
+        It renders the crank/cam trigger-wheel pattern to a WAV file; play it from any device through
+        an AC-coupled buffer into the sensor input. The wheel geometries come straight from
+        RPMSensorEmu's own config files (the tool that does this with dedicated hardware).
+      </p>
+      <div class="toolbar">
+        <label class="inline">Trigger wheel
+          <select id="sigPreset">
+            <option value="motoguzzi">Moto Guzzi &mdash; 46 teeth + 2 missing, camshaft</option>
+            <option value="ducati">Ducati &mdash; 46 teeth + 2 missing, camshaft</option>
+            <option value="motomorini">Moto Morini &mdash; 46 teeth + 2 missing, camshaft</option>
+            <option value="mvagusta">MV Agusta &mdash; 22 teeth + 2 missing, crankshaft</option>
+            <option value="custom">Custom&hellip;</option>
+          </select>
+        </label>
+      </div>
+      <div class="toolbar hidden" id="sigCustom">
+        <label class="inline">Teeth <input type="number" id="sigTeeth" size="4" value="46" min="1"></label>
+        <label class="inline">Missing <input type="number" id="sigMissing" size="4" value="2" min="0"></label>
+        <label class="inline">Wheel on
+          <select id="sigWheel">
+            <option value="camshaft" selected>camshaft (½ engine speed)</option>
+            <option value="crankshaft">crankshaft (engine speed)</option>
+          </select>
+        </label>
+      </div>
+      <div class="toolbar">
+        <label class="inline">Engine speed <input type="number" id="sigRpm" size="6" value="3000" min="100" max="15000"> rpm</label>
+        <label class="inline">for <input type="number" id="sigSecs" size="4" value="2" step="0.1" min="0.1" max="300"> seconds</label>
+        <button class="btn primary" id="sigSimpleBtn">Generate WAV</button>
+      </div>
+      <p class="muted small">…or run a batch program, same format as the reference tool's
+      <code>.rbt</code> files &mdash; one line per step: <code>duration ms | rpm | optional rpm-to</code>
+      (ramps linearly; durations in whole 100&nbsp;ms):</p>
+      <textarea id="sigBatch" class="mono-in" rows="3" spellcheck="false"
+        placeholder="3000|1000&#10;5000|1000|3000&#10;2000|3000"></textarea>
+      <div class="toolbar">
+        <button class="btn" id="sigBatchBtn">Generate from batch</button>
+      </div>
+      <div id="sigOut"></div>
+      <p class="tip warn"><b>Safety:</b> a sound-card output is a low-voltage, AC-coupled signal.
+      Never clip a laptop straight into a wiring harness &mdash; buffer and attenuate into the sensor
+      input. An ECU that believes the engine turns can energise coils and injectors: unplug the
+      outputs you do not want live.</p>
+    </article>
+
+  </section>
+
   <!-- ==================================================== DISCOVERY -->
   <section class="view hidden" id="discovery">
     <article class="panel">
@@ -405,11 +533,12 @@
       <h2>ECU memory</h2>
       <p class="muted">Reading an ECU image is slow but safe. Writing one is neither. Everything here is ordered the way it has to happen: check the adapter, read a backup, verify it, validate the new image, and only then write.</p>
       <div id="memCaps" class="kv">Connect to an ECU first.</div>
+      <div id="memCapsNote"></div>
     </article>
 
     <article class="panel">
       <h2>1 &middot; Adapter pre-flight</h2>
-      <p class="muted small">A 16&nbsp;ms FTDI latency timer is the usual reason a 20&nbsp;minute read takes hours. GuzziDiag calls 1&nbsp;ms essential.</p>
+      <p class="muted small">A 16&nbsp;ms FTDI latency timer is the usual reason a 20&nbsp;minute read takes hours. GuzziDiag calls 1&nbsp;ms essential. On Windows, if the adapter shows no COM port at all, the check points you at the WHQL driver bundle mirrored with the project; KKL adapters are FT232-based.</p>
       <div class="toolbar">
         <label class="inline">Port <input type="text" id="adapterPort" placeholder="/dev/ttyUSB0" size="16"></label>
         <button class="btn" id="adapterBtn">Check adapter</button>
@@ -447,7 +576,7 @@
 
     <article class="panel">
       <h2>Maps &amp; tables</h2>
-      <p class="muted small">Render a dump as named fuel and ignition tables with a TunerPro XDF definition (the GuzziDiag files live at von-der-salierburg.de). Drop <code>.xdf</code> files into <code>~/.guzzionboard/xdfs/</code> &mdash; none ship with this project. Strictly read-only.</p>
+      <p class="muted small">Render a dump as named fuel and ignition tables with a TunerPro XDF definition &mdash; all 94 cataloged GuzziDiag definitions ship bundled. Drop <code>.xdf</code> files into <code>~/.guzzionboard/xdfs/</code> to correct or extend them. Strictly read-only.</p>
       <div class="toolbar">
         <label class="inline">Definitions <select id="xdfSelect"><option value="">&mdash; none found &mdash;</option></select></label>
         <button class="btn" id="mapsRefreshBtn">Reload</button>
@@ -483,6 +612,13 @@
       <h2>SecurityAccess key providers</h2>
       <p class="muted small">No verified key algorithm ships with this project for any Guzzi ECU. Drop one into the plugin directory if you have it.</p>
       <div id="securityOut"></div>
+      <div class="toolbar">
+        <label class="inline">
+          <input type="checkbox" id="unverifiedKeysChk">
+          Accept unverified key providers for this session
+        </label>
+        <span class="muted small">arms the transcribed 5AM key algorithm (matches the reference tool's published pairs, not bench-verified on a Guzzi-fitted ECU). Repeated wrong keys can lock the ECU's security gate. The choice is recorded in the audit log.</span>
+      </div>
     </article>
   </section>
 

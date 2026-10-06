@@ -1,8 +1,8 @@
 {
   "origin": "https://www.von-der-salierburg.de/download/GuzziDiag/",
   "note": "Byte-for-byte mirror of the GuzziDiag archive as published. Nothing here is authored by this project; see docs/XDF_LIBRARY.md for provenance and licensing.",
-  "file_count": 112,
-  "total_bytes": 4325995,
+  "file_count": 118,
+  "total_bytes": 4348064,
   "files": [
     {
       "filename": "15M_428_00_GuzziDiag_V2.28.zip",
@@ -346,6 +346,21 @@
           "name": "59M_Monster S4_2002_96508702B_V1.28.xdf",
           "bytes": 62311,
           "modified": "2015-02-03T00:31:24"
+        }
+      ]
+    },
+    {
+      "filename": "59M_Monster S4_28640191B_V1.30.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/59M_Monster S4_28640191B_V1.30.zip",
+      "bytes": 3213,
+      "sha256": "88e5813dd25170651a9d8bb6dbd3c871e60af1875a986f573a069275d7f2ca2f",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Monster S4_28640191B_V1.30.zip",
+      "contents": [
+        {
+          "name": "59M_Monster S4_28640191B_V1.30.xdf",
+          "bytes": 63219,
+          "modified": "2020-12-06T13:54:06"
         }
       ]
     },
@@ -955,6 +970,51 @@
       ]
     },
     {
+      "filename": "7SM_RSV4_1037AH01_V1.03.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/7SM_RSV4_1037AH01_V1.03.zip",
+      "bytes": 4994,
+      "sha256": "b82e44c436bda4649ea2a7e0c1b99b131e3eab1d5e66364f4ee1af24d1f94a76",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_1037AH01_V1.03.zip",
+      "contents": [
+        {
+          "name": "7SM_RSV4_1037AH01_V1.03.xdf",
+          "bytes": 109830,
+          "modified": "2021-12-27T17:27:00"
+        }
+      ]
+    },
+    {
+      "filename": "7SM_RSV4_1338XXxx_V0.14.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/7SM_RSV4_1338XXxx_V0.14.zip",
+      "bytes": 3130,
+      "sha256": "6582b25688fb7d3793f63f9c380dfe87f7cc5b32f4cd1f554daf9526ac529230",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_1338XXxx_V0.14.zip",
+      "contents": [
+        {
+          "name": "7SM_RSV4_1338XXxx_V0.14.xdf",
+          "bytes": 62393,
+          "modified": "2018-04-15T00:39:20"
+        }
+      ]
+    },
+    {
+      "filename": "7SM_RSV4_13A9XXxx_V0.15.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/7SM_RSV4_13A9XXxx_V0.15.zip",
+      "bytes": 3388,
+      "sha256": "11c6defb9da61a96771d84bc7d6518ed31035171e14f6749a469e796f2faae4f",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_13A9XXxx_V0.15.zip",
+      "contents": [
+        {
+          "name": "7SM_RSV4_13A9XXxx_V0.15.xdf",
+          "bytes": 77971,
+          "modified": "2021-04-24T21:37:06"
+        }
+      ]
+    },
+    {
       "filename": "7SM_RSV4_40xxXXxx_V0.12.zip",
       "section": "xdf",
       "path": "vendor/guzzidiag/xdf/7SM_RSV4_40xxXXxx_V0.12.zip",
@@ -996,6 +1056,36 @@
           "name": "7SM_RSV4_6404XXxx_V0.15.xdf",
           "bytes": 60326,
           "modified": "2021-04-24T22:12:44"
+        }
+      ]
+    },
+    {
+      "filename": "7SM_RSV4_7614XXxx_V0.15.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/7SM_RSV4_7614XXxx_V0.15.zip",
+      "bytes": 2865,
+      "sha256": "45ee02a0a162c2118a571ecb7a3ab255f2b6ee00f8fbe06e5099e7c6612d7803",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_7614XXxx_V0.15.zip",
+      "contents": [
+        {
+          "name": "7SM_RSV4_7614XXxx_V0.15.xdf",
+          "bytes": 62147,
+          "modified": "2021-04-24T22:02:36"
+        }
+      ]
+    },
+    {
+      "filename": "7SM_RSV4_7617XXxx_V0.15.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/7SM_RSV4_7617XXxx_V0.15.zip",
+      "bytes": 4479,
+      "sha256": "c80464ae84cfc3d9c98ed163a8596b5bc9c76e81f7c5c602ee721c199823ac35",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_7617XXxx_V0.15.zip",
+      "contents": [
+        {
+          "name": "7SM_RSV4_7617XXxx_V0.15.xdf",
+          "bytes": 123729,
+          "modified": "2021-04-24T22:27:08"
         }
       ]
     },

@@ -1,0 +1,58 @@
+{
+  "id": "mana_tcu",
+  "family": "Aprilia Mana CVT TCU",
+  "display_name": "Aprilia Mana 850 CVT transmission controller",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "2007-2016",
+  "notes": "The continuously-variable-transmission controller of the Aprilia Mana 850. The Mana's ENGINE controller is the shared Magneti Marelli IAW 5AM and is handled by the normal vehicle selection ('Mana 850' resolves to the 5AM, read-only as a cross-brand entry); this entry is the OTHER box on the same bike, the CVT TCU, the device ManaTCU_V1.03 exists for. Its existence and channel set are evidenced by that mirrored tool (vendor/guzzidiag/tools/ManaTCU_V1.03.exe, hash in vendor/guzzidiag/MANIFEST.json): K-line with fast init, a SecurityAccess seed/key exchange, EEPROM access, live channels (driving pulley potentiometer tracks 1 and 2 with voltages, gear mode switch) and actuators (pedal and handlebar gear up/downshift controls, driving pulley electrical motor). Nothing here has been captured on the wire by this project, so the identification layout is labelled unverified, and anything beyond identification, fault codes and the read-only discovery sweep refuses. Flashing, EEPROM engineering and clutch/gear learning stay with ManaTCU; if you can record one identification session against a real Mana TCU, this entry upgrades like any other family.",
+  "kline": {
+    "baud": 10400,
+    "init": "fast",
+    "address": 51,
+    "addressed": true,
+    "tester_address": 241,
+    "ecu_address": 16,
+    "inter_byte_delay": 0.005,
+    "note": "10400 baud and fast init are the Marelli standard of this era and ManaTCU's strings confirm fast init on this controller; the ECU address follows the sibling boxes and is unconfirmed on the TCU."
+  },
+  "session": {
+    "access_timing": false,
+    "diagnostic_session": null,
+    "lazy_session": true,
+    "tester_present_interval": 2.0
+  },
+  "identification": {
+    "service": 26,
+    "option": 128,
+    "fields": [
+      {
+        "name": "Identification",
+        "offset": 0,
+        "length": 40,
+        "note": "field layout unverified; shown as one raw block"
+      }
+    ]
+  },
+  "memory": {
+    "image_size": null,
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "ManaTCU_V1.03 reads and flashes this controller with a SecurityAccess seed/key exchange, but no memory-access sequence has been captured for this project and no key provider exists. Until one is, this build refuses; use ManaTCU for TCU memory work.",
+    "security_access": true,
+    "note": "SecurityAccess seed/key is present on this controller ('Send key failed' in the mirrored tool); the algorithm is unknown to this project.",
+    "regions": {}
+  },
+  "capabilities": [
+    "identify",
+    "dtc_read",
+    "discover"
+  ],
+  "sources": [
+    "ManaTCU_V1.03.exe channel/actuator/security strings, mirrored unmodified in vendor/guzzidiag/tools/ (SHA-256 in vendor/guzzidiag/MANIFEST.json)",
+    "vehicle side established from the GuzziTek master list mapping of Mana 850 to the shared IAW 5AM"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}

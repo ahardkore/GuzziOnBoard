@@ -524,3 +524,31 @@ b.bad { color: #ef8d78; }
   #mapsOut details > summary::before { content: ""; }
   .table-wrap { overflow: visible !important; }
 }
+
+/* Helper callouts — inline guidance next to the tools it explains. */
+.tip {
+  border-left: 3px solid var(--accent-dim);
+  background: var(--bg-2);
+  color: var(--muted);
+  font-size: .83rem;
+  line-height: 1.5;
+  padding: 9px 12px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin: 10px 0;
+}
+.tip.warn { border-left-color: var(--warn); color: #cfb98a; }
+.tip b, .tip strong { color: var(--text); font-weight: 600; }
+.tip code { font-family: var(--mono); font-size: .78rem; }
+
+textarea.mono-in, textarea.mono-out, #tools textarea {
+  width: 100%; background: var(--bg); color: var(--text);
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 9px 11px; font: inherit; font-family: var(--mono); font-size: .82rem;
+}
+textarea.mono-out { background: var(--bg-2); color: var(--muted); }
+#tools .toolbar select, #tools input[type="text"], #tools input[type="number"] {
+  background: var(--bg); color: var(--text); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: .85rem;
+}
+#tools .toolbar input[type="number"] { font-family: var(--mono); }
+#tools label.inline code { font-family: var(--mono); font-size: .78rem; }

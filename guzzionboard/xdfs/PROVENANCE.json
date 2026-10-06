@@ -878,5 +878,65 @@
     "version": "1.09",
     "imported_utc": "2026-10-06T03:11:49Z",
     "verified_parse": true
+  },
+  "ducati/59M_Monster S4_28640191B_V1.30.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Monster%20S4_28640191B_V1.30.zip",
+    "origin_zip": "59M_Monster S4_28640191B_V1.30.zip",
+    "sha256": "d7232abe727eb4352e39ff1607db51905802a9fc1c9c4144a842576f732716e9",
+    "title": "59M",
+    "author": "Pauldaytona / beard",
+    "version": "1.30",
+    "imported_utc": "2026-10-06T03:30:10Z",
+    "verified_parse": true
+  },
+  "aprilia/7SM_RSV4_1037AH01_V1.03.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_1037AH01_V1.03.zip",
+    "origin_zip": "7SM_RSV4_1037AH01_V1.03.zip",
+    "sha256": "fadec499563171e09b524d19af3d4ba37359b8c98229c0ba41b36d5ad52898b3",
+    "title": "7SM Aprilia RSV4 2012",
+    "author": "Beetle, Beard, Pauldaytona, Meinolf",
+    "version": "1.03",
+    "imported_utc": "2026-10-06T03:30:10Z",
+    "verified_parse": true
+  },
+  "aprilia/7SM_RSV4_1338XXxx_V0.14.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_1338XXxx_V0.14.zip",
+    "origin_zip": "7SM_RSV4_1338XXxx_V0.14.zip",
+    "sha256": "2af2607b10aa75bb8397c5e187112f341d9f8390ae53332594d08da604eb90ae",
+    "title": "7SM Aprilia RSV4 2012",
+    "author": "Beetle, Beard, Pauldaytona",
+    "version": "0.14",
+    "imported_utc": "2026-10-06T03:30:10Z",
+    "verified_parse": true
+  },
+  "aprilia/7SM_RSV4_13A9XXxx_V0.15.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_13A9XXxx_V0.15.zip",
+    "origin_zip": "7SM_RSV4_13A9XXxx_V0.15.zip",
+    "sha256": "87bf77a4e0afce9c7dc6948ea9837e8283a70bd6d7ba9cd1455a08e68410f1da",
+    "title": "7SM Aprilia RSV4 2014",
+    "author": "Beetle, Beard, Pauldaytona",
+    "version": "0.15",
+    "imported_utc": "2026-10-06T03:30:10Z",
+    "verified_parse": true
+  },
+  "aprilia/7SM_RSV4_7614XXxx_V0.15.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_7614XXxx_V0.15.zip",
+    "origin_zip": "7SM_RSV4_7614XXxx_V0.15.zip",
+    "sha256": "b652d4e52866d1d36baad16d0d01e8ce41e838e95828c420002f0e3ea1983e8b",
+    "title": "7SM Aprilia RSV4 76xxXXxx",
+    "author": "Beetle, Beard, Pauldaytona",
+    "version": "0.15",
+    "imported_utc": "2026-10-06T03:30:10Z",
+    "verified_parse": true
+  },
+  "aprilia/7SM_RSV4_7617XXxx_V0.15.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_7617XXxx_V0.15.zip",
+    "origin_zip": "7SM_RSV4_7617XXxx_V0.15.zip",
+    "sha256": "7b1beaa6ae174d7ad303ac8279a9d197c9b8cf88cec0f9cd0836f38986e497ca",
+    "title": "7SM Aprilia RSV4 7617XXxx",
+    "author": "Beetle, Beard, Pauldaytona",
+    "version": "0.15",
+    "imported_utc": "2026-10-06T03:30:10Z",
+    "verified_parse": true
   }
 }

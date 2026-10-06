@@ -643,8 +643,11 @@ async function refreshStatus() {
 
   $('#connDot').className = `conn-dot ${state.connected ? 'on' : ''}`;
   $('#connTitle').textContent = state.connected ? 'Connected' : 'Not connected';
+  const simulated = ['simulator', 'cansim'].includes(state.selection?.transport);
   $('#connSub').textContent = state.connected
-    ? `${ecu?.family || ''} via ${state.selection.transport}`
+    ? (simulated
+      ? `🧪 simulated ${ecu?.family || 'ECU'} — everything works, nothing is real`
+      : `${ecu?.family || ''} via ${state.selection.transport}`)
     : 'Pick a motorcycle in the Garage';
   $('#disconnectBtn').disabled = !state.connected;
 
@@ -1329,7 +1332,9 @@ function renderMemoryCapabilities(data) {
     ['ECU', `${esc(c.family)} <span class="muted">(${esc(c.ecu)})</span>`],
     ['Protocol', `<code>${esc(c.protocol)}</code>`],
     ['Read supported', yesno(c.read_supported)],
-    ['Write supported', yesno(c.write_supported)],
+    ['Write supported', c.simulated
+      ? (c.write_supported ? '<b class="ok">yes <span class="muted">(sim&nbsp;)</span></b>' : yesno(false))
+      : yesno(c.write_supported)],
     ['SecurityAccess', c.security_required
       ? (c.security_available
         ? '<b class="ok">required, provider available</b>'
@@ -1346,6 +1351,11 @@ function renderMemoryCapabilities(data) {
     .map(([k, v], i) => `<div${i >= 5 ? ' class="full"' : ''}>`
       + `<span>${k}</span><b>${v}</b></div>`)
     .join('');
+
+  $('#memCapsNote').innerHTML = c.simulation_note
+    ? `<p class="tip"><b>Simulated ECU.</b> ${esc(c.simulation_note
+        .replace(/^Simulated ECU:\s*/, ''))}</p>`
+    : '';
 
   const select = $('#memRegion');
   select.innerHTML = Object.entries(c.regions).map(([name, r]) => {
@@ -1441,7 +1451,29 @@ async function loadMemory() {
       : '<p class="muted">No key providers registered.</p>';
     $('#securityOut').innerHTML +=
       `<p class="muted small">Plugin directory: <code>${esc(sec.plugin_dir)}</code></p>`;
+    const chk = $('#unverifiedKeysChk');
+    if (chk) chk.checked = !!sec.unverified_keys_accepted;
   } catch (_) { /* not fatal */ }
+}
+
+const unverifiedKeysChk = $('#unverifiedKeysChk');
+if (unverifiedKeysChk) {
+  unverifiedKeysChk.onchange = async (ev) => {
+    try {
+      const res = await api('/api/security/unverified', {
+        method: 'POST', body: { accept: ev.target.checked },
+      });
+      toast(
+        res.allow_unverified_keys
+          ? 'Unverified key providers accepted for this session (audited).'
+          : 'Unverified key providers refused; verified providers only.',
+        res.allow_unverified_keys ? 'warn' : 'ok');
+    } catch (err) {
+      ev.target.checked = !ev.target.checked;
+      toast(err.message, 'bad');
+    }
+    loadMemory();
+  };
 }
 
 async function renderWriteGate() {
@@ -1461,7 +1493,14 @@ async function renderWriteGate() {
 $('#adapterBtn').onclick = async () => {
   const port = encodeURIComponent($('#adapterPort').value.trim());
   const data = await api(`/api/adapter?port=${port}`);
-  $('#adapterOut').textContent = data.text;
+  let out = data.text;
+  const driver = data.report && data.report.driver;
+  if (driver && driver.hint) {
+    out += `\n\n[driver · ${driver.os || 'host'}] ${driver.hint}`;
+    out += driver.bundle_available
+      ? `\n        mirrored bundle: ${driver.bundle_path}` : '';
+  }
+  $('#adapterOut').textContent = out;
   const likely = (data.ports || []).find((p) => p.likely_adapter);
   if (likely && !$('#adapterPort').value) $('#adapterPort').value = likely.device;
 };
@@ -1512,8 +1551,13 @@ $('#validateBtn').onclick = async () => {
 
 $('#enableProgBtn').onclick = async () => {
   try {
+    const keyChk = $('#unverifiedKeysChk');
     await api('/api/programming/enable', {
-      method: 'POST', body: { acknowledgement: $('#ackInput').value },
+      method: 'POST',
+      body: {
+        acknowledgement: $('#ackInput').value,
+        allow_unverified_keys: !!(keyChk && keyChk.checked),
+      },
     });
     toast('Programming enabled for this session.', 'warn');
   } catch (err) { toast(err.message, 'bad'); }
@@ -2006,4 +2050,173 @@ $('#compareBtn').onclick = async () => {
     $('#compareOut').innerHTML =
       `<div class="gate-card bad"><h4>Could not compare</h4><p class="small">${esc(err.message)}</p></div>`;
   }
+};
+
+/* ------------------------------------------------------------------ tools */
+/* Workshop utilities, no ECU connection needed: the gearing/road-speed
+ * table with the per-model ratios read out of the mirrored GearSpeed app,
+ * the Zeitronix ZT-2 to LogWorks DIF log converter (with the reference
+ * tool's documented factor-4 timeline error corrected), and the bench RPM
+ * trigger-signal generator (wheel geometry from RPMSensorEmu's configs). */
+
+let toolsInit = false;
+
+$$('.nav').forEach((b) => {
+  if (b.dataset.view === 'tools') {
+    const previous = b.onclick;
+    b.onclick = () => { previous?.(); loadTools(); };
+  }
+});
+
+async function loadTools() {
+  if (toolsInit) return;
+  toolsInit = true;
+  try {
+    const data = await api('/api/tools/gearing');
+    const presets = data.presets || {};
+    state.gearPresets = presets;
+    $('#gearPreset').innerHTML =
+      '<option value="">— custom ratios —</option>'
+      + Object.keys(presets)
+        .map((name) => `<option value="${esc(name)}">${esc(name)}</option>`)
+        .join('');
+    if (!$('#gearRatios').value.trim()) {
+      $('#gearRatios').value = (data.gear_ratios_used || []).join(', ');
+    }
+  } catch (err) {
+    $('#gearMeta').textContent = `Could not load presets: ${err.message}`;
+  }
+}
+
+$('#gearPreset').onchange = (ev) => {
+  const preset = (state.gearPresets || {})[ev.target.value];
+  if (preset) $('#gearRatios').value = preset.gears.join(', ');
+};
+
+$('#gearCalcBtn').onclick = async () => {
+  try {
+    const params = new URLSearchParams({
+      final_drive: $('#gearFinal').value.trim() || '4.125',
+      tyre: $('#gearTyre').value.trim() || '180/55-17',
+      preset: $('#gearPreset').value,
+      gears: $('#gearRatios').value.trim(),
+    });
+    const data = await api(`/api/tools/gearing?${params}`);
+    const gears = Object.entries(data.gears || {});
+    if (!gears.length || !(data.rpm || []).length) {
+      $('#gearOut').innerHTML = '<p class="muted">Nothing to show — check the gear ratios.</p>';
+      return;
+    }
+    const head = '<th>engine rpm</th>'
+      + gears.map(([g]) => `<th>${esc(g.replace('gear', ''))}. gear</th>`).join('');
+    const maxRpm = data.max_rpm || Infinity;
+    const rows = data.rpm.map((rpm, i) => {
+      const cls = rpm > maxRpm ? ' class="dim"' : '';
+      return `<tr${cls}><td>${rpm}</td>`
+        + gears.map(([, speeds]) => `<td>${speeds[i]}</td>`).join('') + '</tr>';
+    }).join('');
+    $('#gearOut').innerHTML = `<div class="table-wrap"><table class="data">
+      <thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    $('#gearMeta').textContent =
+      `${data.preset ? `Preset: ${data.preset} · ` : ''}`
+      + `tyre ${data.tyre} (${data.circumference_m} m rolling) · final drive `
+      + `${data.final_drive} · speeds in km/h`
+      + (Number.isFinite(maxRpm) ? ` · dimmed rows are above the preset's ${maxRpm} rpm` : '');
+  } catch (err) {
+    toast(err.message, 'bad');
+    $('#gearOut').innerHTML = '';
+  }
+};
+
+/* -- wideband log converter -------------------------------------------- */
+
+$('#z2ConvertBtn').onclick = async () => {
+  const text = $('#z2In').value;
+  if (!text.trim()) return toast('Paste a ZDL CSV export first.', 'bad');
+  try {
+    const data = await api('/api/tools/z2dif', {
+      method: 'POST',
+      body: {
+        text,
+        timeline_factor: parseFloat($('#z2Factor').value) || 4,
+        sample_rate: parseFloat($('#z2Rate').value) || 65,
+      },
+    });
+    state.z2dif = data.dif;
+    $('#z2Out').value = data.dif;
+    $('#z2Meta').textContent =
+      `${data.rows} rows · ${data.channels.join(' · ')} · ${data.duration_s}s `
+      + `at ${data.sample_rate}/s (factor ${data.timeline_factor})`;
+    $('#z2DownloadBtn').disabled = false;
+    $('#z2CopyBtn').disabled = false;
+    toast(`Converted ${data.rows} rows.`, 'ok');
+  } catch (err) {
+    $('#z2Meta').textContent = err.message;
+    toast(err.message, 'bad');
+  }
+};
+
+$('#z2DownloadBtn').onclick = () => {
+  const blob = new Blob([state.z2dif || $('#z2Out').value], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'zt2-converted.dif';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+$('#z2CopyBtn').onclick = async () => {
+  try {
+    await navigator.clipboard.writeText($('#z2Out').value);
+    toast('DIF table copied to the clipboard.', 'ok');
+  } catch (_) {
+    toast('Clipboard is blocked; select the text and copy by hand.', 'warn');
+  }
+};
+
+/* -- bench RPM trigger signal ------------------------------------------ */
+
+$('#sigPreset').onchange = (ev) => {
+  $('#sigCustom').classList.toggle('hidden', ev.target.value !== 'custom');
+};
+
+function signalWheelBody() {
+  const preset = $('#sigPreset').value;
+  if (preset !== 'custom') return { pattern: preset };
+  return {
+    teeth: parseInt($('#sigTeeth').value, 10),
+    missing: parseInt($('#sigMissing').value, 10),
+    wheel: $('#sigWheel').value,
+  };
+}
+
+async function generateSignal(body) {
+  const data = await api('/api/tools/rpmsignal', { method: 'POST', body });
+  $('#sigOut').innerHTML =
+    `<div class="tip"><b>Saved:</b> <code>${esc(data.path)}</code><br>`
+    + `${esc(data.pattern)} · ${data.duration_s}s of signal`
+    + (data.note ? ` · ${esc(data.note)}` : '') + '</div>';
+  toast('Signal WAV written — play it through an AC-coupled buffer.', 'ok');
+}
+
+$('#sigSimpleBtn').onclick = async () => {
+  try {
+    const body = signalWheelBody();
+    body.rpm = parseFloat($('#sigRpm').value) || 0;
+    body.seconds = parseFloat($('#sigSecs').value) || 0;
+    await generateSignal(body);
+  } catch (err) { toast(err.message, 'bad'); }
+};
+
+$('#sigBatchBtn').onclick = async () => {
+  try {
+    const events = $('#sigBatch').value.split('\n')
+      .map((ln) => ln.trim())
+      .filter((ln) => ln && !ln.startsWith(';'))
+      .map((ln) => ln.split('|').map((v) => parseFloat(v.trim())));
+    if (!events.length) return toast('Write at least one batch step first.', 'bad');
+    const body = signalWheelBody();
+    body.events = events;
+    await generateSignal(body);
+  } catch (err) { toast(err.message, 'bad'); }
 };

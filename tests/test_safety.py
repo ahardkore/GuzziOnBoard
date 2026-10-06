@@ -5,7 +5,13 @@ import pytest
 
 from guzzionboard.catalog import load_catalog
 from guzzionboard.protocol.kwp2000 import Service
-from guzzionboard.safety import Mode, Risk, SafetyGate, VehicleState
+from guzzionboard.safety import (
+    Mode,
+    Risk,
+    SafetyGate,
+    TokenError,
+    VehicleState,
+)
 
 
 @pytest.fixture
@@ -277,6 +283,26 @@ def test_token_expires(profile, gate):
 def test_missing_token_is_refused(gate):
     with pytest.raises(PermissionError):
         gate.consume(None, "actuator:fuel_pump")
+
+
+def test_token_errors_are_distinct_from_other_refusals(profile, gate):
+    """The HTTP surface reports token trouble with its own code.
+
+    A missing/stale/wrong-operation token is a TokenError (code 'token'),
+    not the frame guard's plain PermissionError (code 'refused') and not a
+    SafetyViolation (code 'safety') - the dispatch maps each differently.
+    """
+    ready(gate)
+    decision = gate.evaluate_actuator(profile, profile.actuator("fuel_pump"))
+    with pytest.raises(TokenError):
+        gate.consume("not-a-token", "actuator:fuel_pump")
+    with pytest.raises(TokenError):
+        gate.consume(decision.token, "actuator:injector_front")
+    ok = gate.evaluate_actuator(profile, profile.actuator("fuel_pump"))
+    gate.consume(ok.token, "actuator:fuel_pump")      # right op: fine
+    with pytest.raises(TokenError):
+        gate.consume(ok.token, "actuator:fuel_pump")  # already spent
+    assert issubclass(TokenError, PermissionError)
 
 
 def test_a_refused_decision_mints_no_token(profile):

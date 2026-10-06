@@ -58,7 +58,6 @@ from .catalog import EcuProfile
 from .firmware import (
     FirmwareImage,
     IncompatibleImage,
-    checksums,
     extract_hardware_strings,
     iaw5am_upload_blob,
     iaw5am_upload_checksum,

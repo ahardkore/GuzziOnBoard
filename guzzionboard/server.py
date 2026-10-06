@@ -27,7 +27,7 @@ from .diagnostics import NotConnected
 from .firmware import FirmwareImage, FirmwareError
 from .maps import BUNDLED_XDF_DIR, XDF_DIR, XdfError, XdfFile, available_xdfs
 from .programming import ProgrammingError, ProgrammingService
-from .safety import SafetyViolation
+from .safety import SafetyViolation, TokenError
 from .security import SecurityUnavailable, describe_all, load_plugins
 from . import procedures
 from . import replay
@@ -1023,6 +1023,8 @@ def make_handler(workstation: Workstation):
                     "error": str(exc), "code": "safety",
                     "decision": exc.decision.as_dict(),
                 }
+            except TokenError as exc:
+                status, payload = 403, {"error": str(exc), "code": "token"}
             except PermissionError as exc:
                 status, payload = 403, {"error": str(exc), "code": "refused"}
             except (CatalogError, ValueError, KeyError) as exc:
@@ -1035,8 +1037,6 @@ def make_handler(workstation: Workstation):
                 status, payload = 501, {"error": str(exc), "code": "no_key_provider"}
             except (ProgrammingError, FirmwareError) as exc:
                 status, payload = 409, {"error": str(exc), "code": "programming"}
-            except PermissionError as exc:
-                status, payload = 403, {"error": str(exc), "code": "token"}
             except Exception as exc:  # pragma: no cover - last resort
                 traceback.print_exc()
                 status, payload = 500, {"error": str(exc), "code": "internal"}

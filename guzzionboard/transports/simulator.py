@@ -27,7 +27,6 @@ from ..protocol.kwp2000 import (
     NRC,
     TESTER_ADDRESS,
     Service,
-    checksum,
     decode_frame,
     encode_request,
 )

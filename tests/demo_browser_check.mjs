@@ -360,8 +360,9 @@ check('the write admits it is a simulation of the riskiest operation',
 
 const replayedWrite = await post('/api/memory/write',
   { path: imagePath, token: gate.payload.token });
-check('a write token is single-use', replayedWrite.status === 403,
-  String(replayedWrite.status));
+check('a write token is single-use (code token)',
+  replayedWrite.status === 403 && replayedWrite.payload.code === 'token',
+  `${replayedWrite.status} ${replayedWrite.payload.code}`);
 
 /* The hardware-family safety gate. The demo's virtual bench carries an
  * image from a different hardware family (an HW1xx file for this HW6xx

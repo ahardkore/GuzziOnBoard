@@ -85,6 +85,14 @@ class SafetyViolation(PermissionError):
         super().__init__(f"{decision.operation} refused: {decision.reason()}")
 
 
+class TokenError(PermissionError):
+    """A confirmation token was missing, stale, or minted for another
+    operation.  Distinct from :class:`SafetyViolation` (a precondition
+    failed) and from the frame guard's plain :class:`PermissionError`
+    (an unarmed service), so the HTTP surface can report each with its
+    own code: ``safety``, ``token`` and ``refused`` respectively."""
+
+
 #: The refusal wording every hardware-family mismatch shares.  The 7SM
 #: documentation is blunt about the concrete case: *"Don't flash HW1xx
 #: versions in a HW3xx ECU and vice versa. You will brick your ECU!"*
@@ -398,16 +406,16 @@ class SafetyGate:
     def consume(self, token: str | None, operation: str, *, max_age: float = 120.0) -> None:
         """Spend a confirmation token. Raises if it is missing or stale."""
         if token is None or token not in self._tokens:
-            raise PermissionError(
+            raise TokenError(
                 f"{operation}: no valid confirmation token; re-run the safety check"
             )
         recorded, issued = self._tokens.pop(token)
         if recorded != operation:
-            raise PermissionError(
+            raise TokenError(
                 f"token was issued for {recorded!r}, not {operation!r}"
             )
         if time.monotonic() - issued > max_age:
-            raise PermissionError(
+            raise TokenError(
                 f"{operation}: confirmation expired after {max_age:.0f}s; check again"
             )
 

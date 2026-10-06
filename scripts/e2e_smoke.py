@@ -111,8 +111,9 @@ def main() -> int:
     check("DTC read + decode", st == 200 and bool(dlist),
           json.dumps(dlist[0] if dlist else dtcs)[:110])
     st, refusal = api("POST", "/api/dtcs/clear", {})
-    check("DTC clear gated without token", st == 403,
-          refusal.get("error", "")[:80])
+    check("DTC clear gated without token (code 'token')", st == 403
+          and refusal.get("code") == "token",
+          f"{refusal.get('code')}: {refusal.get('error', '')[:70]}")
     st, acts = api("GET", "/api/actuators")
     check("actuator tests catalogued",
           st == 200 and len(acts.get("actuators", [])) >= 10,

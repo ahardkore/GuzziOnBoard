@@ -23,7 +23,7 @@ from .derived import CHANNELS as DERIVED_CHANNELS, Analyzer
 from .transports.simulator import FAULTS as SIM_FAULTS, FAULTS_BY_KEY as SIM_FAULTS_BY_KEY
 from .diagnostics import NotConnected
 from .firmware import FirmwareImage, FirmwareError
-from .maps import XDF_DIR, XdfError, XdfFile, load_xdfs
+from .maps import BUNDLED_XDF_DIR, XDF_DIR, XdfError, XdfFile, available_xdfs
 from .programming import ProgrammingError, ProgrammingService
 from .safety import SafetyViolation
 from .security import SecurityUnavailable, describe_all, load_plugins
@@ -560,21 +560,24 @@ class Api:
 
     # -- maps (TunerPro XDF) -----------------------------------------------
     def get_maps(self, query: dict) -> tuple[int, dict]:
-        xdfs = load_xdfs()
+        xdfs = available_xdfs()
         return 200, {
             "directory": str(XDF_DIR),
+            "bundled_directory": str(BUNDLED_XDF_DIR),
             "xdfs": [x.describe() for x in xdfs],
         }
 
     def _load_xdf(self, ref: str) -> XdfFile:
-        """An XDF from the plugin directory (by title or filename), or a path."""
-        for xdf in load_xdfs():
+        """An XDF from the plugin/bundled directories (by title or filename),
+        or a path."""
+        for xdf in available_xdfs():
             if ref in (xdf.title, Path(xdf.path).name if xdf.path else None):
                 return xdf
         if Path(ref).suffix.lower() == ".xdf":
             return XdfFile.from_file(ref)
         raise XdfError(
-            f"no XDF named {ref!r} in {XDF_DIR}, and not a .xdf path either"
+            f"no XDF named {ref!r} in {XDF_DIR} or {BUNDLED_XDF_DIR}, "
+            f"and not a .xdf path either"
         )
 
     @staticmethod

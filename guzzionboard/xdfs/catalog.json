@@ -1,0 +1,1424 @@
+[
+  {
+    "zip_filename": "15P_1P0Z_V1.02.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0Z_V1.02.zip",
+    "brand": "aprilia",
+    "family": "15P",
+    "label": "Aprilia Atlantic 500ie (1P0Z) V1.02",
+    "xdf_filename": "15P_1P0Z_V1.02.xdf",
+    "vendor_path": "aprilia/15P_1P0Z_V1.02.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia Atlantic 500ie (1P0Z) V1.02"
+      },
+      {
+        "brand": "piaggio",
+        "label": "Beverly X9 500ie (1P0Z) V1.02"
+      },
+      {
+        "brand": "piaggio",
+        "label": "Beverly 500ie (1P0Z) V1.02"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Aprilia_GP850_V1.00.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_GP850_V1.00.zip",
+    "brand": "aprilia",
+    "family": "5AM",
+    "label": "Aprilia GP 850 V1.00",
+    "xdf_filename": "5AM_Aprilia_GP850_V1.00.xdf",
+    "vendor_path": "aprilia/5AM_Aprilia_GP850_V1.00.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia GP 850 V1.00"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Aprilia_Mana_V1.38.ZIP",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_Mana_V1.38.ZIP",
+    "brand": "aprilia",
+    "family": "5AM",
+    "label": "Aprilia Mana V1.38",
+    "xdf_filename": "5AM_Aprilia_Mana_V1.38.xdf",
+    "vendor_path": "aprilia/5AM_Aprilia_Mana_V1.38.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia Mana V1.38"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Aprilia_SRV850_V1.00.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_SRV850_V1.00.zip",
+    "brand": "aprilia",
+    "family": "5AM",
+    "label": "Aprilia SRV 850 V1.00",
+    "xdf_filename": "5AM_Aprilia_SRV850_V1.00.xdf",
+    "vendor_path": "aprilia/5AM_Aprilia_SRV850_V1.00.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia SRV 850 V1.00"
+      }
+    ]
+  },
+  {
+    "zip_filename": "7SM_Caponord_1200_1050Fxxx.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_Caponord_1200_1050Fxxx.zip",
+    "brand": "aprilia",
+    "family": "7SM",
+    "label": "Aprilia Caponord 1200 1050Fxxx",
+    "xdf_filename": "7SM_Caponord_1200_1050Fxxx.xdf",
+    "vendor_path": "aprilia/7SM_Caponord_1200_1050Fxxx.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia Caponord 1200 1050Fxxx"
+      }
+    ]
+  },
+  {
+    "zip_filename": "7SM_Dorsoduro_1200_1338XXxx_V0.14.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_Dorsoduro_1200_1338XXxx_V0.14.zip",
+    "brand": "aprilia",
+    "family": "7SM",
+    "label": "Aprilia Dorsoduro 1200 1338XXxx V0.14",
+    "xdf_filename": "7SM_Dorsoduro_1200_1338XXxx_V0.14.xdf",
+    "vendor_path": "aprilia/7SM_Dorsoduro_1200_1338XXxx_V0.14.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia Dorsoduro 1200 1338XXxx V0.14"
+      }
+    ]
+  },
+  {
+    "zip_filename": "7SM_RSV4_1037AH01_V1.03.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_1037AH01_V1.03.zip",
+    "brand": "aprilia",
+    "family": "7SM",
+    "label": "Aprilia RSV4 1037XXxx V1.03",
+    "xdf_filename": "7SM_RSV4_1037AH01_V1.03.xdf",
+    "vendor_path": "aprilia/7SM_RSV4_1037AH01_V1.03.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia RSV4 1037XXxx V1.03"
+      }
+    ]
+  },
+  {
+    "zip_filename": "7SM_RSV4_1338XXxx_V0.14.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_1338XXxx_V0.14.zip",
+    "brand": "aprilia",
+    "family": "7SM",
+    "label": "Aprilia RSV4 1338XXxx V0.14",
+    "xdf_filename": "7SM_RSV4_1338XXxx_V0.14.xdf",
+    "vendor_path": "aprilia/7SM_RSV4_1338XXxx_V0.14.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia RSV4 1338XXxx V0.14"
+      }
+    ]
+  },
+  {
+    "zip_filename": "7SM_RSV4_13A9XXxx_V0.15.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_13A9XXxx_V0.15.zip",
+    "brand": "aprilia",
+    "family": "7SM",
+    "label": "Aprilia RSV4 13A9XXxx V0.15",
+    "xdf_filename": "7SM_RSV4_13A9XXxx_V0.15.xdf",
+    "vendor_path": "aprilia/7SM_RSV4_13A9XXxx_V0.15.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia RSV4 13A9XXxx V0.15"
+      }
+    ]
+  },
+  {
+    "zip_filename": "7SM_RSV4_40xxXXxx_V0.12.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_40xxXXxx_V0.12.zip",
+    "brand": "aprilia",
+    "family": "7SM",
+    "label": "Aprilia RSV4 40xxXXxx V0.12",
+    "xdf_filename": "7SM_RSV4_40xxXXxx_V0.12.xdf",
+    "vendor_path": "aprilia/7SM_RSV4_40xxXXxx_V0.12.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia RSV4 40xxXXxx V0.12"
+      }
+    ]
+  },
+  {
+    "zip_filename": "7SM_RSV4_6403XXxx_V0.13.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_6403XXxx_V0.13.zip",
+    "brand": "aprilia",
+    "family": "7SM",
+    "label": "Aprilia RSV4 6403XXxx V0.13",
+    "xdf_filename": "7SM_RSV4_6403XXxx_V0.13.xdf",
+    "vendor_path": "aprilia/7SM_RSV4_6403XXxx_V0.13.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia RSV4 6403XXxx V0.13"
+      }
+    ]
+  },
+  {
+    "zip_filename": "7SM_RSV4_6404XXxx_V0.15.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_6404XXxx_V0.15.zip",
+    "brand": "aprilia",
+    "family": "7SM",
+    "label": "Aprilia RSV4 6404XXxx V0.15",
+    "xdf_filename": "7SM_RSV4_6404XXxx_V0.15.xdf",
+    "vendor_path": "aprilia/7SM_RSV4_6404XXxx_V0.15.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia RSV4 6404XXxx V0.15"
+      }
+    ]
+  },
+  {
+    "zip_filename": "7SM_RSV4_7614XXxx_V0.15.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_7614XXxx_V0.15.zip",
+    "brand": "aprilia",
+    "family": "7SM",
+    "label": "Aprilia RSV4 7614XXxx V0.15",
+    "xdf_filename": "7SM_RSV4_7614XXxx_V0.15.xdf",
+    "vendor_path": "aprilia/7SM_RSV4_7614XXxx_V0.15.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia RSV4 7614XXxx V0.15"
+      }
+    ]
+  },
+  {
+    "zip_filename": "7SM_RSV4_7617XXxx_V0.15.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_7617XXxx_V0.15.zip",
+    "brand": "aprilia",
+    "family": "7SM",
+    "label": "Aprilia RSV4 7617XXxx V0.15",
+    "xdf_filename": "7SM_RSV4_7617XXxx_V0.15.xdf",
+    "vendor_path": "aprilia/7SM_RSV4_7617XXxx_V0.15.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia RSV4 7617XXxx V0.15"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_Aprilia_RS4_125_CM088115_V1.02.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_RS4_125_CM088115_V1.02.zip",
+    "brand": "aprilia",
+    "family": "MIUG3",
+    "label": "Aprilia RS4 125 CM088115 V1.02",
+    "xdf_filename": "MIUG3_Aprilia_RS4_125_CM088115_V1.02.xdf",
+    "vendor_path": "aprilia/MIUG3_Aprilia_RS4_125_CM088115_V1.02.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia RS4 125 CM088115 V1.02"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_Aprilia_RS4_125_CM227201_V1.02.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_RS4_125_CM227201_V1.02.zip",
+    "brand": "aprilia",
+    "family": "MIUG3",
+    "label": "Aprilia RS4 125 CM227201 V1.02",
+    "xdf_filename": "MIUG3_Aprilia_RS4_125_CM227201_V1.02.xdf",
+    "vendor_path": "aprilia/MIUG3_Aprilia_RS4_125_CM227201_V1.02.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia RS4 125 CM227201 V1.02"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_Aprilia_SR_MAX_300ie_V1.02.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_SR_MAX_300ie_V1.02.zip",
+    "brand": "aprilia",
+    "family": "MIUG3",
+    "label": "Aprilia SR MAX 300ie V1.02",
+    "xdf_filename": "MIUG3_Aprilia_SR_MAX_300ie_V1.02.xdf",
+    "vendor_path": "aprilia/MIUG3_Aprilia_SR_MAX_300ie_V1.02.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia SR MAX 300ie V1.02"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_Aprilia_SX125_464EA105_V1.00.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_SX125_464EA105_V1.00.zip",
+    "brand": "aprilia",
+    "family": "MIUG3",
+    "label": "Aprilia SX125 464EA105 V1.00",
+    "xdf_filename": "MIUG3_Aprilia_SX125_464EA105_V1.00.xdf",
+    "vendor_path": "aprilia/MIUG3_Aprilia_SX125_464EA105_V1.00.xdf",
+    "used_by": [
+      {
+        "brand": "aprilia",
+        "label": "Aprilia SX125 464EA105 V1.00"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MBC1_BMW_C600_V1.01.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_BMW_C600_V1.01.zip",
+    "brand": "bmw",
+    "family": "MBC1",
+    "label": "BMW C600 V1.01",
+    "xdf_filename": "MBC1_BMW_C600_V1.01.xdf",
+    "vendor_path": "bmw/MBC1_BMW_C600_V1.01.xdf",
+    "used_by": [
+      {
+        "brand": "bmw",
+        "label": "BMW C600 V1.01"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15M_Ducati_750SS_V2.28.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_Ducati_750SS_V2.28.zip",
+    "brand": "ducati",
+    "family": "15M",
+    "label": "Ducati 750SS V2.28",
+    "xdf_filename": "15M_Ducati_750SS_V2.28.xdf",
+    "vendor_path": "ducati/15M_Ducati_750SS_V2.28.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati 750SS V2.28"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15M_Ducati_M900_V1.0.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_Ducati_M900_V1.0.zip",
+    "brand": "ducati",
+    "family": "15M",
+    "label": "Ducati M900 V1.0",
+    "xdf_filename": "15M_Ducati_M900_V1.0.xdf",
+    "vendor_path": "ducati/15M_Ducati_M900_V1.0.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati M900 V1.0"
+      }
+    ]
+  },
+  {
+    "zip_filename": "16M_Duc748_916S_64k_V1.1.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_Duc748_916S_64k_V1.1.zip",
+    "brand": "ducati",
+    "family": "16M",
+    "label": "Ducati 748/916S V1.10",
+    "xdf_filename": "16M_Duc748_916S_64k_V1.1.xdf",
+    "vendor_path": "ducati/16M_Duc748_916S_64k_V1.1.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati 748/916S V1.10"
+      }
+    ]
+  },
+  {
+    "zip_filename": "59M_Ducati_1000SS_V1.28.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Ducati_1000SS_V1.28.zip",
+    "brand": "ducati",
+    "family": "59M",
+    "label": "Ducati 1000SS V1.28",
+    "xdf_filename": "59M_Ducati_1000SS_V1.28.xdf",
+    "vendor_path": "ducati/59M_Ducati_1000SS_V1.28.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati 1000SS V1.28"
+      }
+    ]
+  },
+  {
+    "zip_filename": "59M_Monster S4_2002_96508702B_V1.28.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Monster%20S4_2002_96508702B_V1.28.zip",
+    "brand": "ducati",
+    "family": "59M",
+    "label": "Ducati Monster S4 2002 96508702B V1.28",
+    "xdf_filename": "59M_Monster S4_2002_96508702B_V1.28.xdf",
+    "vendor_path": "ducati/59M_Monster S4_2002_96508702B_V1.28.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati Monster S4 2002 96508702B V1.28"
+      }
+    ]
+  },
+  {
+    "zip_filename": "59M_Monster S4_28640191B_V1.30.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Monster%20S4_28640191B_V1.30.zip",
+    "brand": "ducati",
+    "family": "59M",
+    "label": "Ducati Monster S4 28640191B V1.30",
+    "xdf_filename": "59M_Monster S4_28640191B_V1.30.xdf",
+    "vendor_path": "ducati/59M_Monster S4_28640191B_V1.30.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati Monster S4 28640191B V1.30"
+      }
+    ]
+  },
+  {
+    "zip_filename": "59M_SS-800_28640671A_V1.28.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_SS-800_28640671A_V1.28.zip",
+    "brand": "ducati",
+    "family": "59M",
+    "label": "Ducati SS-800 28640671A V1.28",
+    "xdf_filename": "59M_SS-800_28640671A_V1.28.xdf",
+    "vendor_path": "ducati/59M_SS-800_28640671A_V1.28.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati SS-800 28640671A V1.28"
+      }
+    ]
+  },
+  {
+    "zip_filename": "59M_Ducati_ST4S_2003_1.01.xdf.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Ducati_ST4S_2003_1.01.xdf.zip",
+    "brand": "ducati",
+    "family": "59M",
+    "label": "Ducati ST4S 2003 V1.01",
+    "xdf_filename": "59M_Ducati_ST4S_2003_1.01.xdf",
+    "vendor_path": "ducati/59M_Ducati_ST4S_2003_1.01.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati ST4S 2003 V1.01"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_1098_S_DP_V1.1.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1098_S_DP_V1.1.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati 1098 S DP V1.1",
+    "xdf_filename": "5AM_Ducati_1098_S_DP_V1.1.xdf",
+    "vendor_path": "ducati/5AM_Ducati_1098_S_DP_V1.1.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati 1098 S DP V1.1"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_1098R_22C3_013_V1.28.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1098R_22C3_013_V1.28.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati 1098R 22C3 V1.28",
+    "xdf_filename": "5AM_Ducati_1098R_22C3_013_V1.28.xdf",
+    "vendor_path": "ducati/5AM_Ducati_1098R_22C3_013_V1.28.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati 1098R 22C3 V1.28"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_1198S_3213_PQ58_V1.27.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198S_3213_PQ58_V1.27.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati 1198 3213 PQ58 V1.27",
+    "xdf_filename": "5AM_Ducati_1198S_3213_PQ58_V1.27.xdf",
+    "vendor_path": "ducati/5AM_Ducati_1198S_3213_PQ58_V1.27.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati 1198 3213 PQ58 V1.27"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_1198_328641831D_V1.27.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198_328641831D_V1.27.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati 1198 328641831D V1.27",
+    "xdf_filename": "5AM_Ducati_1198_328641831D_V1.27.xdf",
+    "vendor_path": "ducati/5AM_Ducati_1198_328641831D_V1.27.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati 1198 328641831D V1.27"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_1198_DP_V1.27.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198_DP_V1.27.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati 1198 DP 96520311B V1.27",
+    "xdf_filename": "5AM_Ducati_1198_DP_V1.27.xdf",
+    "vendor_path": "ducati/5AM_Ducati_1198_DP_V1.27.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati 1198 DP 96520311B V1.27"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_1198SP_96520411B_2.2.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_1198SP_96520411B_2.2.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati 1198 SP 96520411B V2.2",
+    "xdf_filename": "5AM_1198SP_96520411B_2.2.xdf",
+    "vendor_path": "ducati/5AM_1198SP_96520411B_2.2.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati 1198 SP 96520411B V2.2"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_848_22AELM26_28641571A_V1.1.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_22AELM26_28641571A_V1.1.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati 848 28641571A V1.1",
+    "xdf_filename": "5AM_Ducati_848_22AELM26_28641571A_V1.1.xdf",
+    "vendor_path": "ducati/5AM_Ducati_848_22AELM26_28641571A_V1.1.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati 848 28641571A V1.1"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_848_22aesma2_96519408B_V1.0.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_22aesma2_96519408B_V1.0.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati 848 96519408B V1.0",
+    "xdf_filename": "5AM_Ducati_848_22aesma2_96519408B_V1.0.xdf",
+    "vendor_path": "ducati/5AM_Ducati_848_22aesma2_96519408B_V1.0.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati 848 96519408B V1.0"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_848_V1.0.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_V1.0.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati 848 V1.0",
+    "xdf_filename": "5AM_Ducati_848_V1.0.xdf",
+    "vendor_path": "ducati/5AM_Ducati_848_V1.0.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati 848 V1.0"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_Hypermotard_1100_V1.0.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_Hypermotard_1100_V1.0.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati Hypermotard 1100 V1.0",
+    "xdf_filename": "5AM_Ducati_Hypermotard_1100_V1.0.xdf",
+    "vendor_path": "ducati/5AM_Ducati_Hypermotard_1100_V1.0.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati Hypermotard 1100 V1.0"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_MTS1000_HW103_V1.0.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_MTS1000_HW103_V1.0.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati MTS1000 HW103 V1.0",
+    "xdf_filename": "5AM_Ducati_MTS1000_HW103_V1.0.xdf",
+    "vendor_path": "ducati/5AM_Ducati_MTS1000_HW103_V1.0.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati MTS1000 HW103 V1.0"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_MTS1000_HW610_V1.0.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_MTS1000_HW610_V1.0.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati MTS1000 HW610 V1.0",
+    "xdf_filename": "5AM_Ducati_MTS1000_HW610_V1.0.xdf",
+    "vendor_path": "ducati/5AM_Ducati_MTS1000_HW610_V1.0.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati MTS1000 HW610 V1.0"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_Multistrada_1100_V1.28.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_Multistrada_1100_V1.28.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati Multistrada 1100 V1.28",
+    "xdf_filename": "5AM_Ducati_Multistrada_1100_V1.28.xdf",
+    "vendor_path": "ducati/5AM_Ducati_Multistrada_1100_V1.28.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati Multistrada 1100 V1.28"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_S2_1000R_DP_V1.28.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S2_1000R_DP_V1.28.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati S2-1000R DP V1.28",
+    "xdf_filename": "5AM_Ducati_S2_1000R_DP_V1.28.xdf",
+    "vendor_path": "ducati/5AM_Ducati_S2_1000R_DP_V1.28.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati S2-1000R DP V1.28"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_S2_800R_V1.28.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S2_800R_V1.28.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati S2-800R V1.28",
+    "xdf_filename": "5AM_Ducati_S2_800R_V1.28.xdf",
+    "vendor_path": "ducati/5AM_Ducati_S2_800R_V1.28.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati S2-800R V1.28"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_S4R_996_Monster_HW610_V1.0.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S4R_996_Monster_HW610_V1.0.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati S4R 996 Monster V1.0",
+    "xdf_filename": "5AM_Ducati_S4R_996_Monster_HW610_V1.0.xdf",
+    "vendor_path": "ducati/5AM_Ducati_S4R_996_Monster_HW610_V1.0.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati S4R 996 Monster V1.0"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati SC1000 Biposto (Stock&DP) S4RS V1.35",
+    "xdf_filename": "5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.xdf",
+    "vendor_path": "ducati/5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati SC1000 Biposto (Stock&DP) S4RS V1.35"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati SC1000 Monoposto (DP) V1.35",
+    "xdf_filename": "5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.xdf",
+    "vendor_path": "ducati/5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati SC1000 Monoposto (DP) V1.35"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati SC1000 Monoposto (Stock) PaulSmart V1.35",
+    "xdf_filename": "5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.xdf",
+    "vendor_path": "ducati/5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati SC1000 Monoposto (Stock) PaulSmart V1.35"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati ST3 S ABS 96517506B V1.28",
+    "xdf_filename": "5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.xdf",
+    "vendor_path": "ducati/5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati ST3 S ABS 96517506B V1.28"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Ducati_SF_Serie_V1.28.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SF_Serie_V1.28.zip",
+    "brand": "ducati",
+    "family": "5AM",
+    "label": "Ducati Streetfighter V1.28",
+    "xdf_filename": "5AM_Ducati_SF_Serie_V1.28.xdf",
+    "vendor_path": "ducati/5AM_Ducati_SF_Serie_V1.28.xdf",
+    "used_by": [
+      {
+        "brand": "ducati",
+        "label": "Ducati Streetfighter V1.28"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15P_GasGasFE400_V1.00.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_GasGasFE400_V1.00.zip",
+    "brand": "gasgas",
+    "family": "15P",
+    "label": "GasGas 400FSE V1.00",
+    "xdf_filename": "15P_GasGasFE400_V1.00.xdf",
+    "vendor_path": "gasgas/15P_GasGasFE400_V1.00.xdf",
+    "used_by": [
+      {
+        "brand": "gasgas",
+        "label": "GasGas 400FSE V1.00"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15P_00_GasGas450_V1.02.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_00_GasGas450_V1.02.zip",
+    "brand": "gasgas",
+    "family": "15P",
+    "label": "GasGas 450FSE V1.02",
+    "xdf_filename": "15P_00_GasGas450_V1.02.xdf",
+    "vendor_path": "gasgas/15P_00_GasGas450_V1.02.xdf",
+    "used_by": [
+      {
+        "brand": "gasgas",
+        "label": "GasGas 450FSE V1.02"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15P_00_GasGasFSR450_V1.02.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_00_GasGasFSR450_V1.02.zip",
+    "brand": "gasgas",
+    "family": "15P",
+    "label": "GasGas 450FSR V1.02",
+    "xdf_filename": "15P_00_GasGasFSR450_V1.02.xdf",
+    "vendor_path": "gasgas/15P_00_GasGasFSR450_V1.02.xdf",
+    "used_by": [
+      {
+        "brand": "gasgas",
+        "label": "GasGas 450FSR V1.02"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15P_1P10_V1.03.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P10_V1.03.zip",
+    "brand": "gilera",
+    "family": "15P",
+    "label": "Gilera Nexus 500ie (1P10) V1.03",
+    "xdf_filename": "15P_1P10_V1.03.xdf",
+    "vendor_path": "gilera/15P_1P10_V1.03.xdf",
+    "used_by": [
+      {
+        "brand": "gilera",
+        "label": "Gilera Nexus 500ie (1P10) V1.03"
+      },
+      {
+        "brand": "piaggio",
+        "label": "Beverly X8 400ie (1P10) V1.03"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Gilera_GP800_V1.05.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Gilera_GP800_V1.05.zip",
+    "brand": "gilera",
+    "family": "5AM",
+    "label": "Gilera GP800 V1.05",
+    "xdf_filename": "5AM_Gilera_GP800_V1.05.xdf",
+    "vendor_path": "gilera/5AM_Gilera_GP800_V1.05.xdf",
+    "used_by": [
+      {
+        "brand": "gilera",
+        "label": "Gilera GP800 V1.05"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MBC1_Nuda_900_V1.00.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_Nuda_900_V1.00.zip",
+    "brand": "husqvarna",
+    "family": "MBC1",
+    "label": "Husqvarna Nuda 900 V1.00",
+    "xdf_filename": "MBC1_Nuda_900_V1.00.xdf",
+    "vendor_path": "husqvarna/MBC1_Nuda_900_V1.00.xdf",
+    "used_by": [
+      {
+        "brand": "husqvarna",
+        "label": "Husqvarna Nuda 900 V1.00"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_Malaguti_4643AFC1_XTM125_V1.02.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Malaguti_4643AFC1_XTM125_V1.02.zip",
+    "brand": "malaguti",
+    "family": "MIUG3",
+    "label": "Malaguti XTM 125 4643AFC1 V1.02",
+    "xdf_filename": "MIUG3_Malaguti_4643AFC1_XTM125_V1.02.xdf",
+    "vendor_path": "malaguti/MIUG3_Malaguti_4643AFC1_XTM125_V1.02.xdf",
+    "used_by": [
+      {
+        "brand": "malaguti",
+        "label": "Malaguti XTM 125 4643AFC1 V1.02"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Morini_Corsaro_Two_Lambda_V1.34.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Corsaro_Two_Lambda_V1.34.zip",
+    "brand": "morini",
+    "family": "5AM",
+    "label": "Morini Corsaro Two Lambda V1.34",
+    "xdf_filename": "5AM_Morini_Corsaro_Two_Lambda_V1.34.xdf",
+    "vendor_path": "morini/5AM_Morini_Corsaro_Two_Lambda_V1.34.xdf",
+    "used_by": [
+      {
+        "brand": "morini",
+        "label": "Morini Corsaro Two Lambda V1.34"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Morini_Corsaro_V1.25.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Corsaro_V1.25.zip",
+    "brand": "morini",
+    "family": "5AM",
+    "label": "Morini Corsaro V1.25",
+    "xdf_filename": "5AM_Morini_Corsaro_V1.25.xdf",
+    "vendor_path": "morini/5AM_Morini_Corsaro_V1.25.xdf",
+    "used_by": [
+      {
+        "brand": "morini",
+        "label": "Morini Corsaro V1.25"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Morini_GP_2_Lambda_V1.22.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_GP_2_Lambda_V1.22.zip",
+    "brand": "morini",
+    "family": "5AM",
+    "label": "Morini GP 2 Lambda V1.22",
+    "xdf_filename": "5AM_Morini_GP_2_Lambda_V1.22.xdf",
+    "vendor_path": "morini/5AM_Morini_GP_2_Lambda_V1.22.xdf",
+    "used_by": [
+      {
+        "brand": "morini",
+        "label": "Morini GP 2 Lambda V1.22"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_Morini_Sport_GP_95_Scrambler_V1.25.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Sport_GP_95_Scrambler_V1.25.zip",
+    "brand": "morini",
+    "family": "5AM",
+    "label": "Morini Sport GP 95 Scrambler V1.25",
+    "xdf_filename": "5AM_Morini_Sport_GP_95_Scrambler_V1.25.xdf",
+    "vendor_path": "morini/5AM_Morini_Sport_GP_95_Scrambler_V1.25.xdf",
+    "used_by": [
+      {
+        "brand": "morini",
+        "label": "Morini Sport GP 95 Scrambler V1.25"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15M_61600.381.00_Cali_V2.52.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_61600.381.00_Cali_V2.52.zip",
+    "brand": "moto_guzzi",
+    "family": "15M",
+    "label": "Moto Guzzi 15M - Cali 61600.381.00 V2.52",
+    "xdf_filename": "15M_61600.381.00_Cali_V2.52.xdf",
+    "vendor_path": "moto_guzzi/15M_61600.381.00_Cali_V2.52.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 15M - Cali 61600.381.00 V2.52"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15M_EEPROM_V1.01.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_EEPROM_V1.01.zip",
+    "brand": "moto_guzzi",
+    "family": "15M",
+    "label": "Moto Guzzi 15M - EEPROM V1.01",
+    "xdf_filename": "15M_EEPROM_V1.01.xdf",
+    "vendor_path": "moto_guzzi/15M_EEPROM_V1.01.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 15M - EEPROM V1.01"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15M_428_00_GuzziDiag_V2.28.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_428_00_GuzziDiag_V2.28.zip",
+    "brand": "moto_guzzi",
+    "family": "15M",
+    "label": "Moto Guzzi 15M - Old Quota V2.28",
+    "xdf_filename": "15M_428_00_GuzziDiag_V2.28.xdf",
+    "vendor_path": "moto_guzzi/15M_428_00_GuzziDiag_V2.28.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 15M - Old Quota V2.28"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15M_GuzziDiag_V2.32.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_GuzziDiag_V2.32.zip",
+    "brand": "moto_guzzi",
+    "family": "15M",
+    "label": "Moto Guzzi 15M V2.32",
+    "xdf_filename": "15M_GuzziDiag_V2.32.xdf",
+    "vendor_path": "moto_guzzi/15M_GuzziDiag_V2.32.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 15M V2.32"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15RC_EEPROM_V1.01.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_EEPROM_V1.01.zip",
+    "brand": "moto_guzzi",
+    "family": "15RC",
+    "label": "Moto Guzzi 15RC - EEPROM V1.01",
+    "xdf_filename": "15RC_EEPROM_V1.01.xdf",
+    "vendor_path": "moto_guzzi/15RC_EEPROM_V1.01.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 15RC - EEPROM V1.01"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15RC_GuzziDiag_1100_V2.17.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_GuzziDiag_1100_V2.17.zip",
+    "brand": "moto_guzzi",
+    "family": "15RC",
+    "label": "Moto Guzzi 15RC - V11/Cali V2.17",
+    "xdf_filename": "15RC_GuzziDiag_1100_V2.17.xdf",
+    "vendor_path": "moto_guzzi/15RC_GuzziDiag_1100_V2.17.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 15RC - V11/Cali V2.17"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15RC_GuzziDiag_V7_V2.17.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_GuzziDiag_V7_V2.17.zip",
+    "brand": "moto_guzzi",
+    "family": "15RC",
+    "label": "Moto Guzzi 15RC - V7 V2.17",
+    "xdf_filename": "15RC_GuzziDiag_V7_V2.17.xdf",
+    "vendor_path": "moto_guzzi/15RC_GuzziDiag_V7_V2.17.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 15RC - V7 V2.17"
+      }
+    ]
+  },
+  {
+    "zip_filename": "16M_GuzziDiag_32k_V1.23.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_32k_V1.23.zip",
+    "brand": "moto_guzzi",
+    "family": "16M",
+    "label": "Moto Guzzi 16M - 32k EPROM V1.23",
+    "xdf_filename": "16M_GuzziDiag_32k_V1.23.xdf",
+    "vendor_path": "moto_guzzi/16M_GuzziDiag_32k_V1.23.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 16M - 32k EPROM V1.23"
+      }
+    ]
+  },
+  {
+    "zip_filename": "16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.zip",
+    "brand": "moto_guzzi",
+    "family": "16M",
+    "label": "Moto Guzzi 16M - 64k Daytona RS Kit V1.21",
+    "xdf_filename": "16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.xdf",
+    "vendor_path": "moto_guzzi/16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 16M - 64k Daytona RS Kit V1.21"
+      }
+    ]
+  },
+  {
+    "zip_filename": "16M_GuzziDiag_64k_V1.23.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_64k_V1.23.zip",
+    "brand": "moto_guzzi",
+    "family": "16M",
+    "label": "Moto Guzzi 16M - 64k EPROM V1.23",
+    "xdf_filename": "16M_GuzziDiag_64k_V1.23.xdf",
+    "vendor_path": "moto_guzzi/16M_GuzziDiag_64k_V1.23.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 16M - 64k EPROM V1.23"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_EEPROM_V1.01.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_EEPROM_V1.01.zip",
+    "brand": "moto_guzzi",
+    "family": "5AM",
+    "label": "Moto Guzzi 5AM - EEPROM V1.01",
+    "xdf_filename": "5AM_EEPROM_V1.01.xdf",
+    "vendor_path": "moto_guzzi/5AM_EEPROM_V1.01.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 5AM - EEPROM V1.01"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_GuzziDiag_One_Lambda_V1.41.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_GuzziDiag_One_Lambda_V1.41.zip",
+    "brand": "moto_guzzi",
+    "family": "5AM",
+    "label": "Moto Guzzi 5AM - One Lambda V1.41",
+    "xdf_filename": "5AM_GuzziDiag_One_Lambda_V1.41.xdf",
+    "vendor_path": "moto_guzzi/5AM_GuzziDiag_One_Lambda_V1.41.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 5AM - One Lambda V1.41"
+      }
+    ]
+  },
+  {
+    "zip_filename": "5AM_GuzziDiag_Two_Lambda_V1.40.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_GuzziDiag_Two_Lambda_V1.40.zip",
+    "brand": "moto_guzzi",
+    "family": "5AM",
+    "label": "Moto Guzzi 5AM - Two Lambda V1.40",
+    "xdf_filename": "5AM_GuzziDiag_Two_Lambda_V1.40.xdf",
+    "vendor_path": "moto_guzzi/5AM_GuzziDiag_Two_Lambda_V1.40.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 5AM - Two Lambda V1.40"
+      }
+    ]
+  },
+  {
+    "zip_filename": "7SM_MotoGuzzi_1400_EURO4_V1.04.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_EURO4_V1.04.zip",
+    "brand": "moto_guzzi",
+    "family": "7SM",
+    "label": "Moto Guzzi 7SM - 1400 EURO4 V1.04",
+    "xdf_filename": "7SM_MotoGuzzi_1400_EURO4_V1.04.xdf",
+    "vendor_path": "moto_guzzi/7SM_MotoGuzzi_1400_EURO4_V1.04.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 7SM - 1400 EURO4 V1.04"
+      }
+    ]
+  },
+  {
+    "zip_filename": "7SM_MotoGuzzi_1400_MGX21_V0.14.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_MGX21_V0.14.zip",
+    "brand": "moto_guzzi",
+    "family": "7SM",
+    "label": "Moto Guzzi 7SM - 1400 MGX21 V0.14",
+    "xdf_filename": "7SM_MotoGuzzi_1400_MGX21_V0.14.xdf",
+    "vendor_path": "moto_guzzi/7SM_MotoGuzzi_1400_MGX21_V0.14.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 7SM - 1400 MGX21 V0.14"
+      }
+    ]
+  },
+  {
+    "zip_filename": "7SM_MotoGuzzi_1400_1050_EURO3_V1.04.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_1050_EURO3_V1.04.zip",
+    "brand": "moto_guzzi",
+    "family": "7SM",
+    "label": "Moto Guzzi 7SM - 1400/1050 EURO3 V1.04",
+    "xdf_filename": "7SM_MotoGuzzi_1400_1050_EURO3_V1.04.xdf",
+    "vendor_path": "moto_guzzi/7SM_MotoGuzzi_1400_1050_EURO3_V1.04.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 7SM - 1400/1050 EURO3 V1.04"
+      }
+    ]
+  },
+  {
+    "zip_filename": "7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.zip",
+    "brand": "moto_guzzi",
+    "family": "7SM",
+    "label": "Moto Guzzi 7SM - V85TT 7621XXxx V1.07",
+    "xdf_filename": "7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.xdf",
+    "vendor_path": "moto_guzzi/7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi 7SM - V85TT 7621XXxx V1.07"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_MotoGuzzi_V7II_V1.15.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7II_V1.15.zip",
+    "brand": "moto_guzzi",
+    "family": "MIUG3",
+    "label": "Moto Guzzi MIU G3 - V7 II V1.15",
+    "xdf_filename": "MIUG3_MotoGuzzi_V7II_V1.15.xdf",
+    "vendor_path": "moto_guzzi/MIUG3_MotoGuzzi_V7II_V1.15.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi MIU G3 - V7 II V1.15"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_MotoGuzzi_V7III_V1.15.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7III_V1.15.zip",
+    "brand": "moto_guzzi",
+    "family": "MIUG3",
+    "label": "Moto Guzzi MIU G3 - V7 III V1.15",
+    "xdf_filename": "MIUG3_MotoGuzzi_V7III_V1.15.xdf",
+    "vendor_path": "moto_guzzi/MIUG3_MotoGuzzi_V7III_V1.15.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi MIU G3 - V7 III V1.15"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_MotoGuzzi_V7_V1.10.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7_V1.10.zip",
+    "brand": "moto_guzzi",
+    "family": "MIUG3",
+    "label": "Moto Guzzi MIU G3 - V7 V1.10",
+    "xdf_filename": "MIUG3_MotoGuzzi_V7_V1.10.xdf",
+    "vendor_path": "moto_guzzi/MIUG3_MotoGuzzi_V7_V1.10.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi MIU G3 - V7 V1.10"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.zip",
+    "brand": "moto_guzzi",
+    "family": "MIUG3",
+    "label": "Moto Guzzi MIU G3 - V9 4640xxxx V1.09",
+    "xdf_filename": "MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.xdf",
+    "vendor_path": "moto_guzzi/MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi MIU G3 - V9 4640xxxx V1.09"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.zip",
+    "brand": "moto_guzzi",
+    "family": "MIUG3",
+    "label": "Moto Guzzi MIU G3 - V9 464DVCAO V1.09",
+    "xdf_filename": "MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.xdf",
+    "vendor_path": "moto_guzzi/MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi MIU G3 - V9 464DVCAO V1.09"
+      }
+    ]
+  },
+  {
+    "zip_filename": "P7_GuzziDiag_16k_V1.26.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/P7_GuzziDiag_16k_V1.26.zip",
+    "brand": "moto_guzzi",
+    "family": "P7",
+    "label": "Moto Guzzi P7 - 16k EPROM V1.26",
+    "xdf_filename": "P7_GuzziDiag_16k_V1.26.xdf",
+    "vendor_path": "moto_guzzi/P7_GuzziDiag_16k_V1.26.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi P7 - 16k EPROM V1.26"
+      }
+    ]
+  },
+  {
+    "zip_filename": "P8_GuzziDiag_32k_V1.30.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/P8_GuzziDiag_32k_V1.30.zip",
+    "brand": "moto_guzzi",
+    "family": "P8",
+    "label": "Moto Guzzi P8 - 32k EPROM V1.30",
+    "xdf_filename": "P8_GuzziDiag_32k_V1.30.xdf",
+    "vendor_path": "moto_guzzi/P8_GuzziDiag_32k_V1.30.xdf",
+    "used_by": [
+      {
+        "brand": "moto_guzzi",
+        "label": "Moto Guzzi P8 - 32k EPROM V1.30"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15P_1P0T_V1.02.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0T_V1.02.zip",
+    "brand": "piaggio",
+    "family": "15P",
+    "label": "Piaggio Beverly 500ie (1P0T) V1.02",
+    "xdf_filename": "15P_1P0T_V1.02.xdf",
+    "vendor_path": "piaggio/15P_1P0T_V1.02.xdf",
+    "used_by": [
+      {
+        "brand": "piaggio",
+        "label": "Piaggio Beverly 500ie (1P0T) V1.02"
+      }
+    ]
+  },
+  {
+    "zip_filename": "15P_1P0P_V1.03.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0P_V1.03.zip",
+    "brand": "piaggio",
+    "family": "15P",
+    "label": "Piaggio X9 500 (1P0P) V1.03",
+    "xdf_filename": "15P_1P0P_V1.03.xdf",
+    "vendor_path": "piaggio/15P_1P0P_V1.03.xdf",
+    "used_by": [
+      {
+        "brand": "piaggio",
+        "label": "Piaggio X9 500 (1P0P) V1.03"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIU1_CM081701_22A3GS14_V0.03.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIU1_CM081701_22A3GS14_V0.03.zip",
+    "brand": "piaggio",
+    "family": "MIU1",
+    "label": "Piaggio GTS300 MIU1 V0.03",
+    "xdf_filename": "MIU1_CM081701_22A3GS14_V0.03.xdf",
+    "vendor_path": "piaggio/MIU1_CM081701_22A3GS14_V0.03.xdf",
+    "used_by": [
+      {
+        "brand": "piaggio",
+        "label": "Piaggio GTS300 MIU1 V0.03"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_Piaggio_34B9BU42_V1.00.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_34B9BU42_V1.00.zip",
+    "brand": "piaggio",
+    "family": "MIUG3",
+    "label": "Piaggio Beverly CM085204 34B9BU42 V1.00",
+    "xdf_filename": "MIUG3_Piaggio_34B9BU42_V1.00.xdf",
+    "vendor_path": "piaggio/MIUG3_Piaggio_34B9BU42_V1.00.xdf",
+    "used_by": [
+      {
+        "brand": "piaggio",
+        "label": "Piaggio Beverly CM085204 34B9BU42 V1.00"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_Piaggio_4528BU53_V1.00.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_4528BU53_V1.00.zip",
+    "brand": "piaggio",
+    "family": "MIUG3",
+    "label": "Piaggio Beverly CM085209 4528BU53 V1.00",
+    "xdf_filename": "MIUG3_Piaggio_4528BU53_V1.00.xdf",
+    "vendor_path": "piaggio/MIUG3_Piaggio_4528BU53_V1.00.xdf",
+    "used_by": [
+      {
+        "brand": "piaggio",
+        "label": "Piaggio Beverly CM085209 4528BU53 V1.00"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_Piaggio_Fly_3V_V1.01.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_Fly_3V_V1.01.zip",
+    "brand": "piaggio",
+    "family": "MIUG3",
+    "label": "Piaggio Fly 3V V1.01",
+    "xdf_filename": "MIUG3_Piaggio_Fly_3V_V1.01.xdf",
+    "vendor_path": "piaggio/MIUG3_Piaggio_Fly_3V_V1.01.xdf",
+    "used_by": [
+      {
+        "brand": "piaggio",
+        "label": "Piaggio Fly 3V V1.01"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_Piaggio_GTS300_3417BN15_V1.00.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_GTS300_3417BN15_V1.00.zip",
+    "brand": "piaggio",
+    "family": "MIUG3",
+    "label": "Piaggio GTS300 3417BN15 V1.00",
+    "xdf_filename": "MIUG3_Piaggio_GTS300_3417BN15_V1.00.xdf",
+    "vendor_path": "piaggio/MIUG3_Piaggio_GTS300_3417BN15_V1.00.xdf",
+    "used_by": [
+      {
+        "brand": "piaggio",
+        "label": "Piaggio GTS300 3417BN15 V1.00"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_Piaggio_4530xxxx_GTS300_V1.04.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_4530xxxx_GTS300_V1.04.zip",
+    "brand": "piaggio",
+    "family": "MIUG3",
+    "label": "Piaggio GTS300 4530xxxx V1.04",
+    "xdf_filename": "MIUG3_Piaggio_4530xxxx_GTS300_V1.04.xdf",
+    "vendor_path": "piaggio/MIUG3_Piaggio_4530xxxx_GTS300_V1.04.xdf",
+    "used_by": [
+      {
+        "brand": "piaggio",
+        "label": "Piaggio GTS300 4530xxxx V1.04"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_Piaggio_464CDABL_GTS300_V1.04.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_464CDABL_GTS300_V1.04.zip",
+    "brand": "piaggio",
+    "family": "MIUG3",
+    "label": "Piaggio GTS300 464CDABL V1.04",
+    "xdf_filename": "MIUG3_Piaggio_464CDABL_GTS300_V1.04.xdf",
+    "vendor_path": "piaggio/MIUG3_Piaggio_464CDABL_GTS300_V1.04.xdf",
+    "used_by": [
+      {
+        "brand": "piaggio",
+        "label": "Piaggio GTS300 464CDABL V1.04"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_Piaggio_GTS300_V2_V1.03.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_GTS300_V2_V1.03.zip",
+    "brand": "piaggio",
+    "family": "MIUG3",
+    "label": "Piaggio GTS300 V1.03",
+    "xdf_filename": "MIUG3_Piaggio_GTS300_V2_V1.03.xdf",
+    "vendor_path": "piaggio/MIUG3_Piaggio_GTS300_V2_V1.03.xdf",
+    "used_by": [
+      {
+        "brand": "piaggio",
+        "label": "Piaggio GTS300 V1.03"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MIUG3_Scomadi_200_V0.02.zip",
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Scomadi_200_V0.02.zip",
+    "brand": "scomadi",
+    "family": "MIUG3",
+    "label": "Scomadi 200 V0.02",
+    "xdf_filename": "MIUG3_Scomadi_200_V0.02.xdf",
+    "vendor_path": "scomadi/MIUG3_Scomadi_200_V0.02.xdf",
+    "used_by": [
+      {
+        "brand": "scomadi",
+        "label": "Scomadi 200 V0.02"
+      }
+    ]
+  }
+]

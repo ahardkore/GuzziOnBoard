@@ -33,6 +33,12 @@
   var DEMO_HINT = 'Hosted demo: this runs in the browser. '
     + 'Run python3 run_server.py for the full workstation.';
 
+  /* Extension points for web/demo-lab.js, which simulates the views that
+   * need files and long jobs (ECU memory, maps, sessions, reports, tools).
+   * Nothing here changes behaviour on its own: if demo-lab.js is absent the
+   * hooks stay empty and this file behaves exactly as it did before. */
+  var HOOKS = {};
+
   /* ------------------------------------------------------------- data */
 
   var DATA = null;
@@ -434,6 +440,7 @@
       risk: decision.risk, checks: decision.checks, reason: decision.reason,
     });
     if (this.audit.length > 200) this.audit.shift();
+    if (HOOKS.event) HOOKS.event('safety', decision);
   };
 
   SafetyGate.prototype.evaluate = function (operation, risk, opts) {
@@ -1069,10 +1076,12 @@
     WS.startedAt = epoch();
     WS.counts = { session_start: 1 };
     WS.gate.state.ecu_confidence = WS.sessionProfile.confidence;
+    if (HOOKS.event) HOOKS.event('connect', sessionSummary());
     return [200, status()];
   };
 
   POST['/api/disconnect'] = function () {
+    if (HOOKS.event) HOOKS.event('disconnect', sessionSummary());
     WS.connected = false;
     WS.ecu = null;
     WS.sessionProfile = null;
@@ -1120,6 +1129,10 @@
     var keys = (q.get('keys') || '').split(',').filter(Boolean);
     if (!keys.length) keys = defaultParameterKeys(WS.sessionProfile);
     var samples = keys.map(function (k) { return readParameter(k); });
+    // demo-lab.js adds the plausibility findings, the comms-quality effects
+    // and the session recording; it may answer asynchronously (added
+    // latency is latency, not a lie about latency).
+    if (HOOKS.live) return HOOKS.live(samples, keys);
     return [200, {
       at: epoch(),
       samples: samples,
@@ -1142,6 +1155,7 @@
       } catch (_) { /* a channel that fails is skipped, not faked */ }
     });
     bump('action');
+    if (HOOKS.event) HOOKS.event('dtcs', dtcs);
     return [200, {
       dtcs: dtcs,
       context: context,
@@ -1189,6 +1203,7 @@
     ));
     ecu.activeOutputs[body.key] = mono() + duration;
     bump('action');
+    if (HOOKS.event) HOOKS.event('action', { name: 'actuator_pulse', detail: { key: body.key, seconds: duration } });
     return [200, { ok: true, key: body.key, duration_s: duration }];
   };
 
@@ -1350,9 +1365,14 @@
       if (k in body) c[k] = clamp(Number(body[k]), 0, 1);
     });
     if ('extra_latency' in body) c.extra_latency = clamp(Number(body.extra_latency), 0, 5);
-    // Honesty: the demo has no wire to drop frames on, so say so.
-    c.note = 'Fault injection on the wire needs the real protocol stack — these '
-      + 'knobs are recorded here but only the local workstation acts on them.';
+    /* Honesty: with demo-lab.js loaded these knobs really do spoil the
+     * simulated reads; without it there is nothing to spoil, so say which. */
+    c.note = HOOKS.comms
+      ? 'There is no wire here, so these spoil the simulated one: dropped '
+        + 'frames come back as timeouts, corrupted ones as checksum errors, '
+        + 'responsePending adds a wait and the latency really is waited out.'
+      : 'Fault injection on the wire needs the real protocol stack — these '
+        + 'knobs are recorded here but only the local workstation acts on them.';
     return [200, simPayload()];
   };
 
@@ -1465,26 +1485,36 @@
   /* A demo that quietly behaves differently would be dishonest: say so on
    * the page, and mark the views that only the local workstation can serve. */
 
+  /* Per-view notices, as raw HTML: demo-lab.js replaces the ones it has
+   * taken over with an honest "this is simulated" note instead. */
   var LOCAL_ONLY_VIEWS = {
-    procedures: 'Guided tests drive timed sequences against the ECU and keep a '
-      + 'transcript — the local workstation runs them.',
-    firmware: 'Reading, backing up, validating and writing ECU memory moves '
-      + 'files around and takes twenty minutes a pass. Local workstation only.',
-    tools: 'The gearing calculator, log conversion, bench RPM signal and '
-      + 'capture analysis all run in the Python process.',
-    sessions: 'Sessions are JSONL files on disk. This page records nothing.',
-    report: 'Reports are written out as text, JSON and PDF by the local tool.',
+    procedures: '<b>Local workstation only.</b> Guided tests drive timed '
+      + 'sequences against the ECU and keep a transcript.',
+    firmware: '<b>Local workstation only.</b> Reading, backing up, validating '
+      + 'and writing ECU memory moves files around and takes twenty minutes '
+      + 'a pass.',
+    tools: '<b>Local workstation only.</b> The gearing calculator, log '
+      + 'conversion, bench RPM signal and capture analysis all run in the '
+      + 'Python process.',
+    sessions: '<b>Local workstation only.</b> Sessions are JSONL files on '
+      + 'disk. This page records nothing.',
+    report: '<b>Local workstation only.</b> Reports are written out as text, '
+      + 'JSON and PDF by the local tool.',
+  };
+
+  var UI = {
+    banner: '<b>Hosted demo</b> — the workstation UI with the simulated '
+      + 'ECU running in your browser. Garage, live data, fault codes, service '
+      + 'actions, discovery and the simulated bike all work. ECU memory, maps, '
+      + 'tools, guided tests, sessions and reports need the local tool: '
+      + '<code>python3 run_server.py</code>. '
+      + '<a href="../index.html">About GuzziOnBoard</a>',
   };
 
   function decorate() {
     var bar = document.createElement('div');
     bar.id = 'demoBanner';
-    bar.innerHTML = '<b>Hosted demo</b> — the workstation UI with the simulated '
-      + 'ECU running in your browser. Garage, live data, fault codes, service '
-      + 'actions, discovery and the simulated bike all work. ECU memory, maps, '
-      + 'tools, guided tests, sessions and reports need the local tool: '
-      + '<code>python3 run_server.py</code>. '
-      + '<a href="../index.html">About GuzziOnBoard</a>';
+    bar.innerHTML = UI.banner;
     bar.setAttribute('style', [
       'position:relative', 'z-index:5', 'padding:10px 18px',
       'background:#3a2a16', 'color:#f0d9a8',
@@ -1504,9 +1534,7 @@
         'margin:0 0 16px', 'padding:12px 14px', 'border-radius:8px',
         'background:#2a2118', 'border:1px solid #6b4f24', 'color:#f0d9a8',
       ].join(';'));
-      note.innerHTML = '<b>Local workstation only.</b> ' + LOCAL_ONLY_VIEWS[view]
-        + ' Run <code>python3 run_server.py</code> and open '
-        + '<code>http://127.0.0.1:8000</code>.';
+      note.innerHTML = LOCAL_ONLY_VIEWS[view];
       el.insertBefore(note, el.firstChild);
     });
 
@@ -1515,7 +1543,7 @@
     // move sliders that do nothing, turn them off and say why.
     var drop = document.getElementById('simDrop');
     var panel = drop && drop.closest ? drop.closest('.panel') : null;
-    if (panel) {
+    if (panel && !HOOKS.comms) {
       ['simDrop', 'simCorrupt', 'simPending', 'simLatency'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) { el.disabled = true; el.title = 'Local workstation only'; }
@@ -1537,5 +1565,29 @@
     decorate();
   }
 
-  window.GUZZI_DEMO = { data: dataPromise, state: WS };
+  /* What demo-lab.js builds on. Keeping this to one small object means the
+   * second file can simulate a view without reaching into this one's guts. */
+  window.GUZZI_DEMO = {
+    data: dataPromise,
+    state: WS,
+    hooks: HOOKS,
+    ui: UI,
+    views: LOCAL_ONLY_VIEWS,
+    localOnly: LOCAL_ONLY,
+    /* Take over a route: the handler may return [status, payload] or a
+     * promise of one, and the 501 'local only' entry for it is dropped. */
+    register: function (method, path, handler) {
+      (String(method).toUpperCase() === 'GET' ? GET : POST)[path] = handler;
+      delete LOCAL_ONLY[path];
+    },
+    helpers: {
+      httpError: httpError, localOnly: localOnly, requireService: requireService,
+      clamp: clamp, hex2: hex2, rng: rng, mono: mono, epoch: epoch,
+      readParameter: readParameter, publicParameters: publicParameters,
+      defaultParameterKeys: defaultParameterKeys, computeDerived: computeDerived,
+      ecuPublic: ecuPublic, status: status, sessionSummary: sessionSummary,
+      describeSelection: describeSelection, bump: bump,
+      data: function () { return DATA; },
+    },
+  };
 }());

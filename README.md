@@ -51,7 +51,7 @@ same era, read-only until their identifier tables are confirmed.
 | Fault read with workstation-observed context ("what was live when we looked") | Implemented; honestly *not* an ECU freeze frame |
 | Session comparison (two recordings, channel by channel) | Implemented |
 | Standalone browser engine simulator (`web/sim.html`) | Implemented; single self-contained page |
-| **Hosted workstation demo** — the real UI with the simulated ECU running in the browser (`web/demo-api.js`) | Implemented; Garage, identification, live data, fault codes, service actions, discovery and the simulated bike. Memory, maps, tools, guided tests, sessions and reports are refused with a local-only message, not faked |
+| **Hosted workstation demo** — the real UI with the simulated ECU running in the browser (`web/demo-api.js` + `web/demo-lab.js`) | Implemented; every view works against the simulated bike, including memory, maps, sessions, reports, guided tests and the tools. Simulated and time-compressed processes are labelled as such. Only hardware transports (serial, CAN) are refused rather than faked |
 
 415 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
 image validation, XDF parsing/render/diff, the full read/backup/write/verify
@@ -79,14 +79,28 @@ simulator mode, and the rest of the workstation comes alive.
 The project site hosts two demos, both static:
 
 * **<https://ahardkore.github.io/GuzziOnBoard/web/index.html>** — the
-  workstation UI itself, with the simulated ECU running in the page.
-  `web/demo-api.js` answers the same `/api` calls this server does, from a
-  catalog exported by `scripts/build_demo_data.py` plus ports of the engine
-  model and the safety gate. It is the real interface against a real catalog;
-  what it cannot do (ECU memory, maps & tables, the tools, guided tests,
-  session recording, reports — files, serial ports and long jobs) it says so
-  instead of pretending. When *this* server is the one serving the page, the
-  shim stands down: `run_server.py` marks the body `data-backend="live"`.
+  workstation UI itself, with the simulated ECU running in the page. Two
+  scripts stand in for the Python backend:
+  * `web/demo-api.js` answers the conversational half of `/api` — garage,
+    connect, identify, live data, fault codes, service actions, discovery,
+    the simulated bike — from a catalog exported by
+    `scripts/build_demo_data.py` plus ports of the engine model and the
+    safety gate.
+  * `web/demo-lab.js` simulates the half that needs files, a dump or a long
+    job: ECU memory (read, backup, validate, write, verify against an image
+    synthesised in the tab), maps and tables (the bundled TunerPro XDFs,
+    parsed by a port of `maps.py` that the test suite proves byte-identical
+    to the Python one), session recording/replay/export/comparison, the
+    report, guided tests, and the workshop tools (gearing, Zeitronix→DIF,
+    the bench RPM WAV, CAN and K-Line capture analysis).
+
+  Everything simulated says so, in the payload and on the page, and the two
+  compressions are stated wherever they apply: a twenty-minute flash read
+  takes about three seconds, and a ten-second observation window in a guided
+  test takes about one. Hardware is the one thing not faked — a web page
+  cannot open a serial port or a CAN interface, so those are refused rather
+  than invented. When *this* server is the one serving the page, both scripts
+  stand down: `run_server.py` marks the body `data-backend="live"`.
 * **<https://ahardkore.github.io/GuzziOnBoard/web/sim.html>** — a
   self-contained page with just the engine model: start it, rev it, inject
   faults, watch the safety gate refuse.

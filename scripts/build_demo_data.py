@@ -27,8 +27,12 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from guzzionboard import __version__                       # noqa: E402
+from guzzionboard import procedures as procedures_mod      # noqa: E402
+from guzzionboard import rpmsignal                         # noqa: E402
+from guzzionboard import tools as tools_mod                # noqa: E402
 from guzzionboard.catalog import CATALOG_DIR, ECU_DIR, load_catalog  # noqa: E402
 from guzzionboard.derived import CHANNELS as DERIVED_CHANNELS        # noqa: E402
+from guzzionboard.maps import BUNDLED_XDF_DIR, load_bundled_xdfs     # noqa: E402
 from guzzionboard.transports.simulator import FAULTS as SIM_FAULTS   # noqa: E402
 from guzzionboard.transports.simulator import SimulatedEcu           # noqa: E402
 from guzzionboard.workstation import Workstation                     # noqa: E402
@@ -45,6 +49,39 @@ PARAM_INTERNALS = (
 
 def _raw_ecu(ecu_id: str) -> dict:
     return json.loads((ECU_DIR / f"{ecu_id}.json").read_text(encoding="utf-8"))
+
+
+def _xdf_index() -> list[dict]:
+    """The bundled TunerPro definitions, with the URL the browser can fetch.
+
+    The XDF files themselves are already published by GitHub Pages (they are
+    ordinary files in the repository), so the demo does not copy them: it
+    only needs to know what exists and where. ``url`` is relative to
+    ``web/index.html``.
+    """
+    out: list[dict] = []
+    for xdf in load_bundled_xdfs():
+        entry = xdf.describe()
+        relative = Path(entry["path"]).relative_to(BUNDLED_XDF_DIR.parent.parent)
+        entry["path"] = str(relative)
+        entry["url"] = "../" + str(relative).replace("\\", "/")
+        out.append(entry)
+    return out
+
+
+def _procedures() -> list[dict]:
+    """Guided-test definitions, minus the Python-side verdict callables.
+
+    The verdict functions are reimplemented in ``web/demo-lab.js``; the
+    step list, wording and caveats come from here so the two cannot drift.
+    """
+    out = []
+    for procedure in procedures_mod.PROCEDURES:
+        entry = procedure.as_dict(None)
+        entry.pop("available", None)
+        entry.pop("missing", None)
+        out.append(entry)
+    return out
 
 
 def build() -> dict:
@@ -132,6 +169,19 @@ def build() -> dict:
             }
             for c in DERIVED_CHANNELS
         ],
+        # -- phase 2: what the simulated workbench needs ------------------
+        "procedures": _procedures(),
+        "gearing_presets": tools_mod.GEARING_PRESETS,
+        "gearing_defaults": {
+            "final_drive": tools_mod.Gearing().final_drive,
+            "tyre": tools_mod.Gearing().tyre,
+            "gears": list(tools_mod.Gearing().gears),
+        },
+        "rpm_wheels": {
+            name: {"teeth": w.teeth, "missing": w.missing, "wheel": w.wheel}
+            for name, w in sorted(rpmsignal.PRESETS.items())
+        },
+        "xdfs": _xdf_index(),
     }
 
 

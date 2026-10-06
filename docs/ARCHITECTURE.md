@@ -225,12 +225,17 @@ single ECU are never what anybody meant.
 The UI in `web/` is a plain page talking to `/api` over `fetch`. That seam has
 two implementations:
 
-| | `guzzionboard/server.py` | `web/demo-api.js` |
+| | `guzzionboard/server.py` | `web/demo-api.js` + `web/demo-lab.js` |
 |---|---|---|
 | Runs in | a local Python process | the browser tab |
 | Speaks | the real KWP2000/ISO-TP stack through a transport | the catalog, the engine model and the safety gate, ported |
 | Raw bytes | encoded, checksummed, sent, received | reconstructed from the catalog scaling (labelled as a demo) |
-| Files, ports, long jobs | yes | refused with `501 demo_local_only` |
+| ECU memory | read over the wire, ~20 minutes a pass | a synthesised image in a virtual filesystem, ~3 seconds a pass, labelled time-compressed |
+| Maps & tables | TunerPro XDFs parsed by `maps.py` | the same bundled XDFs parsed by a port of `maps.py`, proven identical by the test suite |
+| Sessions | JSONL files under `~/.guzzionboard/sessions` | in-tab recordings plus two pre-recorded ones, same replay/export/compare code paths |
+| Guided tests | real observation windows | the same steps and verdicts, windows compressed ~8x against the engine model |
+| Tools | read and write files | the same arithmetic over pasted text and browser downloads |
+| Serial ports, CAN | yes | refused with `501 demo_local_only` — a page cannot, and faking it would mislead |
 
 Why a second implementation exists: GitHub Pages has no process to run, and a
 diagnostic tool nobody can try is a diagnostic tool nobody adopts. Why it is
@@ -246,17 +251,32 @@ not allowed to drift:
   confirmation token and keeps the same audit list. A refusal in the demo
   reads exactly like a refusal from the real tool, because it is the same
   policy.
-* **Missing capability is stated, not simulated.** Anything needing a file, a
-  serial port or a twenty-minute job answers with a message naming
-  `python3 run_server.py`. The page also marks those views before the user
-  clicks.
+* **A simulation is announced, and a refusal is honest.** `demo-lab.js` fakes
+  *processes* — a flash read, a map render, a guided test — and every payload
+  it returns carries `simulated: true` with a note saying what was invented
+  and by how much it was compressed; the page decorates each view and the
+  banner to match. What it does not fake is hardware: opening a serial port
+  or a CAN interface from a web page is refused with a message naming
+  `python3 run_server.py`, because a reader who is told a port exists will go
+  looking for it on their bike.
+* **The ports are checked against the originals, not eyeballed.** The XDF
+  parser, the gearing arithmetic, the DIF conversion, the hashes and the WAV
+  renderer are ports; `tests/test_demo_mode.py` renders three bundled
+  definitions with both implementations and fails on any difference, down to
+  Python's `%g` rounding.
 * **One switch, no guessing.** `server.mark_live_backend()` rewrites the
   served page's `<body>` to `data-backend="live"`; the shim returns
   immediately when it sees that. Hostnames, ports and protocol sniffing play
   no part, so running the real workstation on a LAN address cannot
   accidentally land you in the demo.
 
-`tests/demo_browser_check.mjs` drives the shim through a whole session
-(resolve → select → connect → identify → live → DTC read/clear with tokens →
-blocked and unblocked actuator → fault seeding → discovery sweep) under
-Node, and `tests/test_demo_mode.py` runs it when Node is available.
+`tests/demo_browser_check.mjs` drives both scripts through a whole session
+under Node (resolve → select → connect → identify → live → DTC read/clear
+with tokens → blocked and unblocked actuator → fault seeding → discovery
+sweep → key-provider opt-in → backup, validate, arm programming, write and
+verify → render and diff maps → replay, export and compare sessions →
+report → a guided test to its verdict → every tool → the comms sliders
+spoiling the simulated wire → hardware still refused), and
+`tests/demo_xdf_parity.mjs` renders a definition the browser's way so the
+Python side can compare. `tests/test_demo_mode.py` runs both when Node is
+available.

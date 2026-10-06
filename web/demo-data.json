@@ -9301,5 +9301,2524 @@
    "delta": false,
    "digits": 2
   }
+ ],
+ "procedures": [
+  {
+   "key": "idle_health",
+   "name": "Idle health check",
+   "purpose": "Watch the idle controller work for a few seconds and say whether it is in control. Read-only: nothing is commanded.",
+   "engine": "running",
+   "caveat": "",
+   "steps": [
+    {
+     "key": "warm",
+     "kind": "instruct",
+     "title": "Warm the engine up",
+     "text": "Run the engine until the head is above 70 °C and let it settle at idle. Hands off the throttle for the next step.",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "watch",
+     "kind": "observe",
+     "title": "Watch the idle channels",
+     "text": "Sampling engine speed, the ECU's idle target and the stepper.",
+     "channels": [
+      "rpm",
+      "idle_target",
+      "stepper_position",
+      "stepper_base",
+      "lambda_int_f",
+      "lambda_int_r"
+     ],
+     "seconds": 6.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "result",
+     "kind": "verdict",
+     "title": "Result",
+     "text": "",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    }
+   ]
+  },
+  {
+   "key": "charging_system",
+   "name": "Charging system check",
+   "purpose": "Three voltage readings - stopped, idling and held up - which is all it takes to separate a flat battery from a dead alternator.",
+   "engine": "any",
+   "caveat": "",
+   "steps": [
+    {
+     "key": "stop",
+     "kind": "instruct",
+     "title": "Stop the engine, ignition on",
+     "text": "Leave the ignition on so the ECU keeps answering.",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "rest",
+     "kind": "observe",
+     "title": "Measure the resting voltage",
+     "text": "",
+     "channels": [
+      "battery"
+     ],
+     "seconds": 4.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "start",
+     "kind": "instruct",
+     "title": "Start the engine",
+     "text": "Let it settle at idle before continuing.",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "idle",
+     "kind": "observe",
+     "title": "Measure at idle",
+     "text": "",
+     "channels": [
+      "battery",
+      "rpm"
+     ],
+     "seconds": 4.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "hold",
+     "kind": "instruct",
+     "title": "Hold about 3000 rpm",
+     "text": "Keep it steady while the next step samples.",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "revs",
+     "kind": "observe",
+     "title": "Measure with the revs up",
+     "text": "",
+     "channels": [
+      "battery",
+      "rpm"
+     ],
+     "seconds": 4.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "result",
+     "kind": "verdict",
+     "title": "Result",
+     "text": "",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    }
+   ]
+  },
+  {
+   "key": "fuel_pressure",
+   "name": "Fuel pump prime and pressure decay",
+   "purpose": "Prime the rail, read the gauge, wait a minute and read it again. Delivery and sealing in one test.",
+   "engine": "off",
+   "caveat": "Pressurised fuel. Do not run this with a hot exhaust nearby.",
+   "steps": [
+    {
+     "key": "gauge",
+     "kind": "instruct",
+     "title": "Fit a pressure gauge to the rail",
+     "text": "Engine stopped, ignition on. Fuel is about to be pressurised: no leaks, no ignition sources, catch tray down.",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "state",
+     "kind": "observe",
+     "title": "Confirm the engine really is stopped",
+     "text": "The safety gate will not energise an output on an assumption, so the engine state is read from the ECU first.",
+     "channels": [
+      "rpm",
+      "stop_state"
+     ],
+     "seconds": 2.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "prime",
+     "kind": "actuate",
+     "title": "Prime the pump",
+     "text": "The workstation owns the deadline and releases the output when it expires.",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "fuel_pump",
+     "pulse_s": 3.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "pressure_primed",
+     "kind": "input",
+     "title": "Read the gauge now",
+     "text": "Take the reading as soon as the pump stops.",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "Pressure after priming",
+     "input_unit": "bar"
+    },
+    {
+     "key": "wait",
+     "kind": "instruct",
+     "title": "Wait sixty seconds",
+     "text": "Do not touch anything. The rail should hold its pressure.",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "pressure_rested",
+     "kind": "input",
+     "title": "Read the gauge again",
+     "text": "",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "Pressure after sixty seconds",
+     "input_unit": "bar"
+    },
+    {
+     "key": "result",
+     "kind": "verdict",
+     "title": "Result",
+     "text": "",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    }
+   ]
+  },
+  {
+   "key": "injector_click",
+   "name": "Injector circuit test",
+   "purpose": "Command each injector briefly with the engine stopped and confirm it answers. An electrical test, not a flow test.",
+   "engine": "off",
+   "caveat": "Commands real injectors. Engine stopped, and mind the fuel.",
+   "steps": [
+    {
+     "key": "prepare",
+     "kind": "instruct",
+     "title": "Engine stopped, ignition on",
+     "text": "Put your ear or a screwdriver against each injector body. Fuel pressure may be present, so expect a small squirt if a line is open.",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "state",
+     "kind": "observe",
+     "title": "Confirm the engine really is stopped",
+     "text": "Read the engine state rather than assuming it.",
+     "channels": [
+      "rpm",
+      "stop_state"
+     ],
+     "seconds": 2.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "pulse_front",
+     "kind": "actuate",
+     "title": "Pulse the front injector",
+     "text": "",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "injector_front",
+     "pulse_s": 0.5,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "heard_front",
+     "kind": "input",
+     "title": "Did the front injector click?",
+     "text": "",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "yesno",
+     "input_label": "Front injector clicked",
+     "input_unit": ""
+    },
+    {
+     "key": "pulse_rear",
+     "kind": "actuate",
+     "title": "Pulse the rear injector",
+     "text": "",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "injector_rear",
+     "pulse_s": 0.5,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "heard_rear",
+     "kind": "input",
+     "title": "Did the rear injector click?",
+     "text": "",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "yesno",
+     "input_label": "Rear injector clicked",
+     "input_unit": ""
+    },
+    {
+     "key": "result",
+     "kind": "verdict",
+     "title": "Result",
+     "text": "",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    }
+   ]
+  },
+  {
+   "key": "cold_sensor_check",
+   "name": "Cold-start sensor plausibility",
+   "purpose": "On a bike that has stood overnight, the head and the intake air must read nearly the same. This is the cheapest sensor test there is.",
+   "engine": "off",
+   "caveat": "",
+   "steps": [
+    {
+     "key": "soak_note",
+     "kind": "instruct",
+     "title": "Confirm the engine is cold",
+     "text": "The bike must have stood long enough to reach ambient - overnight is ideal. A warm engine makes this test meaningless.",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "soak",
+     "kind": "observe",
+     "title": "Read both temperature channels",
+     "text": "",
+     "channels": [
+      "coolant_temp",
+      "air_temp"
+     ],
+     "seconds": 4.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    },
+    {
+     "key": "result",
+     "kind": "verdict",
+     "title": "Result",
+     "text": "",
+     "channels": [],
+     "seconds": 5.0,
+     "actuator": "",
+     "pulse_s": 2.0,
+     "input_kind": "number",
+     "input_label": "",
+     "input_unit": ""
+    }
+   ]
+  }
+ ],
+ "gearing_presets": {
+  "Moto Guzzi — 1000 G5": {
+   "gears": [
+    2.0,
+    1.3889,
+    1.0476,
+    0.8696,
+    0.75
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — 1200 Sport": {
+   "gears": [
+    2.2353,
+    1.7,
+    1.3478,
+    1.1154,
+    0.9355,
+    0.8
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Bellagio": {
+   "gears": [
+    2.2353,
+    1.7,
+    1.3478,
+    1.1154,
+    0.9677,
+    0.8621
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Breva 750": {
+   "gears": [
+    2.3636,
+    1.6429,
+    1.2778,
+    1.0556,
+    0.9
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Breva 850": {
+   "gears": [
+    2.2353,
+    1.7,
+    1.3478,
+    1.1154,
+    0.9677,
+    0.8621
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Breva 1100": {
+   "gears": [
+    2.2353,
+    1.7,
+    1.3478,
+    1.1154,
+    0.9677,
+    0.8
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Breva 1200": {
+   "gears": [
+    2.2353,
+    1.7,
+    1.3478,
+    1.1154,
+    0.9355,
+    0.8
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — California III early": {
+   "gears": [
+    2.0,
+    1.3889,
+    1.0476,
+    0.8696,
+    0.75
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — California EV / Special / Jackal / Vintage (-2000)": {
+   "gears": [
+    2.0,
+    1.3889,
+    1.0476,
+    0.8696,
+    0.75
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — California 2001 EV": {
+   "gears": [
+    2.0,
+    1.3889,
+    1.0476,
+    0.8696,
+    0.75
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — California 1400": {
+   "gears": [
+    2.235,
+    1.7,
+    1.347,
+    1.115,
+    0.967,
+    0.8
+   ],
+   "max_rpm": 7000
+  },
+  "Moto Guzzi — Daytona": {
+   "gears": [
+    2.2353,
+    1.7,
+    1.3478,
+    1.1154,
+    0.9677,
+    0.8621
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Daytona RS": {
+   "gears": [
+    1.8125,
+    1.25,
+    1.0,
+    0.8333,
+    0.7308
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Griso 850": {
+   "gears": [
+    2.2353,
+    1.7,
+    1.3478,
+    1.1154,
+    0.9677,
+    0.8621
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Griso 1100": {
+   "gears": [
+    2.2353,
+    1.7,
+    1.3478,
+    1.1154,
+    0.9677,
+    0.8621
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Griso 1200": {
+   "gears": [
+    2.2353,
+    1.7,
+    1.3478,
+    1.1154,
+    0.9677,
+    0.8621
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Le Mans I": {
+   "gears": [
+    2.0,
+    1.3888,
+    1.0476,
+    0.8696,
+    0.75
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Le Mans II": {
+   "gears": [
+    2.0,
+    1.3888,
+    1.0476,
+    0.8696,
+    0.75
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Le Mans III": {
+   "gears": [
+    2.0,
+    1.3888,
+    1.0476,
+    0.8696,
+    0.75
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Le Mans 1000": {
+   "gears": [
+    2.0,
+    1.3889,
+    1.0476,
+    0.8696,
+    0.75
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — MGS01": {
+   "gears": [
+    2.4,
+    1.7778,
+    1.3636,
+    1.1111,
+    0.9655,
+    0.8519
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Norge 1200 early": {
+   "gears": [
+    2.2353,
+    1.7,
+    1.3478,
+    1.1154,
+    0.9677,
+    0.8621
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Norge 1200 late": {
+   "gears": [
+    2.2353,
+    1.7,
+    1.3478,
+    1.1154,
+    0.9355,
+    0.8
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Quota 1100 ES": {
+   "gears": [
+    2.0,
+    1.3158,
+    1.0,
+    0.8462,
+    0.7308
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Sport 1100 i": {
+   "gears": [
+    1.8125,
+    1.25,
+    1.0,
+    0.8333,
+    0.7308
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — Stelvio": {
+   "gears": [
+    2.2353,
+    1.7,
+    1.3478,
+    1.1154,
+    0.9677,
+    0.8621
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — V7": {
+   "gears": [
+    2.3636,
+    1.6429,
+    1.2778,
+    1.0556,
+    0.9
+   ],
+   "max_rpm": 7500
+  },
+  "Moto Guzzi — V7 II": {
+   "gears": [
+    2.6429,
+    1.7778,
+    1.3333,
+    1.0833,
+    0.96,
+    0.8889
+   ],
+   "max_rpm": 7500
+  },
+  "Moto Guzzi — V7 III": {
+   "gears": [
+    2.4375,
+    1.7778,
+    1.3333,
+    1.0833,
+    0.96,
+    0.8571
+   ],
+   "max_rpm": 7500
+  },
+  "Moto Guzzi — V7 850": {
+   "gears": [
+    2.4375,
+    1.7778,
+    1.3333,
+    1.0833,
+    0.96,
+    0.8571
+   ],
+   "max_rpm": 7500
+  },
+  "Moto Guzzi — V9": {
+   "gears": [
+    2.4375,
+    1.7778,
+    1.3333,
+    1.0833,
+    0.96,
+    0.8571
+   ],
+   "max_rpm": 7500
+  },
+  "Moto Guzzi — V10 Centauro": {
+   "gears": [
+    2.0,
+    1.3158,
+    1.0,
+    0.8462,
+    0.7692
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — V10 Centauro CH": {
+   "gears": [
+    2.0,
+    1.3889,
+    1.0476,
+    0.8696,
+    0.75
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — V11 (170/60-17)": {
+   "gears": [
+    2.4,
+    1.7778,
+    1.3636,
+    1.1111,
+    0.9655,
+    0.8519
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — V11 (180/55-17)": {
+   "gears": [
+    2.4,
+    1.7778,
+    1.3636,
+    1.1111,
+    0.9655,
+    0.8519
+   ],
+   "max_rpm": 8750
+  },
+  "Moto Guzzi — V35 / V35TT / V50": {
+   "gears": [
+    2.727,
+    1.733,
+    1.277,
+    1.045,
+    0.909
+   ],
+   "max_rpm": 8000
+  },
+  "Moto Guzzi — V65 / V65 Lario": {
+   "gears": [
+    2.3636,
+    1.6428,
+    1.2777,
+    1.0555,
+    0.9
+   ],
+   "max_rpm": 8000
+  },
+  "Moto Guzzi — V85TT": {
+   "gears": [
+    2.4375,
+    1.7778,
+    1.3333,
+    1.0833,
+    0.96,
+    0.8889
+   ],
+   "max_rpm": 7500
+  },
+  "Aprilia — RSV4 Factory": {
+   "gears": [
+    2.375,
+    1.9444,
+    1.6471,
+    1.4545,
+    1.3077,
+    1.2222
+   ],
+   "max_rpm": 14000
+  },
+  "BMW — HP4 Race": {
+   "gears": [
+    2.3889,
+    2.0,
+    1.7273,
+    1.5455,
+    1.4,
+    1.2917
+   ],
+   "max_rpm": 14500
+  },
+  "BMW — S 1000 RR": {
+   "gears": [
+    2.647,
+    2.091,
+    1.727,
+    1.5,
+    1.36,
+    1.261
+   ],
+   "max_rpm": 14000
+  },
+  "MV Agusta — Brutale 1090RR (2010)": {
+   "gears": [
+    2.923,
+    2.125,
+    1.778,
+    1.5,
+    1.318,
+    1.211
+   ],
+   "max_rpm": 13500
+  },
+  "MV Agusta — Brutale 989 / 1078": {
+   "gears": [
+    2.923,
+    2.125,
+    1.778,
+    1.5,
+    1.318,
+    1.211
+   ],
+   "max_rpm": 12000
+  },
+  "MV Agusta — Brutale 990 ET 1090": {
+   "gears": [
+    2.923,
+    2.125,
+    1.778,
+    1.5,
+    1.318,
+    1.211
+   ],
+   "max_rpm": 13500
+  },
+  "MV Agusta — Brutale 1090RR Y12 + CORSA": {
+   "gears": [
+    2.923,
+    2.125,
+    1.778,
+    1.5,
+    1.318,
+    1.211
+   ],
+   "max_rpm": 13500
+  },
+  "MV Agusta — Brutale 920": {
+   "gears": [
+    2.923,
+    2.125,
+    1.778,
+    1.5,
+    1.318,
+    1.211
+   ],
+   "max_rpm": 13500
+  },
+  "MV Agusta — Brutale 910": {
+   "gears": [
+    2.923,
+    2.125,
+    1.778,
+    1.5,
+    1.318,
+    1.19
+   ],
+   "max_rpm": 12000
+  },
+  "MV Agusta — B4 750": {
+   "gears": [
+    2.92,
+    2.21,
+    1.78,
+    1.5,
+    1.32,
+    1.21
+   ],
+   "max_rpm": 12000
+  },
+  "MV Agusta — F4 1000 Y04 + AGO + SENNA": {
+   "gears": [
+    2.92,
+    2.12,
+    1.78,
+    1.5,
+    1.32,
+    1.19
+   ],
+   "max_rpm": 14000
+  },
+  "MV Agusta — F4 1000 Y05 + TAMBURINI": {
+   "gears": [
+    2.923,
+    2.125,
+    1.778,
+    1.5,
+    1.318,
+    1.19
+   ],
+   "max_rpm": 14000
+  },
+  "MV Agusta — F4 312 / 1000 / 1078 Y08": {
+   "gears": [
+    2.923,
+    2.06,
+    1.778,
+    1.5,
+    1.318,
+    1.19
+   ],
+   "max_rpm": 14000
+  },
+  "MV Agusta — F4S Y10": {
+   "gears": [
+    2.64,
+    2.06,
+    1.72,
+    1.5,
+    1.318,
+    1.19
+   ],
+   "max_rpm": 15000
+  },
+  "MV Agusta — F4 Y10": {
+   "gears": [
+    2.643,
+    2.062,
+    1.722,
+    1.5,
+    1.318,
+    1.19
+   ],
+   "max_rpm": 15000
+  },
+  "MV Agusta — B3 800 / Dragster / Rivale (<Y16)": {
+   "gears": [
+    2.846,
+    2.125,
+    1.778,
+    1.579,
+    1.429,
+    1.318
+   ],
+   "max_rpm": 13000
+  },
+  "MV Agusta — Dragster RR": {
+   "gears": [
+    2.846,
+    2.125,
+    1.778,
+    1.579,
+    1.429,
+    1.318
+   ],
+   "max_rpm": 14000
+  },
+  "MV Agusta — Turismo Veloce": {
+   "gears": [
+    2.846,
+    2.188,
+    1.778,
+    1.5,
+    1.318,
+    1.19
+   ],
+   "max_rpm": 13000
+  },
+  "MV Agusta — B3 675 (<Y16)": {
+   "gears": [
+    2.846,
+    2.125,
+    1.778,
+    1.579,
+    1.429,
+    1.318
+   ],
+   "max_rpm": 13000
+  },
+  "MV Agusta — F3 675 / 800": {
+   "gears": [
+    2.846,
+    2.125,
+    1.778,
+    1.579,
+    1.429,
+    1.318
+   ],
+   "max_rpm": 15000
+  }
+ },
+ "gearing_defaults": {
+  "final_drive": 4.125,
+  "tyre": "180/55-17",
+  "gears": [
+   2.308,
+   1.619,
+   1.25,
+   1.038,
+   0.87,
+   0.75
+  ]
+ },
+ "rpm_wheels": {
+  "ducati": {
+   "teeth": 46,
+   "missing": 2,
+   "wheel": "camshaft"
+  },
+  "motoguzzi": {
+   "teeth": 46,
+   "missing": 2,
+   "wheel": "camshaft"
+  },
+  "motomorini": {
+   "teeth": 46,
+   "missing": 2,
+   "wheel": "camshaft"
+  },
+  "mvagusta": {
+   "teeth": 22,
+   "missing": 2,
+   "wheel": "crankshaft"
+  }
+ },
+ "xdfs": [
+  {
+   "title": "Magnetti Marelli IAW 15P 1P10",
+   "path": "guzzionboard/xdfs/aprilia/15P_1P0Z_V1.02.xdf",
+   "version": "1.02",
+   "tables": 32,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 65536,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/aprilia/15P_1P0Z_V1.02.xdf"
+  },
+  {
+   "title": "5AM Aprilia GP 850",
+   "path": "guzzionboard/xdfs/aprilia/5AM_Aprilia_GP850_V1.00.xdf",
+   "version": "1.00",
+   "tables": 55,
+   "constants": 9,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "Aprilia GP850",
+    "Development",
+    "Fuel",
+    "Ignition",
+    "Legend",
+    "Read only",
+    "Text Block",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/5AM_Aprilia_GP850_V1.00.xdf"
+  },
+  {
+   "title": "5AM Aprilia Mana",
+   "path": "guzzionboard/xdfs/aprilia/5AM_Aprilia_Mana_V1.38.xdf",
+   "version": "1.38 long",
+   "tables": 205,
+   "constants": 571,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "Development",
+    "Fuel",
+    "Ignition",
+    "Legend",
+    "Read only",
+    "Text Block",
+    "Tunable",
+    "iaw5AM Mana"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/5AM_Aprilia_Mana_V1.38.xdf"
+  },
+  {
+   "title": "5AM Aprilia SRV 850",
+   "path": "guzzionboard/xdfs/aprilia/5AM_Aprilia_SRV850_V1.00.xdf",
+   "version": "1.00",
+   "tables": 57,
+   "constants": 9,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "Aprilia SRV850",
+    "Development",
+    "Fuel",
+    "Ignition",
+    "Legend",
+    "Read only",
+    "Text Block",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/5AM_Aprilia_SRV850_V1.00.xdf"
+  },
+  {
+   "title": "7SM Aprilia Caponord 1200",
+   "path": "guzzionboard/xdfs/aprilia/7SM_Caponord_1200_1050Fxxx.xdf",
+   "version": "0.12",
+   "tables": 31,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 720896,
+   "categories": [
+    "Development",
+    "IAW 7SM Caponord 1200",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/7SM_Caponord_1200_1050Fxxx.xdf"
+  },
+  {
+   "title": "7SM Aprilia Dorsoduro 1200",
+   "path": "guzzionboard/xdfs/aprilia/7SM_Dorsoduro_1200_1338XXxx_V0.14.xdf",
+   "version": "0.14",
+   "tables": 32,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 720896,
+   "categories": [
+    "Development",
+    "IAW Dorsoduro 1200 1338xx",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/7SM_Dorsoduro_1200_1338XXxx_V0.14.xdf"
+  },
+  {
+   "title": "7SM Aprilia RSV4 2012",
+   "path": "guzzionboard/xdfs/aprilia/7SM_RSV4_1037AH01_V1.03.xdf",
+   "version": "1.03",
+   "tables": 59,
+   "constants": 3,
+   "unsupported": 0,
+   "region_size": 720896,
+   "categories": [
+    "Development",
+    "IAW RSV4 1338xxx",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_1037AH01_V1.03.xdf"
+  },
+  {
+   "title": "7SM Aprilia RSV4 2012",
+   "path": "guzzionboard/xdfs/aprilia/7SM_RSV4_1338XXxx_V0.14.xdf",
+   "version": "0.14",
+   "tables": 32,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 720896,
+   "categories": [
+    "Development",
+    "IAW RSV4 1338xxx",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_1338XXxx_V0.14.xdf"
+  },
+  {
+   "title": "7SM Aprilia RSV4 2014",
+   "path": "guzzionboard/xdfs/aprilia/7SM_RSV4_13A9XXxx_V0.15.xdf",
+   "version": "0.15",
+   "tables": 40,
+   "constants": 0,
+   "unsupported": 1,
+   "region_size": 720896,
+   "categories": [
+    "Development",
+    "IAW RSV4 13A9xxxx",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_13A9XXxx_V0.15.xdf"
+  },
+  {
+   "title": "7SM Aprilia RSV4 2009",
+   "path": "guzzionboard/xdfs/aprilia/7SM_RSV4_40xxXXxx_V0.12.xdf",
+   "version": "0.12",
+   "tables": 31,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 720896,
+   "categories": [
+    "Development",
+    "IAW RSV4 40xxxxxx",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_40xxXXxx_V0.12.xdf"
+  },
+  {
+   "title": "7SM Aprilia RSV4 2015",
+   "path": "guzzionboard/xdfs/aprilia/7SM_RSV4_6403XXxx_V0.13.xdf",
+   "version": "0.13",
+   "tables": 31,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 720896,
+   "categories": [
+    "Development",
+    "IAW RSV4 6403XXxx",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_6403XXxx_V0.13.xdf"
+  },
+  {
+   "title": "7SM Aprilia RSV4 2016",
+   "path": "guzzionboard/xdfs/aprilia/7SM_RSV4_6404XXxx_V0.15.xdf",
+   "version": "0.15",
+   "tables": 32,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 720896,
+   "categories": [
+    "Development",
+    "IAW RSV4 6404XXxx",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_6404XXxx_V0.15.xdf"
+  },
+  {
+   "title": "7SM Aprilia RSV4 76xxXXxx",
+   "path": "guzzionboard/xdfs/aprilia/7SM_RSV4_7614XXxx_V0.15.xdf",
+   "version": "0.15",
+   "tables": 33,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 720896,
+   "categories": [
+    "Development",
+    "IAW RSV4  76xxxxxx",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_7614XXxx_V0.15.xdf"
+  },
+  {
+   "title": "7SM Aprilia RSV4 7617XXxx",
+   "path": "guzzionboard/xdfs/aprilia/7SM_RSV4_7617XXxx_V0.15.xdf",
+   "version": "0.15",
+   "tables": 61,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 720896,
+   "categories": [
+    "Development",
+    "IAW RSV4 1100 7617XXxx",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_7617XXxx_V0.15.xdf"
+  },
+  {
+   "title": "Aprilia RS4 125 MIUG3",
+   "path": "guzzionboard/xdfs/aprilia/MIUG3_Aprilia_RS4_125_CM088115_V1.02.xdf",
+   "version": "1.01",
+   "tables": 22,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/aprilia/MIUG3_Aprilia_RS4_125_CM088115_V1.02.xdf"
+  },
+  {
+   "title": "Aprilia RS4 MIUG3",
+   "path": "guzzionboard/xdfs/aprilia/MIUG3_Aprilia_RS4_125_CM227201_V1.02.xdf",
+   "version": "1.00",
+   "tables": 59,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "RS4_Kenji",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/MIUG3_Aprilia_RS4_125_CM227201_V1.02.xdf"
+  },
+  {
+   "title": "Aprilia SR Max 300ie",
+   "path": "guzzionboard/xdfs/aprilia/MIUG3_Aprilia_SR_MAX_300ie_V1.02.xdf",
+   "version": "1.02",
+   "tables": 60,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MUI3g",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/MIUG3_Aprilia_SR_MAX_300ie_V1.02.xdf"
+  },
+  {
+   "title": "Aprilia SX125 MIUG3 464EA105",
+   "path": "guzzionboard/xdfs/aprilia/MIUG3_Aprilia_SX125_464EA105_V1.00.xdf",
+   "version": "1.0",
+   "tables": 89,
+   "constants": 1,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MUI3g",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/aprilia/MIUG3_Aprilia_SX125_464EA105_V1.00.xdf"
+  },
+  {
+   "title": "BMW MBC1 00268L63/8543645",
+   "path": "guzzionboard/xdfs/bmw/MBC1_BMW_C600_V1.01.xdf",
+   "version": "1.01",
+   "tables": 34,
+   "constants": 2,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MUI3g",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/bmw/MBC1_BMW_C600_V1.01.xdf"
+  },
+  {
+   "title": "15M Marelli",
+   "path": "guzzionboard/xdfs/ducati/15M_Ducati_750SS_V2.28.xdf",
+   "version": "2.28",
+   "tables": 24,
+   "constants": 2,
+   "unsupported": 1,
+   "region_size": 65535,
+   "categories": [
+    "Definition (Read Only)",
+    "Fuel",
+    "Fuel Trims",
+    "IAW 15M",
+    "Not Verified",
+    "Spark",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/15M_Ducati_750SS_V2.28.xdf"
+  },
+  {
+   "title": "15M Marelli",
+   "path": "guzzionboard/xdfs/ducati/15M_Ducati_M900_V1.0.xdf",
+   "version": "2.29",
+   "tables": 33,
+   "constants": 4,
+   "unsupported": 1,
+   "region_size": 65535,
+   "categories": [
+    "Definition (Read Only)",
+    "Fuel",
+    "Fuel Trims",
+    "IAW 15M",
+    "Not Verified",
+    "Spark",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/15M_Ducati_M900_V1.0.xdf"
+  },
+  {
+   "title": "16M Ducati  748, SP, 916 Biposto",
+   "path": "guzzionboard/xdfs/ducati/16M_Duc748_916S_64k_V1.1.xdf",
+   "version": "1.1",
+   "tables": 20,
+   "constants": 2,
+   "unsupported": 1,
+   "region_size": 65536,
+   "categories": [
+    "16M 748 916 996",
+    "Axis  Legends",
+    "Maps Fuel Spark",
+    "Trims of Sensors"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/16M_Duc748_916S_64k_V1.1.xdf"
+  },
+  {
+   "title": "59M Ducati 1000SS",
+   "path": "guzzionboard/xdfs/ducati/59M_Ducati_1000SS_V1.28.xdf",
+   "version": "1.28",
+   "tables": 29,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 262144,
+   "categories": [
+    "Development",
+    "IAW 59M Ducati 1000SS",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/59M_Ducati_1000SS_V1.28.xdf"
+  },
+  {
+   "title": "59M 2003 Ducati ST4S,800SS,1000SS",
+   "path": "guzzionboard/xdfs/ducati/59M_Ducati_ST4S_2003_1.01.xdf",
+   "version": "1.01",
+   "tables": 93,
+   "constants": 318,
+   "unsupported": 1,
+   "region_size": 262144,
+   "categories": [
+    "59M 2003 Ducati ST4S,800SS,1000SS",
+    "Development",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/59M_Ducati_ST4S_2003_1.01.xdf"
+  },
+  {
+   "title": "59M",
+   "path": "guzzionboard/xdfs/ducati/59M_Monster S4_2002_96508702B_V1.28.xdf",
+   "version": "1.28",
+   "tables": 30,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 262144,
+   "categories": [
+    "Development",
+    "IAW 59M Ducati Monster s4 2002",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/59M_Monster S4_2002_96508702B_V1.28.xdf"
+  },
+  {
+   "title": "59M",
+   "path": "guzzionboard/xdfs/ducati/59M_Monster S4_28640191B_V1.30.xdf",
+   "version": "1.30",
+   "tables": 30,
+   "constants": 4,
+   "unsupported": 0,
+   "region_size": 262144,
+   "categories": [
+    "Development",
+    "IAW 59M Ducati Monster s4 2002",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/59M_Monster S4_28640191B_V1.30.xdf"
+  },
+  {
+   "title": "59M",
+   "path": "guzzionboard/xdfs/ducati/59M_SS-800_28640671A_V1.28.xdf",
+   "version": "1.27",
+   "tables": 30,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 262144,
+   "categories": [
+    "Development",
+    "IAW 59M Ducati SS800",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/59M_SS-800_28640671A_V1.28.xdf"
+  },
+  {
+   "title": "Ducati 1198",
+   "path": "guzzionboard/xdfs/ducati/5AM_1198SP_96520411B_2.2.xdf",
+   "version": "2.20",
+   "tables": 42,
+   "constants": 7,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "Development",
+    "Fuel",
+    "Ignition",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_1198SP_96520411B_2.2.xdf"
+  },
+  {
+   "title": "Two Lambda1198 XDF",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_1098R_22C3_013_V1.28.xdf",
+   "version": "1.27",
+   "tables": 45,
+   "constants": 4,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "1198",
+    "Development",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1098R_22C3_013_V1.28.xdf"
+  },
+  {
+   "title": "IAW 5AM file for Ducati 1098 Std + DP",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_1098_S_DP_V1.1.xdf",
+   "version": "V1.1",
+   "tables": 24,
+   "constants": 7,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "5AM 1098_S_DP",
+    "Development",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1098_S_DP_V1.1.xdf"
+  },
+  {
+   "title": "Two Lambda1198 XDF",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_1198S_3213_PQ58_V1.27.xdf",
+   "version": "1.27",
+   "tables": 33,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "1198",
+    "Development",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1198S_3213_PQ58_V1.27.xdf"
+  },
+  {
+   "title": "Two Lambda 1198 XDF",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_1198_328641831D_V1.27.xdf",
+   "version": "1.27",
+   "tables": 28,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "1198",
+    "Development",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1198_328641831D_V1.27.xdf"
+  },
+  {
+   "title": "IWA5AMHW610 96520311B XDF",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_1198_DP_V1.27.xdf",
+   "version": "1.27",
+   "tables": 33,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "1198",
+    "Development",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1198_DP_V1.27.xdf"
+  },
+  {
+   "title": "IAW 5AM file for Ducati 848",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_848_22AELM26_28641571A_V1.1.xdf",
+   "version": "V1.0",
+   "tables": 24,
+   "constants": 6,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "5am 848 22aesma2",
+    "Development",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_848_22AELM26_28641571A_V1.1.xdf"
+  },
+  {
+   "title": "IAW 5AM file for Ducati 848",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_848_22aesma2_96519408B_V1.0.xdf",
+   "version": "V1.0",
+   "tables": 22,
+   "constants": 6,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "5am 848 22aesma2",
+    "Development",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_848_22aesma2_96519408B_V1.0.xdf"
+  },
+  {
+   "title": "IAW 5AM file for Ducati 848",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_848_V1.0.xdf",
+   "version": "V1.0",
+   "tables": 7,
+   "constants": 6,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_848_V1.0.xdf"
+  },
+  {
+   "title": "IAW 5AM file for Ducati Hypermotard 1100",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_Hypermotard_1100_V1.0.xdf",
+   "version": "V1.0",
+   "tables": 7,
+   "constants": 6,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_Hypermotard_1100_V1.0.xdf"
+  },
+  {
+   "title": "IAW 5AM file for Ducati 1098",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_MTS1000_HW103_V1.0.xdf",
+   "version": "V1.0",
+   "tables": 5,
+   "constants": 6,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_MTS1000_HW103_V1.0.xdf"
+  },
+  {
+   "title": "IAW 5AM file for Ducati MTS 1000 HW610",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_MTS1000_HW610_V1.0.xdf",
+   "version": "V1.0",
+   "tables": 6,
+   "constants": 6,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_MTS1000_HW610_V1.0.xdf"
+  },
+  {
+   "title": "5AM with one Lambda",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_Multistrada_1100_V1.28.xdf",
+   "version": "1.28",
+   "tables": 36,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "Development",
+    "Multistrada 1100",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_Multistrada_1100_V1.28.xdf"
+  },
+  {
+   "title": "5AM with one Lambda",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_S2_1000R_DP_V1.28.xdf",
+   "version": "1.28",
+   "tables": 36,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "Development",
+    "Monster S2r 100 DP",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_S2_1000R_DP_V1.28.xdf"
+  },
+  {
+   "title": "5AM with one Lambda",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_S2_800R_V1.28.xdf",
+   "version": "1.28",
+   "tables": 36,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "Development",
+    "IAW 5AM Ducati S2r 800",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_S2_800R_V1.28.xdf"
+  },
+  {
+   "title": "IAW 5AM file for Ducati S4R HW610",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_S4R_996_Monster_HW610_V1.0.xdf",
+   "version": "V1.0",
+   "tables": 6,
+   "constants": 6,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_S4R_996_Monster_HW610_V1.0.xdf"
+  },
+  {
+   "title": "5AM Ducati (one Lambda) + corrections",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.xdf",
+   "version": "1.35",
+   "tables": 40,
+   "constants": 0,
+   "unsupported": 2,
+   "region_size": 327680,
+   "categories": [
+    "Development",
+    "IAW 5AM Ducati SC1000 (07+ Bip) and S4RS",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.xdf"
+  },
+  {
+   "title": "5AM Ducati (one Lambda) + corrections",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.xdf",
+   "version": "1.32",
+   "tables": 40,
+   "constants": 0,
+   "unsupported": 2,
+   "region_size": 327680,
+   "categories": [
+    "Development",
+    "IAW 5AM Ducati SC1000 Mono DP ECU",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.xdf"
+  },
+  {
+   "title": "5AM Ducati (one Lambda) + corrections",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.xdf",
+   "version": "1.35",
+   "tables": 40,
+   "constants": 0,
+   "unsupported": 2,
+   "region_size": 327680,
+   "categories": [
+    "Development",
+    "IAW 5AM Ducati SC1000 Mono + PS Stock ECU",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.xdf"
+  },
+  {
+   "title": "5AM with two Lambda",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_SF_Serie_V1.28.xdf",
+   "version": "1.28",
+   "tables": 30,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "Development",
+    "Read only",
+    "Streetfighter",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_SF_Serie_V1.28.xdf"
+  },
+  {
+   "title": "5AM Ducati 2235SD01 96517506B",
+   "path": "guzzionboard/xdfs/ducati/5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.xdf",
+   "version": "1.28",
+   "tables": 27,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "Development",
+    "Read only",
+    "St3s ABS",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.xdf"
+  },
+  {
+   "title": "Magnetti Marelli IAW 15P GasGas 450",
+   "path": "guzzionboard/xdfs/gasgas/15P_00_GasGas450_V1.02.xdf",
+   "version": "1.02",
+   "tables": 43,
+   "constants": 2,
+   "unsupported": 0,
+   "region_size": 65536,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/gasgas/15P_00_GasGas450_V1.02.xdf"
+  },
+  {
+   "title": "Magnetti Marelli IAW 15P GasGas 450",
+   "path": "guzzionboard/xdfs/gasgas/15P_00_GasGasFSR450_V1.02.xdf",
+   "version": "1.02",
+   "tables": 43,
+   "constants": 2,
+   "unsupported": 0,
+   "region_size": 65536,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/gasgas/15P_00_GasGasFSR450_V1.02.xdf"
+  },
+  {
+   "title": "",
+   "path": "guzzionboard/xdfs/gasgas/15P_GasGasFE400_V1.00.xdf",
+   "version": "",
+   "tables": 57,
+   "constants": 3,
+   "unsupported": 0,
+   "region_size": 65536,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/gasgas/15P_GasGasFE400_V1.00.xdf"
+  },
+  {
+   "title": "Magnetti Marelli IAW 15P 1P10",
+   "path": "guzzionboard/xdfs/gilera/15P_1P10_V1.03.xdf",
+   "version": "1.03",
+   "tables": 30,
+   "constants": 4,
+   "unsupported": 0,
+   "region_size": 65536,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/gilera/15P_1P10_V1.03.xdf"
+  },
+  {
+   "title": "",
+   "path": "guzzionboard/xdfs/gilera/5AM_Gilera_GP800_V1.05.xdf",
+   "version": "1.05",
+   "tables": 26,
+   "constants": 4,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/gilera/5AM_Gilera_GP800_V1.05.xdf"
+  },
+  {
+   "title": "Husqvarna MBC1",
+   "path": "guzzionboard/xdfs/husqvarna/MBC1_Nuda_900_V1.00.xdf",
+   "version": "1.00",
+   "tables": 34,
+   "constants": 2,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MUI3g",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/husqvarna/MBC1_Nuda_900_V1.00.xdf"
+  },
+  {
+   "title": "MIUG3 Malaguti XTM 125",
+   "path": "guzzionboard/xdfs/malaguti/MIUG3_Malaguti_4643AFC1_XTM125_V1.02.xdf",
+   "version": "1.02",
+   "tables": 40,
+   "constants": 6,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Axes",
+    "Fuel",
+    "Idle",
+    "Ignition",
+    "Info",
+    "Settings",
+    "Unknown"
+   ],
+   "url": "../guzzionboard/xdfs/malaguti/MIUG3_Malaguti_4643AFC1_XTM125_V1.02.xdf"
+  },
+  {
+   "title": "Two Lambda Morini Corsaroi XDF",
+   "path": "guzzionboard/xdfs/morini/5AM_Morini_Corsaro_Two_Lambda_V1.34.xdf",
+   "version": "1.31",
+   "tables": 35,
+   "constants": 5,
+   "unsupported": 1,
+   "region_size": 327680,
+   "categories": [
+    "Development",
+    "IAW 5AM Morini Two Lambda Corsaro",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/morini/5AM_Morini_Corsaro_Two_Lambda_V1.34.xdf"
+  },
+  {
+   "title": "5AM Morini GP with one Lambda",
+   "path": "guzzionboard/xdfs/morini/5AM_Morini_Corsaro_V1.25.xdf",
+   "version": "1.25",
+   "tables": 54,
+   "constants": 23,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "5AM Moto Morini Corsaro",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/morini/5AM_Morini_Corsaro_V1.25.xdf"
+  },
+  {
+   "title": "5AM  Morini GP with two Lambda",
+   "path": "guzzionboard/xdfs/morini/5AM_Morini_GP_2_Lambda_V1.22.xdf",
+   "version": "1.22",
+   "tables": 22,
+   "constants": 2,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "5AM Two Lambda Morini GP",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/morini/5AM_Morini_GP_2_Lambda_V1.22.xdf"
+  },
+  {
+   "title": "5AM Morini GP with one Lambda",
+   "path": "guzzionboard/xdfs/morini/5AM_Morini_Sport_GP_95_Scrambler_V1.25.xdf",
+   "version": "1.25",
+   "tables": 54,
+   "constants": 23,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [
+    "IAW 5AM One Lambda Morini GP",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/morini/5AM_Morini_Sport_GP_95_Scrambler_V1.25.xdf"
+  },
+  {
+   "title": "15M for 61600.428.00",
+   "path": "guzzionboard/xdfs/moto_guzzi/15M_428_00_GuzziDiag_V2.28.xdf",
+   "version": "2.28",
+   "tables": 24,
+   "constants": 3,
+   "unsupported": 1,
+   "region_size": 65535,
+   "categories": [
+    "Definition (Read Only)",
+    "Fuel",
+    "Fuel Trims",
+    "IAW 15M",
+    "Not Verified",
+    "Spark",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/15M_428_00_GuzziDiag_V2.28.xdf"
+  },
+  {
+   "title": "15M Marelli",
+   "path": "guzzionboard/xdfs/moto_guzzi/15M_61600.381.00_Cali_V2.52.xdf",
+   "version": "2.47",
+   "tables": 36,
+   "constants": 13,
+   "unsupported": 2,
+   "region_size": 65535,
+   "categories": [
+    "Acceleration",
+    "Definition (Read Only)",
+    "Derived Maps",
+    "Different value found in TI BIN",
+    "Different value found in dual plug BIN",
+    "Different value found in other BINs",
+    "Fuel",
+    "Fuel Trims",
+    "IAW 15M",
+    "Not Verified",
+    "Nur in einer Subroutine verwendet",
+    "Quota",
+    "Spark",
+    "Spark Trims",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/15M_61600.381.00_Cali_V2.52.xdf"
+  },
+  {
+   "title": "IAW 15x EEPROM",
+   "path": "guzzionboard/xdfs/moto_guzzi/15M_EEPROM_V1.01.xdf",
+   "version": "1.01",
+   "tables": 1,
+   "constants": 1,
+   "unsupported": 0,
+   "region_size": 512,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/moto_guzzi/15M_EEPROM_V1.01.xdf"
+  },
+  {
+   "title": "15M Marelli",
+   "path": "guzzionboard/xdfs/moto_guzzi/15M_GuzziDiag_V2.32.xdf",
+   "version": "2.32",
+   "tables": 39,
+   "constants": 5,
+   "unsupported": 5,
+   "region_size": 65535,
+   "categories": [
+    "Definition (Read Only)",
+    "Fuel",
+    "Fuel Trims",
+    "IAW 15M",
+    "Not Verified",
+    "Spark",
+    "Spark Trims",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/15M_GuzziDiag_V2.32.xdf"
+  },
+  {
+   "title": "IAW 15RC EEPROM",
+   "path": "guzzionboard/xdfs/moto_guzzi/15RC_EEPROM_V1.01.xdf",
+   "version": "1.01",
+   "tables": 1,
+   "constants": 2,
+   "unsupported": 0,
+   "region_size": 512,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/moto_guzzi/15RC_EEPROM_V1.01.xdf"
+  },
+  {
+   "title": "IAW 15RC V11 / California 1100",
+   "path": "guzzionboard/xdfs/moto_guzzi/15RC_GuzziDiag_1100_V2.17.xdf",
+   "version": "2.17",
+   "tables": 48,
+   "constants": 3,
+   "unsupported": 2,
+   "region_size": 65535,
+   "categories": [
+    "Definition (Read Only)",
+    "Development",
+    "Generic",
+    "IAW 15RC V11 /  Cali 1100",
+    "Misc.",
+    "Tunable",
+    "V11 KAT",
+    "V7/Breva"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/15RC_GuzziDiag_1100_V2.17.xdf"
+  },
+  {
+   "title": "IAW 15RC V7",
+   "path": "guzzionboard/xdfs/moto_guzzi/15RC_GuzziDiag_V7_V2.17.xdf",
+   "version": "2.17",
+   "tables": 48,
+   "constants": 3,
+   "unsupported": 2,
+   "region_size": 65535,
+   "categories": [
+    "Definition (Read Only)",
+    "Development",
+    "Generic",
+    "IAW 15RC",
+    "Misc.",
+    "Tunable",
+    "V11 KAT",
+    "V7/Breva"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/15RC_GuzziDiag_V7_V2.17.xdf"
+  },
+  {
+   "title": "Moto Guzzi 16M",
+   "path": "guzzionboard/xdfs/moto_guzzi/16M_GuzziDiag_32k_V1.23.xdf",
+   "version": "1.23",
+   "tables": 18,
+   "constants": 3,
+   "unsupported": 1,
+   "region_size": 32768,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/moto_guzzi/16M_GuzziDiag_32k_V1.23.xdf"
+  },
+  {
+   "title": "Moto Guzzi 16M",
+   "path": "guzzionboard/xdfs/moto_guzzi/16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.xdf",
+   "version": "1.21",
+   "tables": 18,
+   "constants": 1,
+   "unsupported": 1,
+   "region_size": 65536,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/moto_guzzi/16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.xdf"
+  },
+  {
+   "title": "Moto Guzzi 16M",
+   "path": "guzzionboard/xdfs/moto_guzzi/16M_GuzziDiag_64k_V1.23.xdf",
+   "version": "1.23",
+   "tables": 18,
+   "constants": 3,
+   "unsupported": 1,
+   "region_size": 65536,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/moto_guzzi/16M_GuzziDiag_64k_V1.23.xdf"
+  },
+  {
+   "title": "IAW5AM EEPROM",
+   "path": "guzzionboard/xdfs/moto_guzzi/5AM_EEPROM_V1.01.xdf",
+   "version": "1.01",
+   "tables": 9,
+   "constants": 2,
+   "unsupported": 3,
+   "region_size": 2048,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/moto_guzzi/5AM_EEPROM_V1.01.xdf"
+  },
+  {
+   "title": "5AM with one Lambda",
+   "path": "guzzionboard/xdfs/moto_guzzi/5AM_GuzziDiag_One_Lambda_V1.41.xdf",
+   "version": "1.41",
+   "tables": 133,
+   "constants": 355,
+   "unsupported": 2,
+   "region_size": 327680,
+   "categories": [
+    "Development",
+    "Fuel",
+    "IAW 5AM one Lambda Guzzi",
+    "Ignition",
+    "Legend",
+    "Read only",
+    "Text Block",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/5AM_GuzziDiag_One_Lambda_V1.41.xdf"
+  },
+  {
+   "title": "Two Lambda Guzzi XDF",
+   "path": "guzzionboard/xdfs/moto_guzzi/5AM_GuzziDiag_Two_Lambda_V1.40.xdf",
+   "version": "1.40",
+   "tables": 260,
+   "constants": 648,
+   "unsupported": 1,
+   "region_size": 327680,
+   "categories": [
+    "Development",
+    "Fuel",
+    "IAW 5AM two Lambda Guzzi",
+    "Ignition",
+    "Legend",
+    "One and Two Lambda - different values",
+    "One and Two Lambda - same values",
+    "Present on CANBus",
+    "Read Only",
+    "Requires Validation",
+    "Scalar",
+    "Text Block",
+    "Tunable",
+    "Validated by Meinolf"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/5AM_GuzziDiag_Two_Lambda_V1.40.xdf"
+  },
+  {
+   "title": "7SM California 1400 Euro3 CM228201 HW100",
+   "path": "guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_1400_1050_EURO3_V1.04.xdf",
+   "version": "1.04",
+   "tables": 58,
+   "constants": 3,
+   "unsupported": 0,
+   "region_size": 720896,
+   "categories": [
+    "Development",
+    "IAW 7SM California 1400 Euro3 HW100",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_1400_1050_EURO3_V1.04.xdf"
+  },
+  {
+   "title": "7SM California 1400 Euro3 CM267201 HW310",
+   "path": "guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_1400_EURO4_V1.04.xdf",
+   "version": "1.04",
+   "tables": 56,
+   "constants": 3,
+   "unsupported": 0,
+   "region_size": 720896,
+   "categories": [
+    "Development",
+    "IAW 7SM California 1400 Euro4 HW320",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_1400_EURO4_V1.04.xdf"
+  },
+  {
+   "title": "7SM California 1400 CM267202_75B8C2AS MGX21",
+   "path": "guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_1400_MGX21_V0.14.xdf",
+   "version": "0.12",
+   "tables": 30,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 720896,
+   "categories": [
+    "Development",
+    "IAW 7SM Moto Guzzi MGX21",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_1400_MGX21_V0.14.xdf"
+  },
+  {
+   "title": "7SM V85TT HW320",
+   "path": "guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.xdf",
+   "version": "1.07",
+   "tables": 54,
+   "constants": 10,
+   "unsupported": 0,
+   "region_size": 720896,
+   "categories": [
+    "Development",
+    "IAW 7SM V85TT all BIN versions",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.xdf"
+  },
+  {
+   "title": "Moto Guzzi MIUG3 V7 III",
+   "path": "guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V7III_V1.15.xdf",
+   "version": "1.15",
+   "tables": 47,
+   "constants": 11,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MIUG3",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V7III_V1.15.xdf"
+  },
+  {
+   "title": "Moto Guzzi MIUG3 V7 III",
+   "path": "guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V7II_V1.15.xdf",
+   "version": "1.15",
+   "tables": 41,
+   "constants": 9,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MUI3g",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V7II_V1.15.xdf"
+  },
+  {
+   "title": "Moto Guzzi MIUG3 Nevada",
+   "path": "guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V7_V1.10.xdf",
+   "version": "1.09",
+   "tables": 62,
+   "constants": 1,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MUI3g",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V7_V1.10.xdf"
+  },
+  {
+   "title": "Moto Guzzi MIUG3 V9",
+   "path": "guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.xdf",
+   "version": "1.09",
+   "tables": 80,
+   "constants": 1,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MUI3g",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.xdf"
+  },
+  {
+   "title": "Moto Guzzi MIUG3 V9",
+   "path": "guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.xdf",
+   "version": "1.09",
+   "tables": 91,
+   "constants": 1,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MUI3g",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.xdf"
+  },
+  {
+   "title": "Moto Guzzi P7",
+   "path": "guzzionboard/xdfs/moto_guzzi/P7_GuzziDiag_16k_V1.26.xdf",
+   "version": "1.26",
+   "tables": 19,
+   "constants": 0,
+   "unsupported": 1,
+   "region_size": 16384,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/moto_guzzi/P7_GuzziDiag_16k_V1.26.xdf"
+  },
+  {
+   "title": "Moto Guzzi IAW P8",
+   "path": "guzzionboard/xdfs/moto_guzzi/P8_GuzziDiag_32k_V1.30.xdf",
+   "version": "1.30",
+   "tables": 46,
+   "constants": 1,
+   "unsupported": 1,
+   "region_size": 32768,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/moto_guzzi/P8_GuzziDiag_32k_V1.30.xdf"
+  },
+  {
+   "title": "Magnetti Marelli IAW 15P 1P10",
+   "path": "guzzionboard/xdfs/piaggio/15P_1P0P_V1.03.xdf",
+   "version": "1.02",
+   "tables": 30,
+   "constants": 2,
+   "unsupported": 0,
+   "region_size": 65536,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/piaggio/15P_1P0P_V1.03.xdf"
+  },
+  {
+   "title": "Magnetti Marelli IAW 15P 1P0T",
+   "path": "guzzionboard/xdfs/piaggio/15P_1P0T_V1.02.xdf",
+   "version": "1.02",
+   "tables": 26,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 65536,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/piaggio/15P_1P0T_V1.02.xdf"
+  },
+  {
+   "title": "MIU1 CM081701 22A3GS14",
+   "path": "guzzionboard/xdfs/piaggio/MIU1_CM081701_22A3GS14_V0.03.xdf",
+   "version": "0.02",
+   "tables": 33,
+   "constants": 3,
+   "unsupported": 0,
+   "region_size": 327680,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/piaggio/MIU1_CM081701_22A3GS14_V0.03.xdf"
+  },
+  {
+   "title": "Piaggio Beverly 350 MIUG3 34B9BU42",
+   "path": "guzzionboard/xdfs/piaggio/MIUG3_Piaggio_34B9BU42_V1.00.xdf",
+   "version": "1.00",
+   "tables": 17,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_34B9BU42_V1.00.xdf"
+  },
+  {
+   "title": "Piaggio Beverly MIUG3",
+   "path": "guzzionboard/xdfs/piaggio/MIUG3_Piaggio_4528BU53_V1.00.xdf",
+   "version": "1.00",
+   "tables": 27,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MIUG Vespa GTS300",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_4528BU53_V1.00.xdf"
+  },
+  {
+   "title": "Piaggio Fly 3V MIUG3",
+   "path": "guzzionboard/xdfs/piaggio/MIUG3_Piaggio_4530xxxx_GTS300_V1.04.xdf",
+   "version": "1.04",
+   "tables": 27,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MIUG Vespa GTS300",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_4530xxxx_GTS300_V1.04.xdf"
+  },
+  {
+   "title": "GTS300 MIUG3",
+   "path": "guzzionboard/xdfs/piaggio/MIUG3_Piaggio_464CDABL_GTS300_V1.04.xdf",
+   "version": "1.04",
+   "tables": 27,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MIUG Vespa GTS300",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_464CDABL_GTS300_V1.04.xdf"
+  },
+  {
+   "title": "Piaggio Fly 3V MIUG3",
+   "path": "guzzionboard/xdfs/piaggio/MIUG3_Piaggio_Fly_3V_V1.01.xdf",
+   "version": "1.01",
+   "tables": 17,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [],
+   "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_Fly_3V_V1.01.xdf"
+  },
+  {
+   "title": "GTS300 MIUG3",
+   "path": "guzzionboard/xdfs/piaggio/MIUG3_Piaggio_GTS300_3417BN15_V1.00.xdf",
+   "version": "1.00",
+   "tables": 27,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MIUG Vespa GTS300",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_GTS300_3417BN15_V1.00.xdf"
+  },
+  {
+   "title": "GTS300 MIUG3",
+   "path": "guzzionboard/xdfs/piaggio/MIUG3_Piaggio_GTS300_V2_V1.03.xdf",
+   "version": "1.03",
+   "tables": 27,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MIUG Vespa GTS300",
+    "Read Only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_GTS300_V2_V1.03.xdf"
+  },
+  {
+   "title": "Scomadi 200",
+   "path": "guzzionboard/xdfs/scomadi/MIUG3_Scomadi_200_V0.02.xdf",
+   "version": "0.02",
+   "tables": 58,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 524288,
+   "categories": [
+    "Development",
+    "IAW MUI3g",
+    "Read only",
+    "Tunable"
+   ],
+   "url": "../guzzionboard/xdfs/scomadi/MIUG3_Scomadi_200_V0.02.xdf"
+  }
  ]
 }

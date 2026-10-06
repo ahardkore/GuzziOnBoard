@@ -17,9 +17,12 @@ This module turns those definitions into data:
   "Spark High-Octane Table, row 1200 RPM, col 0.84 g/cyl: 28.1 -> 30.0"
   instead of "run at 0xF1BE, 2 bytes".
 
-XDFs are third-party files and do not ship with this project: drop them into
-``~/.guzzionboard/xdfs/`` the same way key providers go into
-``~/.guzzionboard/keys/``. The files are at
+XDFs are third-party files. A growing set ships with this project under
+``guzzionboard/xdfs/`` (see ``docs/XDF_LIBRARY.md`` for provenance and how to
+add more) — :func:`available_xdfs` finds those automatically. Anything not
+(yet) bundled can still be dropped into ``~/.guzzionboard/xdfs/`` the same way
+key providers go into ``~/.guzzionboard/keys/``; a user-supplied file with the
+same title overrides a bundled one. The origin for all of these is
 https://www.von-der-salierburg.de/download/GuzziDiag/ (TunerPro XDF section).
 
 One wrinkle worth understanding: XDF addresses are offsets into the *file
@@ -37,6 +40,9 @@ from pathlib import Path
 
 #: Where user-supplied XDFs are looked for, mirroring the key plugin dir.
 XDF_DIR = Path.home() / ".guzzionboard" / "xdfs"
+
+#: XDFs vendored into the project itself, see docs/XDF_LIBRARY.md.
+BUNDLED_XDF_DIR = Path(__file__).resolve().parent / "xdfs"
 
 
 class XdfError(Exception):
@@ -690,15 +696,42 @@ class XdfFile:
         }
 
 
-def load_xdfs(directory: str | Path = XDF_DIR) -> list[XdfFile]:
-    """Every parseable XDF in the plugin directory, like the key loader."""
+def load_xdfs(directory: str | Path = XDF_DIR, *, recursive: bool = False) -> list[XdfFile]:
+    """Every parseable XDF in a directory, like the key loader.
+
+    ``recursive`` walks subdirectories too, which is how the bundled library
+    (organised one folder per brand) is read; the flat, non-recursive default
+    is unchanged for the user override directory.
+    """
     directory = Path(directory)
     if not directory.is_dir():
         return []
+    globber = directory.rglob if recursive else directory.glob
+    paths = sorted(globber("*.xdf")) + sorted(globber("*.XDF"))
     out: list[XdfFile] = []
-    for path in sorted(directory.glob("*.xdf")) + sorted(directory.glob("*.XDF")):
+    for path in paths:
         try:
             out.append(XdfFile.from_file(path))
         except XdfError:
             continue          # a broken third-party file must not kill the app
     return out
+
+
+def load_bundled_xdfs() -> list[XdfFile]:
+    """Every XDF vendored into the project under ``guzzionboard/xdfs/``."""
+    return load_xdfs(BUNDLED_XDF_DIR, recursive=True)
+
+
+def available_xdfs(user_directory: str | Path = XDF_DIR) -> list[XdfFile]:
+    """The bundled library plus any user-supplied override directory.
+
+    A user file whose ``title`` matches a bundled one replaces it (so an
+    updated or corrected XDF can be dropped in without editing the repo);
+    everything else from both sources is included.
+    """
+    bundled = load_bundled_xdfs()
+    user = load_xdfs(user_directory)
+    user_titles = {x.title for x in user}
+    merged = [x for x in bundled if x.title not in user_titles] + user
+    merged.sort(key=lambda x: (x.title, x.path))
+    return merged

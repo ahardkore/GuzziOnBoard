@@ -23,6 +23,7 @@ packages = ["guzzionboard", "guzzionboard.protocol", "guzzionboard.transports", 
 
 [tool.setuptools.package-data]
 "guzzionboard.catalog" = ["*.json", "ecus/*.json"]
+"guzzionboard" = ["xdfs/*.json", "xdfs/*/*.xdf", "xdfs/*/*.XDF"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

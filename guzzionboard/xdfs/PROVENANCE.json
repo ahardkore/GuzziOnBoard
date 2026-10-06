@@ -1,0 +1,12 @@
+{
+  "moto_guzzi/P7_GuzziDiag_16k_V1.26.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/P7_GuzziDiag_16k_V1.26.zip",
+    "retrieved_via": "https://github.com/Snoman002/Engine-Tune-Repository-TunerPro-EFIlive-TunerCat (mirror; the official site was not reachable from the environment this file was vendored from)",
+    "sha256": "c2ae8796db8de5d754ec4267043de38ac549a7eec8d2858e9f200a9d7f685918",
+    "title": "Moto Guzzi P7",
+    "author": "beard",
+    "version": "1.26",
+    "imported_utc": "2026-10-06T00:00:00Z",
+    "verified_parse": true
+  }
+}

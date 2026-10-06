@@ -22,10 +22,13 @@ import pytest
 
 from guzzionboard.firmware import FirmwareImage
 from guzzionboard.maps import (
+    BUNDLED_XDF_DIR,
     XDF_DIR,
     XdfError,
     XdfFile,
+    available_xdfs,
     eval_math,
+    load_bundled_xdfs,
     load_xdfs,
 )
 
@@ -446,6 +449,58 @@ def test_load_xdfs_reads_the_directory_and_skips_broken_files(tmp_path,
     assert XDF_DIR.name == "xdfs"
 
 
+def test_load_xdfs_recursive_walks_brand_subfolders(tmp_path):
+    (tmp_path / "moto_guzzi").mkdir()
+    (tmp_path / "ducati").mkdir()
+    (tmp_path / "moto_guzzi" / "a.xdf").write_text(build_xdf(), encoding="utf-8")
+    (tmp_path / "ducati" / "b.xdf").write_text(build_xdf(), encoding="utf-8")
+    (tmp_path / "top.xdf").write_text(build_xdf(), encoding="utf-8")
+
+    assert len(load_xdfs(tmp_path)) == 1        # flat glob only sees "top.xdf"
+    assert len(load_xdfs(tmp_path, recursive=True)) == 3
+
+
+def test_bundled_xdf_library_all_parse_and_are_discoverable():
+    """Whatever ships under guzzionboard/xdfs/ must actually be valid XDFs -
+    a quality gate for anything added via scripts/import_xdfs.py."""
+    bundled = load_bundled_xdfs()
+    assert BUNDLED_XDF_DIR.is_dir()
+    on_disk = list(BUNDLED_XDF_DIR.rglob("*.xdf"))
+    assert len(bundled) == len(on_disk), "a vendored file failed to parse"
+    assert all(x.tables or x.constants for x in bundled)
+
+
+def _with_title(xdf_text: str, title: str) -> str:
+    return xdf_text.replace(f"<deftitle>{XDF_TITLE}</deftitle>",
+                             f"<deftitle>{title}</deftitle>")
+
+
+def test_available_xdfs_merges_bundled_and_user_override(tmp_path):
+    user_only = tmp_path / "Only_In_User.xdf"
+    user_only.write_text(_with_title(build_xdf(), "User Override Title"),
+                          encoding="utf-8")
+
+    merged = available_xdfs(tmp_path)
+    titles = [x.title for x in merged]
+    assert "User Override Title" in titles
+    # bundled files are still present alongside the user addition
+    assert len(merged) == len(load_bundled_xdfs()) + 1
+
+
+def test_available_xdfs_user_file_overrides_same_titled_bundled_one(tmp_path):
+    bundled = load_bundled_xdfs()
+    assert bundled, "need at least one bundled xdf for this test to mean anything"
+    shadow_title = bundled[0].title
+
+    shadowing = tmp_path / "shadow.xdf"
+    shadowing.write_text(_with_title(build_xdf(), shadow_title), encoding="utf-8")
+
+    merged = available_xdfs(tmp_path)
+    matches = [x for x in merged if x.title == shadow_title]
+    assert len(matches) == 1
+    assert Path(matches[0].path).name == "shadow.xdf"
+
+
 def test_describe_summarises_the_file(xdf: XdfFile):
     d = xdf.describe()
     assert d["tables"] == 3 and d["constants"] == 1
@@ -466,7 +521,7 @@ class TestMapsApi:
         from guzzionboard.workstation import Workstation
 
         xdf.path = str(tmp_path / "5am.xdf")     # pretend it came from the dir
-        monkeypatch.setattr(server, "load_xdfs", lambda directory=None: [xdf])
+        monkeypatch.setattr(server, "available_xdfs", lambda directory=None: [xdf])
         return server.Api(Workstation(session_dir=tmp_path / "sessions"))
 
     def test_lists_available_xdfs(self, api):

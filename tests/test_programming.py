@@ -231,6 +231,75 @@ def test_an_unreliable_link_fails_the_backup_rather_than_saving_it(service, monk
     assert not service.gate.state.verified_backup
 
 
+# -- the base map (the guaranteed restore image) ---------------------------
+
+
+def test_a_verified_backup_also_files_the_base_map(service):
+    result = service.backup("flash")
+    base = result["base_map"]
+    assert base["is_base_map"] is True
+    status = service.base_map_status("flash")
+    assert status["intact"] is True
+    assert service.gate.state.base_map is True
+    assert status["path"] != result["path"], "the vault keeps its own copy"
+
+
+def test_a_later_backup_does_not_displace_the_original_calibration(service):
+    first = service.backup("flash")
+    original = service.base_map_status("flash")["path"]
+    second = service.backup("flash")
+    assert second["base_map"]["is_base_map"] is False
+    assert service.base_map_status("flash")["path"] == original
+    assert len(service.base_map_status("flash")["restore_points"]) == 1
+    assert first["verified"] and second["verified"]
+
+
+def test_a_base_map_that_went_missing_fails_the_gate(service, monkeypatch):
+    service.backup("flash")
+    arm_for_writing(service, monkeypatch)
+    assert service.check_write("flash").allowed
+
+    import pathlib as _pathlib
+
+    _pathlib.Path(service.base_map_status("flash")["path"]).unlink()
+    decision = service.check_write("flash")
+    assert not decision.allowed
+    assert any(c.name == "base-map" for c in decision.failures)
+
+
+def test_writing_without_a_base_map_is_refused(service, monkeypatch):
+    """The gate cannot be talked into a write; it re-reads the vault."""
+    image = service.backup("flash")
+    arm_for_writing(service, monkeypatch)
+    decision = service.check_write("flash")
+    assert decision.allowed
+
+    import pathlib as _pathlib
+
+    _pathlib.Path(service.base_map_status("flash")["path"]).unlink()
+    service.gate.state.base_map = True              # claim one anyway...
+    with pytest.raises(SafetyViolation, match="base-map"):
+        service.write_region(                       # ...the vault disagrees
+            FirmwareImage.from_file(image["path"]), decision.token
+        )
+
+
+def test_an_existing_image_can_be_filed_as_the_base_map(service, tmp_path):
+    read = service.read_region("flash")
+    path = read.save(tmp_path / "earlier-backup.bin")
+    service.save_base_map(path, "flash")
+    assert service.base_map_status("flash")["intact"] is True
+
+
+def test_the_restore_plan_names_the_file_and_the_order(service):
+    assert service.restore_plan("flash")["ready"] is False
+    service.backup("flash")
+    plan = service.restore_plan("flash")
+    assert plan["ready"] is True
+    assert plan["path"] in " ".join(plan["steps"])
+    assert any("charger" in step for step in plan["steps"])
+
+
 # -- writing ---------------------------------------------------------------
 
 

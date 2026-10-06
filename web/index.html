@@ -576,6 +576,21 @@
       <div id="memResult"></div>
     </article>
 
+    <article class="panel" id="baseMapPanel">
+      <h2>2b &middot; Base map <span class="muted small">(mandatory before any write)</span></h2>
+      <p class="muted small">The base map is the untouched calibration this bike arrived with, filed in its own vault with its SHA&#8209;256. A verified backup saves one automatically; it is re&#8209;hashed before every write, and a write is refused without it. Later backups become extra restore points &mdash; the original is never overwritten.</p>
+      <div id="baseMapOut" class="muted">Connect to an ECU first.</div>
+      <div class="toolbar">
+        <button class="btn primary" id="baseMapSaveBtn" disabled>Save base map now</button>
+        <button class="btn" id="baseMapRestoreBtn" disabled>Restore base map&hellip;</button>
+      </div>
+      <div class="toolbar">
+        <label class="inline">Already have one? <input type="text" id="baseMapPath" placeholder="~/.guzzionboard/images/....bin" size="40"></label>
+        <button class="btn" id="baseMapFileBtn" disabled>File it as the base map</button>
+      </div>
+      <div id="baseMapRestoreOut"></div>
+    </article>
+
     <article class="panel">
       <h2>3 &middot; Validate an image</h2>
       <p class="muted small">Size, vector table, entropy and hardware family are checked before a single byte is sent. Flashing an HW1xx image into an HW3xx ECU bricks it.</p>
@@ -589,11 +604,19 @@
     <article class="panel">
       <h2>Maps &amp; tables</h2>
       <p class="muted small">Render a dump as named fuel and ignition tables with a TunerPro XDF definition &mdash; all 94 cataloged GuzziDiag definitions ship bundled. Drop <code>.xdf</code> files into <code>~/.guzzionboard/xdfs/</code> to correct or extend them. Strictly read-only.</p>
+      <p class="muted small">The chooser is grouped by motorcycle, not by the title the definition's author happened to type: definitions for the ECU family on the bench come first, everything else is listed under the bikes it was published for and marked as not matching. Picking a map from the wrong family does not give slightly wrong numbers &mdash; it reads a different calibration layout at the same addresses.</p>
+      <div class="toolbar">
+        <label class="inline">Bike
+          <select id="xdfBrand"><option value="">&mdash; all motorcycles &mdash;</option></select>
+        </label>
+        <label class="inline"><input type="checkbox" id="xdfOnlyFitting" checked> Only definitions for this ECU</label>
+      </div>
       <div class="toolbar">
         <label class="inline">Definitions <select id="xdfSelect"><option value="">&mdash; none found &mdash;</option></select></label>
         <button class="btn" id="mapsRefreshBtn">Reload</button>
         <span class="muted small" id="mapsXdfDir"></span>
       </div>
+      <div id="xdfFitNote"></div>
       <div class="toolbar">
         <label class="inline">Image path <input type="text" id="mapsImagePath" placeholder="~/.guzzionboard/images/....bin" size="44"></label>
         <button class="btn primary" id="mapsRenderBtn">Render tables</button>

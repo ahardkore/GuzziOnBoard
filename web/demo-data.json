@@ -10374,6 +10374,34 @@
    "unsupported": 0,
    "region_size": 65536,
    "categories": [],
+   "filename": "15P_1P0Z_V1.02.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "15P",
+   "label": "Aprilia Atlantic 500ie (1P0Z) V1.02",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia Atlantic 500ie (1P0Z) V1.02"
+    },
+    {
+     "brand": "piaggio",
+     "brand_label": "Piaggio",
+     "label": "Beverly X9 500ie (1P0Z) V1.02"
+    },
+    {
+     "brand": "piaggio",
+     "brand_label": "Piaggio",
+     "label": "Beverly 500ie (1P0Z) V1.02"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia",
+    "Piaggio"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0Z_V1.02.zip",
    "url": "../guzzionboard/xdfs/aprilia/15P_1P0Z_V1.02.xdf"
   },
   {
@@ -10394,6 +10422,23 @@
     "Text Block",
     "Tunable"
    ],
+   "filename": "5AM_Aprilia_GP850_V1.00.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "5AM",
+   "label": "Aprilia GP 850 V1.00",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia GP 850 V1.00"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_GP850_V1.00.zip",
    "url": "../guzzionboard/xdfs/aprilia/5AM_Aprilia_GP850_V1.00.xdf"
   },
   {
@@ -10414,6 +10459,23 @@
     "Tunable",
     "iaw5AM Mana"
    ],
+   "filename": "5AM_Aprilia_Mana_V1.38.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "5AM",
+   "label": "Aprilia Mana V1.38",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia Mana V1.38"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_Mana_V1.38.ZIP",
    "url": "../guzzionboard/xdfs/aprilia/5AM_Aprilia_Mana_V1.38.xdf"
   },
   {
@@ -10434,6 +10496,23 @@
     "Text Block",
     "Tunable"
    ],
+   "filename": "5AM_Aprilia_SRV850_V1.00.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "5AM",
+   "label": "Aprilia SRV 850 V1.00",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia SRV 850 V1.00"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_SRV850_V1.00.zip",
    "url": "../guzzionboard/xdfs/aprilia/5AM_Aprilia_SRV850_V1.00.xdf"
   },
   {
@@ -10450,6 +10529,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "7SM_Caponord_1200_1050Fxxx.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "7SM",
+   "label": "Aprilia Caponord 1200 1050Fxxx",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia Caponord 1200 1050Fxxx"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_Caponord_1200_1050Fxxx.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_Caponord_1200_1050Fxxx.xdf"
   },
   {
@@ -10466,6 +10562,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "7SM_Dorsoduro_1200_1338XXxx_V0.14.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "7SM",
+   "label": "Aprilia Dorsoduro 1200 1338XXxx V0.14",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia Dorsoduro 1200 1338XXxx V0.14"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_Dorsoduro_1200_1338XXxx_V0.14.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_Dorsoduro_1200_1338XXxx_V0.14.xdf"
   },
   {
@@ -10482,6 +10595,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "7SM_RSV4_1037AH01_V1.03.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "7SM",
+   "label": "Aprilia RSV4 1037XXxx V1.03",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia RSV4 1037XXxx V1.03"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_1037AH01_V1.03.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_1037AH01_V1.03.xdf"
   },
   {
@@ -10498,6 +10628,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "7SM_RSV4_1338XXxx_V0.14.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "7SM",
+   "label": "Aprilia RSV4 1338XXxx V0.14",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia RSV4 1338XXxx V0.14"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_1338XXxx_V0.14.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_1338XXxx_V0.14.xdf"
   },
   {
@@ -10514,6 +10661,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "7SM_RSV4_13A9XXxx_V0.15.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "7SM",
+   "label": "Aprilia RSV4 13A9XXxx V0.15",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia RSV4 13A9XXxx V0.15"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_13A9XXxx_V0.15.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_13A9XXxx_V0.15.xdf"
   },
   {
@@ -10530,6 +10694,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "7SM_RSV4_40xxXXxx_V0.12.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "7SM",
+   "label": "Aprilia RSV4 40xxXXxx V0.12",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia RSV4 40xxXXxx V0.12"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_40xxXXxx_V0.12.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_40xxXXxx_V0.12.xdf"
   },
   {
@@ -10546,6 +10727,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "7SM_RSV4_6403XXxx_V0.13.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "7SM",
+   "label": "Aprilia RSV4 6403XXxx V0.13",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia RSV4 6403XXxx V0.13"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_6403XXxx_V0.13.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_6403XXxx_V0.13.xdf"
   },
   {
@@ -10562,6 +10760,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "7SM_RSV4_6404XXxx_V0.15.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "7SM",
+   "label": "Aprilia RSV4 6404XXxx V0.15",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia RSV4 6404XXxx V0.15"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_6404XXxx_V0.15.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_6404XXxx_V0.15.xdf"
   },
   {
@@ -10578,6 +10793,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "7SM_RSV4_7614XXxx_V0.15.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "7SM",
+   "label": "Aprilia RSV4 7614XXxx V0.15",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia RSV4 7614XXxx V0.15"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_7614XXxx_V0.15.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_7614XXxx_V0.15.xdf"
   },
   {
@@ -10594,6 +10826,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "7SM_RSV4_7617XXxx_V0.15.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "7SM",
+   "label": "Aprilia RSV4 7617XXxx V0.15",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia RSV4 7617XXxx V0.15"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_7617XXxx_V0.15.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_7617XXxx_V0.15.xdf"
   },
   {
@@ -10605,6 +10854,23 @@
    "unsupported": 0,
    "region_size": 524288,
    "categories": [],
+   "filename": "MIUG3_Aprilia_RS4_125_CM088115_V1.02.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "MIUG3",
+   "label": "Aprilia RS4 125 CM088115 V1.02",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia RS4 125 CM088115 V1.02"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_RS4_125_CM088115_V1.02.zip",
    "url": "../guzzionboard/xdfs/aprilia/MIUG3_Aprilia_RS4_125_CM088115_V1.02.xdf"
   },
   {
@@ -10621,6 +10887,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "MIUG3_Aprilia_RS4_125_CM227201_V1.02.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "MIUG3",
+   "label": "Aprilia RS4 125 CM227201 V1.02",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia RS4 125 CM227201 V1.02"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_RS4_125_CM227201_V1.02.zip",
    "url": "../guzzionboard/xdfs/aprilia/MIUG3_Aprilia_RS4_125_CM227201_V1.02.xdf"
   },
   {
@@ -10637,6 +10920,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "MIUG3_Aprilia_SR_MAX_300ie_V1.02.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "MIUG3",
+   "label": "Aprilia SR MAX 300ie V1.02",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia SR MAX 300ie V1.02"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_SR_MAX_300ie_V1.02.zip",
    "url": "../guzzionboard/xdfs/aprilia/MIUG3_Aprilia_SR_MAX_300ie_V1.02.xdf"
   },
   {
@@ -10653,6 +10953,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "MIUG3_Aprilia_SX125_464EA105_V1.00.xdf",
+   "brand": "aprilia",
+   "brand_label": "Aprilia",
+   "family": "MIUG3",
+   "label": "Aprilia SX125 464EA105 V1.00",
+   "fits": [
+    {
+     "brand": "aprilia",
+     "brand_label": "Aprilia",
+     "label": "Aprilia SX125 464EA105 V1.00"
+    }
+   ],
+   "fits_brands": [
+    "Aprilia"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_SX125_464EA105_V1.00.zip",
    "url": "../guzzionboard/xdfs/aprilia/MIUG3_Aprilia_SX125_464EA105_V1.00.xdf"
   },
   {
@@ -10669,6 +10986,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "MBC1_BMW_C600_V1.01.xdf",
+   "brand": "bmw",
+   "brand_label": "BMW",
+   "family": "MBC1",
+   "label": "BMW C600 V1.01",
+   "fits": [
+    {
+     "brand": "bmw",
+     "brand_label": "BMW",
+     "label": "BMW C600 V1.01"
+    }
+   ],
+   "fits_brands": [
+    "BMW"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_BMW_C600_V1.01.zip",
    "url": "../guzzionboard/xdfs/bmw/MBC1_BMW_C600_V1.01.xdf"
   },
   {
@@ -10688,6 +11022,23 @@
     "Spark",
     "Tunable"
    ],
+   "filename": "15M_Ducati_750SS_V2.28.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "15M",
+   "label": "Ducati 750SS V2.28",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati 750SS V2.28"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_Ducati_750SS_V2.28.zip",
    "url": "../guzzionboard/xdfs/ducati/15M_Ducati_750SS_V2.28.xdf"
   },
   {
@@ -10707,6 +11058,23 @@
     "Spark",
     "Tunable"
    ],
+   "filename": "15M_Ducati_M900_V1.0.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "15M",
+   "label": "Ducati M900 V1.0",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati M900 V1.0"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_Ducati_M900_V1.0.zip",
    "url": "../guzzionboard/xdfs/ducati/15M_Ducati_M900_V1.0.xdf"
   },
   {
@@ -10723,6 +11091,23 @@
     "Maps Fuel Spark",
     "Trims of Sensors"
    ],
+   "filename": "16M_Duc748_916S_64k_V1.1.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "16M",
+   "label": "Ducati 748/916S V1.10",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati 748/916S V1.10"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_Duc748_916S_64k_V1.1.zip",
    "url": "../guzzionboard/xdfs/ducati/16M_Duc748_916S_64k_V1.1.xdf"
   },
   {
@@ -10739,6 +11124,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "59M_Ducati_1000SS_V1.28.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "59M",
+   "label": "Ducati 1000SS V1.28",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati 1000SS V1.28"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Ducati_1000SS_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/59M_Ducati_1000SS_V1.28.xdf"
   },
   {
@@ -10755,6 +11157,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "59M_Ducati_ST4S_2003_1.01.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "59M",
+   "label": "Ducati ST4S 2003 V1.01",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati ST4S 2003 V1.01"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Ducati_ST4S_2003_1.01.xdf.zip",
    "url": "../guzzionboard/xdfs/ducati/59M_Ducati_ST4S_2003_1.01.xdf"
   },
   {
@@ -10771,6 +11190,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "59M_Monster S4_2002_96508702B_V1.28.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "59M",
+   "label": "Ducati Monster S4 2002 96508702B V1.28",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati Monster S4 2002 96508702B V1.28"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Monster%20S4_2002_96508702B_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/59M_Monster S4_2002_96508702B_V1.28.xdf"
   },
   {
@@ -10787,6 +11223,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "59M_Monster S4_28640191B_V1.30.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "59M",
+   "label": "Ducati Monster S4 28640191B V1.30",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati Monster S4 28640191B V1.30"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Monster%20S4_28640191B_V1.30.zip",
    "url": "../guzzionboard/xdfs/ducati/59M_Monster S4_28640191B_V1.30.xdf"
   },
   {
@@ -10803,6 +11256,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "59M_SS-800_28640671A_V1.28.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "59M",
+   "label": "Ducati SS-800 28640671A V1.28",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati SS-800 28640671A V1.28"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_SS-800_28640671A_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/59M_SS-800_28640671A_V1.28.xdf"
   },
   {
@@ -10820,6 +11290,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "5AM_1198SP_96520411B_2.2.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati 1198 SP 96520411B V2.2",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati 1198 SP 96520411B V2.2"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_1198SP_96520411B_2.2.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_1198SP_96520411B_2.2.xdf"
   },
   {
@@ -10836,6 +11323,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_1098R_22C3_013_V1.28.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati 1098R 22C3 V1.28",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati 1098R 22C3 V1.28"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1098R_22C3_013_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1098R_22C3_013_V1.28.xdf"
   },
   {
@@ -10852,6 +11356,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_1098_S_DP_V1.1.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati 1098 S DP V1.1",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati 1098 S DP V1.1"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1098_S_DP_V1.1.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1098_S_DP_V1.1.xdf"
   },
   {
@@ -10868,6 +11389,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_1198S_3213_PQ58_V1.27.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati 1198 3213 PQ58 V1.27",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati 1198 3213 PQ58 V1.27"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198S_3213_PQ58_V1.27.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1198S_3213_PQ58_V1.27.xdf"
   },
   {
@@ -10884,6 +11422,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_1198_328641831D_V1.27.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati 1198 328641831D V1.27",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati 1198 328641831D V1.27"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198_328641831D_V1.27.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1198_328641831D_V1.27.xdf"
   },
   {
@@ -10900,6 +11455,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_1198_DP_V1.27.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati 1198 DP 96520311B V1.27",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati 1198 DP 96520311B V1.27"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198_DP_V1.27.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1198_DP_V1.27.xdf"
   },
   {
@@ -10916,6 +11488,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_848_22AELM26_28641571A_V1.1.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati 848 28641571A V1.1",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati 848 28641571A V1.1"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_22AELM26_28641571A_V1.1.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_848_22AELM26_28641571A_V1.1.xdf"
   },
   {
@@ -10932,6 +11521,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_848_22aesma2_96519408B_V1.0.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati 848 96519408B V1.0",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati 848 96519408B V1.0"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_22aesma2_96519408B_V1.0.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_848_22aesma2_96519408B_V1.0.xdf"
   },
   {
@@ -10943,6 +11549,23 @@
    "unsupported": 0,
    "region_size": 327680,
    "categories": [],
+   "filename": "5AM_Ducati_848_V1.0.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati 848 V1.0",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati 848 V1.0"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_V1.0.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_848_V1.0.xdf"
   },
   {
@@ -10954,6 +11577,23 @@
    "unsupported": 0,
    "region_size": 327680,
    "categories": [],
+   "filename": "5AM_Ducati_Hypermotard_1100_V1.0.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati Hypermotard 1100 V1.0",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati Hypermotard 1100 V1.0"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_Hypermotard_1100_V1.0.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_Hypermotard_1100_V1.0.xdf"
   },
   {
@@ -10965,6 +11605,23 @@
    "unsupported": 0,
    "region_size": 327680,
    "categories": [],
+   "filename": "5AM_Ducati_MTS1000_HW103_V1.0.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati MTS1000 HW103 V1.0",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati MTS1000 HW103 V1.0"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_MTS1000_HW103_V1.0.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_MTS1000_HW103_V1.0.xdf"
   },
   {
@@ -10976,6 +11633,23 @@
    "unsupported": 0,
    "region_size": 327680,
    "categories": [],
+   "filename": "5AM_Ducati_MTS1000_HW610_V1.0.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati MTS1000 HW610 V1.0",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati MTS1000 HW610 V1.0"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_MTS1000_HW610_V1.0.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_MTS1000_HW610_V1.0.xdf"
   },
   {
@@ -10992,6 +11666,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_Multistrada_1100_V1.28.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati Multistrada 1100 V1.28",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati Multistrada 1100 V1.28"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_Multistrada_1100_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_Multistrada_1100_V1.28.xdf"
   },
   {
@@ -11008,6 +11699,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_S2_1000R_DP_V1.28.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati S2-1000R DP V1.28",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati S2-1000R DP V1.28"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S2_1000R_DP_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_S2_1000R_DP_V1.28.xdf"
   },
   {
@@ -11024,6 +11732,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_S2_800R_V1.28.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati S2-800R V1.28",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati S2-800R V1.28"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S2_800R_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_S2_800R_V1.28.xdf"
   },
   {
@@ -11035,6 +11760,23 @@
    "unsupported": 0,
    "region_size": 327680,
    "categories": [],
+   "filename": "5AM_Ducati_S4R_996_Monster_HW610_V1.0.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati S4R 996 Monster V1.0",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati S4R 996 Monster V1.0"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S4R_996_Monster_HW610_V1.0.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_S4R_996_Monster_HW610_V1.0.xdf"
   },
   {
@@ -11051,6 +11793,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati SC1000 Biposto (Stock&DP) S4RS V1.35",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati SC1000 Biposto (Stock&DP) S4RS V1.35"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.xdf"
   },
   {
@@ -11067,6 +11826,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati SC1000 Monoposto (DP) V1.35",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati SC1000 Monoposto (DP) V1.35"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.xdf"
   },
   {
@@ -11083,6 +11859,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati SC1000 Monoposto (Stock) PaulSmart V1.35",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati SC1000 Monoposto (Stock) PaulSmart V1.35"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.xdf"
   },
   {
@@ -11099,6 +11892,23 @@
     "Streetfighter",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_SF_Serie_V1.28.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati Streetfighter V1.28",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati Streetfighter V1.28"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SF_Serie_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_SF_Serie_V1.28.xdf"
   },
   {
@@ -11115,6 +11925,23 @@
     "St3s ABS",
     "Tunable"
    ],
+   "filename": "5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.xdf",
+   "brand": "ducati",
+   "brand_label": "Ducati",
+   "family": "5AM",
+   "label": "Ducati ST3 S ABS 96517506B V1.28",
+   "fits": [
+    {
+     "brand": "ducati",
+     "brand_label": "Ducati",
+     "label": "Ducati ST3 S ABS 96517506B V1.28"
+    }
+   ],
+   "fits_brands": [
+    "Ducati"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.xdf"
   },
   {
@@ -11126,6 +11953,23 @@
    "unsupported": 0,
    "region_size": 65536,
    "categories": [],
+   "filename": "15P_00_GasGas450_V1.02.xdf",
+   "brand": "gasgas",
+   "brand_label": "GasGas",
+   "family": "15P",
+   "label": "GasGas 450FSE V1.02",
+   "fits": [
+    {
+     "brand": "gasgas",
+     "brand_label": "GasGas",
+     "label": "GasGas 450FSE V1.02"
+    }
+   ],
+   "fits_brands": [
+    "GasGas"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_00_GasGas450_V1.02.zip",
    "url": "../guzzionboard/xdfs/gasgas/15P_00_GasGas450_V1.02.xdf"
   },
   {
@@ -11137,6 +11981,23 @@
    "unsupported": 0,
    "region_size": 65536,
    "categories": [],
+   "filename": "15P_00_GasGasFSR450_V1.02.xdf",
+   "brand": "gasgas",
+   "brand_label": "GasGas",
+   "family": "15P",
+   "label": "GasGas 450FSR V1.02",
+   "fits": [
+    {
+     "brand": "gasgas",
+     "brand_label": "GasGas",
+     "label": "GasGas 450FSR V1.02"
+    }
+   ],
+   "fits_brands": [
+    "GasGas"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_00_GasGasFSR450_V1.02.zip",
    "url": "../guzzionboard/xdfs/gasgas/15P_00_GasGasFSR450_V1.02.xdf"
   },
   {
@@ -11148,6 +12009,23 @@
    "unsupported": 0,
    "region_size": 65536,
    "categories": [],
+   "filename": "15P_GasGasFE400_V1.00.xdf",
+   "brand": "gasgas",
+   "brand_label": "GasGas",
+   "family": "15P",
+   "label": "GasGas 400FSE V1.00",
+   "fits": [
+    {
+     "brand": "gasgas",
+     "brand_label": "GasGas",
+     "label": "GasGas 400FSE V1.00"
+    }
+   ],
+   "fits_brands": [
+    "GasGas"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_GasGasFE400_V1.00.zip",
    "url": "../guzzionboard/xdfs/gasgas/15P_GasGasFE400_V1.00.xdf"
   },
   {
@@ -11159,6 +12037,29 @@
    "unsupported": 0,
    "region_size": 65536,
    "categories": [],
+   "filename": "15P_1P10_V1.03.xdf",
+   "brand": "gilera",
+   "brand_label": "Gilera",
+   "family": "15P",
+   "label": "Gilera Nexus 500ie (1P10) V1.03",
+   "fits": [
+    {
+     "brand": "gilera",
+     "brand_label": "Gilera",
+     "label": "Gilera Nexus 500ie (1P10) V1.03"
+    },
+    {
+     "brand": "piaggio",
+     "brand_label": "Piaggio",
+     "label": "Beverly X8 400ie (1P10) V1.03"
+    }
+   ],
+   "fits_brands": [
+    "Gilera",
+    "Piaggio"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P10_V1.03.zip",
    "url": "../guzzionboard/xdfs/gilera/15P_1P10_V1.03.xdf"
   },
   {
@@ -11170,6 +12071,23 @@
    "unsupported": 0,
    "region_size": 327680,
    "categories": [],
+   "filename": "5AM_Gilera_GP800_V1.05.xdf",
+   "brand": "gilera",
+   "brand_label": "Gilera",
+   "family": "5AM",
+   "label": "Gilera GP800 V1.05",
+   "fits": [
+    {
+     "brand": "gilera",
+     "brand_label": "Gilera",
+     "label": "Gilera GP800 V1.05"
+    }
+   ],
+   "fits_brands": [
+    "Gilera"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Gilera_GP800_V1.05.zip",
    "url": "../guzzionboard/xdfs/gilera/5AM_Gilera_GP800_V1.05.xdf"
   },
   {
@@ -11186,6 +12104,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "MBC1_Nuda_900_V1.00.xdf",
+   "brand": "husqvarna",
+   "brand_label": "Husqvarna",
+   "family": "MBC1",
+   "label": "Husqvarna Nuda 900 V1.00",
+   "fits": [
+    {
+     "brand": "husqvarna",
+     "brand_label": "Husqvarna",
+     "label": "Husqvarna Nuda 900 V1.00"
+    }
+   ],
+   "fits_brands": [
+    "Husqvarna"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_Nuda_900_V1.00.zip",
    "url": "../guzzionboard/xdfs/husqvarna/MBC1_Nuda_900_V1.00.xdf"
   },
   {
@@ -11205,6 +12140,23 @@
     "Settings",
     "Unknown"
    ],
+   "filename": "MIUG3_Malaguti_4643AFC1_XTM125_V1.02.xdf",
+   "brand": "malaguti",
+   "brand_label": "Malaguti",
+   "family": "MIUG3",
+   "label": "Malaguti XTM 125 4643AFC1 V1.02",
+   "fits": [
+    {
+     "brand": "malaguti",
+     "brand_label": "Malaguti",
+     "label": "Malaguti XTM 125 4643AFC1 V1.02"
+    }
+   ],
+   "fits_brands": [
+    "Malaguti"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Malaguti_4643AFC1_XTM125_V1.02.zip",
    "url": "../guzzionboard/xdfs/malaguti/MIUG3_Malaguti_4643AFC1_XTM125_V1.02.xdf"
   },
   {
@@ -11221,6 +12173,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "5AM_Morini_Corsaro_Two_Lambda_V1.34.xdf",
+   "brand": "morini",
+   "brand_label": "Moto Morini",
+   "family": "5AM",
+   "label": "Morini Corsaro Two Lambda V1.34",
+   "fits": [
+    {
+     "brand": "morini",
+     "brand_label": "Moto Morini",
+     "label": "Morini Corsaro Two Lambda V1.34"
+    }
+   ],
+   "fits_brands": [
+    "Moto Morini"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Corsaro_Two_Lambda_V1.34.zip",
    "url": "../guzzionboard/xdfs/morini/5AM_Morini_Corsaro_Two_Lambda_V1.34.xdf"
   },
   {
@@ -11236,6 +12205,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "5AM_Morini_Corsaro_V1.25.xdf",
+   "brand": "morini",
+   "brand_label": "Moto Morini",
+   "family": "5AM",
+   "label": "Morini Corsaro V1.25",
+   "fits": [
+    {
+     "brand": "morini",
+     "brand_label": "Moto Morini",
+     "label": "Morini Corsaro V1.25"
+    }
+   ],
+   "fits_brands": [
+    "Moto Morini"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Corsaro_V1.25.zip",
    "url": "../guzzionboard/xdfs/morini/5AM_Morini_Corsaro_V1.25.xdf"
   },
   {
@@ -11251,6 +12237,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "5AM_Morini_GP_2_Lambda_V1.22.xdf",
+   "brand": "morini",
+   "brand_label": "Moto Morini",
+   "family": "5AM",
+   "label": "Morini GP 2 Lambda V1.22",
+   "fits": [
+    {
+     "brand": "morini",
+     "brand_label": "Moto Morini",
+     "label": "Morini GP 2 Lambda V1.22"
+    }
+   ],
+   "fits_brands": [
+    "Moto Morini"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_GP_2_Lambda_V1.22.zip",
    "url": "../guzzionboard/xdfs/morini/5AM_Morini_GP_2_Lambda_V1.22.xdf"
   },
   {
@@ -11266,6 +12269,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "5AM_Morini_Sport_GP_95_Scrambler_V1.25.xdf",
+   "brand": "morini",
+   "brand_label": "Moto Morini",
+   "family": "5AM",
+   "label": "Morini Sport GP 95 Scrambler V1.25",
+   "fits": [
+    {
+     "brand": "morini",
+     "brand_label": "Moto Morini",
+     "label": "Morini Sport GP 95 Scrambler V1.25"
+    }
+   ],
+   "fits_brands": [
+    "Moto Morini"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Sport_GP_95_Scrambler_V1.25.zip",
    "url": "../guzzionboard/xdfs/morini/5AM_Morini_Sport_GP_95_Scrambler_V1.25.xdf"
   },
   {
@@ -11285,6 +12305,23 @@
     "Spark",
     "Tunable"
    ],
+   "filename": "15M_428_00_GuzziDiag_V2.28.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "15M",
+   "label": "Moto Guzzi 15M - Old Quota V2.28",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 15M - Old Quota V2.28"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_428_00_GuzziDiag_V2.28.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/15M_428_00_GuzziDiag_V2.28.xdf"
   },
   {
@@ -11312,6 +12349,23 @@
     "Spark Trims",
     "Tunable"
    ],
+   "filename": "15M_61600.381.00_Cali_V2.52.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "15M",
+   "label": "Moto Guzzi 15M - Cali 61600.381.00 V2.52",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 15M - Cali 61600.381.00 V2.52"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_61600.381.00_Cali_V2.52.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/15M_61600.381.00_Cali_V2.52.xdf"
   },
   {
@@ -11323,6 +12377,23 @@
    "unsupported": 0,
    "region_size": 512,
    "categories": [],
+   "filename": "15M_EEPROM_V1.01.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "15M",
+   "label": "Moto Guzzi 15M - EEPROM V1.01",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 15M - EEPROM V1.01"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_EEPROM_V1.01.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/15M_EEPROM_V1.01.xdf"
   },
   {
@@ -11343,6 +12414,23 @@
     "Spark Trims",
     "Tunable"
    ],
+   "filename": "15M_GuzziDiag_V2.32.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "15M",
+   "label": "Moto Guzzi 15M V2.32",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 15M V2.32"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_GuzziDiag_V2.32.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/15M_GuzziDiag_V2.32.xdf"
   },
   {
@@ -11354,6 +12442,23 @@
    "unsupported": 0,
    "region_size": 512,
    "categories": [],
+   "filename": "15RC_EEPROM_V1.01.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "15RC",
+   "label": "Moto Guzzi 15RC - EEPROM V1.01",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 15RC - EEPROM V1.01"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_EEPROM_V1.01.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/15RC_EEPROM_V1.01.xdf"
   },
   {
@@ -11374,6 +12479,23 @@
     "V11 KAT",
     "V7/Breva"
    ],
+   "filename": "15RC_GuzziDiag_1100_V2.17.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "15RC",
+   "label": "Moto Guzzi 15RC - V11/Cali V2.17",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 15RC - V11/Cali V2.17"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_GuzziDiag_1100_V2.17.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/15RC_GuzziDiag_1100_V2.17.xdf"
   },
   {
@@ -11394,6 +12516,23 @@
     "V11 KAT",
     "V7/Breva"
    ],
+   "filename": "15RC_GuzziDiag_V7_V2.17.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "15RC",
+   "label": "Moto Guzzi 15RC - V7 V2.17",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 15RC - V7 V2.17"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_GuzziDiag_V7_V2.17.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/15RC_GuzziDiag_V7_V2.17.xdf"
   },
   {
@@ -11405,6 +12544,23 @@
    "unsupported": 1,
    "region_size": 32768,
    "categories": [],
+   "filename": "16M_GuzziDiag_32k_V1.23.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "16M",
+   "label": "Moto Guzzi 16M - 32k EPROM V1.23",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 16M - 32k EPROM V1.23"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_32k_V1.23.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/16M_GuzziDiag_32k_V1.23.xdf"
   },
   {
@@ -11416,6 +12572,23 @@
    "unsupported": 1,
    "region_size": 65536,
    "categories": [],
+   "filename": "16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "16M",
+   "label": "Moto Guzzi 16M - 64k Daytona RS Kit V1.21",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 16M - 64k Daytona RS Kit V1.21"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.xdf"
   },
   {
@@ -11427,6 +12600,23 @@
    "unsupported": 1,
    "region_size": 65536,
    "categories": [],
+   "filename": "16M_GuzziDiag_64k_V1.23.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "16M",
+   "label": "Moto Guzzi 16M - 64k EPROM V1.23",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 16M - 64k EPROM V1.23"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_64k_V1.23.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/16M_GuzziDiag_64k_V1.23.xdf"
   },
   {
@@ -11438,6 +12628,23 @@
    "unsupported": 3,
    "region_size": 2048,
    "categories": [],
+   "filename": "5AM_EEPROM_V1.01.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "5AM",
+   "label": "Moto Guzzi 5AM - EEPROM V1.01",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 5AM - EEPROM V1.01"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_EEPROM_V1.01.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/5AM_EEPROM_V1.01.xdf"
   },
   {
@@ -11458,6 +12665,23 @@
     "Text Block",
     "Tunable"
    ],
+   "filename": "5AM_GuzziDiag_One_Lambda_V1.41.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "5AM",
+   "label": "Moto Guzzi 5AM - One Lambda V1.41",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 5AM - One Lambda V1.41"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_GuzziDiag_One_Lambda_V1.41.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/5AM_GuzziDiag_One_Lambda_V1.41.xdf"
   },
   {
@@ -11484,6 +12708,23 @@
     "Tunable",
     "Validated by Meinolf"
    ],
+   "filename": "5AM_GuzziDiag_Two_Lambda_V1.40.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "5AM",
+   "label": "Moto Guzzi 5AM - Two Lambda V1.40",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 5AM - Two Lambda V1.40"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_GuzziDiag_Two_Lambda_V1.40.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/5AM_GuzziDiag_Two_Lambda_V1.40.xdf"
   },
   {
@@ -11500,6 +12741,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "7SM_MotoGuzzi_1400_1050_EURO3_V1.04.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "7SM",
+   "label": "Moto Guzzi 7SM - 1400/1050 EURO3 V1.04",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 7SM - 1400/1050 EURO3 V1.04"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_1050_EURO3_V1.04.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_1400_1050_EURO3_V1.04.xdf"
   },
   {
@@ -11516,6 +12774,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "7SM_MotoGuzzi_1400_EURO4_V1.04.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "7SM",
+   "label": "Moto Guzzi 7SM - 1400 EURO4 V1.04",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 7SM - 1400 EURO4 V1.04"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_EURO4_V1.04.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_1400_EURO4_V1.04.xdf"
   },
   {
@@ -11532,6 +12807,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "7SM_MotoGuzzi_1400_MGX21_V0.14.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "7SM",
+   "label": "Moto Guzzi 7SM - 1400 MGX21 V0.14",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 7SM - 1400 MGX21 V0.14"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_MGX21_V0.14.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_1400_MGX21_V0.14.xdf"
   },
   {
@@ -11548,6 +12840,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "7SM",
+   "label": "Moto Guzzi 7SM - V85TT 7621XXxx V1.07",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi 7SM - V85TT 7621XXxx V1.07"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.xdf"
   },
   {
@@ -11564,6 +12873,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "MIUG3_MotoGuzzi_V7III_V1.15.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "MIUG3",
+   "label": "Moto Guzzi MIU G3 - V7 III V1.15",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi MIU G3 - V7 III V1.15"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7III_V1.15.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V7III_V1.15.xdf"
   },
   {
@@ -11580,6 +12906,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "MIUG3_MotoGuzzi_V7II_V1.15.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "MIUG3",
+   "label": "Moto Guzzi MIU G3 - V7 II V1.15",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi MIU G3 - V7 II V1.15"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7II_V1.15.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V7II_V1.15.xdf"
   },
   {
@@ -11596,6 +12939,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "MIUG3_MotoGuzzi_V7_V1.10.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "MIUG3",
+   "label": "Moto Guzzi MIU G3 - V7 V1.10",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi MIU G3 - V7 V1.10"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7_V1.10.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V7_V1.10.xdf"
   },
   {
@@ -11612,6 +12972,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "MIUG3",
+   "label": "Moto Guzzi MIU G3 - V9 4640xxxx V1.09",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi MIU G3 - V9 4640xxxx V1.09"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.xdf"
   },
   {
@@ -11628,6 +13005,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "MIUG3",
+   "label": "Moto Guzzi MIU G3 - V9 464DVCAO V1.09",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi MIU G3 - V9 464DVCAO V1.09"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.xdf"
   },
   {
@@ -11639,6 +13033,23 @@
    "unsupported": 1,
    "region_size": 16384,
    "categories": [],
+   "filename": "P7_GuzziDiag_16k_V1.26.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "P7",
+   "label": "Moto Guzzi P7 - 16k EPROM V1.26",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi P7 - 16k EPROM V1.26"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/P7_GuzziDiag_16k_V1.26.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/P7_GuzziDiag_16k_V1.26.xdf"
   },
   {
@@ -11650,6 +13061,23 @@
    "unsupported": 1,
    "region_size": 32768,
    "categories": [],
+   "filename": "P8_GuzziDiag_32k_V1.30.xdf",
+   "brand": "moto_guzzi",
+   "brand_label": "Moto Guzzi",
+   "family": "P8",
+   "label": "Moto Guzzi P8 - 32k EPROM V1.30",
+   "fits": [
+    {
+     "brand": "moto_guzzi",
+     "brand_label": "Moto Guzzi",
+     "label": "Moto Guzzi P8 - 32k EPROM V1.30"
+    }
+   ],
+   "fits_brands": [
+    "Moto Guzzi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/P8_GuzziDiag_32k_V1.30.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/P8_GuzziDiag_32k_V1.30.xdf"
   },
   {
@@ -11661,6 +13089,23 @@
    "unsupported": 0,
    "region_size": 65536,
    "categories": [],
+   "filename": "15P_1P0P_V1.03.xdf",
+   "brand": "piaggio",
+   "brand_label": "Piaggio",
+   "family": "15P",
+   "label": "Piaggio X9 500 (1P0P) V1.03",
+   "fits": [
+    {
+     "brand": "piaggio",
+     "brand_label": "Piaggio",
+     "label": "Piaggio X9 500 (1P0P) V1.03"
+    }
+   ],
+   "fits_brands": [
+    "Piaggio"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0P_V1.03.zip",
    "url": "../guzzionboard/xdfs/piaggio/15P_1P0P_V1.03.xdf"
   },
   {
@@ -11672,6 +13117,23 @@
    "unsupported": 0,
    "region_size": 65536,
    "categories": [],
+   "filename": "15P_1P0T_V1.02.xdf",
+   "brand": "piaggio",
+   "brand_label": "Piaggio",
+   "family": "15P",
+   "label": "Piaggio Beverly 500ie (1P0T) V1.02",
+   "fits": [
+    {
+     "brand": "piaggio",
+     "brand_label": "Piaggio",
+     "label": "Piaggio Beverly 500ie (1P0T) V1.02"
+    }
+   ],
+   "fits_brands": [
+    "Piaggio"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0T_V1.02.zip",
    "url": "../guzzionboard/xdfs/piaggio/15P_1P0T_V1.02.xdf"
   },
   {
@@ -11683,6 +13145,23 @@
    "unsupported": 0,
    "region_size": 327680,
    "categories": [],
+   "filename": "MIU1_CM081701_22A3GS14_V0.03.xdf",
+   "brand": "piaggio",
+   "brand_label": "Piaggio",
+   "family": "MIU1",
+   "label": "Piaggio GTS300 MIU1 V0.03",
+   "fits": [
+    {
+     "brand": "piaggio",
+     "brand_label": "Piaggio",
+     "label": "Piaggio GTS300 MIU1 V0.03"
+    }
+   ],
+   "fits_brands": [
+    "Piaggio"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIU1_CM081701_22A3GS14_V0.03.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIU1_CM081701_22A3GS14_V0.03.xdf"
   },
   {
@@ -11694,6 +13173,23 @@
    "unsupported": 0,
    "region_size": 524288,
    "categories": [],
+   "filename": "MIUG3_Piaggio_34B9BU42_V1.00.xdf",
+   "brand": "piaggio",
+   "brand_label": "Piaggio",
+   "family": "MIUG3",
+   "label": "Piaggio Beverly CM085204 34B9BU42 V1.00",
+   "fits": [
+    {
+     "brand": "piaggio",
+     "brand_label": "Piaggio",
+     "label": "Piaggio Beverly CM085204 34B9BU42 V1.00"
+    }
+   ],
+   "fits_brands": [
+    "Piaggio"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_34B9BU42_V1.00.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_34B9BU42_V1.00.xdf"
   },
   {
@@ -11710,6 +13206,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "MIUG3_Piaggio_4528BU53_V1.00.xdf",
+   "brand": "piaggio",
+   "brand_label": "Piaggio",
+   "family": "MIUG3",
+   "label": "Piaggio Beverly CM085209 4528BU53 V1.00",
+   "fits": [
+    {
+     "brand": "piaggio",
+     "brand_label": "Piaggio",
+     "label": "Piaggio Beverly CM085209 4528BU53 V1.00"
+    }
+   ],
+   "fits_brands": [
+    "Piaggio"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_4528BU53_V1.00.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_4528BU53_V1.00.xdf"
   },
   {
@@ -11726,6 +13239,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "MIUG3_Piaggio_4530xxxx_GTS300_V1.04.xdf",
+   "brand": "piaggio",
+   "brand_label": "Piaggio",
+   "family": "MIUG3",
+   "label": "Piaggio GTS300 4530xxxx V1.04",
+   "fits": [
+    {
+     "brand": "piaggio",
+     "brand_label": "Piaggio",
+     "label": "Piaggio GTS300 4530xxxx V1.04"
+    }
+   ],
+   "fits_brands": [
+    "Piaggio"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_4530xxxx_GTS300_V1.04.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_4530xxxx_GTS300_V1.04.xdf"
   },
   {
@@ -11742,6 +13272,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "MIUG3_Piaggio_464CDABL_GTS300_V1.04.xdf",
+   "brand": "piaggio",
+   "brand_label": "Piaggio",
+   "family": "MIUG3",
+   "label": "Piaggio GTS300 464CDABL V1.04",
+   "fits": [
+    {
+     "brand": "piaggio",
+     "brand_label": "Piaggio",
+     "label": "Piaggio GTS300 464CDABL V1.04"
+    }
+   ],
+   "fits_brands": [
+    "Piaggio"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_464CDABL_GTS300_V1.04.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_464CDABL_GTS300_V1.04.xdf"
   },
   {
@@ -11753,6 +13300,23 @@
    "unsupported": 0,
    "region_size": 524288,
    "categories": [],
+   "filename": "MIUG3_Piaggio_Fly_3V_V1.01.xdf",
+   "brand": "piaggio",
+   "brand_label": "Piaggio",
+   "family": "MIUG3",
+   "label": "Piaggio Fly 3V V1.01",
+   "fits": [
+    {
+     "brand": "piaggio",
+     "brand_label": "Piaggio",
+     "label": "Piaggio Fly 3V V1.01"
+    }
+   ],
+   "fits_brands": [
+    "Piaggio"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_Fly_3V_V1.01.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_Fly_3V_V1.01.xdf"
   },
   {
@@ -11769,6 +13333,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "MIUG3_Piaggio_GTS300_3417BN15_V1.00.xdf",
+   "brand": "piaggio",
+   "brand_label": "Piaggio",
+   "family": "MIUG3",
+   "label": "Piaggio GTS300 3417BN15 V1.00",
+   "fits": [
+    {
+     "brand": "piaggio",
+     "brand_label": "Piaggio",
+     "label": "Piaggio GTS300 3417BN15 V1.00"
+    }
+   ],
+   "fits_brands": [
+    "Piaggio"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_GTS300_3417BN15_V1.00.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_GTS300_3417BN15_V1.00.xdf"
   },
   {
@@ -11785,6 +13366,23 @@
     "Read Only",
     "Tunable"
    ],
+   "filename": "MIUG3_Piaggio_GTS300_V2_V1.03.xdf",
+   "brand": "piaggio",
+   "brand_label": "Piaggio",
+   "family": "MIUG3",
+   "label": "Piaggio GTS300 V1.03",
+   "fits": [
+    {
+     "brand": "piaggio",
+     "brand_label": "Piaggio",
+     "label": "Piaggio GTS300 V1.03"
+    }
+   ],
+   "fits_brands": [
+    "Piaggio"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_GTS300_V2_V1.03.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_GTS300_V2_V1.03.xdf"
   },
   {
@@ -11801,6 +13399,23 @@
     "Read only",
     "Tunable"
    ],
+   "filename": "MIUG3_Scomadi_200_V0.02.xdf",
+   "brand": "scomadi",
+   "brand_label": "Scomadi",
+   "family": "MIUG3",
+   "label": "Scomadi 200 V0.02",
+   "fits": [
+    {
+     "brand": "scomadi",
+     "brand_label": "Scomadi",
+     "label": "Scomadi 200 V0.02"
+    }
+   ],
+   "fits_brands": [
+    "Scomadi"
+   ],
+   "catalogued": true,
+   "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Scomadi_200_V0.02.zip",
    "url": "../guzzionboard/xdfs/scomadi/MIUG3_Scomadi_200_V0.02.xdf"
   }
  ]

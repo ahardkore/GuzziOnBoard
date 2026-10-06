@@ -78,7 +78,28 @@ guzzionboard/xdfs/
 recursively; `guzzionboard/maps.available_xdfs()` is what the app actually
 uses — it merges the bundled set with anything a user has dropped into
 `~/.guzzionboard/xdfs/`, and a user file wins over a bundled file of the
-same title (so you can override or update one without touching the repo).
+same **filename** (so you can override or update one without touching the
+repo).
+
+## Choosing the right one: fitment
+
+XDF titles are whatever their author typed. Several unrelated files call
+themselves `15M Marelli`, and some have no title at all, so titles are no
+basis for choosing — or for identifying — a definition. `catalog.json` is:
+it records the brand, the ECU family and every motorcycle the origin site
+publishes each file for.
+
+`maps.fitment(path)` returns those facts for a file (`filename`, `family`,
+`label`, `fits`, `brand_label`), `describe()` includes them, and
+`maps.group_xdfs()` arranges the library the way the chooser shows it: one
+group per brand, one sub-group per ECU family. `/api/maps` returns the
+grouping plus the ECU currently selected, so the UI can put the definitions
+that match the bike on the bench in their own group and mark everything else
+as *not this ECU* — a definition from another family is not "slightly wrong",
+it reads a different calibration layout at the same addresses.
+
+Definitions are selected **by filename**. An ambiguous title is refused
+rather than resolved by luck.
 
 ## Filling in the rest of the catalog
 

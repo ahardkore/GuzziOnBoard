@@ -167,6 +167,7 @@ def armed_gate(hardware: str) -> SafetyGate:
     """A programming-mode gate whose ECU reported ``hardware``."""
     gate = ready(SafetyGate(mode=Mode.PROGRAMMING, allow_programming=True))
     gate.state.verified_backup = True
+    gate.state.base_map = True
     gate.state.ecu_hardware = hardware
     return gate
 

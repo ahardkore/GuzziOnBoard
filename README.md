@@ -138,8 +138,15 @@ hand, exactly as before:
 mkdir -p ~/.guzzionboard/xdfs && cp ~/Downloads/*5AM*.xdf ~/.guzzionboard/xdfs/
 ```
 
-A file you drop in here overrides a bundled one of the same title, so you can
-correct or update a definition without touching the repo.
+A file you drop in here overrides a bundled one of the same filename, so you
+can correct or update a definition without touching the repo.
+
+The chooser is grouped **by motorcycle**, not by the title the definition's
+author happened to type: definitions for the ECU family on the bench are
+listed first, everything else appears under the bikes it was actually
+published for and is marked as not matching (with a confirmation before it is
+rendered). Picking a map from the wrong family does not give slightly wrong
+numbers — it reads a different calibration layout at the same addresses.
 
 Then point the panel at an image (a previous read lands in
 `~/.guzzionboard/images/`) and render, or diff it against a second image —
@@ -242,7 +249,11 @@ Additional properties:
 - **Programming is a gate, not a wall.** Writing an ECU is your right and the
   code is complete, but it is opt-in: the operator must type an exact
   acknowledgement, the catalog must declare a *verified* programming
-  definition for that family, and a two-read-verified backup must exist. The
+  definition for that family, and a two-read-verified backup must exist. A
+  **base map** must also be on file for that exact ECU and still hash to what
+  was recorded when it was saved — the original calibration, kept in
+  `~/.guzzionboard/basemaps/`, filed automatically by the first verified
+  backup and never overwritten by later ones. The
   frame guard still refuses RequestDownload and WriteMemoryByAddress until all
   of that holds. Flash *reads* are exempt from the opt-in, because the IAW
   families read memory with TransferData and reading breaks nothing.

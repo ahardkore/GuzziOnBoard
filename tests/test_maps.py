@@ -487,18 +487,37 @@ def test_available_xdfs_merges_bundled_and_user_override(tmp_path):
     assert len(merged) == len(load_bundled_xdfs()) + 1
 
 
-def test_available_xdfs_user_file_overrides_same_titled_bundled_one(tmp_path):
+def test_available_xdfs_user_file_overrides_the_same_filename(tmp_path):
+    """Filenames, not titles, decide what overrides what.
+
+    XDF titles collide - "15M Marelli" is on several unrelated files, and
+    some have no title at all - so a title match must not make one
+    definition disappear behind another.
+    """
     bundled = load_bundled_xdfs()
     assert bundled, "need at least one bundled xdf for this test to mean anything"
-    shadow_title = bundled[0].title
+    shadowed = Path(bundled[0].path).name
 
-    shadowing = tmp_path / "shadow.xdf"
-    shadowing.write_text(_with_title(build_xdf(), shadow_title), encoding="utf-8")
+    shadowing = tmp_path / shadowed
+    shadowing.write_text(_with_title(build_xdf(), "My Corrected Copy"), encoding="utf-8")
 
     merged = available_xdfs(tmp_path)
-    matches = [x for x in merged if x.title == shadow_title]
+    matches = [x for x in merged if Path(x.path).name == shadowed]
     assert len(matches) == 1
-    assert Path(matches[0].path).name == "shadow.xdf"
+    assert matches[0].title == "My Corrected Copy"
+    assert len(merged) == len(bundled)
+
+
+def test_a_colliding_title_does_not_hide_a_bundled_definition(tmp_path):
+    bundled = load_bundled_xdfs()
+    shadow_title = next(x.title for x in bundled if x.title)
+
+    (tmp_path / "shadow.xdf").write_text(
+        _with_title(build_xdf(), shadow_title), encoding="utf-8"
+    )
+    merged = available_xdfs(tmp_path)
+    assert len(merged) == len(bundled) + 1
+    assert len([x for x in merged if x.title == shadow_title]) >= 2
 
 
 def test_describe_summarises_the_file(xdf: XdfFile):

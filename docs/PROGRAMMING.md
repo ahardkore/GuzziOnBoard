@@ -37,6 +37,9 @@ preconditions are:
    finds check one red).
 2. The ECU has been identified.
 3. A backup exists **and was verified by reading it twice**.
+3b. A **base map** is on file for this exact ECU and is still intact — the
+   original verified calibration, kept in `~/.guzzionboard/basemaps/` and
+   re-hashed before every write (see *Base maps* below).
 4. The image passes every structural check.
 5. Battery voltage is observed above 11.5 V.
 6. The hardware checklist was accepted.
@@ -276,6 +279,32 @@ write.
 Each backup is saved with a JSON sidecar recording the ECU identity, all five
 checksum forms, the hardware strings found inside, and the timestamp.
 
+## Base maps
+
+A verified backup proves *this read* worked. It does not prove there is still
+a way back next week, after the laptop has been closed and the working
+directory tidied. The base map is that guarantee, and it is mandatory:
+
+* the **first** verified backup taken from an ECU is copied into
+  `~/.guzzionboard/basemaps/<ecu>_<hardware>_<region>/` automatically, with
+  its sidecar, and recorded in `index.json` with its SHA-256;
+* later verified backups are filed alongside it as **restore points** — the
+  original calibration is never overwritten. Replacing a base map is a
+  separate, explicit action, and even then the old one is kept;
+* the key is ECU id + hardware string + region, so a base map taken from an
+  HW1xx ECU never counts as cover for an HW3xx one;
+* before every write the file is **re-hashed**, not merely looked up. A base
+  map that was moved, truncated or edited reports as missing and the write is
+  refused by the `base-map` gate check;
+* nothing in the vault is ever deleted by the application.
+
+The UI exposes this as step 2b in the ECU memory view: one button that takes
+the verified backup and files the base map in the same action, a field for
+filing an image taken earlier (or by GuzziDiag), and a *Restore base map*
+button that loads the stored image into the validate/write fields. Restoring
+is an ordinary write — the same gate, acknowledgement and validation apply;
+there is no hidden fast path back.
+
 ## Writing, step by step
 
 ```
@@ -283,6 +312,7 @@ check preconditions        gate evaluation, single-use token
 hardware-family gate       ECU vs image family, on the concrete file
 validate image             fatal findings abort
 require verified backup    second, independent check
+require intact base map    the vault is re-hashed, not trusted
 checkpoint: starting
 enter programming session  10 85, then the baud switch
 unlock                     27 seed/key

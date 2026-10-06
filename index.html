@@ -200,7 +200,7 @@ footer.site { border-top: 1px solid var(--line); margin-top: 70px; padding: 34px
       </p>
       <div class="cta-row">
         <a class="btn primary" href="web/tour.html">Take the tour →</a>
-        <a class="btn" href="web/sim.html">🏍 Try the engine simulator</a>
+        <a class="btn" href="web/index.html">🖥 Try the workstation in your browser</a>
         <a class="btn ghost" href="#run">Run it locally</a>
       </div>
       <div class="status">
@@ -264,16 +264,30 @@ footer.site { border-top: 1px solid var(--line); margin-top: 70px; padding: 34px
 <!-- ================= TRY ================= -->
 <section class="section wrap" id="try">
   <h2>Try it right now — nothing to install</h2>
-  <p class="sub">Two self-contained pages, hosted here. No server, no CDN, no network calls:
+  <p class="sub">Three pages, hosted here. No server, no CDN, no account:
      this is what the workstation feels like, minus the real wire protocol underneath.</p>
-  <div class="grid two">
+  <div class="grid three">
+    <div class="card">
+      <span class="k">New · full UI</span>
+      <h3>🖥 Workstation demo</h3>
+      <p>The actual workstation interface, with the simulated ECU running in your browser:
+         pick a bike in the Garage, connect, identify it, watch live channels, read and
+         clear fault codes, seed a fault, pulse an actuator — and get refused by the
+         same safety gate when the preconditions are not met.</p>
+      <p>The rest of the bench is simulated too: back up and re-flash the ECU (three
+         seconds instead of twenty minutes, and it says so), render the bundled TunerPro
+         maps, run a guided test, replay and compare recorded sessions, build a report,
+         and use the workshop tools. Nothing here has touched a motorcycle — only real
+         hardware (serial adapters, CAN) is refused rather than faked.</p>
+      <p style="margin-top:12px"><a class="btn primary" href="web/index.html">Open the workstation demo →</a></p>
+    </div>
     <div class="card">
       <span class="k">Standalone demo</span>
       <h3>🏍 Engine simulator</h3>
       <p>The same engine model the workstation's simulator runs: start it, rev it, watch the
          live channels move — then inject a fault and watch the safety gate refuse the
          stupid stuff. Single file, works offline.</p>
-      <p style="margin-top:12px"><a class="btn primary" href="web/sim.html">Open the simulator →</a></p>
+      <p style="margin-top:12px"><a class="btn" href="web/sim.html">Open the simulator →</a></p>
     </div>
     <div class="card">
       <span class="k">Guided walkthrough</span>
@@ -284,8 +298,12 @@ footer.site { border-top: 1px solid var(--line); margin-top: 70px; padding: 34px
       <p style="margin-top:12px"><a class="btn" href="web/tour.html">Take the tour →</a></p>
     </div>
   </div>
-  <p class="run-note">These are the static demos. The <b>full workstation</b> runs on your
-     machine and speaks actual KWP2000 / ISO-TP over K-Line or CAN — see below.</p>
+  <p class="run-note">The workstation demo answers its own API in the page (the catalog is
+     exported from the Python definitions, the engine model and the safety gate are ported).
+     ECU memory, maps &amp; tables, the tools, guided tests, session recording and reports say
+     <b>local workstation only</b> rather than pretending — they move files and open ports.
+     The <b>full workstation</b> runs on your machine and speaks actual KWP2000 / ISO-TP over
+     K-Line or CAN — see below.</p>
 </section>
 
 <!-- ================= FEATURES ================= -->
@@ -446,6 +464,7 @@ footer.site { border-top: 1px solid var(--line); margin-top: 70px; padding: 34px
         <ul>
           <li><a href="https://github.com/ahardkore/GuzziOnBoard">GitHub repository ↗</a></li>
           <li><a href="web/tour.html">Tour &amp; setup</a></li>
+          <li><a href="web/index.html">Workstation demo (in-browser)</a></li>
           <li><a href="web/sim.html">Engine simulator demo</a></li>
           <li><a href="https://github.com/ahardkore/GuzziOnBoard/releases">Releases ↗</a></li>
         </ul>

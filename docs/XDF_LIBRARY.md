@@ -41,21 +41,19 @@ tables** and the real, named tables are already there.
 
 ## What is bundled today
 
-**88 of the 94 cataloged definitions** are vendored — 3587 tables and 2141
+**All 94 cataloged definitions** are vendored — 3842 tables and 2148
 constants in total, every one parse-checked by `guzzionboard.maps.XdfFile`:
 
 | Brand | Files | | Brand | Files |
 |---|---|---|---|---|
-| Ducati | 28 | | Morini | 4 |
+| Ducati | 29 | | Morini | 4 |
 | Moto Guzzi | 24 | | GasGas | 3 |
-| Aprilia | 13 | | Gilera | 2 |
+| Aprilia | 18 | | Gilera | 2 |
 | Piaggio | 10 | | BMW / Husqvarna / Malaguti / Scomadi | 1 each |
 
-The six still missing are five 7SM Aprilia RSV4 variants (1037XXxx,
-1338XXxx, 13A9XXxx, 7614XXxx and 7617XXxx) and
-`59M_Monster S4_28640191B_V1.30`. Run
-`python3 scripts/import_xdfs.py --status` for the exact list and upstream
-URLs.
+Run `python3 scripts/import_xdfs.py --status` at any time to re-confirm the
+count; if the catalog ever gains an entry that is not vendored yet, it
+prints the missing file and its upstream URL.
 
 The original zips these were extracted from are mirrored, unmodified, in
 `vendor/guzzidiag/xdf/`, with sizes, SHA-256s and upstream URLs recorded in

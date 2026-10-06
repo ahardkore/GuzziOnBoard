@@ -23,7 +23,7 @@ same era, read-only until their identifier tables are confirmed.
 | KWP2000 / ISO 14230 application + data link layer | Implemented and unit tested |
 | ISO-TP (ISO 15765-2) segmentation for CAN bikes | Implemented and unit tested |
 | Simulated ECU **speaking the real wire protocol** | Implemented; drives the whole stack |
-| Capability catalog: 10 ECU families, 118 model variants across Moto Guzzi, Ducati and Aprilia, 1992–2026 | Implemented, data-driven |
+| Capability catalog: 11 cataloged controllers, 118 model variants across Moto Guzzi, Ducati and Aprilia, 1992–2026 — engine ECU families plus the Aprilia Mana CVT TCU | Implemented, data-driven |
 | K-Line transport (fast init + 5-baud init, echo cancelling) | Written, **untested on hardware** |
 | CAN transport (python-can + ISO-TP) | Written, **identifiers unconfirmed** |
 | ECU identification, live data, DTC read/clear | Implemented |
@@ -40,20 +40,24 @@ same era, read-only until their identifier tables are confirmed.
 | ECU memory **read** | Implemented; 5AM path grounded in a verified capture |
 | Backup with two-read verification | Implemented |
 | Firmware image validation (size, vector table, entropy, HW family) | Implemented |
-| **Maps & tables**: TunerPro XDF render + named diff of dumps | Implemented; 88 XDFs (3587 tables) ship with the repo, more can be added |
-| ECU memory **write / erase / program / verify** | Implemented and simulator-tested; **gated on hardware** |
+| **Maps & tables**: TunerPro XDF render + named diff of dumps | Implemented; 94 XDFs (3842 tables) ship with the repo, more can be added |
+| ECU memory **write / erase / program / verify** | Full flow **runs against the simulated ECU** (backup → validate → token → write → read-back verify, honestly labelled); gated on hardware pending a bench-confirmed key |
 | Interrupted-write checkpoints and recovery guidance | Implemented |
-| SecurityAccess seed/key plumbing + key-provider plugins | Implemented; **no verified algorithm ships** |
-| Adapter pre-flight incl. FTDI latency timer | Implemented |
-| Gearing / road-speed calculator, CSV + JSON log export | Implemented |
+| SecurityAccess seed/key plumbing + key-provider plugins | Implemented; the shipped 5AM key is unverified — armable per session via explicit, audited opt-in |
+| Adapter pre-flight incl. FTDI latency timer and the vendored WHQL driver bundle in its fix guidance | Implemented |
+| Gearing / road-speed calculator with the reference tool's full 58-model ratio table (Tools view presets, tyre/final-drive/custom ratios + API), CSV + JSON log export | Implemented |
+| Zeitronix ZT-2 CSV → LogWorks DIF conversion — the reference tool's documented factor-4 timeline error corrected, its exact output one toggle away (paste/convert/download in the Tools view + API) | Implemented |
+| Bench RPM trigger-signal generator — crank/cam WAV, wheel geometry transcribed from the reference tool's own config files; presets, custom wheels and `.rbt`-style batch ramps in the Tools view + API | Implemented |
 | Fault read with workstation-observed context ("what was live when we looked") | Implemented; honestly *not* an ECU freeze frame |
 | Session comparison (two recordings, channel by channel) | Implemented |
 | Standalone browser engine simulator (`web/sim.html`) | Implemented; single self-contained page |
 
-266 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
+405 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
 image validation, XDF parsing/render/diff, the full read/backup/write/verify
-round trip, fault injection, session comparison, the packaging entry point
-and complete simulated sessions.
+round trip, fault injection, session comparison, the packaging entry point,
+the reference-tool inclusions (log conversion, bench signal, driver bundle,
+Mana TCU) and complete simulated sessions — plus `scripts/e2e_smoke.py`, a
+25-check full-capability sweep over the live HTTP API.
 
 ## Run it
 
@@ -84,7 +88,7 @@ python3 run_server.py
 
 The **Firmware → Maps & tables** panel renders a dump as named fuel and
 ignition tables using TunerPro XDF definitions — the same files the GuzziDiag
-ecosystem uses. 88 of these ship under `guzzionboard/xdfs/` (3587 tables
+ecosystem uses. 94 of these ship under `guzzionboard/xdfs/` (3842 tables
 across Moto Guzzi, Ducati, Aprilia, Piaggio, Morini, Gilera, GasGas, BMW,
 Husqvarna, Malaguti and Scomadi) so common families work with nothing to
 download; see `docs/XDF_LIBRARY.md` for what's included, its third-party
@@ -127,6 +131,7 @@ workstation will let you do:
 | MIU G3 | 2012–2016 | K-Line | documented | V7 (single throttle body), V7 II, V9 |
 | MIU G4 | 2017–2021 | CAN | inferred | V7 III, V7 850 |
 | Marelli 11MP | 2019–2026 | CAN | inferred | Later V85 TT, V100 Mandello |
+| Aprilia Mana CVT TCU | 2007–2016 | K-Line | unknown | Transmission controller; identification + discovery only — flashing stays with ManaTCU; the Mana's engine side is the 5AM above |
 
 **Confidence is enforced, not decorative.** Anything below `documented`
 degrades to identification, fault codes and the read-only discovery sweep —
@@ -209,7 +214,10 @@ The simulator is a *transport*, not a mock of the application layer: it accepts
 encoded frames, validates checksums, answers the catalog's identifiers, returns
 real negative response codes, and can inject dropped frames, corrupted
 checksums and `responsePending`. Simulated and real sessions therefore run
-identical code.
+identical code. Inside a simulated session the *write* capability is what the
+simulator has actually demonstrated — the whole flash cycle, including
+read-back verification — and is shown as such; hardware sessions still read
+the same red capability check the catalogue declares.
 
 ## Contributing a capture
 

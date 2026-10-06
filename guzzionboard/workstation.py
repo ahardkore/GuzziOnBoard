@@ -121,6 +121,11 @@ class Workstation:
         self.record = record
         self.notices: list[dict] = []
         self._lock = threading.RLock()
+        # The profile in force for the *session*.  Ordinary sessions see the
+        # catalogue profile; simulated sessions see the simulation-capability
+        # clone (see _simulated_capable_profile).  The catalogue object is
+        # never mutated.
+        self._session_profile: EcuProfile | None = None
 
     # -- selection --------------------------------------------------------
     def select(
@@ -211,8 +216,58 @@ class Workstation:
         return data
 
     # -- transports -------------------------------------------------------
+    # Transports that run against the built-in simulated ECU rather than a
+    # physical motorcycle.  For these, capability honesty flips direction:
+    # the simulator *is* the hardware, and everything it speaks is proven.
+    _SIM_TRANSPORTS = ("simulator", "cansim")
+
+    @staticmethod
+    def _simulated_capable_profile(profile) -> "EcuProfile":
+        """The capability set actually proven against the simulated ECU.
+
+        A catalogue profile answers for the real controller, so it
+        deliberately under-declares whatever never met a bench - which is
+        why ``write_supported`` stays false for every shipped ECU.  The
+        simulator is under our own roof: the full flash cycle (unlock,
+        request-download, transfer, checksum, read-back) it implements is
+        exercised by the test suite, so inside a simulated session those
+        capabilities are true - and are flagged as simulated everywhere
+        they are reported.
+        """
+        from dataclasses import replace
+
+        memory = dict(profile.memory or {})
+        regions = {
+            name: dict(spec) for name, spec in (memory.get("regions") or {}).items()
+        }
+        flipped = []
+        for name, spec in regions.items():
+            if int(spec.get("size") or 0) and not spec.get("writable"):
+                spec["writable"] = True
+                flipped.append(name)
+        hardware_reason = memory.get("write_blocked_reason") or ""
+        memory["regions"] = regions
+        if flipped:
+            memory["write_supported"] = True
+        memory["write_blocked_reason"] = ""
+        memory["simulated"] = True
+        memory["simulation_note"] = (
+            "Simulated ECU: these capabilities are proven against the "
+            "built-in protocol simulation, not against hardware."
+            + (
+                f" Against a real {profile.family}, writing stays refused: "
+                f"{hardware_reason}"
+                if hardware_reason
+                else ""
+            )
+        )
+        capabilities = tuple(profile.capabilities)
+        if flipped and "memory_write" not in capabilities:
+            capabilities += ("memory_write",)
+        return replace(profile, memory=memory, capabilities=capabilities)
+
     def _build_transport(self) -> Transport:
-        profile = self.selection.profile
+        profile = self._session_profile or self.selection.profile
         assert profile is not None
         kind = self.selection.transport_kind
 
@@ -322,8 +377,14 @@ class Workstation:
                     "mode": mode,
                 },
             )
+            profile = self.selection.profile
+            if self.selection.transport_kind in self._SIM_TRANSPORTS:
+                # Simulated session: present the capability set we have
+                # actually proven against the simulation, labelled as such.
+                profile = self._simulated_capable_profile(profile)
+            self._session_profile = profile
             self.service = DiagnosticsService(
-                self.selection.profile,
+                profile,
                 self._build_transport(),
                 self.gate,
                 log=self.log,
@@ -337,6 +398,7 @@ class Workstation:
             if self.service is not None:
                 self.service.disconnect()
                 self.service = None
+            self._session_profile = None
             if self.log is not None:
                 self.log.close()
             return self.status()
@@ -502,10 +564,18 @@ class Workstation:
                     lines.append(f"        Usual suspects: {'; '.join(f['suspects'])}")
 
         if r["safety_audit"]:
-            lines += ["", "Safety decisions", "-" * 60]
+            lines += ["", "Safety decisions and gate events", "-" * 60]
             for entry in r["safety_audit"]:
+                if "event" in entry:
+                    # Gate state changes are events, not allow/refuse
+                    # decisions: programming armed/disarmed, the unverified
+                    # key risk accepted or declined.
+                    lines.append(f"{'EVENT':<8} {entry['event']}")
+                    continue
                 verdict = "ALLOWED" if entry["allowed"] else "REFUSED"
-                lines.append(f"{verdict:<8} {entry['operation']:<28} {entry['reason']}")
+                lines.append(
+                    f"{verdict:<8} {entry['operation']:<28} {entry['reason']}"
+                )
 
         lines += [
             "",

@@ -17,6 +17,8 @@ from urllib.parse import parse_qs, urlparse
 from . import adapter as adapter_mod
 from . import canlog
 from . import klinelog
+from . import logconvert
+from . import rpmsignal
 from . import tools
 from .catalog import CatalogError
 from .derived import CHANNELS as DERIVED_CHANNELS, Analyzer
@@ -505,6 +507,7 @@ class Api:
             },
             "acknowledgement": self.ws.gate.PROGRAMMING_ACKNOWLEDGEMENT,
             "programming_enabled": self.ws.gate.allow_programming,
+            "unverified_keys_accepted": self.ws.gate.allow_unverified_keys,
         }
 
     def get_memory_progress(self, query: dict) -> tuple[int, dict]:
@@ -632,7 +635,12 @@ class Api:
 
     def post_programming_enable(self, body: dict) -> tuple[int, dict]:
         self.ws.gate.enable_programming(body.get("acknowledgement", ""))
-        return 200, {"programming_enabled": True}
+        if body.get("allow_unverified_keys"):
+            self.ws.gate.accept_unverified_key_risk(True)
+        return 200, {
+            "programming_enabled": True,
+            "unverified_keys_accepted": self.ws.gate.allow_unverified_keys,
+        }
 
     def post_programming_disable(self, body: dict) -> tuple[int, dict]:
         self.ws.gate.disable_programming()
@@ -644,6 +652,24 @@ class Api:
             "providers": describe_all(),
             "plugin_dir": str(__import__("guzzionboard.security",
                                          fromlist=["PLUGIN_DIR"]).PLUGIN_DIR),
+            "unverified_keys_accepted": self.ws.gate.allow_unverified_keys,
+        }
+
+    def post_security_unverified(self, body: dict) -> tuple[int, dict]:
+        """The operator's explicit, audited, session-scoped acceptance of key
+        providers that are not bench-verified on Guzzi-fitted hardware. This
+        is what unblocks 5AM flash reads/writes over HTTP: the refusal message
+        from the provider registry points here."""
+        accept = bool(body.get("accept"))
+        self.ws.gate.accept_unverified_key_risk(accept)
+        return 200, {
+            "allow_unverified_keys": accept,
+            "note": (
+                "Session-scoped. The shipped key algorithm matches the "
+                "published pairs from the reference tool it was transcribed "
+                "from, but it is not bench-verified on a Guzzi-fitted ECU. "
+                "Repeated wrong keys can lock the security gate."
+            ),
         }
 
     # -- adapter and tools ------------------------------------------------
@@ -715,6 +741,88 @@ class Api:
             return 400, {"error": str(exc)}
         return 200, result
 
+    def post_tools_z2dif(self, body: dict) -> tuple[int, dict]:
+        """Convert a Zeitronix ZT-2 (ZDL) CSV log to LogWorks DIF.
+
+        What the mirrored ZT2CSVToLogWorksDIF tool does — with its documented
+        factor-4 timeline error corrected by default (``timeline_factor=1.0``
+        reproduces the reference tool's output). Accepts pasted ``text`` or
+        a CSV ``path``; strict file-in/text-out, never hardware.
+        """
+        path, text = body.get("path"), body.get("text")
+        if not path and not text:
+            return 400, {"error": "a ZT-2 CSV 'path' or pasted 'text' is required"}
+        try:
+            rate = float(body.get("sample_rate", logconvert.DEFAULT_SAMPLE_RATE))
+            factor = float(
+                body.get("timeline_factor", logconvert.DEFAULT_TIMELINE_FACTOR)
+            )
+            if path:
+                source = Path(str(path)).read_text(
+                    encoding="utf-8", errors="replace"
+                )
+            else:
+                source = str(text)
+            result = logconvert.convert_z2csv_to_dif(
+                source, sample_rate=rate, timeline_factor=factor
+            )
+        except (OSError, logconvert.LogConvertError, ValueError) as exc:
+            return 400, {"error": str(exc)}
+        return 200, result
+
+    def post_tools_rpmsignal(self, body: dict) -> tuple[int, dict]:
+        """Render a bench RPM trigger signal to a WAV file.
+
+        What the mirrored RPMSensorEmu does with dedicated hardware, done
+        with the sound card everyone has: a crank/cam trigger pattern
+        (geometry presets transcribed from the reference tool's config
+        files), constant RPM or reference-style batch ramps.
+        """
+        try:
+            if body.get("pattern"):
+                try:
+                    wheel = rpmsignal.PRESETS[str(body["pattern"]).lower()]
+                except KeyError:
+                    return 400, {
+                        "error": f"unknown pattern {body['pattern']!r}",
+                        "presets": sorted(rpmsignal.PRESETS),
+                    }
+            else:
+                wheel = rpmsignal.TriggerWheel(
+                    int(body["teeth"]), int(body.get("missing", 0)),
+                    str(body.get("wheel", "crankshaft")),
+                )
+                if wheel.wheel not in ("crankshaft", "camshaft"):
+                    return 400, {"error": "'wheel' must be crankshaft or camshaft"}
+            if body.get("events") is not None:
+                events = body["events"]
+            else:
+                rpm = float(body.get("rpm", 0))
+                seconds = float(body.get("seconds", 0))
+                if rpm <= 0 or seconds <= 0:
+                    return 400, {
+                        "error": "pass 'rpm' + 'seconds', or 'events': "
+                        "[[duration_ms, rpm (, rpm_end)], ...]"
+                    }
+                duration_ms = int(round(seconds * 10) * 100)  # 100 ms quanta
+                events = [[duration_ms, rpm]]
+            result = rpmsignal.generate(
+                wheel,
+                events,
+                sample_rate=int(body.get("sample_rate", rpmsignal.DEFAULT_SAMPLE_RATE)),
+                duty=float(body.get("duty", 0.5)),
+                amplitude=float(body.get("amplitude", 0.7)),
+                name=str(body.get("name", "")),
+            )
+        except (KeyError, TypeError) as exc:
+            return 400, {
+                "error": f"missing field {exc}; need a preset 'pattern' or "
+                "'teeth' (+ 'missing', 'wheel')"
+            }
+        except (ValueError, rpmsignal.SignalError) as exc:
+            return 400, {"error": str(exc)}
+        return 200, result
+
     def get_gearing(self, query: dict) -> tuple[int, dict]:
         def number(name, default):
             try:
@@ -722,11 +830,40 @@ class Api:
             except (TypeError, ValueError):
                 return default
 
-        gearing = tools.Gearing(
-            final_drive=number("final_drive", 4.125),
-            tyre=(query.get("tyre") or ["180/55-17"])[0],
-        )
-        return 200, gearing.table()
+        def floats(name):
+            out = []
+            for part in str((query.get(name) or [""])[0]).replace(";", ",").split(","):
+                part = part.strip()
+                if not part:
+                    continue
+                try:
+                    value = float(part)
+                except ValueError:
+                    continue
+                if value > 0:
+                    out.append(value)
+            return out
+
+        preset = (query.get("preset") or [""])[0]
+        preset_data = tools.GEARING_PRESETS.get(preset, {})
+        gears = floats("gears") or preset_data.get("gears")
+        rpm_values = [int(v) for v in floats("rpm")] or None
+        kwargs = {
+            "final_drive": number("final_drive", 4.125),
+            "tyre": (query.get("tyre") or ["180/55-17"])[0],
+            "primary": number("primary", 1.0),
+        }
+        if gears:
+            kwargs["gears"] = gears
+        result = tools.Gearing(**kwargs).table(rpm_values)
+        if preset and preset_data:
+            result["preset"] = preset
+            result["max_rpm"] = preset_data.get("max_rpm")
+        # the per-model ratio sets read out of the reference app, so the
+        # client can offer them without shipping its own copy
+        result["presets"] = tools.GEARING_PRESETS
+        result["gear_ratios_used"] = gears or tools.Gearing().gears
+        return 200, result
 
     def get_export(self, query: dict) -> tuple[int, dict]:
         """A recorded session as CSV or JSON.
@@ -804,9 +941,12 @@ ROUTES_POST = {
     "/api/maps/diff": "post_maps_diff",
     "/api/programming/enable": "post_programming_enable",
     "/api/programming/disable": "post_programming_disable",
+    "/api/security/unverified": "post_security_unverified",
     "/api/adapter/latency": "post_adapter_latency",
     "/api/tools/canlog": "post_tools_canlog",
     "/api/tools/klinelog": "post_tools_klinelog",
+    "/api/tools/z2dif": "post_tools_z2dif",
+    "/api/tools/rpmsignal": "post_tools_rpmsignal",
     "/api/sessions/compare": "post_sessions_compare",
     "/api/sim/engine": "post_sim_engine",
     "/api/sim/faults": "post_sim_faults",

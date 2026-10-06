@@ -93,6 +93,73 @@ class Gearing:
         return best
 
 
+#: Per-model gearbox ratio sets, read out of the mirrored reference app
+#: GearSpeed_V1.55 (vendor/guzzidiag/tools/GearSpeed_V1.55.zip) — the same
+#: table that app ships, so the gearing view presets feel familiar to anyone
+#: coming from it. Ratios are exactly as published there; entries that pad a
+#: 5-speed box to six slots with "0.0000" are trimmed to the real gear count.
+GEARING_PRESETS: dict[str, dict] = {
+    "Moto Guzzi — 1000 G5":          {"gears": [2.0000, 1.3889, 1.0476, 0.8696, 0.7500], "max_rpm": 8750},
+    "Moto Guzzi — 1200 Sport":       {"gears": [2.2353, 1.7000, 1.3478, 1.1154, 0.9355, 0.8000], "max_rpm": 8750},
+    "Moto Guzzi — Bellagio":         {"gears": [2.2353, 1.7000, 1.3478, 1.1154, 0.9677, 0.8621], "max_rpm": 8750},
+    "Moto Guzzi — Breva 750":        {"gears": [2.3636, 1.6429, 1.2778, 1.0556, 0.9000], "max_rpm": 8750},
+    "Moto Guzzi — Breva 850":        {"gears": [2.2353, 1.7000, 1.3478, 1.1154, 0.9677, 0.8621], "max_rpm": 8750},
+    "Moto Guzzi — Breva 1100":       {"gears": [2.2353, 1.7000, 1.3478, 1.1154, 0.9677, 0.8000], "max_rpm": 8750},
+    "Moto Guzzi — Breva 1200":       {"gears": [2.2353, 1.7000, 1.3478, 1.1154, 0.9355, 0.8000], "max_rpm": 8750},
+    "Moto Guzzi — California III early": {"gears": [2.0000, 1.3889, 1.0476, 0.8696, 0.7500], "max_rpm": 8750},
+    "Moto Guzzi — California EV / Special / Jackal / Vintage (-2000)": {"gears": [2.0000, 1.3889, 1.0476, 0.8696, 0.7500], "max_rpm": 8750},
+    "Moto Guzzi — California 2001 EV": {"gears": [2.0000, 1.3889, 1.0476, 0.8696, 0.7500], "max_rpm": 8750},
+    "Moto Guzzi — California 1400":  {"gears": [2.235, 1.7, 1.347, 1.115, 0.967, 0.8], "max_rpm": 7000},
+    "Moto Guzzi — Daytona":          {"gears": [2.2353, 1.7000, 1.3478, 1.1154, 0.9677, 0.8621], "max_rpm": 8750},
+    "Moto Guzzi — Daytona RS":       {"gears": [1.8125, 1.2500, 1.0000, 0.8333, 0.7308], "max_rpm": 8750},
+    "Moto Guzzi — Griso 850":        {"gears": [2.2353, 1.7000, 1.3478, 1.1154, 0.9677, 0.8621], "max_rpm": 8750},
+    "Moto Guzzi — Griso 1100":       {"gears": [2.2353, 1.7000, 1.3478, 1.1154, 0.9677, 0.8621], "max_rpm": 8750},
+    "Moto Guzzi — Griso 1200":       {"gears": [2.2353, 1.7000, 1.3478, 1.1154, 0.9677, 0.8621], "max_rpm": 8750},
+    "Moto Guzzi — Le Mans I":        {"gears": [2.0000, 1.3888, 1.0476, 0.8696, 0.7500], "max_rpm": 8750},
+    "Moto Guzzi — Le Mans II":       {"gears": [2.0000, 1.3888, 1.0476, 0.8696, 0.7500], "max_rpm": 8750},
+    "Moto Guzzi — Le Mans III":      {"gears": [2.0000, 1.3888, 1.0476, 0.8696, 0.7500], "max_rpm": 8750},
+    "Moto Guzzi — Le Mans 1000":     {"gears": [2.0000, 1.3889, 1.0476, 0.8696, 0.7500], "max_rpm": 8750},
+    "Moto Guzzi — MGS01":            {"gears": [2.4000, 1.7778, 1.3636, 1.1111, 0.9655, 0.8519], "max_rpm": 8750},
+    "Moto Guzzi — Norge 1200 early": {"gears": [2.2353, 1.7000, 1.3478, 1.1154, 0.9677, 0.8621], "max_rpm": 8750},
+    "Moto Guzzi — Norge 1200 late":  {"gears": [2.2353, 1.7000, 1.3478, 1.1154, 0.9355, 0.8000], "max_rpm": 8750},
+    "Moto Guzzi — Quota 1100 ES":    {"gears": [2.0000, 1.3158, 1.0000, 0.8462, 0.7308], "max_rpm": 8750},
+    "Moto Guzzi — Sport 1100 i":     {"gears": [1.8125, 1.2500, 1.0000, 0.8333, 0.7308], "max_rpm": 8750},
+    "Moto Guzzi — Stelvio":          {"gears": [2.2353, 1.7000, 1.3478, 1.1154, 0.9677, 0.8621], "max_rpm": 8750},
+    "Moto Guzzi — V7":               {"gears": [2.3636, 1.6429, 1.2778, 1.0556, 0.9000], "max_rpm": 7500},
+    "Moto Guzzi — V7 II":            {"gears": [2.6429, 1.7778, 1.3333, 1.0833, 0.9600, 0.8889], "max_rpm": 7500},
+    "Moto Guzzi — V7 III":           {"gears": [2.4375, 1.7778, 1.3333, 1.0833, 0.9600, 0.8571], "max_rpm": 7500},
+    "Moto Guzzi — V7 850":           {"gears": [2.4375, 1.7778, 1.3333, 1.0833, 0.9600, 0.8571], "max_rpm": 7500},
+    "Moto Guzzi — V9":               {"gears": [2.4375, 1.7778, 1.3333, 1.0833, 0.9600, 0.8571], "max_rpm": 7500},
+    "Moto Guzzi — V10 Centauro":     {"gears": [2.0000, 1.3158, 1.0000, 0.8462, 0.7692], "max_rpm": 8750},
+    "Moto Guzzi — V10 Centauro CH":  {"gears": [2.0000, 1.3889, 1.0476, 0.8696, 0.7500], "max_rpm": 8750},
+    "Moto Guzzi — V11 (170/60-17)":  {"gears": [2.4000, 1.7778, 1.3636, 1.1111, 0.9655, 0.8519], "max_rpm": 8750},
+    "Moto Guzzi — V11 (180/55-17)":  {"gears": [2.4000, 1.7778, 1.3636, 1.1111, 0.9655, 0.8519], "max_rpm": 8750},
+    "Moto Guzzi — V35 / V35TT / V50": {"gears": [2.727, 1.733, 1.277, 1.045, 0.909], "max_rpm": 8000},
+    "Moto Guzzi — V65 / V65 Lario":  {"gears": [2.3636, 1.6428, 1.2777, 1.0555, 0.9000], "max_rpm": 8000},
+    "Moto Guzzi — V85TT":            {"gears": [2.4375, 1.7778, 1.3333, 1.0833, 0.9600, 0.8889], "max_rpm": 7500},
+    "Aprilia — RSV4 Factory":        {"gears": [2.3750, 1.9444, 1.6471, 1.4545, 1.3077, 1.2222], "max_rpm": 14000},
+    "BMW — HP4 Race":                {"gears": [2.3889, 2.0000, 1.7273, 1.5455, 1.4000, 1.2917], "max_rpm": 14500},
+    "BMW — S 1000 RR":               {"gears": [2.647, 2.091, 1.727, 1.500, 1.360, 1.261], "max_rpm": 14000},
+    "MV Agusta — Brutale 1090RR (2010)": {"gears": [2.923, 2.125, 1.778, 1.5, 1.318, 1.211], "max_rpm": 13500},
+    "MV Agusta — Brutale 989 / 1078": {"gears": [2.923, 2.125, 1.778, 1.5, 1.318, 1.211], "max_rpm": 12000},
+    "MV Agusta — Brutale 990 ET 1090": {"gears": [2.923, 2.125, 1.778, 1.5, 1.318, 1.211], "max_rpm": 13500},
+    "MV Agusta — Brutale 1090RR Y12 + CORSA": {"gears": [2.923, 2.125, 1.778, 1.5, 1.318, 1.211], "max_rpm": 13500},
+    "MV Agusta — Brutale 920":       {"gears": [2.923, 2.125, 1.778, 1.5, 1.318, 1.211], "max_rpm": 13500},
+    "MV Agusta — Brutale 910":       {"gears": [2.923, 2.125, 1.778, 1.5, 1.318, 1.19], "max_rpm": 12000},
+    "MV Agusta — B4 750":            {"gears": [2.92, 2.21, 1.78, 1.5, 1.32, 1.21], "max_rpm": 12000},
+    "MV Agusta — F4 1000 Y04 + AGO + SENNA": {"gears": [2.92, 2.12, 1.78, 1.5, 1.32, 1.19], "max_rpm": 14000},
+    "MV Agusta — F4 1000 Y05 + TAMBURINI": {"gears": [2.923, 2.125, 1.778, 1.5, 1.318, 1.19], "max_rpm": 14000},
+    "MV Agusta — F4 312 / 1000 / 1078 Y08": {"gears": [2.923, 2.06, 1.778, 1.5, 1.318, 1.19], "max_rpm": 14000},
+    "MV Agusta — F4S Y10":           {"gears": [2.64, 2.06, 1.72, 1.5, 1.318, 1.19], "max_rpm": 15000},
+    "MV Agusta — F4 Y10":            {"gears": [2.643, 2.062, 1.722, 1.5, 1.318, 1.19], "max_rpm": 15000},
+    "MV Agusta — B3 800 / Dragster / Rivale (<Y16)": {"gears": [2.846, 2.125, 1.778, 1.579, 1.429, 1.318], "max_rpm": 13000},
+    "MV Agusta — Dragster RR":       {"gears": [2.846, 2.125, 1.778, 1.579, 1.429, 1.318], "max_rpm": 14000},
+    "MV Agusta — Turismo Veloce":    {"gears": [2.846, 2.188, 1.778, 1.5, 1.318, 1.19], "max_rpm": 13000},
+    "MV Agusta — B3 675 (<Y16)":     {"gears": [2.846, 2.125, 1.778, 1.579, 1.429, 1.318], "max_rpm": 13000},
+    "MV Agusta — F3 675 / 800":      {"gears": [2.846, 2.125, 1.778, 1.579, 1.429, 1.318], "max_rpm": 15000},
+}
+
+
 # --------------------------------------------------------------------------
 # Log export
 # --------------------------------------------------------------------------

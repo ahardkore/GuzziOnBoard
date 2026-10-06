@@ -30,7 +30,11 @@ it is an incomplete one.
 Writing is now a capability with preconditions rather than a prohibition. The
 preconditions are:
 
-1. The catalog declares a `verified-*` programming definition for the family.
+1. The catalog declares a `verified-*` programming definition for the family —
+   **or the session runs against the built-in simulator**, whose capability set
+   is proven in the test suite and flagged as simulated wherever it surfaces
+   (the catalogue profile itself is never loosened; a hardware session still
+   finds check one red).
 2. The ECU has been identified.
 3. A backup exists **and was verified by reading it twice**.
 4. The image passes every structural check.
@@ -44,6 +48,22 @@ evidence problem, not a policy one. For the 5AM the evidence is now one bench
 session away: the key algorithm and the full write sequence are transcribed
 and simulator-tested (`docs/PRIOR_ART.md` 1.1-1.5); what is missing is a real
 ECU saying yes.
+
+## Rehearsing the whole thing on the simulator
+
+Because the simulator speaks the real wire protocol and implements the
+complete flash cycle — unlock, RequestDownload, TransferData, TransferExit,
+read-back — the web UI's entire write flow is exercisable with zero hardware:
+check the adapter report, take the two-read backup (the session's own
+`.json` sidecar keeps the provenance, and `FirmwareImage.from_file` reads it
+back so a file backed up by this tool is flashable back), validate it, type
+the acknowledgement, get the token, write, watch the read-back verify. Inside
+such a session the capabilities panel says *Write supported: yes (simulated)*
+and explains that on real iron the same view stays refused, with reasons.
+Two seams make this honest rather than loose: enabling programming moves the
+session into programming mode (restored on disable), and the simulated
+capability overlay exists only while the simulator session exists —
+`tests/test_simulated_flash.py` locks every one of those facts.
 
 ## The 5AM read sequence
 
@@ -168,6 +188,24 @@ for the 15x, 7SM or MIU families.
 A wrong key is cheap once and expensive repeatedly: most ECUs lock the
 security gate after a few failures, some with a timed penalty. So the tool
 will not spray guesses at your ECU.
+
+### Using the shipped-but-unverified key anyway
+
+Reads and writes that need SecurityAccess refuse until the operator
+explicitly accepts the unverified-key risk for the session. Any one of these
+grants it, and every grant is recorded in the safety audit log:
+
+- the **Accept unverified key providers for this session** checkbox under
+  **ECU memory → SecurityAccess key providers** in the UI,
+- `POST /api/security/unverified` with `{"accept": true}` (or
+  `{"accept": false}` to withdraw it),
+- the `allow_unverified_keys` flag on `POST /api/programming/enable` when
+  opting into programming,
+- `gate.accept_unverified_key_risk(True)` or the `allow_unverified_key=True`
+  argument when driving the library in-process.
+
+The acceptance is session-scoped and never persisted. Refusals keep saying
+exactly how to grant it; nothing retries a rejected key for you.
 
 ### Supplying a key provider
 

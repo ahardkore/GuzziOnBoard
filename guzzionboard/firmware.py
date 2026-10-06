@@ -287,6 +287,25 @@ class FirmwareImage:
     @classmethod
     def from_file(cls, path: str | Path, **kw) -> "FirmwareImage":
         path = Path(path)
+        # The workstation's own save() writes a `<name>.bin.json` sidecar
+        # carrying the captured provenance (which ECU, which identity block).
+        # Read it back: it is the only way a file-based image can ever carry
+        # enough provenance for the write path to *consider* it, and the
+        # byte-level validation still decides in the end.  A file with no
+        # sidecar keeps its empty provenance and stays refused.
+        sidecar = path.with_suffix(path.suffix + ".json")
+        if sidecar.exists() and not kw.get("identity"):
+            try:
+                import json as _json
+
+                meta = _json.loads(sidecar.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                meta = {}
+            if isinstance(meta, dict):
+                if isinstance(meta.get("identity"), dict):
+                    kw["identity"] = meta["identity"]
+                if meta.get("ecu_id") and "ecu_id" not in kw:
+                    kw["ecu_id"] = str(meta["ecu_id"])
         return cls(data=path.read_bytes(), source="file", path=str(path), **kw)
 
     def save(self, path: str | Path) -> Path:

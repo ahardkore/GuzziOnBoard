@@ -76,6 +76,16 @@ What it offers:
 - **Comms quality** — dropped requests, corrupt checksums, `responsePending`
   and extra latency, because a marginal adapter is part of the job.
 
+And because the simulator speaks the real wire protocol, *every other view
+works against it too* — identify, live data and findings, fault memory,
+service adaptations, actuator tests, guided tests, discovery sweeps, session
+recording and replay, and the complete ECU-memory flow in the ECU memory view:
+backup, validate, and the whole gated flash cycle up to a read-back-verified
+write. Nothing is a special case: the UI simply calls the same endpoints, and
+the workstation, knowing the session is simulated, presents the capability set
+the simulator has demonstrably proven — clearly labelled *simulated*, so there
+is never an implication that real hardware would behave with the same freedom.
+
 The maturation behaviour is deliberate and worth teaching from:
 
 1. Seed a fault and watch the **live data** move — the derived channels and
@@ -106,6 +116,35 @@ A session that cannot leave the tool is of limited use to anybody.
   the plausibility checks are recomputed at each point, from the bytes that
   were recorded then, with the *recorded* timestamps driving the sixty-second
   window — so what you see on replay is what you would have seen live.
+
+## Workshop utilities that need no ECU
+
+The **Tools** view collects the helpers that inherit the job of the old
+GuzziDiag-era utility apps. They run offline — nothing here touches the
+motorcycle:
+
+- **Gearing & road speed.** Pick the bike from the presets (the ratio table
+  read out of the mirrored GearSpeed app — sixty-odd models, Guzzis included),
+  set the rear tyre and the bevel-box final drive, and it tabulates the road
+  speed each gear gives you up the rev range. Rows above the preset's red
+  line are dimmed. Type ratios in the *Gears* field to try a gearbox the
+  table does not know.
+- **Wideband log converter.** Paste the CSV a Zeitronix ZDL logger exports
+  and it comes back as the DIF table LogWorks and Excel import — with the
+  reference converter's admitted times-four timeline error *fixed*. The
+  *reference behaviour* toggle exists only for byte-for-byte comparisons
+  with the old tool; the download button saves the result.
+- **Bench RPM trigger signal.** Makes an unmounted ECU believe the engine
+  turns: it renders a trigger-wheel pattern (the geometries are transcribed
+  from RPMSensorEmu's own config files — 46 teeth plus two missing on the
+  Guzzi camshaft wheel) as a WAV you play through an AC-coupled buffer into
+  the sensor input. A batch line like `5000|1000|3000` ramps from one engine
+  speed to another, exactly like the reference tool's `.rbt` programs. An
+  ECU that believes the engine turns can energise coils and injectors —
+  unplug what you do not want live.
+
+Each tool carries a note at the top describing what it does and where its
+numbers come from.
 
 ## Guided tests
 

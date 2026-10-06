@@ -52,7 +52,7 @@ opened.
 | Fault read with workstation-observed context ("what was live when we looked") | Implemented; honestly *not* an ECU freeze frame |
 | Session comparison (two recordings, channel by channel) | Implemented |
 | Standalone browser engine simulator (`web/sim.html`) | Implemented; single self-contained page |
-| **Hosted workstation demo** — the real UI with the simulated ECU running in the browser (`web/demo-api.js` + `web/demo-lab.js`) | Implemented; every view works against the simulated bike, including memory, maps, sessions, reports, guided tests and the tools. Simulated and time-compressed processes are labelled as such. Only hardware transports (serial, CAN) are refused rather than faked |
+| **Hosted workstation demo** — the real UI with a virtual motorcycle and ECU running in the browser (`web/demo-api.js` + `web/demo-lab.js`) | Implemented; every view works with labelled in-browser fixtures, including a virtual connector/adapter, memory, maps, sessions, reports, guided tests and tools. Real-bike transport choices are omitted entirely; only the installed app exposes hardware |
 
 More than 440 tests cover framing, checksums, scaling, DTC decoding, handshake negotiation, the safety gate,
 image validation, XDF parsing/render/diff, the full read/backup/write/verify
@@ -98,10 +98,11 @@ The project site hosts two demos, both static:
   Everything simulated says so, in the payload and on the page, and the two
   compressions are stated wherever they apply: a twenty-minute flash read
   takes about three seconds, and a ten-second observation window in a guided
-  test takes about one. Hardware is the one thing not faked — a web page
-  cannot open a serial port or a CAN interface, so those are refused rather
-  than invented. When *this* server is the one serving the page, both scripts
-  stand down: `run_server.py` marks the body `data-backend="live"`.
+  test takes about one. The hosted page offers no real-bike transport choice;
+  connector and adapter steps use labelled virtual fixtures, while browser
+  permissions for serial, USB, CAN, and local files are never requested. When
+  *this* server serves the page, both demo scripts stand down and the complete
+  hardware UI returns: `run_server.py` marks the body `data-backend="live"`.
 * **<https://ahardkore.github.io/GuzziOnBoard/web/sim.html>** — a
   self-contained page with just the engine model: start it, rev it, inject
   faults, watch the safety gate refuse.

@@ -14,13 +14,11 @@
  *
  * What it is NOT: the KWP2000 stack. The real workstation encodes a frame,
  * checksums it and hands it to a transport; here the raw bytes next to each
- * channel are reconstructed from the catalog scaling, which is honest about
- * what it is but is not a wire capture. Anything that needs files, serial
- * ports, long jobs or the XDF/firmware code — ECU memory, maps, the tools,
- * guided tests, session recording, reports — is refused with a message
- * saying so rather than faked. Those views work when you run the real thing:
- *
- *     python3 run_server.py
+ * channel are reconstructed from the catalog scaling, so they are simulated,
+ * not a wire capture. demo-lab.js supplies virtual files, jobs, firmware,
+ * maps, sessions, workshop tools, and an explicitly simulated adapter so the
+ * hosted product tour remains self-contained. Real hardware belongs only to
+ * the separately installed local application.
  *
  * The Python server marks the page it serves with <body data-backend="live">,
  * so when the real backend is present this file does nothing at all.
@@ -30,8 +28,7 @@
 
   if (document.body && document.body.dataset.backend === 'live') return;
 
-  var DEMO_HINT = 'Hosted demo: this runs in the browser. '
-    + 'Run python3 run_server.py for the full workstation.';
+  var DEMO_HINT = 'Hosted demo: the motorcycle, ECU, cable, adapter, files, and jobs are virtual.';
 
   /* Extension points for web/demo-lab.js, which simulates the views that
    * need files and long jobs (ECU memory, maps, sessions, reports, tools).
@@ -716,21 +713,11 @@
   }
 
   function transports() {
-    return [
-      {
-        id: 'simulator', name: 'Simulator', available: true,
-        detail: 'Deterministic ECU model running in this browser tab.',
-      },
-      {
-        id: 'kline', name: 'K-Line (USB serial)', available: false,
-        detail: 'A web page cannot open a serial port. Run the workstation locally.',
-        ports: [],
-      },
-      {
-        id: 'can', name: 'CAN (ISO-TP)', available: false,
-        detail: 'Needs python-can on your machine. Run the workstation locally.',
-      },
-    ];
+    return [{
+      id: 'simulator', name: 'Demo motorcycle', available: true,
+      detail: 'Everything stays in this browser tab; virtual ECU, bike, cable, and adapter are ready.',
+      demo: true,
+    }];
   }
 
   function sessionSummary() {
@@ -1030,8 +1017,10 @@
       year: parseInt(body.year, 10) || 0,
       entry: entry,
       profile: profile,
-      transport: body.transport || 'simulator',
-      device: body.device || '',
+      // Hosted demo is deliberately virtual-only. Ignore stale browser prefs
+      // or crafted requests that name a physical transport.
+      transport: 'simulator',
+      device: 'demo://virtual-adapter',
       can_overrides: {},
     };
 
@@ -1053,31 +1042,17 @@
       });
     }
     if (entry && entry.notes) notices.push({ level: 'info', text: entry.notes });
-    if ((body.transport || 'simulator') !== 'simulator') {
-      notices.push({
-        level: 'danger',
-        text: 'This page is the hosted demo: it can only drive the built-in '
-          + 'simulator. Hardware transports exist in the real workstation — run '
-          + 'python3 run_server.py on the machine with the cable in it.',
-      });
-    }
     WS.notices = notices;
     return [200, describeSelection()];
   };
 
-  POST['/api/connect'] = function (body) {
+  POST['/api/connect'] = function () {
     if (!WS.selection.profile) throw httpError(400, 'select a vehicle before connecting', 'bad_request');
-    if (WS.selection.transport !== 'simulator') {
-      throw httpError(
-        501,
-        'The hosted demo can only connect to the built-in simulator. For K-Line '
-        + 'or CAN, run python3 run_server.py locally — that build opens the port.',
-        'demo_local_only'
-      );
-    }
     if (WS.connected) return [200, status()];
 
-    WS.gate = new SafetyGate(body.mode === 'read_only' ? 'read_only' : 'simulator');
+    WS.selection.transport = 'simulator';
+    WS.selection.device = 'demo://virtual-adapter';
+    WS.gate = new SafetyGate('simulator');
     WS.sessionProfile = simulatedCapableProfile(WS.selection.profile);
     WS.ecu = new SimEcu(WS.selection.profile.id);
     WS.connected = true;
@@ -1087,6 +1062,11 @@
     WS.startedAt = epoch();
     WS.counts = { session_start: 1 };
     WS.gate.state.ecu_confidence = WS.sessionProfile.confidence;
+    // Browser-only fixtures are already attached and cannot lock a real ECU,
+    // so remove setup dead-ends while preserving operation tokens and backup
+    // requirements in the workflow itself.
+    WS.gate.state.checklist_accepted = true;
+    WS.gate.allow_unverified_keys = true;
     if (HOOKS.event) HOOKS.event('connect', sessionSummary());
     return [200, status()];
   };
@@ -1408,15 +1388,15 @@
     return [200, {
       providers: {
         '5am': [{
-          ecu_id: '5am', name: 'iaw5am-kwp-divmod', verified: false,
-          note: "Transcribed from calc_key() in 5am_util's main.c. Shipped with "
-            + 'the real workstation; it is not bench-confirmed on a Guzzi-fitted '
-            + '5AM, and the hosted demo never runs it.',
-          source: '5am_util main.c calc_key() via docs/PRIOR_ART.md 1.1',
+          ecu_id: '5am', name: 'virtual-demo-unlock', verified: true,
+          note: 'Virtual demo provider. It unlocks only the synthetic image in '
+            + 'this browser and never computes a key for real hardware.',
+          source: 'in-browser fixture',
         }],
       },
-      plugin_dir: '(local workstation only: ~/.guzzionboard/keys)',
-      unverified_keys_accepted: false,
+      plugin_dir: 'demo://virtual-key-providers',
+      unverified_keys_accepted: !!WS.gate.allow_unverified_keys,
+      simulated: true,
       demo: true,
     }];
   };
@@ -1520,15 +1500,78 @@
   };
 
   var UI = {
-    banner: '<b>Hosted demo</b> — the workstation UI with the simulated '
-      + 'ECU running in your browser. Garage, live data, fault codes, service '
-      + 'actions, discovery and the simulated bike all work. ECU memory, maps, '
-      + 'tools, guided tests, sessions and reports need the local tool: '
-      + '<code>python3 run_server.py</code>. '
+    banner: '<b>Hosted demo</b> — a virtual motorcycle, ECU, connector, adapter, '
+      + 'files, and workshop session running entirely in this browser. Nothing '
+      + 'here can connect to real hardware. '
       + '<a href="../index.html">About GuzziOnBoard</a>',
   };
 
   function decorate() {
+    document.body.dataset.demo = 'true';
+
+    // Keep the hosted product tour virtual-only. The installed application
+    // retains every hardware control; this page exposes one ready-to-run demo
+    // motorcycle and virtual stand-ins for connector-dependent steps.
+    var heading = document.getElementById('connectionHeading');
+    if (heading) heading.textContent = '2 · Start the demo';
+    var modeField = document.getElementById('sessionModeField');
+    if (modeField) modeField.hidden = true;
+    var connectionTip = document.getElementById('connectionTip');
+    if (connectionTip) connectionTip.innerHTML = 'Pick a motorcycle, then start the demo. '
+      + 'The ECU, motorcycle, cable, adapter, files, and long-running jobs are all virtual.';
+    var connectButton = document.getElementById('connectBtn');
+    if (connectButton) connectButton.textContent = 'Start demo';
+    var disconnectButton = document.getElementById('disconnectBtn');
+    if (disconnectButton) disconnectButton.textContent = 'Reset demo';
+    var override = document.getElementById('ecuOverride');
+    var overrideDetails = override && override.closest ? override.closest('details') : null;
+    if (overrideDetails) overrideDetails.hidden = true;
+    var disclaimer = document.querySelector('.disclaimer');
+    if (disclaimer) disclaimer.textContent = 'Hosted demo only — nothing on this page can connect to a motorcycle or ECU.';
+
+    ['canlogFileControls', 'klinelogFileControls'].forEach(function (id) {
+      var controls = document.getElementById(id);
+      if (controls) controls.hidden = true;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.hardware-capture-help'), function (el) {
+      el.hidden = true;
+    });
+
+    var adapterPort = document.getElementById('adapterPort');
+    if (adapterPort) adapterPort.value = 'demo://virtual-kline';
+    var adapterHelp = document.getElementById('adapterHelp');
+    if (adapterHelp) adapterHelp.innerHTML = '<b>Demo connector.</b> Run this virtual pre-flight '
+      + 'to see the adapter checks without installing drivers or attaching a cable.';
+    var adapterButton = document.getElementById('adapterBtn');
+    if (adapterButton) adapterButton.textContent = 'Run virtual pre-flight';
+    var ack = document.getElementById('ackInput');
+    if (ack) ack.value = 'I have a verified backup and accept the risk';
+    var keys = document.getElementById('unverifiedKeysChk');
+    if (keys) keys.checked = true;
+    var securityPanel = document.getElementById('securityPanel');
+    if (securityPanel) securityPanel.hidden = true;
+
+    var canSample = document.getElementById('canlogText');
+    if (canSample) canSample.value = [
+      '(1.000) can0 7E0#0210C0AAAAAAAA',
+      '(1.010) can0 7E8#0650C0AAAAAAAA',
+      '(1.100) can0 7E0#021A80AAAAAAAA',
+      '(1.110) can0 7E8#10145A80313233',
+      '(1.120) can0 7E0#3000000000000000',
+      '(2.000) can0 7E0#023E00AAAAAAAA',
+    ].join('\n');
+    var canPaste = document.getElementById('canlogPasteBtn');
+    if (canPaste) canPaste.textContent = 'Analyze sample CAN log';
+    var klineSample = document.getElementById('klinelogText');
+    if (klineSample) klineSample.value = [
+      '0.000 tx 80 10 F1 02 21 30 1D',
+      '0.020 rx 80 F1 10 04 61 30 0B B8',
+      '0.100 tx 80 10 F1 02 21 30 1D',
+      '0.120 rx 80 F1 10 04 61 30 0C 1A',
+    ].join('\n');
+    var klinePaste = document.getElementById('klinelogPasteBtn');
+    if (klinePaste) klinePaste.textContent = 'Analyze sample K-Line log';
+
     var bar = document.createElement('div');
     bar.id = 'demoBanner';
     bar.innerHTML = UI.banner;

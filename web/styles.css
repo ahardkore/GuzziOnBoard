@@ -35,7 +35,7 @@ h2 { font-size: 1.02rem; letter-spacing: .01em; }
 p { margin: 0 0 .7rem; }
 .muted { color: var(--muted); }
 .small { font-size: .82rem; }
-.hidden { display: none !important; }
+.hidden, [hidden] { display: none !important; }
 .spacer { flex: 1; }
 
 /* ------------------------------------------------------------- sidebar */

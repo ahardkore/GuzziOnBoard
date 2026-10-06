@@ -37,6 +37,7 @@ const state = {
 };
 
 const HISTORY_LEN = 90;
+const isHostedDemo = () => Boolean(window.GUZZI_DEMO);
 
 /* ------------------------------------------------------------------ utils */
 
@@ -588,12 +589,13 @@ async function loadCatalog() {
   const { summary } = state.catalog;
 
   const make = $('#makeSelect');
-  make.innerHTML = state.catalog.makes
+  const availableMakes = isHostedDemo() ? ['Moto Guzzi'] : state.catalog.makes;
+  make.innerHTML = availableMakes
     .map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
   const savedMake = Prefs.get('make');
-  make.value = (savedMake && state.catalog.makes.includes(savedMake))
+  make.value = (savedMake && availableMakes.includes(savedMake))
     ? savedMake
-    : (state.catalog.makes.includes('Moto Guzzi') ? 'Moto Guzzi' : state.catalog.makes[0]);
+    : (availableMakes.includes('Moto Guzzi') ? 'Moto Guzzi' : availableMakes[0]);
   make.onchange = () => { Prefs.set('make', make.value); fillModels(); updateConnectEnabled(); };
   fillModels();
 
@@ -605,8 +607,20 @@ async function loadCatalog() {
     fillYears();
     if (savedYear && [...$('#yearSelect').options].some((o) => o.value === savedYear)) {
       $('#yearSelect').value = savedYear;
-      resolveVehicle();
+      await resolveVehicle();
     }
+  }
+
+  // The hosted tour opens ready to run on the fully featured demo bike. Local
+  // preferences and the full garage remain untouched in the installed app.
+  if (isHostedDemo()) {
+    make.value = 'Moto Guzzi';
+    fillModels();
+    $('#modelSelect').value = 'Griso 1200 8V';
+    fillYears();
+    $('#yearSelect').value = '2012';
+    await resolveVehicle();
+    $('#modeSelect').value = 'simulator';
   }
 
   // everything else the operator should not have to retype
@@ -617,6 +631,7 @@ async function loadCatalog() {
     const saved = Prefs.get(k);
     if (saved && $(sel)) $(sel).value = saved;
   });
+  if (isHostedDemo()) $('#modeSelect').value = 'simulator';
 
   $('#ecuOverride').innerHTML = '<option value="">— use the model lookup —</option>'
     + state.catalog.ecus.map((e) =>
@@ -641,7 +656,8 @@ async function loadCatalog() {
 }
 
 function vehiclesOf(make) {
-  return (state.catalog.vehicles || []).filter((v) => v.make === make);
+  return (state.catalog.vehicles || []).filter((vehicle) =>
+    vehicle.make === make && (!isHostedDemo() || vehicle.ecu === '5am'));
 }
 
 function fillModels() {
@@ -707,7 +723,10 @@ async function resolveVehicle() {
 /* ------------------------------------------------------------ transports */
 
 function renderTransports(transports) {
-  $('#transportList').innerHTML = transports.map((t) => `
+  const offered = isHostedDemo()
+    ? transports.filter((transport) => transport.id === 'simulator')
+    : transports;
+  $('#transportList').innerHTML = offered.map((t) => `
     <label class="transport ${t.available ? '' : 'disabled'}">
       <input type="radio" name="transport" value="${esc(t.id)}" ${t.id === 'simulator' ? 'checked' : ''} ${t.available ? '' : 'disabled'}>
       <div>
@@ -727,6 +746,7 @@ function renderTransports(transports) {
 }
 
 function currentTransport() {
+  if (isHostedDemo()) return 'simulator';
   const checked = $('input[name=transport]:checked');
   return checked ? checked.value : 'simulator';
 }
@@ -897,7 +917,7 @@ async function connect() {
         'Continue',
       );
     } else {
-      toast('Connected to the simulator.', 'ok');
+      toast(isHostedDemo() ? 'Demo motorcycle is ready.' : 'Connected to the simulator.', 'ok');
     }
   } catch (err) {
     if (busy) closeModal();
@@ -1451,27 +1471,41 @@ async function runAction(kind, key, token) {
   }
 
   const ok = await confirmDialog(`${label}: ${item.name || key}`,
-    kind === 'actuator'
+    isHostedDemo()
       ? guideBody(
-          'This command energises a real output on the motorcycle.',
+          kind === 'actuator'
+            ? 'This pulses a simulated output on the virtual motorcycle.'
+            : 'This runs an adaptation against the simulated ECU.',
           [
-            'Confirm the motorcycle is stable and nobody is touching the component under test.',
-            'Keep fuel away from sparks, hot exhaust parts, and electrical connectors.',
-            `The workstation will release the output after ${item.max_pulse_s || '?'} seconds.`,
+            'The virtual connector, power supply, and motorcycle state are ready.',
+            kind === 'actuator'
+              ? `The demo releases the output after ${item.max_pulse_s || '?'} seconds.`
+              : 'The demo records the learned-value change in this browser session.',
+            'The normal safety decision and operation token still run.',
           ],
-          item.warning || 'Be ready to use the kill switch if anything unexpected happens.',
-          true,
+          'No physical component can move or energise.',
         )
-      : guideBody(
-          'This changes values the ECU has learned.',
-          [
-            'Do not touch the throttle or controls while the routine runs.',
-            'Keep the ignition key ON and do not unplug the diagnostic cable.',
-            'Wait for the completion message before doing the follow-up step.',
-          ],
-          item.warning || 'The motorcycle may idle or run differently until it relearns.',
-          true,
-        ),
+      : (kind === 'actuator'
+        ? guideBody(
+            'This command energises a real output on the motorcycle.',
+            [
+              'Confirm the motorcycle is stable and nobody is touching the component under test.',
+              'Keep fuel away from sparks, hot exhaust parts, and electrical connectors.',
+              `The workstation will release the output after ${item.max_pulse_s || '?'} seconds.`,
+            ],
+            item.warning || 'Be ready to use the kill switch if anything unexpected happens.',
+            true,
+          )
+        : guideBody(
+            'This changes values the ECU has learned.',
+            [
+              'Do not touch the throttle or controls while the routine runs.',
+              'Keep the ignition key ON and do not unplug the diagnostic cable.',
+              'Wait for the completion message before doing the follow-up step.',
+            ],
+            item.warning || 'The motorcycle may idle or run differently until it relearns.',
+            true,
+          )),
     label);
   if (!ok) return;
 
@@ -1974,8 +2008,13 @@ $('#latencyBtn').onclick = async () => {
   const port = $('#adapterPort').value.trim();
   if (!port) return toast('Enter the adapter port first.', 'bad');
   const data = await api('/api/adapter/latency', { method: 'POST', body: { port, value: 1 } });
-  if (data.ok) toast(`Latency timer is now ${data.latency_ms} ms.`, 'ok');
-  else { toast('Could not set it from here.', 'bad'); $('#adapterOut').textContent = data.instructions; }
+  if (data.ok) {
+    toast(`Latency timer is now ${data.latency_ms} ms.`, 'ok');
+    if (isHostedDemo()) $('#adapterBtn').click();
+  } else {
+    toast('Could not set it from here.', 'bad');
+    $('#adapterOut').textContent = data.instructions;
+  }
 };
 
 $('#backupBtn').onclick = async () => {
@@ -1983,17 +2022,27 @@ $('#backupBtn').onclick = async () => {
   if (!(await prepareEngineState('off', `Prepare to back up the ECU ${region}.`))) return;
   const minutes = fw.caps?.capabilities?.estimated_read_minutes;
   const ready = await confirmDialog(
-    'Keep power stable for the whole backup',
-    guideBody(
-      'The workstation reads the region twice and accepts the backup only if both copies match.',
-      [
-        'Connect an appropriate motorcycle battery charger or stable bench supply.',
-        'Disable laptop sleep and connect laptop power.',
-        'Leave the ignition key ON, engine stopped, and kill switch in RUN.',
-        `Allow ${minutes ? `about ${minutes * 2} minutes` : 'plenty of time'}; do not touch the cable or key.`,
-      ],
-      'Interrupting a read does not erase the ECU, but the resulting file will not be accepted as a verified backup.',
-    ),
+    isHostedDemo() ? 'Simulate a verified backup' : 'Keep power stable for the whole backup',
+    isHostedDemo()
+      ? guideBody(
+          'The demo will read its synthetic image twice and compare both copies.',
+          [
+            'The virtual connector and power supply are already attached.',
+            'The twenty-minute operation is compressed to a few seconds.',
+            'Both copies and their hashes are still checked by the normal workflow.',
+          ],
+          'No motorcycle, cable, or local file is involved.',
+        )
+      : guideBody(
+          'The workstation reads the region twice and accepts the backup only if both copies match.',
+          [
+            'Connect an appropriate motorcycle battery charger or stable bench supply.',
+            'Disable laptop sleep and connect laptop power.',
+            'Leave the ignition key ON, engine stopped, and kill switch in RUN.',
+            `Allow ${minutes ? `about ${minutes * 2} minutes` : 'plenty of time'}; do not touch the cable or key.`,
+          ],
+          'Interrupting a read does not erase the ECU, but the resulting file will not be accepted as a verified backup.',
+        ),
     'Start verified backup',
     { tone: 'primary' },
   );
@@ -2057,19 +2106,29 @@ $('#writeBtn').onclick = async () => {
   if (!path) return toast('Validate an image first.', 'bad');
   if (!(await prepareEngineState('off', 'Prepare for ECU programming.'))) return;
   const ready = await confirmDialog(
-    'Final programming check',
-    guideBody(
-      'This operation erases and rewrites ECU memory.',
-      [
-        'Confirm the verified backup can be found and restored.',
-        'Connect stable battery and laptop power; disable sleep and updates.',
-        'Leave the ignition key ON and the engine stopped.',
-        'Do not touch the key, kill switch, cable, charger, or laptop until verification completes.',
-      ],
-      'A power or communication interruption can leave the motorcycle unable to start.',
-      true,
-    ),
-    'Erase and write ECU',
+    isHostedDemo() ? 'Simulate erase, write, and verification' : 'Final programming check',
+    isHostedDemo()
+      ? guideBody(
+          'This rewrites only the synthetic ECU image in this browser tab.',
+          [
+            'The verified demo backup and virtual power supply are ready.',
+            'Erase, transfer, and read-back verification are time-compressed.',
+            'The normal safety token and image checks still run.',
+          ],
+          'Nothing can be sent to a motorcycle from the hosted demo.',
+        )
+      : guideBody(
+          'This operation erases and rewrites ECU memory.',
+          [
+            'Confirm the verified backup can be found and restored.',
+            'Connect stable battery and laptop power; disable sleep and updates.',
+            'Leave the ignition key ON and the engine stopped.',
+            'Do not touch the key, kill switch, cable, charger, or laptop until verification completes.',
+          ],
+          'A power or communication interruption can leave the motorcycle unable to start.',
+          true,
+        ),
+    isHostedDemo() ? 'Run simulated write' : 'Erase and write ECU',
   );
   if (!ready) return;
   await renderWriteGate();

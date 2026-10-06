@@ -95,8 +95,8 @@
         </details>
       </article>
 
-      <article class="panel">
-        <h2>2 · Connection</h2>
+      <article class="panel" id="connectionPanel">
+        <h2 id="connectionHeading">2 · Connection</h2>
         <div id="transportList" class="transports"></div>
         <label class="field" id="deviceField" hidden>
           <span>Device</span>
@@ -125,7 +125,7 @@
           </label>
           <p class="muted small">These IDs are for virtual CAN rehearsal or a future evidence-backed profile. Physical MIU G4 and 11MP sessions are blocked before the adapter opens: generic <code>0x7E0/0x7E8</code> IDs are not treated as Piaggio protocol evidence.</p>
         </div>
-        <label class="field">
+        <label class="field" id="sessionModeField">
           <span>Session mode</span>
           <select id="modeSelect">
             <option value="simulator">Simulator — practise everything, no hardware</option>
@@ -133,7 +133,7 @@
             <option value="service">Service — actuator tests and adaptations</option>
           </select>
         </label>
-        <p class="tip">The simulator is not a demo subset: live data, fault memory, actuator
+        <p class="tip" id="connectionTip">The simulator is not a demo subset: live data, fault memory, actuator
         tests, service adaptations, guided tests, discovery sweeps and the complete ECU-memory
         cycle &mdash; backup, validate, flash, verify &mdash; all run against it, and every
         result comes out labelled <b>simulated</b>.</p>
@@ -490,15 +490,15 @@
     <article class="panel">
       <h2>CAN identifier discovery</h2>
       <p class="muted">CAN-era bikes use a CAN diagnostic path, but ISO-TP, CAN IDs, and the application protocol are not assumed to match K-Line. This offline analyzer can identify likely pairs in an existing capture; the workstation will not create that capture by probing an unknown ECU.</p>
-      <details class="advanced">
-        <summary>How to take the capture</summary>
+      <details class="advanced hardware-capture-help">
+        <summary>How to take the capture in the real app</summary>
         <ol class="muted small">
           <li>Connect a CAN adapter to the bike's OBD socket and your laptop. Nothing else should be talking on the bus.</li>
           <li>Start logging — SavvyCAN: connect, <i>File → Log To File</i>, run a GuzziCanDiag session (identify + live data is plenty), stop and export as CSV. socketcan: <code>candump -tz can0 &gt; capture.log</code>.</li>
           <li>Analyse the file here. A minute of a live session is enough.</li>
         </ol>
       </details>
-      <div class="toolbar">
+      <div class="toolbar" id="canlogFileControls">
         <label class="inline">Capture path <input type="text" id="canlogPath" placeholder="~/captures/session.csv" size="36"></label>
         <button class="btn primary" id="canlogBtn">Analyse capture</button>
       </div>
@@ -514,8 +514,8 @@
     <article class="panel">
       <h2>K-Line identifier discovery</h2>
       <p class="muted">The 5AM table is capture-verified; 16M now has documented legacy registers, 7SM has captured identification only, and MIU G3 has OEM identifier names without enough framing or scaling to execute them. Other families remain blocked. This offline research tool reads an existing capture, reports identifiers that answered, and — given a reference CSV recorded at the same time — tests possible scalings instead of guessing. Its output does not enable a motorcycle profile by itself.</p>
-      <details class="advanced">
-        <summary>How to take the capture</summary>
+      <details class="advanced hardware-capture-help">
+        <summary>How to take the capture in the real app</summary>
         <ol class="muted small">
           <li>Tap the K-Line between the adapter and the laptop (a second FTDI on the same line, or a logging passthrough) and log everything while GuzziDiag or IAWDiag runs a normal live-data session on the bike.</li>
           <li>In that tool, log its own values to CSV over the same minutes. That second file is what turns "0x42 answered" into "0x42 is battery volts × 0.01".</li>
@@ -523,7 +523,7 @@
           <li>Analyse both here. Nothing is written to the catalog automatically — you get a draft to check.</li>
         </ol>
       </details>
-      <div class="toolbar">
+      <div class="toolbar" id="klinelogFileControls">
         <label class="inline">Family <input type="text" id="klinelogFamily" placeholder="15M" size="8"></label>
         <label class="inline">Capture path <input type="text" id="klinelogPath" placeholder="~/captures/15m-kline.log" size="30"></label>
         <label class="inline">Reference CSV <input type="text" id="klinelogRefPath" placeholder="~/captures/guzzidiag.csv" size="26"></label>
@@ -548,9 +548,9 @@
       <div id="memCapsNote"></div>
     </article>
 
-    <article class="panel">
+    <article class="panel" id="adapterPanel">
       <h2>1 &middot; Adapter pre-flight</h2>
-      <p class="muted small">A 16&nbsp;ms FTDI latency timer is the usual reason a 20&nbsp;minute read takes hours. GuzziDiag calls 1&nbsp;ms essential. On Windows, if the adapter shows no COM port at all, the check points you at the WHQL driver bundle mirrored with the project; KKL adapters are FT232-based.</p>
+      <p class="muted small" id="adapterHelp">A 16&nbsp;ms FTDI latency timer is the usual reason a 20&nbsp;minute read takes hours. GuzziDiag calls 1&nbsp;ms essential. On Windows, if the adapter shows no COM port at all, the check points you at the WHQL driver bundle mirrored with the project; KKL adapters are FT232-based.</p>
       <div class="toolbar">
         <label class="inline">Port <input type="text" id="adapterPort" placeholder="/dev/ttyUSB0" size="16"></label>
         <button class="btn" id="adapterBtn">Check adapter</button>
@@ -620,7 +620,7 @@
       <div id="checkpointOut"></div>
     </article>
 
-    <article class="panel">
+    <article class="panel" id="securityPanel">
       <h2>SecurityAccess key providers</h2>
       <p class="muted small">No verified key algorithm ships with this project for any Guzzi ECU. Drop one into the plugin directory if you have it.</p>
       <div id="securityOut"></div>

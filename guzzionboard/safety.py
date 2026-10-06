@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from .catalog import Actuator, EcuProfile, Routine, meets
+from .firmware import hardware_family
 from .protocol.kwp2000 import MUTATING_SERVICES, Service
 
 
@@ -84,12 +85,33 @@ class SafetyViolation(PermissionError):
         super().__init__(f"{decision.operation} refused: {decision.reason()}")
 
 
+class TokenError(PermissionError):
+    """A confirmation token was missing, stale, or minted for another
+    operation.  Distinct from :class:`SafetyViolation` (a precondition
+    failed) and from the frame guard's plain :class:`PermissionError`
+    (an unarmed service), so the HTTP surface can report each with its
+    own code: ``safety``, ``token`` and ``refused`` respectively."""
+
+
+#: The refusal wording every hardware-family mismatch shares.  The 7SM
+#: documentation is blunt about the concrete case: *"Don't flash HW1xx
+#: versions in a HW3xx ECU and vice versa. You will brick your ECU!"*
+BRICK_WARNING = (
+    "flashing an image from one hardware family into an ECU of another "
+    "bricks the ECU - never flash HW1xx into HW3xx or vice versa"
+)
+
+
 @dataclass
 class VehicleState:
     """What the workstation currently believes about the bike."""
 
     identified: bool = False
     ecu_confidence: str = "unknown"
+    #: The hardware string the *identified* ECU reported (e.g. IAW7SMHW320).
+    #: The write path compares its family digit against the candidate image's;
+    #: flashing across hardware families bricks the ECU.
+    ecu_hardware: str = ""
     engine_running: bool | None = None
     battery_v: float | None = None
     #: A verified ECU image exists for this exact ECU.
@@ -102,6 +124,7 @@ class VehicleState:
         return {
             "identified": self.identified,
             "ecu_confidence": self.ecu_confidence,
+            "ecu_hardware": self.ecu_hardware,
             "engine_running": self.engine_running,
             "battery_v": self.battery_v,
             "verified_backup": self.verified_backup,
@@ -149,6 +172,8 @@ class SafetyGate:
         requires_engine_running: bool = False,
         capability: str | None = None,
         operation_confidence: str | None = None,
+        image_hardware: str | None = None,
+        image_embedded_hardware: "tuple[str, ...] | list[str] | None" = None,
     ) -> Decision:
         checks: list[Check] = []
         simulated = self.mode is Mode.SIMULATOR
@@ -266,6 +291,18 @@ class SafetyGate:
                     "take a full ECU backup and verify it by re-reading before writing",
                 )
             )
+            # The hardware-family gate.  It only runs when a concrete
+            # candidate image is on the bench (check_write passes both the
+            # provenance identity captured with the image and the hardware
+            # strings embedded in its bytes); a decision made without an
+            # image simply cannot speak to compatibility and says so by
+            # omitting the check.
+            if image_hardware is not None or image_embedded_hardware is not None:
+                checks.append(
+                    self._hardware_family_check(
+                        image_hardware or "", image_embedded_hardware or ()
+                    )
+                )
 
         allowed = all(c.passed for c in checks)
         token = None
@@ -275,6 +312,67 @@ class SafetyGate:
         decision = Decision(allowed, operation, risk, tuple(checks), token)
         self._record(decision)
         return decision
+
+    # -- the hardware-family gate ------------------------------------------
+    def _hardware_family_check(
+        self, image_hardware: str, image_embedded_hardware
+    ) -> Check:
+        """Refuse any image that does not belong to this ECU's family.
+
+        Both pieces of evidence must agree with the identified ECU:
+
+        * the provenance identity captured when the image was read or backed
+          up (the strongest evidence - a file with none is refused, because
+          "cannot confirm" must never mean "probably fine");
+        * the ``IAW..HWnnn`` strings embedded in the image bytes, when any
+          are present (the same check the validator reports).
+
+        A mismatch on either one is fatal: this is the gate that keeps an
+        HW1xx image out of an HW3xx ECU.
+        """
+        target = (self.state.ecu_hardware or "").strip()
+        target_family = hardware_family(target)
+        provenance = (image_hardware or "").strip()
+        provenance_family = hardware_family(provenance)
+        embedded = [str(h) for h in image_embedded_hardware if h]
+        embedded_families = {hardware_family(h) for h in embedded}
+
+        if not target_family:
+            return Check(
+                "hardware-family", False,
+                f"the ECU reported no usable hardware identity "
+                f"({target or 'none'}); identify it before writing anything",
+            )
+        if not provenance_family:
+            return Check(
+                "hardware-family", False,
+                "the image carries no captured hardware identity, so "
+                f"compatibility with the identified ECU ({target}) cannot be "
+                "confirmed; writing is refused",
+            )
+        if provenance_family != target_family:
+            return Check(
+                "hardware-family", False,
+                f"image provenance reports {provenance}, but the ECU reports "
+                f"{target}; {BRICK_WARNING}",
+            )
+        if embedded and target_family not in embedded_families:
+            return Check(
+                "hardware-family", False,
+                f"the image embeds {', '.join(embedded)}, but the ECU reports "
+                f"{target}; {BRICK_WARNING}",
+            )
+        if embedded:
+            return Check(
+                "hardware-family", True,
+                f"image matches the ECU's hardware family ({target})",
+            )
+        return Check(
+            "hardware-family", True,
+            f"image provenance matches the ECU's hardware family ({target}); "
+            "the image embeds no hardware string of its own",
+        )
+
 
     # -- convenience wrappers --------------------------------------------
     def evaluate_actuator(self, profile: EcuProfile, actuator: Actuator) -> Decision:
@@ -308,16 +406,16 @@ class SafetyGate:
     def consume(self, token: str | None, operation: str, *, max_age: float = 120.0) -> None:
         """Spend a confirmation token. Raises if it is missing or stale."""
         if token is None or token not in self._tokens:
-            raise PermissionError(
+            raise TokenError(
                 f"{operation}: no valid confirmation token; re-run the safety check"
             )
         recorded, issued = self._tokens.pop(token)
         if recorded != operation:
-            raise PermissionError(
+            raise TokenError(
                 f"token was issued for {recorded!r}, not {operation!r}"
             )
         if time.monotonic() - issued > max_age:
-            raise PermissionError(
+            raise TokenError(
                 f"{operation}: confirmation expired after {max_age:.0f}s; check again"
             )
 

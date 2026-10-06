@@ -1,7 +1,6 @@
 """K-Line handshake negotiation and the standards-derived edge cases."""
 from __future__ import annotations
 
-from dataclasses import replace
 
 import pytest
 

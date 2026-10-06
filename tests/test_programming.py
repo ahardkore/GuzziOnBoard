@@ -311,8 +311,15 @@ def test_write_refuses_an_image_that_fails_validation(service, monkeypatch):
     service.backup("flash")
     arm_for_writing(service, monkeypatch)
     decision = service.check_write("flash")
+    # Provenance a real backup would carry, so the refusal below is about
+    # the image's *content* (blank, wrong size), not its missing identity -
+    # the missing-identity refusal has its own tests.
+    original = service.read_region("flash")
     with pytest.raises(Exception, match="validation|size"):
-        service.write_region(FirmwareImage(data=b"\x00" * 1024), decision.token)
+        service.write_region(
+            FirmwareImage(data=b"\x00" * 1024, identity=original.identity),
+            decision.token,
+        )
 
 
 def test_write_without_a_verified_backup_is_refused(service, monkeypatch):
@@ -323,6 +330,82 @@ def test_write_without_a_verified_backup_is_refused(service, monkeypatch):
     service.gate.state.verified_backup = False  # ...but lose it before writing
     with pytest.raises(SafetyViolation, match="verified-backup"):
         service.write_region(image, decision.token)
+
+
+# -- the hardware-family gate ----------------------------------------------
+# "Don't flash HW1xx versions in a HW3xx ECU and vice versa. You will brick
+# your ECU!" - the 7SM reference documentation. The gate has to enforce it
+# even when everything else about the file is perfect.
+
+
+def test_an_hw1xx_image_is_refused_by_an_hw3xx_ecu(service, monkeypatch):
+    """The headline mistake, end to end: not one byte reaches the ECU."""
+    ecu = service.diag.transport.ecu
+    # The bench ECU now reports an HW3xx hardware string, and identification
+    # is what teaches the gate that (never the filename or the selection).
+    ecu.identity = {**ecu.identity, "Hardware": "IAW7SMHW320"}
+    service.diag.identify()
+    assert service.gate.state.ecu_hardware == "IAW7SMHW320"
+
+    service.backup("flash")
+    arm_for_writing(service, monkeypatch)
+
+    original = service.read_region("flash")
+    # A file that is perfect in every other way: right ECU, right size, real
+    # bytes - it just came off an HW1xx unit.
+    hw1xx = FirmwareImage(
+        data=original.data,
+        ecu_id=original.ecu_id,
+        region=original.region,
+        identity={**original.identity, "Hardware": "IAW7SMHW100"},
+    )
+
+    decision = service.check_write("flash", image=hw1xx)
+    assert not decision.allowed
+    assert any(c.name == "hardware-family" for c in decision.failures)
+
+    with pytest.raises(SafetyViolation, match="hardware-family.*bricks the ECU"):
+        service.write_region(hw1xx, "token")
+
+    # The refusal happened before the write sequence began: nothing was
+    # erased, downloaded or programmed.
+    assert not ecu.erased
+    assert not ecu.programmed
+    assert not ecu.download_pending
+    assert not ecu.upload_blob
+    assert service.pending_checkpoint("flash") is None
+
+
+def test_a_matching_family_still_writes_after_the_gate(service, monkeypatch):
+    """The gate refuses cross-family files, not writing itself."""
+    service.backup("flash")
+    arm_for_writing(service, monkeypatch)
+
+    original = service.read_region("flash")
+    same_family = FirmwareImage(
+        data=original.data,
+        identity={**original.identity, "Hardware": "IAW5AMHW640"},
+    )
+    decision = service.check_write("flash", image=same_family)
+    assert decision.allowed, decision.reason()
+    result = service.write_region(same_family, decision.token)
+    assert result["ok"] and result["verified"]
+
+
+def test_an_image_without_provenance_is_refused_even_with_a_token(
+    service, monkeypatch
+):
+    """A valid token for a provenance-free file still buys nothing."""
+    service.backup("flash")
+    arm_for_writing(service, monkeypatch)
+
+    original = service.read_region("flash")
+    mystery = FirmwareImage(data=original.data)      # no captured identity
+    decision = service.check_write("flash")
+    assert decision.allowed                           # no image on the bench...
+    with pytest.raises(SafetyViolation, match="hardware-family"):
+        service.write_region(mystery, decision.token)  # ...but there is now
+    assert not service.diag.transport.ecu.erased
 
 
 def test_a_complete_write_round_trip_succeeds_and_verifies(service, monkeypatch):

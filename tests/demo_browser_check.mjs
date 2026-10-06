@@ -360,8 +360,46 @@ check('the write admits it is a simulation of the riskiest operation',
 
 const replayedWrite = await post('/api/memory/write',
   { path: imagePath, token: gate.payload.token });
-check('a write token is single-use', replayedWrite.status === 403,
-  String(replayedWrite.status));
+check('a write token is single-use (code token)',
+  replayedWrite.status === 403 && replayedWrite.payload.code === 'token',
+  `${replayedWrite.status} ${replayedWrite.payload.code}`);
+
+/* The hardware-family safety gate. The demo's virtual bench carries an
+ * image from a different hardware family (an HW1xx file for this HW6xx
+ * ECU - the same class of mistake as flashing an HW1xx image into an HW3xx
+ * ECU, which bricks it). It has to be refused at validation, at the write
+ * gate, and on a direct write attempt that smuggles a token minted without
+ * the image. */
+const memView = await api('/api/memory');
+const hazard = (memView.payload.demo_images || [])[0];
+check('the demo bench lists its wrong-hardware-family fixture',
+  !!hazard && /IAW5AMHW100/.test(String(hazard.hardware || '')),
+  JSON.stringify(hazard || {}).slice(0, 140));
+if (hazard) {
+  const hv = await post('/api/memory/validate', { path: hazard.path });
+  const hwFinding = (hv.payload.findings || [])
+    .filter((f) => f.check === 'hardware')[0];
+  check('validation flags the cross-family image as fatal',
+    hv.status === 200 && hv.payload.ok === false
+      && !!hwFinding && hwFinding.level === 'fatal',
+    JSON.stringify(hwFinding || {}).slice(0, 160));
+
+  const hg = await post('/api/memory/check-write',
+    { region: 'flash', path: hazard.path });
+  const hgFails = (hg.payload.checks || [])
+    .filter((c) => !c.passed).map((c) => c.name);
+  check('the write gate refuses the cross-family image by name',
+    hg.status === 200 && hg.payload.allowed === false
+      && hgFails.length === 1 && hgFails[0] === 'hardware-family',
+    hg.payload.reason);
+
+  const cleanGate = await post('/api/memory/check-write', { region: 'flash' });
+  const forced = await post('/api/memory/write',
+    { path: hazard.path, token: cleanGate.payload.token });
+  check('a token cannot smuggle a cross-family image into the ECU',
+    forced.status === 403 && /hardware-family/.test(String(forced.payload.error || '')),
+    String(forced.payload.error || '').slice(0, 150));
+}
 
 /* Maps: the bundled XDFs, parsed in the page, against that image. */
 const mapList = await api('/api/maps');

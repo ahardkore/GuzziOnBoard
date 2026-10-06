@@ -248,6 +248,9 @@ class DiagnosticsService:
             self.session = None
             self.connection = None
             self.identity = None
+            # Drop the hardware identity with the session that produced it,
+            # so a stale string from ECU A can never vouch for ECU B.
+            self.gate.state.ecu_hardware = ""
 
     def _require(self) -> KWP2000Session | LegacyIAWSession:
         if self.session is None:
@@ -345,6 +348,10 @@ class DiagnosticsService:
             )
             self.gate.state.identified = True
             self.gate.state.ecu_confidence = self.profile.confidence
+            # The hardware string the write path's family gate compares the
+            # candidate image against.  It is recorded from the live ECU's
+            # own answer, never from the selection or the filename.
+            self.gate.state.ecu_hardware = fields.get("Hardware", "")
             self.log.action("identify", self.identity.as_dict())
             return self.identity
 

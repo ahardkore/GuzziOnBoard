@@ -8,7 +8,7 @@ import pytest
 
 from guzzionboard.catalog import load_catalog
 from guzzionboard.diagnostics import DiagnosticsService, NotConnected
-from guzzionboard.protocol.kwp2000 import NegativeResponse, ProtocolError
+from guzzionboard.protocol.kwp2000 import ProtocolError
 from guzzionboard.safety import Mode, SafetyGate, VehicleState
 from guzzionboard.sessionlog import SessionLog
 from guzzionboard.transports.base import TransportUnavailable

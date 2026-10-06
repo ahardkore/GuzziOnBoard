@@ -111,8 +111,9 @@ def main() -> int:
     check("DTC read + decode", st == 200 and bool(dlist),
           json.dumps(dlist[0] if dlist else dtcs)[:110])
     st, refusal = api("POST", "/api/dtcs/clear", {})
-    check("DTC clear gated without token", st == 403,
-          refusal.get("error", "")[:80])
+    check("DTC clear gated without token (code 'token')", st == 403
+          and refusal.get("code") == "token",
+          f"{refusal.get('code')}: {refusal.get('error', '')[:70]}")
     st, acts = api("GET", "/api/actuators")
     check("actuator tests catalogued",
           st == 200 and len(acts.get("actuators", [])) >= 10,
@@ -192,6 +193,53 @@ def main() -> int:
               done.get("state") == "done" and wres.get("ok") is True
               and wres.get("verified") is True,
               f"{wres.get('bytes')} bytes, sha256 {str(wres.get('sha256'))[:16]}")
+
+    # -- the hardware-family safety gate ---------------------------------
+    # "Don't flash HW1xx versions in a HW3xx ECU and vice versa. You will
+    # brick your ECU!" Forge the file that bricks ECUs - byte-identical to
+    # the verified backup, but its sidecar claims an HW1xx unit - and every
+    # write surface has to refuse it. The forged file lives and dies inside
+    # ~/.guzzionboard/, like the backup it is copied from.
+    if path:
+        import shutil
+        forged = Path(path).with_name("hw1xx-forged-provenance-demo.bin")
+        shutil.copyfile(path, forged)
+        sidecar = Path(str(path) + ".json")
+        meta = json.loads(sidecar.read_text(encoding="utf-8")) \
+            if sidecar.exists() else {}
+        identity = dict(meta.get("identity") or {})
+        identity["Hardware"] = "IAW5AMHW100"
+        Path(str(forged) + ".json").write_text(
+            json.dumps({**meta, "ecu_id": meta.get("ecu_id", "5am"),
+                        "identity": identity}),
+            encoding="utf-8")
+
+        st, hd = api("POST", "/api/memory/check-write",
+                     {"region": "flash", "path": str(forged)})
+        fails_h = [c["name"] for c in hd.get("checks", []) if not c.get("passed")]
+        check("write gate refuses an HW1xx image by name (hardware-family)",
+              st == 200 and not hd.get("allowed")
+              and fails_h == ["hardware-family"],
+              f"failed checks: {fails_h}")
+
+        st, tg = api("POST", "/api/memory/check-write", {"region": "flash"})
+        st, wj2 = api("POST", "/api/memory/write",
+                      {"path": str(forged), "token": tg.get("token") or "",
+                       "region": "flash"})
+        refused = wait_job(30) if st == 202 else wj2
+        check("a token cannot smuggle an HW1xx image into the ECU",
+              "hardware-family" in str(refused.get("error", "")),
+              str(refused.get("error", wj2))[:110])
+
+        st, gd = api("POST", "/api/memory/check-write",
+                     {"region": "flash", "path": path})
+        check("the gate still green-lights the matching-family backup",
+              st == 200 and gd.get("allowed") and gd.get("token"),
+              json.dumps(gd.get("reason", ""))[:80])
+
+        forged.unlink(missing_ok=True)
+        Path(str(forged) + ".json").unlink(missing_ok=True)
+
     api("POST", "/api/programming/disable", {})
     st, dec3 = api("POST", "/api/memory/check-write", {"region": "flash"})
     check("disabling programming makes the write surface refuse again",

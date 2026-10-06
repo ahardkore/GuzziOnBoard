@@ -42,7 +42,7 @@ opened.
 | Backup with two-read verification | Implemented |
 | Firmware image validation (size, vector table, entropy, HW family) | Implemented |
 | **Maps & tables**: TunerPro XDF render + named diff of dumps | Implemented; 94 XDFs (3842 tables) ship with the repo, more can be added |
-| ECU memory **write / erase / program / verify** | Full flow **runs against the simulated ECU** (backup → validate → token → write → read-back verify, honestly labelled); gated on hardware pending a bench-confirmed key |
+| ECU memory **write / erase / program / verify** | Full flow **runs against the simulated ECU** (backup → validate → token → write → read-back verify, honestly labelled); the `hardware-family` gate check refuses any cross-family image before a frame moves (app and demo); gated on hardware pending a bench-confirmed key |
 | Interrupted-write checkpoints and recovery guidance | Implemented |
 | SecurityAccess seed/key plumbing + key-provider plugins | Implemented; the shipped 5AM key is unverified — armable per session via explicit, audited opt-in |
 | Adapter pre-flight incl. FTDI latency timer and the vendored WHQL driver bundle in its fix guidance | Implemented |
@@ -52,14 +52,15 @@ opened.
 | Fault read with workstation-observed context ("what was live when we looked") | Implemented; honestly *not* an ECU freeze frame |
 | Session comparison (two recordings, channel by channel) | Implemented |
 | Standalone browser engine simulator (`web/sim.html`) | Implemented; single self-contained page |
-| **Hosted workstation demo** — the real UI with a virtual motorcycle and ECU running in the browser (`web/demo-api.js` + `web/demo-lab.js`) | Implemented; every view works with labelled in-browser fixtures, including a virtual connector/adapter, memory, maps, sessions, reports, guided tests and tools. Real-bike transport choices are omitted entirely; only the installed app exposes hardware |
+| **Hosted workstation demo** — the real UI with a virtual motorcycle and ECU running in the browser (`web/demo-api.js` + `web/demo-lab.js`) | Implemented; every view works with labelled in-browser fixtures, including a virtual connector/adapter, memory, maps, sessions, reports, guided tests and tools. The demo's write path runs the same hardware-family gate as the installed app and keeps a wrong-family fixture on its virtual bench so the refusal can be watched. Real-bike transport choices are omitted entirely; only the installed app exposes hardware |
 
-More than 440 tests cover framing, checksums, scaling, DTC decoding, handshake negotiation, the safety gate,
+More than 450 tests cover framing, checksums, scaling, DTC decoding, handshake negotiation, the safety gate,
 image validation, XDF parsing/render/diff, the full read/backup/write/verify
-round trip, fault injection, session comparison, the packaging entry point,
+round trip (including the hardware-family brick gate, in the app and in the
+browser demo), fault injection, session comparison, the packaging entry point,
 the reference-tool inclusions (log conversion, bench signal, driver bundle,
 Mana TCU) and complete simulated sessions — plus `scripts/e2e_smoke.py`, a
-25-check full-capability sweep over the live HTTP API.
+28-check full-capability sweep over the live HTTP API.
 
 ## Run it
 
@@ -210,7 +211,15 @@ Three independent layers, in order:
    evaluated against named preconditions — ECU identified, engine state
    *observed* (not assumed), battery voltage within range, checklist accepted
    — and a refusal tells you exactly which checks failed. Passing mints a
-   single-use, operation-bound, expiring token.
+   single-use, operation-bound, expiring token. On the write path the gate
+   also runs the **`hardware-family` check** on the concrete candidate image:
+   the family digit of the ECU's own `IAW..HWnnn` answer must match both the
+   provenance identity captured with the image and any hardware strings
+   embedded in its bytes. Flashing across hardware families — an HW1xx image
+   into an HW3xx ECU, the brick the 7SM documentation warns about in bold —
+   is refused before a single frame is transmitted, in the installed app and
+   in the hosted demo alike, and a confirmation token minted without the
+   image cannot smuggle a cross-family file through.
 3. **The frame guard.** The gate is installed as the KWP2000 session's
    `write_guard`, so an unarmed state-changing service never reaches the
    transport. You cannot bypass it by calling a service method directly.

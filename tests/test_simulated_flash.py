@@ -12,7 +12,6 @@ is in programming mode, and an image the workstation *saved* (bytes +
 """
 from __future__ import annotations
 
-import json
 import pathlib
 import time
 

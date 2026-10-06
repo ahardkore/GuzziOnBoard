@@ -130,8 +130,13 @@ Three independent layers:
 2. **`SafetyGate.evaluate()`** returns a `Decision` listing every named check
    with pass/fail and a human-readable reason. Checks include mode, declared
    capability, definition confidence, ECU identified, engine state *observed*,
-   battery voltage, and checklist acceptance. An allowed decision mints a
-   single-use token bound to that operation and expiring after 120 s.
+   battery voltage, checklist acceptance and — for writes, evaluated on the
+   concrete candidate image — `hardware-family`, which refuses any image whose
+   captured provenance or embedded `IAW..HWnnn` strings belong to a different
+   hardware family than the identified ECU (flashing across families bricks
+   the ECU; the 7SM documentation says so in exactly those words). An allowed
+   decision mints a single-use token bound to that operation and expiring
+   after 120 s.
 3. **`SafetyGate.session_guard()`** is installed as the KWP2000 session's
    `write_guard`. A state-changing service that is not explicitly armed for the
    current operation never reaches the transport — calling a service method

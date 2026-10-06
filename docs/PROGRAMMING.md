@@ -41,8 +41,18 @@ preconditions are:
 5. Battery voltage is observed above 11.5 V.
 6. The hardware checklist was accepted.
 7. The operator typed the acknowledgement string exactly.
+8. The image belongs to the **same hardware family** as the identified ECU —
+   the `hardware-family` gate check compares the family digit of the ECU's own
+   `IAW..HWnnn` answer against both the provenance identity captured with the
+   image *and* the hardware strings embedded in its bytes. Flashing across
+   families — an HW1xx image into an HW3xx ECU, or any other mix — bricks the
+   ECU, and a file whose family cannot be established is refused rather than
+   assumed fine. This check runs on the concrete image inside
+   `write_region()`, so it cannot be bypassed by minting the confirmation
+   token first, and it is part of the decision the UI renders before the
+   confirmation dialog.
 
-Seven green lights and the write proceeds. Six and it does not. The remaining
+Eight green lights and the write proceeds. Seven and it does not. The remaining
 red light on every Guzzi family today is the first one, and that is an
 evidence problem, not a policy one. For the 5AM the evidence is now one bench
 session away: the key algorithm and the full write sequence are transcribed
@@ -246,7 +256,14 @@ densely packed image can be legitimately high.
 The hardware check is the one that matters most. The 7SM documentation is
 blunt: *"Don't flash HW1xx versions in a HW3xx ECU and vice versa. You will
 brick your ECU!"* GuzziOnBoard extracts the hardware string from both the ECU
-and the image, compares the family digit, and refuses on mismatch.
+and the image, compares the family digit, and refuses on mismatch. On the write
+path this stops being a validator finding and becomes the gate's named
+`hardware-family` check (precondition 8 above): it compares against the
+provenance identity captured with the image as well as the embedded strings,
+either disagreeing is fatal, and the refusal happens before the erase sequence
+begins. The hosted demo carries a wrong-family fixture on its virtual bench
+(the *wrong-family-demo* image a read leaves behind) so the refusal can be
+watched at work: validate it, or aim the write at it — both refuse.
 
 ## Backups
 
@@ -263,6 +280,7 @@ checksum forms, the hardware strings found inside, and the timestamp.
 
 ```
 check preconditions        gate evaluation, single-use token
+hardware-family gate       ECU vs image family, on the concrete file
 validate image             fatal findings abort
 require verified backup    second, independent check
 checkpoint: starting

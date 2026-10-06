@@ -1,6 +1,6 @@
 """Console entry point: ``guzzionboard`` and ``python -m guzzionboard``.
 
-    guzzionboard [--host H] [--port N] [--no-record] [--open]
+    guzzionboard [--host H] [--port N] [--no-record]
 
 Only the standard library is needed for simulator mode. Hardware transports
 need the optional extras (``pip install -e '.[hardware]'``). The server binds

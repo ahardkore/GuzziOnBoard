@@ -696,6 +696,11 @@
   </div>
 </div>
 
+<!-- Hosted-demo backend. It does nothing when the Python workstation is
+     serving this page: run_server.py marks the body with data-backend="live",
+     and demo-api.js returns immediately when it sees that. On a static host
+     (GitHub Pages) it answers /api itself from the exported catalog. -->
+<script src="demo-api.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

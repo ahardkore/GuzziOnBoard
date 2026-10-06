@@ -219,3 +219,44 @@ those. `server.JobRunner` runs one memory operation at a time on a background
 thread; the UI polls `/api/memory/progress` for phase, byte counts and an ETA.
 One job at a time is a deliberate constraint: concurrent flash operations on a
 single ECU are never what anybody meant.
+
+## The hosted demo (a second implementation of the API seam)
+
+The UI in `web/` is a plain page talking to `/api` over `fetch`. That seam has
+two implementations:
+
+| | `guzzionboard/server.py` | `web/demo-api.js` |
+|---|---|---|
+| Runs in | a local Python process | the browser tab |
+| Speaks | the real KWP2000/ISO-TP stack through a transport | the catalog, the engine model and the safety gate, ported |
+| Raw bytes | encoded, checksummed, sent, received | reconstructed from the catalog scaling (labelled as a demo) |
+| Files, ports, long jobs | yes | refused with `501 demo_local_only` |
+
+Why a second implementation exists: GitHub Pages has no process to run, and a
+diagnostic tool nobody can try is a diagnostic tool nobody adopts. Why it is
+not allowed to drift:
+
+* **The catalog is exported, never retyped.** `scripts/build_demo_data.py`
+  dumps the same `as_dict()` payloads the Python API returns into
+  `web/demo-data.json`. `tests/test_demo_mode.py` regenerates it and fails on
+  any difference, so adding an ECU updates the demo or breaks the build.
+* **The gate is ported with its vocabulary intact.** The browser evaluates the
+  same named checks (`mode`, `capability`, `definition-confidence`,
+  `identified`, `engine-off`/`engine-running`), mints the same single-use
+  confirmation token and keeps the same audit list. A refusal in the demo
+  reads exactly like a refusal from the real tool, because it is the same
+  policy.
+* **Missing capability is stated, not simulated.** Anything needing a file, a
+  serial port or a twenty-minute job answers with a message naming
+  `python3 run_server.py`. The page also marks those views before the user
+  clicks.
+* **One switch, no guessing.** `server.mark_live_backend()` rewrites the
+  served page's `<body>` to `data-backend="live"`; the shim returns
+  immediately when it sees that. Hostnames, ports and protocol sniffing play
+  no part, so running the real workstation on a LAN address cannot
+  accidentally land you in the demo.
+
+`tests/demo_browser_check.mjs` drives the shim through a whole session
+(resolve → select → connect → identify → live → DTC read/clear with tokens →
+blocked and unblocked actuator → fault seeding → discovery sweep) under
+Node, and `tests/test_demo_mode.py` runs it when Node is available.

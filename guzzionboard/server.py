@@ -47,6 +47,21 @@ CONTENT_TYPES = {
 }
 
 
+#: The workstation page ships with ``web/demo-api.js``, an in-browser stand-in
+#: for this server used when the page is hosted statically (GitHub Pages).
+#: When *this* process is serving the page there is a real backend, so the
+#: body is marked and the shim stands down. One marker, no guessing from
+#: hostnames or ports.
+LIVE_BACKEND_MARKER = b'<body data-backend="live">'
+
+
+def mark_live_backend(body: bytes) -> bytes:
+    """Tag the served workstation page as backed by this process."""
+    if LIVE_BACKEND_MARKER in body:
+        return body
+    return body.replace(b"<body>", LIVE_BACKEND_MARKER, 1)
+
+
 class JobRunner:
     """One long-running memory operation at a time, with live progress.
 
@@ -1060,7 +1075,10 @@ def make_handler(workstation: Workstation):
             content_type = CONTENT_TYPES.get(
                 suffix, mimetypes.guess_type(target.name)[0] or "application/octet-stream"
             )
-            self._send(200, target.read_bytes(), content_type)
+            body = target.read_bytes()
+            if target.name == "index.html":
+                body = mark_live_backend(body)
+            self._send(200, body, content_type)
 
     return Handler
 

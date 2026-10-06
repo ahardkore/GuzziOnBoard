@@ -51,8 +51,9 @@ same era, read-only until their identifier tables are confirmed.
 | Fault read with workstation-observed context ("what was live when we looked") | Implemented; honestly *not* an ECU freeze frame |
 | Session comparison (two recordings, channel by channel) | Implemented |
 | Standalone browser engine simulator (`web/sim.html`) | Implemented; single self-contained page |
+| **Hosted workstation demo** — the real UI with the simulated ECU running in the browser (`web/demo-api.js`) | Implemented; Garage, identification, live data, fault codes, service actions, discovery and the simulated bike. Memory, maps, tools, guided tests, sessions and reports are refused with a local-only message, not faked |
 
-405 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
+415 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
 image validation, XDF parsing/render/diff, the full read/backup/write/verify
 round trip, fault injection, session comparison, the packaging entry point,
 the reference-tool inclusions (log conversion, bench signal, driver bundle,
@@ -73,9 +74,29 @@ python3 run_server.py              # same as: guzzionboard
 Pick a motorcycle in **Garage** (try `Griso 1200 8V` / `2012`), connect in
 simulator mode, and the rest of the workstation comes alive.
 
-There is also a self-contained browser demo of the engine model at
-`web/sim.html` (served as `/sim.html`): start it, rev it, inject faults, watch
-the safety gate refuse — no server required once you have the file.
+### Without installing anything
+
+The project site hosts two demos, both static:
+
+* **<https://ahardkore.github.io/GuzziOnBoard/web/index.html>** — the
+  workstation UI itself, with the simulated ECU running in the page.
+  `web/demo-api.js` answers the same `/api` calls this server does, from a
+  catalog exported by `scripts/build_demo_data.py` plus ports of the engine
+  model and the safety gate. It is the real interface against a real catalog;
+  what it cannot do (ECU memory, maps & tables, the tools, guided tests,
+  session recording, reports — files, serial ports and long jobs) it says so
+  instead of pretending. When *this* server is the one serving the page, the
+  shim stands down: `run_server.py` marks the body `data-backend="live"`.
+* **<https://ahardkore.github.io/GuzziOnBoard/web/sim.html>** — a
+  self-contained page with just the engine model: start it, rev it, inject
+  faults, watch the safety gate refuse.
+
+Regenerate the demo catalog after any catalog change:
+
+```bash
+python3 scripts/build_demo_data.py          # writes web/demo-data.json
+python3 scripts/build_demo_data.py --check  # CI-style staleness check
+```
 
 For real hardware:
 

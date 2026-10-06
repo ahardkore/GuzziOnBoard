@@ -226,6 +226,8 @@ class VirtualCanTransport(Transport):
             method="virtual-can",
             key_bytes=(),
             baud=500000,
+            protocol="isotp",
+            handshake_complete=True,
             detail=(
                 f"virtual CAN bus, tester 0x{self.tx_id:X} "
                 f"<-> ECU 0x{self.rx_id:X}, {self.profile.family}"

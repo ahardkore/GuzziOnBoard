@@ -129,10 +129,12 @@ class CanTransport(Transport):
         return CanConnection(bus=bus, tx_id=self.tx_id, rx_id=self.rx_id)
 
     def initialize(self, connection: CanConnection, **_) -> InitResult:
-        """CAN needs no wake-up pattern; the session is started by the ECU."""
+        """CAN needs no K-Line wake-up; ISO-TP is ready once the bus is open."""
         return InitResult(
             ok=True,
             method="can",
             baud=self.bitrate,
+            protocol="isotp",
+            handshake_complete=True,
             detail=f"{self.interface}:{self.channel} tx=0x{self.tx_id:03X} rx=0x{self.rx_id:03X}",
         )

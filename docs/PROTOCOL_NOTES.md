@@ -67,26 +67,45 @@ Implemented in `guzzionboard/protocol/kwp2000.py`:
 
 ## 3. Initialisation
 
+Both paths now observe the ISO 14230 W5 idle interval (**at least 300 ms**) and
+validate the complete handshake. See [HANDSHAKE_PROTOCOLS.md](HANDSHAKE_PROTOCOLS.md)
+for the standards comparison and the protocols deliberately not conflated with
+KWP2000.
+
 ### Fast init (default, IAW 15x and later)
 
-Pull K-Line low **25 ms** (serial BREAK), release **25 ms**, then send
-StartCommunication:
+Pull K-Line low at 0 ms, release it at **25 ms**, and send the first bit of
+StartCommunication at the **50 ms** mark:
 
 ```
--> C1 33 F1 81 <cs>
-<- C1 EA 8F ...          positive + key bytes
+-> C1 33 F1 81 66
+<- 83 F1 10 C1 EA 8F <cs>   positive + key bytes (representative)
 ```
+
+The response counts only when its KWP length and checksum are valid, its target
+is this tester, its service is positive StartCommunication `C1`, and two key
+bytes are present. The physical transport has then completed StartCommunication;
+the session layer must not send `81` a second time.
 
 ### 5-baud slow init (P8, 16M, and as a fallback)
 
 Bit-bang the address byte at 5 baud (200 ms per bit: idle high, start bit low,
 8 data bits LSB first, stop bit high). The ECU replies at 10400 baud with
-`0x55` (sync), `KW1`, `KW2`. The tester sends the **inverted KW2**; the ECU
-answers the **inverted address**. Slow init establishes the session by itself —
-no StartCommunication follows.
+`0x55` (sync), `KW1`, `KW2`. The tester sends the **inverted KW2** after W4
+(25–50 ms); the ECU must answer with the **inverted address**. Slow init
+establishes the session by itself — no StartCommunication follows.
 
 The implementation schedules bit edges against an absolute clock rather than
 chaining `sleep()` calls, because accumulated drift breaks the 200 ms budget.
+Keywords `08 08` and `94 94` identify ISO 9141-2, whose framing this application
+does not implement; that result is reported rather than mislabelled as KWP2000.
+
+### Automatic fallback
+
+A failed 25 ms fast pulse can look like the start of a slow address to an old
+ECU. Auto mode therefore waits **2.6 seconds** before slow init (the full
+2-second address window + W1 + W5), rather than the former 300 ms wait that can
+make every fallback miss the ECU's listening window.
 
 ---
 

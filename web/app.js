@@ -430,9 +430,10 @@ async function loadCatalog() {
   }
 
   // everything else the operator should not have to retype
-  [['device', '#deviceInput'], ['mode', '#modeSelect'], ['image', '#imagePath'],
-   ['mapsImage', '#mapsImagePath'], ['mapsDiff', '#mapsDiffPath'],
-   ['canTx', '#canTxId'], ['canRx', '#canRxId']].forEach(([k, sel]) => {
+  [['device', '#deviceInput'], ['mode', '#modeSelect'], ['initMethod', '#initMethod'],
+   ['image', '#imagePath'], ['mapsImage', '#mapsImagePath'],
+   ['mapsDiff', '#mapsDiffPath'], ['canTx', '#canTxId'],
+   ['canRx', '#canRxId']].forEach(([k, sel]) => {
     const saved = Prefs.get(k);
     if (saved && $(sel)) $(sel).value = saved;
   });
@@ -556,6 +557,7 @@ function onTransportChange() {
   Prefs.set('transport', kind);
   $('#deviceField').hidden = !physical;
   $('#checklistBox').hidden = !physical;
+  $('#klineFields').hidden = kind !== 'kline';
   $('#canFields').hidden = !['can', 'cansim'].includes(kind);
   $('#deviceInput').placeholder = kind === 'can' ? 'can0' : '/dev/ttyUSB0';
   if (['can', 'cansim'].includes(kind) && !$('#canTxId').value) {
@@ -600,7 +602,12 @@ async function connect() {
     if (currentTransport() !== 'simulator') {
       await api('/api/checklist', { method: 'POST', body: { accepted: $('#checklistAccept').checked } });
     }
-    await api('/api/connect', { method: 'POST', body: { mode: $('#modeSelect').value } });
+    const initMethod = currentTransport() === 'kline' ? $('#initMethod').value : '';
+    Prefs.set('initMethod', initMethod);
+    await api('/api/connect', {
+      method: 'POST',
+      body: { mode: $('#modeSelect').value, init_method: initMethod || undefined },
+    });
     toast('Connected. Read the ECU identification next.', 'ok');
     await refreshStatus();
     await loadParameters();
@@ -689,7 +696,9 @@ function renderOverview() {
     <div><span>Transport</span><b>${esc(d.transport?.name)}</b></div>
     <div><span>Physical</span><b>${d.transport?.physical ? 'yes — real bike' : 'no — simulated'}</b></div>
     <div><span>Init method</span><b>${esc(init.method || '—')}</b></div>
+    <div><span>Protocol</span><b>${esc(init.protocol || '—')}</b></div>
     <div><span>Key bytes</span><b>${(init.key_bytes || []).map((b) => b.toString(16).toUpperCase().padStart(2, '0')).join(' ') || '—'}</b></div>
+    ${(init.attempts || []).length ? `<div class="full"><span>Handshake attempts</span><code>${esc(init.attempts.join(' · '))}</code></div>` : ''}
     <div><span>Mode</span><b>${esc(d.mode)}</b></div>
     <div><span>Battery observed</span><b>${d.vehicle_state?.battery_v ?? '—'} V</b></div>
     <div><span>Engine</span><b>${d.vehicle_state?.engine_running === null ? 'unknown' : (d.vehicle_state?.engine_running ? 'running' : 'stopped')}</b></div>

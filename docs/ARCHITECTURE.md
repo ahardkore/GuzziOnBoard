@@ -46,7 +46,13 @@ run on a machine with no drivers installed. A missing driver raises
 `TransportUnavailable` with the install command in the message.
 
 `read_frame` uses the KWP2000 length field rather than a timeout heuristic, so
-a frame is consumed exactly, not guessed at.
+a frame is consumed exactly, not guessed at. `InitResult` says whether the
+transport already completed the handshake and retains any pre-session request
+and response bytes. This matters on K-Line: fast init includes a validated
+StartCommunication exchange, while the simulator leaves that frame to
+`KWP2000Session`. The explicit flag prevents a duplicate hardware `0x81` and
+lets the early exchange enter the same raw-frame log. See
+[`HANDSHAKE_PROTOCOLS.md`](HANDSHAKE_PROTOCOLS.md).
 
 ### The simulator is a transport, not a mock
 

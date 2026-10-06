@@ -1051,11 +1051,18 @@ class SimulatorTransport(Transport):
         return SimulatorConnection(ecu=self.ecu)
 
     def initialize(self, connection: SimulatorConnection, **kwargs) -> InitResult:
-        method = kwargs.get("method", self.profile.kline.get("init", "fast"))
+        requested = kwargs.get("method", self.profile.kline.get("init", "fast"))
+        # The simulated ECU supports both handshakes.  Resolve auto to fast so
+        # the normal StartCommunication frame still traverses the real stack.
+        method = "fast" if requested == "auto" else requested
         return InitResult(
             ok=True,
             method=f"simulated-{method}",
             key_bytes=(0xEA, 0x8F),
             baud=self.profile.kline.get("baud", 0),
             detail=f"simulated {self.profile.family}",
+            protocol="iso14230",
+            # Slow init establishes communication itself.  Fast init leaves
+            # 0x81 to DiagnosticsService so simulator tests exercise it.
+            handshake_complete=method == "slow",
         )

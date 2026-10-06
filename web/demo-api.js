@@ -750,9 +750,9 @@
       transport: { name: 'simulator (browser)', physical: false },
       ecu: profile,
       init: {
-        ok: true, method: 'simulated-fast',
+        ok: true, method: 'simulated-fast', protocol: 'iso14230',
         detail: 'simulated ' + profile.family + ' — in-browser demo',
-        key_bytes: [0xEA, 0x8F],
+        key_bytes: [0xEA, 0x8F], attempts: [], handshake_complete: true,
       },
       identity: WS.identity,
       mode: WS.gate.mode,

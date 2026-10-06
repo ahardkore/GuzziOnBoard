@@ -102,6 +102,18 @@
           <span>Device</span>
           <input id="deviceInput" placeholder="/dev/ttyUSB0">
         </label>
+        <div id="klineFields" hidden>
+          <label class="field">
+            <span>K-Line handshake</span>
+            <select id="initMethod">
+              <option value="">ECU profile default — recommended</option>
+              <option value="auto">Auto — fast, then safe 5-baud fallback</option>
+              <option value="fast">KWP2000 fast — 25/25 ms + StartCommunication</option>
+              <option value="slow">KWP2000 slow — 5-baud keyword handshake</option>
+            </select>
+          </label>
+          <p class="muted small">Use the profile default first. Auto waits 2.6 seconds after a failed fast attempt before slow init, so older ECUs do not mistake the fallback for the rest of a partial 5-baud address.</p>
+        </div>
         <div id="canFields" hidden>
           <label class="field">
             <span>Request id (tester &rarr; ECU)</span>

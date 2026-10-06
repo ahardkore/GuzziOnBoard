@@ -116,15 +116,30 @@ class DiagnosticsService:
                 self.connection,
                 method=method,
                 address=self.profile.kline.get("address", 0x33),
+                fast_target=self.profile.kline.get(
+                    "fast_target", self.profile.kline.get("address", 0x33)
+                ),
+                tester_address=self.profile.kline.get("tester_address", 0xF1),
+                fast_functional=self.profile.kline.get("fast_functional", True),
             )
+            # Fast K-Line initialisation occurs before KWP2000Session exists.
+            # Preserve those raw bytes in the same provenance log as every
+            # later request/response instead of losing the most important
+            # handshake of the session.
+            if self.init_result.request:
+                self.log.frame("tx", self.init_result.request)
+            if self.init_result.response:
+                self.log.frame("rx", self.init_result.response)
             self.log.action(
                 "connect",
                 {
                     "transport": self.transport.name,
                     "ecu": self.profile.id,
                     "init": self.init_result.method,
+                    "protocol": self.init_result.protocol,
                     "ok": self.init_result.ok,
                     "detail": self.init_result.detail,
+                    "attempts": self.init_result.attempts,
                 },
             )
             if not self.init_result.ok:
@@ -147,9 +162,15 @@ class DiagnosticsService:
                 write_guard=self.gate.session_guard(),
             )
 
-            if self.transport.is_physical or self.transport.name == "simulator":
-                if self.init_result.method.endswith("fast"):
-                    self.session.try_request([Service.START_COMMUNICATION])
+            # A physical fast-init transport has already sent and validated
+            # StartCommunication.  Sending 0x81 again here was a real-hardware
+            # double-handshake bug.  The simulator deliberately leaves that
+            # exchange to the protocol session so its framing is still tested.
+            if (
+                self.init_result.protocol == "iso14230"
+                and not self.init_result.handshake_complete
+            ):
+                self.session.start_communication()
             if self.profile.session.get("access_timing"):
                 self.session.access_timing_parameters()
 
@@ -593,8 +614,13 @@ class DiagnosticsService:
                 {
                     "ok": self.init_result.ok,
                     "method": self.init_result.method,
+                    "protocol": self.init_result.protocol,
                     "detail": self.init_result.detail,
                     "key_bytes": list(self.init_result.key_bytes),
+                    "attempts": list(self.init_result.attempts),
+                    "handshake_complete": self.init_result.handshake_complete,
+                    "request": self.init_result.request.hex(" "),
+                    "response": self.init_result.response.hex(" "),
                 }
                 if self.init_result
                 else None

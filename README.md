@@ -24,7 +24,7 @@ same era, read-only until their identifier tables are confirmed.
 | ISO-TP (ISO 15765-2) segmentation for CAN bikes | Implemented and unit tested |
 | Simulated ECU **speaking the real wire protocol** | Implemented; drives the whole stack |
 | Capability catalog: 11 cataloged controllers, 118 model variants across Moto Guzzi, Ducati and Aprilia, 1992–2026 — engine ECU families plus the Aprilia Mana CVT TCU | Implemented, data-driven |
-| K-Line transport (fast init + 5-baud init, echo cancelling) | Written, **untested on hardware** |
+| K-Line transport (validated fast init + validated 5-baud keyword handshake, standards-safe auto fallback, echo cancelling) | Written and unit tested, **untested on hardware** |
 | CAN transport (python-can + ISO-TP) | Written, **identifiers unconfirmed** |
 | ECU identification, live data, DTC read/clear | Implemented |
 | Make / model / year vehicle selection (Moto Guzzi, Ducati, Aprilia) | Implemented; cross-brand bikes read-only by design |
@@ -53,7 +53,7 @@ same era, read-only until their identifier tables are confirmed.
 | Standalone browser engine simulator (`web/sim.html`) | Implemented; single self-contained page |
 | **Hosted workstation demo** — the real UI with the simulated ECU running in the browser (`web/demo-api.js` + `web/demo-lab.js`) | Implemented; every view works against the simulated bike, including memory, maps, sessions, reports, guided tests and the tools. Simulated and time-compressed processes are labelled as such. Only hardware transports (serial, CAN) are refused rather than faked |
 
-415 tests cover framing, checksums, scaling, DTC decoding, the safety gate,
+426 tests cover framing, checksums, scaling, DTC decoding, handshake negotiation, the safety gate,
 image validation, XDF parsing/render/diff, the full read/backup/write/verify
 round trip, fault injection, session comparison, the packaging entry point,
 the reference-tool inclusions (log conversion, bench signal, driver bundle,
@@ -231,6 +231,17 @@ Additional properties:
 - **A write that cannot be verified is a failed write.** The image is read
   back and compared; a mismatch is reported as a failure even if the ECU
   claimed success, and a checkpoint records how to recover.
+
+## Handshake research
+
+The K-Line and CAN-era alternatives were surveyed against ISO 14230 guidance,
+open implementations and published IAW session logs. The result is implemented,
+not just documented: complete fast/5-baud response validation, ISO 9141 keyword
+detection, a standards-safe 2.6-second automatic fallback, no duplicate
+StartCommunication, raw init-frame logging, and a Garage override for bench
+work. The evidence matrix — including why KWP1281, proprietary Honda wake-ups,
+UDS-over-CAN and DoIP are not silently treated as Marelli KWP2000 — is in
+[`docs/HANDSHAKE_PROTOCOLS.md`](docs/HANDSHAKE_PROTOCOLS.md).
 
 ## Architecture
 

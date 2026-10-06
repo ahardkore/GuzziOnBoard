@@ -6,7 +6,7 @@ site distributes them (original zip names, untouched archive bytes).
 
 ```
 vendor/guzzidiag/
-  xdf/            72 zips, each containing one TunerPro .xdf map definition
+  xdf/            88 zips, each containing one TunerPro .xdf map definition
   tools/          23 zips + 1 .exe — the Windows GuzziDiag/IAWDiag toolchain
   MANIFEST.json   per-file size, SHA-256, zip contents and upstream URL
 ```
@@ -29,8 +29,8 @@ They serve different jobs and must not be confused:
 | Produced by | manual download, `scripts/vendor_manifest.py` | `scripts/import_xdfs.py --source vendor/guzzidiag/xdf` |
 | Shipped in the wheel | no | yes |
 
-Every one of the 72 XDF zips here has been imported with the project's own
-parser (`guzzionboard.maps.XdfFile`) — 72 files, 2616 tables, 1531 constants,
+Every one of the 88 XDF zips here has been imported with the project's own
+parser (`guzzionboard.maps.XdfFile`) — 88 files, 3587 tables, 2141 constants,
 zero rejects — and recorded in `guzzionboard/xdfs/PROVENANCE.json` with its
 SHA-256. `python3 scripts/import_xdfs.py --status` lists the catalog entries
 still missing from the mirror.

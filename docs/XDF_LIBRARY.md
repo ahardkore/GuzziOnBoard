@@ -41,21 +41,21 @@ tables** and the real, named tables are already there.
 
 ## What is bundled today
 
-**72 of the 94 cataloged definitions** are vendored — 2616 tables and 1531
+**88 of the 94 cataloged definitions** are vendored — 3587 tables and 2141
 constants in total, every one parse-checked by `guzzionboard.maps.XdfFile`:
 
 | Brand | Files | | Brand | Files |
 |---|---|---|---|---|
 | Ducati | 28 | | Morini | 4 |
-| Moto Guzzi | 17 | | GasGas | 3 |
-| Piaggio | 10 | | Gilera | 2 |
-| Aprilia | 4 | | BMW / Husqvarna / Malaguti / Scomadi | 1 each |
+| Moto Guzzi | 24 | | GasGas | 3 |
+| Aprilia | 13 | | Gilera | 2 |
+| Piaggio | 10 | | BMW / Husqvarna / Malaguti / Scomadi | 1 each |
 
-The 22 still missing are the 7SM and MIU G3 Aprilia/Moto Guzzi definitions
-(RSV4 variants, Caponord, Dorsoduro, RS4 125, SX125, V9, V7 III, California
-1400, MGX21, V85TT) plus `5AM_Aprilia_GP850`, `5AM_Aprilia_Mana` and
-`59M_Monster S4_28640191B`. Run `python3 scripts/import_xdfs.py --status`
-for the exact list and upstream URLs.
+The six still missing are five 7SM Aprilia RSV4 variants (1037XXxx,
+1338XXxx, 13A9XXxx, 7614XXxx and 7617XXxx) and
+`59M_Monster S4_28640191B_V1.30`. Run
+`python3 scripts/import_xdfs.py --status` for the exact list and upstream
+URLs.
 
 The original zips these were extracted from are mirrored, unmodified, in
 `vendor/guzzidiag/xdf/`, with sizes, SHA-256s and upstream URLs recorded in

@@ -3,56 +3,38 @@
   "family": "Aprilia Mana CVT TCU",
   "display_name": "Aprilia Mana 850 CVT transmission controller",
   "transport": "kline",
-  "confidence": "unknown",
+  "confidence": "inferred",
   "years": "2007-2016",
-  "notes": "The continuously-variable-transmission controller of the Aprilia Mana 850. The Mana's ENGINE controller is the shared Magneti Marelli IAW 5AM and is handled by the normal vehicle selection ('Mana 850' resolves to the 5AM, read-only as a cross-brand entry); this entry is the OTHER box on the same bike, the CVT TCU, the device ManaTCU_V1.03 exists for. Its existence and channel set are evidenced by that mirrored tool (vendor/guzzidiag/tools/ManaTCU_V1.03.exe, hash in vendor/guzzidiag/MANIFEST.json): K-line with fast init, a SecurityAccess seed/key exchange, EEPROM access, live channels (driving pulley potentiometer tracks 1 and 2 with voltages, gear mode switch) and actuators (pedal and handlebar gear up/downshift controls, driving pulley electrical motor). Nothing here has been captured on the wire by this project, so the identification layout is labelled unverified, and anything beyond identification, fault codes and the read-only discovery sweep refuses. Flashing, EEPROM engineering and clutch/gear learning stay with ManaTCU; if you can record one identification session against a real Mana TCU, this entry upgrades like any other family.",
+  "notes": "The Mana engine ECU is the shared IAW 5AM; this entry is the separate CVT controller. A published PADS K-Line capture proves KWP2000 physical addressing to target 0xEC from tester 0xF1 and records the two learning commands exactly: IOControl 30 02 08 (belt replacement) followed by 30 01 08 (pulley-potentiometer reset). ManaTCU V1.03 was built from those captures, includes SecurityAccess, and has been field tested. Identification, fault-request and live-data wire definitions were not published, so this workstation does not guess them. The two captured routines remain unavailable because they require security access plus motorcycle-specific conditions (engine running, rear wheel free, side stand up, ordered execution) that the current safety state cannot verify.",
   "kline": {
-    "baud": 10400,
-    "init": "fast",
-    "address": 51,
-    "addressed": true,
     "tester_address": 241,
-    "ecu_address": 16,
-    "inter_byte_delay": 0.005,
-    "note": "10400 baud and fast init are the Marelli standard of this era and ManaTCU's strings confirm fast init on this controller; the ECU address follows the sibling boxes and is unconfirmed on the TCU."
+    "ecu_address": 236,
+    "note": "Captured traffic establishes tester 0xF1 and TCU 0xEC addressing. Baud rate and initialization are not claimed because the capture begins after session bring-up."
   },
   "session": {
-    "access_timing": false,
-    "diagnostic_session": null,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "physical_supported": false,
+    "physical_blocked_reason": "The raw capture establishes physical addresses and two routine payloads, but not the complete initialization, session, security access, or safe read services.",
+    "note": "Captured KWP routine frames do not establish initialization, session selection, or security sequencing."
   },
   "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
-      {
-        "name": "Identification",
-        "offset": 0,
-        "length": 40,
-        "note": "field layout unverified; shown as one raw block"
-      }
-    ]
+    "available": false,
+    "reason": "ManaTCU displays BIN/TCU versions, but the request and response layout were not published in the available capture."
   },
   "memory": {
     "image_size": null,
     "read_supported": false,
     "write_supported": false,
-    "write_blocked_reason": "ManaTCU_V1.03 reads and flashes this controller with a SecurityAccess seed/key exchange, but no memory-access sequence has been captured for this project and no key provider exists. Until one is, this build refuses; use ManaTCU for TCU memory work.",
-    "security_access": true,
-    "note": "SecurityAccess seed/key is present on this controller ('Send key failed' in the mirrored tool); the algorithm is unknown to this project.",
+    "write_blocked_reason": "ManaTCU V1.03 accesses this controller after a four-byte SecurityAccess exchange, but neither its key algorithm nor memory-transfer sequence is public in source form.",
     "regions": {}
   },
-  "capabilities": [
-    "identify",
-    "dtc_read",
-    "discover"
-  ],
+  "capabilities": [],
   "sources": [
-    "ManaTCU_V1.03.exe channel/actuator/security strings, mirrored unmodified in vendor/guzzidiag/tools/ (SHA-256 in vendor/guzzidiag/MANIFEST.json)",
-    "vehicle side established from the GuzziTek master list mapping of Mana 850 to the shared IAW 5AM"
+    "ApriliaForum Mana belt thread: PADS/K-Spy K-Line capture, 30 02 08 and 30 01 08 routine frames, field-test reports (September-October 2023)",
+    "ManaTCU V1.03 executable mirrored in vendor/guzzidiag/tools/ (SHA-256 in MANIFEST.json)",
+    "Aprilia Mana 850 service-station manual: TCU K-Line pinout, required learning procedures and DTC descriptions"
   ],
   "parameters": [],
   "actuators": [],
-  "routines": []
+  "routines": [],
+  "dtc_descriptions": {}
 }

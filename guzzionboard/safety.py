@@ -148,6 +148,7 @@ class SafetyGate:
         requires_engine_off: bool = False,
         requires_engine_running: bool = False,
         capability: str | None = None,
+        operation_confidence: str | None = None,
     ) -> Decision:
         checks: list[Check] = []
         simulated = self.mode is Mode.SIMULATOR
@@ -187,6 +188,15 @@ class SafetyGate:
                     "definition-confidence",
                     meets(profile.confidence),
                     f"{profile.family} definition is {profile.confidence!r}; "
+                    "control actions need 'documented' or better",
+                )
+            )
+        if operation_confidence is not None:
+            checks.append(
+                Check(
+                    "operation-confidence",
+                    meets(operation_confidence),
+                    f"operation definition is {operation_confidence!r}; "
                     "control actions need 'documented' or better",
                 )
             )
@@ -273,6 +283,7 @@ class SafetyGate:
             Risk.REVERSIBLE,
             profile=profile,
             capability="actuators",
+            operation_confidence=actuator.confidence,
             requires_engine_off=actuator.requires_engine_off,
             requires_engine_running=actuator.requires_engine_running,
         )
@@ -283,6 +294,7 @@ class SafetyGate:
             Risk.REVERSIBLE if routine.reversible else Risk.ADAPTATION,
             profile=profile,
             capability=routine.key,
+            operation_confidence=routine.confidence,
             requires_engine_off=routine.requires_engine_off,
             requires_engine_running=routine.requires_engine_running,
         )

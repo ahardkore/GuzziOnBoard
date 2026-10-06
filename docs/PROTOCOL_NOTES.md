@@ -18,29 +18,77 @@ Used in `guzzionboard/catalog/ecus/*.json` and enforced by
 | `inferred` | Pattern-matched from a sibling ECU, unproven | **no** |
 | `unknown` | Placeholder | **no** |
 
+## Non-5AM validation audit (2026-10-06)
+
+The table below is the result of a source, document, capture, archive, and
+binary-evidence search. A compatibility list proves only that somebody has a
+working implementation; it does not disclose enough of that implementation to
+send bytes from this project. Guessed operations were therefore removed from
+the public capability list. Profiles may retain inferred fields for fixture
+replay and future comparison, but `session.physical_supported: false` prevents
+a physical port from even being opened.
+
+| Family | Primary or closest evidence recovered | Established | Still unavailable / runtime boundary |
+|---|---|---|---|
+| **P8** | Vendored IAW Scan 2 `iaw04k.cs` at commit `a5995e…`; automotive IAW-04K implementation | A related controller uses direct 7680-baud one-byte query/reply | No Moto Guzzi P8 definition or capture ties P8 to that map. No physical connection and no capabilities. |
+| **16M / 1.6M** | Marelli 3.00600/16F technical definition; published 1.6M open implementation; ScanST Guzzi application record | Six-byte 1200-baud key-on code, delayed `0F AA CC`, switch to 7680 baud, one-byte requests/replies, part-number bytes, live formulas, raw fault registers | Read-only. Fault bits stay raw because a Guzzi-specific bit interpretation was not recovered. No routine, actuator, clear, memory, or write claim. |
+| **15M** | ScanST and GuzziDiag/IAWDiag family records; inspected IAW15x reader binary | Tooling and motorcycle applicability exist. The reader binary separately exposes its programming bootstrap, but that is not a diagnostic-session definition | No trustworthy diagnostic initialization, frame, live-ID, DTC, routine, or actuator definition was recovered. No physical connection and no capabilities. |
+| **15RC** | GuzziDiag/IAWDiag family/changelog records; inspected IAW15x reader binary | Tooling and motorcycle applicability exist | Same unresolved diagnostic wire details as 15M. No physical connection and no capabilities. |
+| **59M** | GuzziDiag/IAWDiag and user documentation | Tooling and slow-init selection exist as compatibility evidence | No primary family transcript or payload table. Unknown placeholder; no physical connection and no capabilities. |
+| **7SM** | Published real session log with ECU identity and baud switch; commercial compatibility material | K-Line session, `1A 80` identity layout, and the observed switch are grounded in a session record | Only identification is exposed. Live IDs/scaling, DTC requests, routines, actuators, and memory remain unavailable; inferred catalog entries are not capabilities. |
+| **MIU G3** | Official Moto Guzzi/Piaggio MIU G3 training presentation | RLI identifiers `31,32,35,37,3A,45–4C,61,62,6B,6C,78`; IOLI `7E`; RELI `21` TPS-zero and `24` are OEM-defined | Training pages omit transport initialization, response widths/scaling, and complete IOLI/RELI payload semantics. RLIs are retained as raw research definitions, but physical connection and all capabilities are blocked. |
+| **MIU G4** | Moto Guzzi service material and commercial-tool documentation | ECU fitment and CAN diagnostics exist | No CAN IDs, addressing mode, application protocol, DIDs/RLIs, scaling, DTC, or routine frames. ISO-TP alone is not UDS. No physical connection or capabilities. |
+| **11MP** | Commercial Piaggio diagnostic coverage | CAN diagnostics exist | Same missing CAN/application evidence as MIU G4. No physical connection or capabilities. |
+| **Mana TCU** | Raw PADS traffic in the ApriliaForum archive and Mana workshop procedure | Physical KWP addressing uses ECU `0xEC`, tester `0xF1`; exact captured routines are `30 02 08` (belt replacement) and `30 01 08` (potentiometer reset) | No controls are exposed. Security access and all mechanical conditions cannot be enforced; initialization, safe session sequencing, identity, DTC, live-data, and memory definitions are incomplete, so physical connection is blocked. |
+
+This is intentionally conservative: customers are not asked to probe the
+unknown families to validate this project's assumptions. Physical sessions for
+P8, 15M, 15RC, 59M, MIU G3, MIU G4, 11MP, and Mana TCU fail before opening
+the adapter. 16M is enabled read-only from the recovered family definition;
+7SM exposes only the captured identification operation. Mana's exact routine
+bytes are recorded for provenance but are neither connected nor executable.
+
+### Vendored source evidence
+
+`vendor/ies2/` is a source-only, byte-for-byte snapshot of the relevant IAW
+Scan 2 files. `PROVENANCE.md` records upstream commit
+`a5995eab86e82be60386e99b2eecc9c14810ec85`, `LICENSE.txt` carries the BSD
+3-Clause terms, and `SHA256SUMS` fixes every retained upstream file. This is
+valuable primary implementation evidence for automotive IAW-04K and 16F; its
+scope is not silently extended to a motorcycle P8 or later Marelli families.
+
 ---
 
 ## 1. Physical layer
 
-### K-Line (IAW P8 … 7SM, MIU G3)
+### K-Line families
 
-- KWP2000 / ISO 14230 over a single bidirectional wire, **10400 baud, 8N1**.
-- Half duplex: **everything the tester sends is echoed back on RX before the
-  ECU replies.** The echo must be read and discarded. This is the single most
-  common reason a hand-rolled K-Line tool "sees no response", and it is handled
-  in `KLineConnection._consume_echo`.
-- The cable must contain an **L9637D-class transceiver**; an FTDI TXD pin does
-  not drive K-Line directly.
-- Some IAW ECUs drop bytes sent back-to-back by a fast USB UART, so the
-  transport paces requests with a per-byte delay (P4min, default 5 ms).
+K-Line is only an electrical layer; it does not imply KWP2000. The recovered
+families use at least two incompatible applications:
+
+- IAW 5AM and the captured 7SM session use addressed KWP2000 / ISO 14230 at
+  10400 baud.
+- 16M uses a legacy 1200-baud key-on/initialization exchange and then raw
+  one-byte requests and responses near 7.8 kbaud. It has no KWP frame.
+- Mana uses KWP physical addressing `EC=TCU`, `F1=tester`, but its complete
+  initialization/session has not been recovered.
+- The P8, 15M, 15RC, 59M, and MIU G3 physical applications are not treated as
+  established merely because all of them use a K-Line pin.
+
+On the usual half-duplex USB K-Line adapter, everything sent by the tester is
+echoed on RX before the ECU replies. The echo must be consumed. The cable must
+contain an L9637D-class transceiver; an FTDI TXD pin does not drive K-Line
+directly.
 
 ### CAN (MIU G4, 11MP)
 
-- KWP2000/UDS payloads inside ISO-TP (ISO 15765-2) at 500 kbit/s.
-- Request/response identifiers default to the ISO 15765-4 pair **0x7E0 / 0x7E8**.
-  **This is unconfirmed on Piaggio-group motorcycles.** Verify with a passive
-  sniff before trusting it; the catalog marks both CAN families `inferred` for
-  exactly this reason.
+The available evidence establishes only that these are diagnosed over CAN.
+The former assumptions of 500 kbit/s, ISO-TP carrying KWP, and generic
+`0x7E0/0x7E8` identifiers have been withdrawn: none was supported by a
+Piaggio-family capture or primary definition. The catalog deliberately has no
+CAN identifiers or diagnostic capabilities, and a physical connection is
+refused before the adapter is opened. ISO-TP is a transport, not proof of a UDS
+or KWP application.
 
 ---
 
@@ -67,26 +115,54 @@ Implemented in `guzzionboard/protocol/kwp2000.py`:
 
 ## 3. Initialisation
 
+Both paths now observe the ISO 14230 W5 idle interval (**at least 300 ms**) and
+validate the complete handshake. See [HANDSHAKE_PROTOCOLS.md](HANDSHAKE_PROTOCOLS.md)
+for the standards comparison and the protocols deliberately not conflated with
+KWP2000.
+
 ### Fast init (default, IAW 15x and later)
 
-Pull K-Line low **25 ms** (serial BREAK), release **25 ms**, then send
-StartCommunication:
+Pull K-Line low at 0 ms, release it at **25 ms**, and send the first bit of
+StartCommunication at the **50 ms** mark:
 
 ```
--> C1 33 F1 81 <cs>
-<- C1 EA 8F ...          positive + key bytes
+-> C1 33 F1 81 66
+<- 83 F1 10 C1 EA 8F <cs>   positive + key bytes (representative)
 ```
 
-### 5-baud slow init (P8, 16M, and as a fallback)
+The response counts only when its KWP length and checksum are valid, its target
+is this tester, its service is positive StartCommunication `C1`, and two key
+bytes are present. The physical transport has then completed StartCommunication;
+the session layer must not send `81` a second time.
 
-Bit-bang the address byte at 5 baud (200 ms per bit: idle high, start bit low,
-8 data bits LSB first, stop bit high). The ECU replies at 10400 baud with
-`0x55` (sync), `KW1`, `KW2`. The tester sends the **inverted KW2**; the ECU
-answers the **inverted address**. Slow init establishes the session by itself —
-no StartCommunication follows.
+### Legacy 16M key-on initialization
 
-The implementation schedules bit edges against an absolute clock rather than
-chaining `sleep()` calls, because accumulated drift breaks the 200 ms budget.
+This is separate from KWP slow initialization:
+
+1. At key-on, listen at 1200 baud for the six-byte ECU code and require leading
+   sync byte `55`.
+2. Wait at least 500 ms after the code.
+3. Send `0F`, `AA`, `CC` at 1200 baud with the documented approximately
+   110/110/150 ms timing. There is no acknowledgement.
+4. Switch to 7680 baud (the practical UART divisor used for the nominal
+   7812.5-baud link), then exchange one request byte for one response byte.
+
+The direct legacy initializer used by the P8 research profile skips the key-on
+sequence, but physical use of that profile is blocked because the recovered
+implementation is automotive IAW-04K rather than a Guzzi P8 capture.
+
+### KWP 5-baud slow init implementation boundary
+
+The transport can bit-bang an ISO 14230 address byte at 5 baud and validate
+sync, keyword inversion, and inverted-address acknowledgement. It schedules
+bit edges against an absolute clock and distinguishes ISO 9141 keywords
+`08 08` / `94 94` from KWP. That standards-correct implementation is not,
+however, evidence that any particular ECU family uses it. No currently blocked
+family is enabled merely by selecting the slow-init option.
+
+A KWP automatic fast-to-slow fallback waits 2.6 seconds so a failed fast pulse
+cannot corrupt the next five-baud address window. This is transport behaviour,
+not a family validation claim.
 
 ---
 
@@ -168,9 +244,51 @@ Moto Guzzi, cross-checked against GuzziDiag changelog corrections):
 
 Cylinders are **front / rear**, per the Guzzi V-twin layout.
 
+### Legacy 16M registers
+
+The legacy protocol reads one byte per request. Two-byte values are assembled
+in request order before decoding.
+
+| Request byte(s) | Channel | Formula | Unit |
+|---|---|---|---|
+| `01 02` | Engine speed | `15,000,000 / raw16` | rpm |
+| `03 04` | Injection duration | `raw16 × 0.002` | ms |
+| `05` | Ignition advance | `raw × 0.5` | degrees |
+| `06` | Manifold pressure | `raw × 3` | mmHg |
+| `07`, `08`, `09` | Air temp, engine temp, throttle | raw only | count |
+| `0A` | Battery voltage | `raw × 0.0625` | V |
+| `22` | Fuel trim | raw only | count |
+
+The source set contains conflicting temperature conversion formulae, so the
+temperature channels deliberately remain raw rather than selecting a plausible
+curve.
+
+### MIU G3 OEM application identifiers (not physically enabled)
+
+The official training table names these ReadLocalIdentifier entries:
+
+| RLI | Meaning | RLI | Meaning |
+|---|---|---|---|
+| `31` | manifold pressure | `32` | air temperature |
+| `35` | base ignition advance | `37` | applied ignition advance |
+| `3A` | target engine speed | `45` / `46` | oxygen sensor 1 / 2 voltage |
+| `47` / `48` | oxygen correction 1 / 2 | `49` / `4A` | mixture-control state 1 / 2 |
+| `4B` / `4C` | OBDI sensor state 1 / 2 | `61` / `78` | gear/clutch state entries |
+| `62` | stepper state | `6B` | base stepper opening |
+| `6C` | closed-loop stepper opening | | |
+
+The same OEM pages name IOLI `7E` and RELI `21` (TPS zero-position setting) and
+`24`, but do not publish enough payload semantics to execute them. The RLI
+entries are stored as raw-width research metadata only: the document supplies
+neither response sizes nor conversion formulae, and it does not define the
+physical/session layer. Consequently the MIU G3 profile exposes no physical
+capability.
+
 ---
 
 ## 6. Fault codes
+
+### KWP records (verified 5AM)
 
 ```
 Read   -> 18 00 FF 00        ReadDTCByStatus
@@ -189,8 +307,17 @@ The decoder deliberately tolerates a truncated tail: it reports the records
 that actually arrived rather than inventing the rest.
 
 Descriptions come from `guzzionboard/catalog/dtc_sae.json` (70 codes, SAE J2012
-plus the Marelli-specific interpretations), merged into every family and
-overridable per family.
+plus the Marelli-specific interpretations), merged as a lookup table. Presence
+of that table does not claim that an unvalidated family supports this KWP
+request.
+
+### Legacy 16M fault registers
+
+The 16M definition reads request bytes `10`, `11`, `12`, `14`, `15`, `16`,
+and `2B` through `30`. Responses are bitfields, not SAE/KWP DTC records. Until a
+Moto Guzzi-specific interpretation is sourced, the API and UI show each raw
+register value and set bit (`REG-xx-BIT-y`) without assigning a component or
+fault description.
 
 ---
 
@@ -205,6 +332,10 @@ per-family offsets in the catalog:
   showing `Drawing: CM281703`, `Hardware: IAW7SMHW320`, `Software: 7614LA20`,
   `Omologation: 7SM2EC`, `Serial: E6MNBGS4T`, `Tester: D30073`, followed by a
   baud-rate switch.
+
+The legacy 16M does not send `1A 80`. Its six key-on bytes are retained as the
+ISO code, and request bytes `17` through `21` are concatenated as the ECU part
+number. Unsupported families do not inherit either identification scheme.
 
 ---
 
@@ -221,12 +352,21 @@ PF1C and PF2C throttle bodies support the electronic TPS reset. **PF3C is
 non-linear and must be set manually with a voltmeter** — the catalog carries
 that warning on every PF3C model.
 
-Other families differ and are **not** verified at the wire level:
-15RC uses a proprietary byte (0x89); 7SM uses `31 23` plus a timer and requires
-handle self-learning *immediately* followed by throttle self-learning;
-MIU G3 uses `31 21` on a different transport. These are marked `inferred`.
+The former 15RC and 7SM routine guesses were removed. MIU G3's OEM-named TPS
+zero-position operation is retained only as non-executable research metadata.
+Changelogs can establish that a function exists, but not its complete request,
+response, session, security, timing, and mechanical conditions. These
+operations are absent from the effective capability set; profile and
+operation-level confidence independently block the retained MIU G3 record.
 
-`33 <localid>` (RequestRoutineResults) is probed best-effort after a routine.
+The Mana capture is stronger on payload identity: full PADS frames
+`80 EC F1 03 30 02 08 9A` and `80 EC F1 03 30 01 08 99` establish the belt
+replacement and potentiometer reset requests. They still are not executable.
+The workshop procedure requires ordered adaptation steps and physical
+conditions (including wheel clearance/mechanical state) that this application
+cannot verify, and the required security/session sequence is incomplete.
+
+`33 <localid>` (RequestRoutineResults) is probed best-effort after a supported routine.
 Most IAW families do not implement it; a negative response there is expected
 and is not treated as a failure.
 
@@ -261,18 +401,21 @@ turns it off. The deadline is therefore owned by this software — see
 
 ## 9. Memory
 
-Read uses `23 <addr24> <size>` (ReadMemoryByAddress). The IAW 5AM image is
-exactly **327680 bytes (0x50000)**; a read takes roughly 20 minutes.
+For the verified 5AM path, memory operations follow the dedicated programming
+transcript described by the catalog and programming state machine. No generic
+`23 <addr24> <size>` assumption is extended to a non-5AM family. Unvalidated
+memory-read capabilities have been removed from 15M, 15RC, 7SM, and MIU G3.
 
 The programming path on real tooling is
 `10 85` → `27` SecurityAccess (seed/key) → baud switch → `34`/`36` block
 transfer + checksum.
 
-**This project does not implement it.** There are no protocol fixtures, no
-bench-tested recovery path, no power-loss handling, and no verified seed/key.
-Writing is refused by the catalog (`write_supported: false` everywhere), by the
-safety gate (`programming-enabled` check), and by the frame guard, which blocks
-`0x34`, `0x36`, `0x37` and `0x3D` unconditionally in this build.
+The 5AM read path and documented programming state machine are implemented and
+simulator-tested. Physical writing remains disabled because the key algorithm,
+recovery path, and power-loss behaviour have not been bench-verified on a
+Guzzi-fitted ECU. Every non-5AM family declares both memory read and write
+unsupported unless separate family evidence exists; none is inferred from
+KWP service numbers shared by 5AM.
 
 A note from the field worth repeating: never run a 7SM write through a virtual
 machine — USB timing jitter has bricked ECUs.
@@ -287,8 +430,17 @@ machine — USB timing jitter has bricked ECUs.
   encoder).
 - Live K-Line capture and decode of an IAW 5AM HW610 on a Moto Guzzi —
   [Vasiy/onboard-logger `docs/PROTOCOL.md`](https://github.com/Vasiy/onboard-logger)
+- IAW Scan 2 source, BSD-3-Clause, fixed at the vendored commit and hashes —
+  [TzOk83/IES2](https://github.com/TzOk83/IES2), `vendor/ies2/`
+- Marelli 3.00600 / 16F technical information and the published 1.6M
+  implementation discussion — legacy initialization, registers, and formulas
+- Official Moto Guzzi/Piaggio MIU G3 training presentation — OEM RLI/IOLI/RELI
+  tables (the tables do not define widths, scaling, or the transport)
+- Raw Aprilia PADS frames and reverse-engineering record for the Mana TCU —
+  [ApriliaForum archive](https://www.apriliaforum.com/forums/archive/index.php/t-264978.html)
 - GuzziDiag / IAWDiag changelogs and ECU list —
   [von-der-salierburg.de](https://www.von-der-salierburg.de/download/GuzziDiag/)
+  (feature-existence evidence only, not a payload definition)
 - Guzzitek ECU master list and *La Guzzithèque* injection bible —
   [guzzitek.org](https://guzzitek.org/)
 - guzzifan.com ECU and error-code reference

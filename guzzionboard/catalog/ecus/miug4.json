@@ -3,71 +3,35 @@
   "family": "Marelli MIU G4",
   "display_name": "Magneti Marelli MIU G4 (CAN)",
   "transport": "can",
-  "confidence": "inferred",
+  "confidence": "unknown",
   "years": "2017-2021",
-  "notes": "V7 III 850 generation on CAN bus. Diagnostics move inside ISO-TP, so the application layer is unchanged but the framing is not. Request and response identifiers below are the ISO 15765-4 defaults and have not been confirmed on a Guzzi - verify with a passive sniff before trusting them. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Neither GuzziDiag nor IAWDiag covers this family, so there is no closed tool session to tap: identifiers here have to come from the CAN discovery path.",
+  "notes": "Moto Guzzi V7/V9 Euro 5 applications. The Moto Guzzi service manual and MIUG4 technical material prove CAN diagnostics and commercial tools prove identification, DTC, TPS/adaptation and memory functions exist. No public Moto Guzzi capture or definition file was found for the diagnostic CAN identifiers, ISO-TP addressing or UDS/KWP payloads. The old 0x7E0/0x7E8 plus K-Line-style 1A 80 definition was generic inference, not evidence. Physical CAN sessions are therefore blocked before sending a request.",
   "can": {
     "interface": "socketcan",
     "channel": "can0",
-    "bitrate": 500000,
-    "tx_id": 2016,
-    "rx_id": 2024,
-    "padding": 170,
-    "note": "tx 0x7E0 / rx 0x7E8, unconfirmed on this vehicle family."
+    "note": "No bitrate, CAN identifiers, addressing mode, or padding is claimed without a family-specific capture."
   },
   "session": {
-    "access_timing": false,
-    "diagnostic_session": 129,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "protocol": "unknown-can-application",
+    "note": "ISO-TP physical transport alone does not establish UDS/KWP services or identifiers.",
+    "physical_supported": false,
+    "physical_blocked_reason": "ISO-TP transport, CAN identifiers, addressing, and diagnostic application payloads remain unvalidated."
   },
   "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
-      {
-        "name": "Drawing",
-        "offset": 0,
-        "length": 11
-      },
-      {
-        "name": "Hardware",
-        "offset": 11,
-        "length": 11
-      },
-      {
-        "name": "Omologation",
-        "offset": 22,
-        "length": 11
-      },
-      {
-        "name": "Software",
-        "offset": 33,
-        "length": 11
-      },
-      {
-        "name": "Tester",
-        "offset": 44,
-        "length": 11
-      }
-    ]
+    "available": false,
+    "reason": "No validated family-specific diagnostic application definition is available."
   },
   "memory": {
     "image_size": null,
     "read_supported": false,
     "write_supported": false,
-    "write_blocked_reason": "Unverified transport; no write path exists.",
-    "security_access": true
+    "write_blocked_reason": "Unverified transport; no write path exists."
   },
-  "capabilities": [
-    "identify",
-    "dtc_read",
-    "discover"
-  ],
+  "capabilities": [],
   "sources": [
-    "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-    "ISO 15765-2 (ISO-TP)",
-    "ISO 14230-2 and ISO 14230-3"
+    "Moto Guzzi V7/V9 Euro 5 service-station manual 2Q000466: MIU G4 application and diagnostic-tool procedures",
+    "ASW-NEXT MIUG4 technical user manual: CAN connection and supported operations (no wire identifiers/payloads)",
+    "Diagcode Piaggio Group coverage: MIU G4 Euro 5 CAN operation existence only"
   ],
   "parameters": [],
   "actuators": [],

@@ -516,6 +516,43 @@ class SimulatedEcu:
             return int(value).to_bytes(length + 1, "big", signed=param.signed)
 
     # -- request handling -------------------------------------------------
+    def handle_legacy(self, request: int) -> int:
+        """Answer one pre-KWP Marelli register request.
+
+        This is intentionally a separate simulator path: legacy 16M traffic is
+        one request byte followed by one response byte, not a short KWP frame.
+        """
+        part_number = b"61600123456"
+        if 0x17 <= request <= 0x21:
+            return part_number[request - 0x17]
+
+        fault_registers = set(self.profile.session.get("fault_registers", ()))
+        if request in fault_registers:
+            return 0
+
+        for param in self.profile.parameters:
+            requests = param.request_ids or (param.local_id,)
+            if request not in requests:
+                continue
+            e = self.engine
+            desired = {
+                "rpm": max(1.0, e.rpm),
+                "injection_ms": e.injection_ms,
+                "advance": e.advance_deg,
+                "manifold_pressure": 330.0,
+                "battery": e.battery_v,
+            }.get(param.key, 0.0)
+            if param.recip:
+                raw_value = round(param.recip / desired) if desired > 0 else 0
+            elif param.scale:
+                raw_value = round((desired - param.bias) / param.scale)
+            else:
+                raw_value = round(desired)
+            width = len(requests)
+            raw = int(raw_value).to_bytes(width, param.endian, signed=param.signed)
+            return raw[requests.index(request)]
+        return 0
+
     def handle(self, payload: bytes) -> bytes | None:
         """Process one request payload and return the response payload."""
         self._expire_outputs()
@@ -985,6 +1022,10 @@ class SimulatorConnection(Connection):
             raise RuntimeError("connection is closed")
         ecu = self.ecu
 
+        if len(data) == 1 and ecu.profile.session.get("protocol") == "legacy-iaw":
+            self._outbox = bytes([ecu.handle_legacy(data[0])])
+            return
+
         if ecu.drop_rate and random.random() < ecu.drop_rate:
             self._outbox = b""
             return
@@ -1010,6 +1051,10 @@ class SimulatorConnection(Connection):
         return encode_request(
             payload, target=self.source, source=self.target, addressed=self.addressed
         )
+
+    def read_bytes(self, size: int, timeout: float) -> bytes:
+        out, self._outbox = self._outbox[:size], self._outbox[size:]
+        return out
 
     def read_frame(self, timeout: float) -> bytes:
         if self.ecu.extra_latency:
@@ -1051,11 +1096,30 @@ class SimulatorTransport(Transport):
         return SimulatorConnection(ecu=self.ecu)
 
     def initialize(self, connection: SimulatorConnection, **kwargs) -> InitResult:
-        method = kwargs.get("method", self.profile.kline.get("init", "fast"))
+        requested = kwargs.get("method", self.profile.kline.get("init", "fast"))
+        protocol = self.profile.session.get("protocol", "iso14230")
+        if protocol == "legacy-iaw":
+            return InitResult(
+                ok=True,
+                method=f"simulated-{requested}",
+                baud=self.profile.kline.get("comm_baud", 7680),
+                detail=f"simulated {self.profile.family}",
+                protocol="legacy-iaw",
+                handshake_complete=True,
+                response=bytes.fromhex("55 B0 80 80 80 85"),
+            )
+
+        # The simulated ECU supports both KWP handshakes. Resolve auto to fast
+        # so StartCommunication still traverses the real framed stack.
+        method = "fast" if requested == "auto" else requested
         return InitResult(
             ok=True,
             method=f"simulated-{method}",
             key_bytes=(0xEA, 0x8F),
             baud=self.profile.kline.get("baud", 0),
             detail=f"simulated {self.profile.family}",
+            protocol="iso14230",
+            # Slow init establishes communication itself.  Fast init leaves
+            # 0x81 to DiagnosticsService so simulator tests exercise it.
+            handshake_complete=method == "slow",
         )

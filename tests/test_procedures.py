@@ -55,12 +55,15 @@ def test_every_procedure_declares_what_it_needs():
         assert procedure.missing_for(profile) == []
 
 
-def test_procedures_are_withheld_from_families_that_cannot_run_them():
-    bare = load_catalog().ecu("16m")          # no parameters, no actuators yet
-    offered = procedures.available(bare)
-    assert all(not p["available"] for p in offered)
-    pump = next(p for p in offered if p["key"] == "fuel_pressure")
-    assert any("actuator fuel_pump" in m for m in pump["missing"])
+def test_procedures_are_limited_to_what_a_family_can_observe():
+    read_only = load_catalog().ecu("16m")
+    offered = procedures.available(read_only)
+    charging = next(p for p in offered if p["key"] == "charging_system")
+    assert charging["available"]  # documented RPM and battery registers exist
+    for key in ("fuel_pressure", "injector_click"):
+        procedure = next(p for p in offered if p["key"] == key)
+        assert not procedure["available"]
+        assert any("actuator" in item for item in procedure["missing"])
 
 
 def test_the_api_lists_them_with_availability(api):

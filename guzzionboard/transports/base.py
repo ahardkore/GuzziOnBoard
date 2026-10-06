@@ -19,7 +19,17 @@ class TransportUnavailable(TransportError):
 
 @dataclass
 class InitResult:
-    """Outcome of an ECU wake-up."""
+    """Outcome of an ECU wake-up.
+
+    ``handshake_complete`` distinguishes a physical K-Line transport (which
+    must send and validate StartCommunication as part of fast init) from a
+    simulator that only models the wake-up and leaves StartCommunication to
+    the protocol session.  Keeping that fact explicit prevents the same 0x81
+    request being sent twice on real hardware.
+
+    ``request`` and ``response`` retain the otherwise pre-session handshake
+    frames so they can be written to the normal raw-frame log.
+    """
 
     ok: bool
     method: str
@@ -27,6 +37,10 @@ class InitResult:
     baud: int = 0
     detail: str = ""
     attempts: list[str] = field(default_factory=list)
+    protocol: str = ""
+    handshake_complete: bool = False
+    request: bytes = b""
+    response: bytes = b""
 
 
 class Connection(abc.ABC):
@@ -39,6 +53,15 @@ class Connection(abc.ABC):
     @abc.abstractmethod
     def read_frame(self, timeout: float) -> bytes:
         """Read one complete frame, or return ``b""`` on timeout."""
+
+    def read_bytes(self, size: int, timeout: float) -> bytes:
+        """Read an exact-size unframed reply when a protocol requires it.
+
+        Framed transports may use the default implementation. Byte-stream
+        transports should override it so a one-byte legacy answer is not
+        mistaken for the first byte of a KWP header.
+        """
+        return self.read_frame(timeout)[:size]
 
     @abc.abstractmethod
     def close(self) -> None: ...

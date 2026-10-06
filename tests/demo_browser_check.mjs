@@ -51,6 +51,7 @@ const document = {
   createElement: () => element(),
   getElementById: () => null,
   querySelector: (sel) => (sel === 'main' ? null : null),
+  querySelectorAll: () => [],
   addEventListener() {},
 };
 
@@ -132,6 +133,10 @@ const post = (path, body) =>
 
 console.log('demo-api.js (hosted demo backend)');
 
+check('every hosted-demo API route has a browser implementation',
+  Object.keys(context.window.GUZZI_DEMO.localOnly).length === 0,
+  Object.keys(context.window.GUZZI_DEMO.localOnly).join(', '));
+
 const catalog = await api('/api/catalog');
 check('catalog loads', catalog.status === 200 && catalog.payload.ecus.length > 0);
 check('catalog carries every family',
@@ -159,14 +164,22 @@ check('select resolves to the 5AM', selected.payload.ecu.id === '5am');
 check('select reports the model notice',
   selected.payload.notices.some((n) => n.level === 'info'));
 
-const hardware = await post('/api/select', {
+const demoStatus = await api('/api/status');
+check('the hosted demo offers no real-bike transports',
+  demoStatus.payload.transports.length === 1
+  && demoStatus.payload.transports[0].id === 'simulator');
+const staleHardwareChoice = await post('/api/select', {
   make: 'Moto Guzzi', model: 'Griso 1200 8V', year: 2012, transport: 'kline',
 });
-check('hardware selection warns it is a demo',
-  hardware.payload.notices.some((n) => n.level === 'danger'));
-const refused = await post('/api/connect', { mode: 'read_only' });
-check('hardware connect is refused, not faked',
-  refused.status === 501 && refused.payload.code === 'demo_local_only');
+check('stale hardware preferences are coerced to the virtual demo',
+  staleHardwareChoice.payload.transport === 'simulator'
+  && !staleHardwareChoice.payload.notices.some((n) => n.level === 'danger'));
+const virtualFromStale = await post('/api/connect', { mode: 'read_only' });
+check('a crafted real-bike request still starts only the simulator',
+  virtualFromStale.status === 200
+  && virtualFromStale.payload.connected === true
+  && virtualFromStale.payload.mode === 'simulator');
+await post('/api/disconnect', {});
 
 await post('/api/select', {
   make: 'Moto Guzzi', model: 'Griso 1200 8V', year: 2012, transport: 'simulator',
@@ -272,12 +285,11 @@ check('memory says the image is simulated', memory.payload.simulated === true
 check('memory offers regions to read',
   Object.keys(memory.payload.capabilities.regions).length > 0);
 
-const gated = await post('/api/memory/read', { region: 'flash' });
-check('a read needs the unverified key opt-in first',
-  gated.status === 409 && gated.payload.code === 'security_unavailable');
-const accepted = await post('/api/security/unverified', { accept: true });
-check('the key-provider opt-in is honoured',
-  accepted.payload.allow_unverified_keys === true);
+const demoSecurity = await api('/api/security');
+check('the virtual connector starts with its demo-only key fixture ready',
+  demoSecurity.payload.unverified_keys_accepted === true);
+check('the virtual hardware checklist is already complete',
+  connected.payload.vehicle_state.checklist_accepted === true);
 
 const started = await post('/api/memory/backup', { region: 'flash' });
 check('a backup starts a job', started.status === 202
@@ -327,8 +339,6 @@ const progEnable = await post('/api/programming/enable', {
 });
 check('programming can be armed with the exact acknowledgement',
   progEnable.payload.programming_enabled === true);
-const checklist = await post('/api/checklist', { accepted: true });
-check('the hardware checklist can be accepted', checklist.status === 200);
 const gate = await post('/api/memory/check-write', { region: 'flash' });
 check('arming programming unblocks the write', gate.payload.allowed === true,
   gate.payload.reason);
@@ -532,23 +542,38 @@ const healthy = await api('/api/live?keys=rpm');
 check('clearing the sliders restores the reads',
   healthy.payload.samples.every((s) => !s.error));
 
-/* Hardware is still refused on principle. */
+/* Connector-dependent setup is represented by an explicit virtual fixture. */
 const adapter = await api('/api/adapter');
-check('the adapter view refuses rather than inventing ports',
-  adapter.payload.ports.length === 0 && /cannot enumerate/.test(adapter.payload.text));
-await post('/api/select', {
-  make: 'Moto Guzzi', model: 'Griso 1200 8V', year: 2012, transport: 'kline',
+check('the demo supplies a labelled virtual connector and adapter',
+  adapter.payload.simulated === true
+  && adapter.payload.ports.length === 1
+  && adapter.payload.ports[0].device === 'demo://virtual-kline'
+  && /SIMULATED CONNECTOR/.test(adapter.payload.text));
+const tunedAdapter = await post('/api/adapter/latency', {
+  port: 'demo://virtual-kline', value: 1,
 });
-const hardwareRefused = await post('/api/connect', { mode: 'read_only' });
-check('a real K-Line connect is still refused',
-  hardwareRefused.status === 501
-  && hardwareRefused.payload.code === 'demo_local_only');
-await post('/api/select', {
-  make: 'Moto Guzzi', model: 'Griso 1200 8V', year: 2012, transport: 'simulator',
-});
+check('the virtual adapter pre-flight can be completed',
+  tunedAdapter.payload.ok === true && tunedAdapter.payload.latency_ms === 1);
 
 const disconnected = await post('/api/disconnect', {});
 check('disconnect returns to the garage', disconnected.payload.connected === false);
+
+/* Research metadata must not become a simulator capability through the API. */
+await post('/api/select', { ecu: 'miug3', transport: 'simulator' });
+await post('/api/connect', { mode: 'simulator' });
+const unsupportedIdentity = await api('/api/identify');
+const unsupportedLive = await api('/api/live?keys=manifold_pressure_raw');
+const unsupportedDtcs = await api('/api/dtcs');
+const unsupportedDiscovery = await post('/api/discover', { start: 0x30, end: 0x31 });
+check('research-only identification is refused even in the simulator',
+  unsupportedIdentity.status === 400 && unsupportedIdentity.payload.code === 'protocol_error');
+check('research-only live identifiers are refused even in the simulator',
+  unsupportedLive.status === 400 && unsupportedLive.payload.code === 'protocol_error');
+check('research-only fault requests are refused even in the simulator',
+  unsupportedDtcs.status === 400 && unsupportedDtcs.payload.code === 'protocol_error');
+check('research-only discovery is refused even in the simulator',
+  unsupportedDiscovery.status === 400 && unsupportedDiscovery.payload.code === 'protocol_error');
+await post('/api/disconnect', {});
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed');
 process.exit(failures ? 1 : 0);

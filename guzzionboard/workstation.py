@@ -90,8 +90,8 @@ def _effective_profile(entry: VehicleEntry | None, profile: EcuProfile) -> EcuPr
     table in this catalog was captured in a Moto Guzzi context. When the
     *vehicle* entry is less confident than the ECU definition - which is how
     every cross-brand entry is marked - the worse level wins and the note
-    says why. Control actions gate off this, so a cross-brand bike is
-    read-only until someone confirms the identifiers on the real machine.
+    says why. Control actions gate off this; cross-brand assumptions are not
+    handed to an owner for confirmation on a motorcycle.
     """
     if entry is None or entry.confidence == profile.confidence:
         return profile
@@ -102,9 +102,9 @@ def _effective_profile(entry: VehicleEntry | None, profile: EcuProfile) -> EcuPr
             f"Selected as {entry.make} {entry.model}: this vehicle mapping is "
             f"'{entry.confidence}' while the {profile.family} definition is "
             f"'{profile.confidence}'. The stricter level applies - the "
-            "identifier tables below were captured on another make and are "
-            "unverified here, so control actions stay disabled. A single "
-            "recorded session on this bike promotes the whole family."
+            "identifier tables below were established on another make and are "
+            "unverified here, so control actions stay disabled. The workstation "
+            "does not ask the owner to validate cross-brand protocol assumptions."
         )
         return replace(profile, confidence=entry.confidence, notes=note)
     return profile
@@ -184,30 +184,48 @@ class Workstation:
                 }
             )
         if profile.confidence in ("inferred", "unknown"):
+            readable = [
+                label for capability, label in (
+                    ("identify", "identification"),
+                    ("dtc_read", "fault reading"),
+                    ("live", "live data"),
+                    ("discover", "identifier discovery"),
+                )
+                if capability in profile.capabilities
+            ]
+            availability = (
+                f" Available operations: {', '.join(readable)}."
+                if readable
+                else " No diagnostic operations are exposed."
+            )
             notices.append(
                 {
                     "level": "warn",
                     "text": (
                         f"The {profile.family} definition is marked "
-                        f"'{profile.confidence}'. Control actions are disabled; "
-                        "identification, fault codes and the read-only discovery "
-                        "scan are available."
+                        f"'{profile.confidence}'. Control actions are disabled."
+                        f"{availability}"
                     ),
                 }
             )
         if entry and entry.notes:
             notices.append({"level": "info", "text": entry.notes})
         if transport not in ("simulator", "cansim"):
-            notices.append(
-                {
-                    "level": "danger",
-                    "text": (
-                        "Hardware transport selected. Nothing here has been "
-                        "validated against a motorcycle. Accept the checklist and "
-                        "understand that you are the test."
-                    ),
-                }
-            )
+            if profile.session.get("physical_supported") is False:
+                detail = profile.session.get(
+                    "physical_blocked_reason", "Protocol evidence is incomplete."
+                )
+                text = (
+                    "Physical use is blocked before the adapter is opened. "
+                    f"{detail} Customers are not used to validate protocol guesses."
+                )
+            else:
+                text = (
+                    "Hardware transport selected. Only the explicitly listed, "
+                    "evidence-backed capabilities are available; all other "
+                    "operations remain blocked."
+                )
+            notices.append({"level": "danger", "text": text})
         return notices
 
     def describe_selection(self) -> dict:
@@ -284,6 +302,15 @@ class Workstation:
                 rx_id=spec.get("rx_id", 0x7E8),
                 padding=spec.get("padding", 0xAA),
             )
+        if kind in ("kline", "can") and profile.session.get("physical_supported") is False:
+            reason = profile.session.get(
+                "physical_blocked_reason",
+                "the physical diagnostic protocol is not validated",
+            )
+            raise TransportUnavailable(
+                f"{profile.family}: {reason} The safety boundary stopped here: "
+                "no transport was constructed, no port was opened, and no request was sent."
+            )
         if kind == "kline":
             from .transports.kline import KLineTransport
 
@@ -296,12 +323,19 @@ class Workstation:
             from .transports.can import CanTransport
 
             spec = self.selection.can_spec()
+            required = ("bitrate", "tx_id", "rx_id")
+            missing = [key for key in required if spec.get(key) is None]
+            if missing:
+                raise TransportUnavailable(
+                    f"{profile.family}: the evidence-backed CAN profile is missing "
+                    f"{', '.join(missing)}; generic defaults are not used on hardware"
+                )
             return CanTransport(
                 channel=self.selection.device or spec.get("channel", "can0"),
                 interface=spec.get("interface", "socketcan"),
-                bitrate=spec.get("bitrate", 500000),
-                tx_id=spec.get("tx_id", 0x7E0),
-                rx_id=spec.get("rx_id", 0x7E8),
+                bitrate=spec["bitrate"],
+                tx_id=spec["tx_id"],
+                rx_id=spec["rx_id"],
             )
         raise ValueError(f"unknown transport {kind!r}")
 
@@ -343,10 +377,9 @@ class Workstation:
             found.append(
                 {"id": "cansim", "name": "CAN rehearsal (virtual)",
                  "available": True,
-                 "detail": "The full ISO-TP framing path, flow control and all, "
-                           "against the simulated ECU on a virtual bus - and it "
-                           "uses the CAN ids you set, so the pair you are "
-                           "confirming can be dry-run first."}
+                 "detail": "The full generic ISO-TP framing path, flow control "
+                           "and all, against the simulated ECU on a virtual bus. "
+                           "Its explicit lab ids are not a motorcycle protocol claim."}
             )
         except ImportError:
             found.append(
@@ -363,6 +396,21 @@ class Workstation:
             if self.service is not None and self.service.connected:
                 return self.status()
 
+            profile = self.selection.profile
+            if (
+                self.selection.transport_kind not in self._SIM_TRANSPORTS
+                and profile.session.get("physical_supported") is False
+            ):
+                reason = profile.session.get(
+                    "physical_blocked_reason",
+                    "the physical diagnostic protocol is not validated",
+                )
+                raise TransportUnavailable(
+                    f"{profile.family}: {reason} The safety boundary stopped here: "
+                    "no transport was constructed, no port was opened, and no "
+                    "request was sent."
+                )
+
             self.gate = SafetyGate(mode=Mode(mode), state=VehicleState())
             self.log = SessionLog(
                 directory=self.session_dir,
@@ -377,7 +425,6 @@ class Workstation:
                     "mode": mode,
                 },
             )
-            profile = self.selection.profile
             if self.selection.transport_kind in self._SIM_TRANSPORTS:
                 # Simulated session: present the capability set we have
                 # actually proven against the simulation, labelled as such.

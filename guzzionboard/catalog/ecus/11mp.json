@@ -3,70 +3,35 @@
   "family": "Marelli 11MP",
   "display_name": "Magneti Marelli 11MP (CAN)",
   "transport": "can",
-  "confidence": "inferred",
+  "confidence": "unknown",
   "years": "2019-2026",
-  "notes": "Later V85 TT and the V100 Mandello generation, on CAN. Euro5/Euro5+ bikes in this family are likely to require UDS-style security access for anything beyond reading. Everything here is unconfirmed; the workstation stays read-only on this family. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Neither GuzziDiag nor IAWDiag covers this family, so there is no closed tool session to tap: identifiers here have to come from the CAN discovery path.",
+  "notes": "Moto Guzzi V85 TT Euro 5, V100 and later applications. OEM/service and commercial material proves this is a CAN diagnostic controller and lists identification, DTC, learning and stored-data functions. No public Moto Guzzi 11MP CAN capture, ODX/PDX definition, CAN identifier pair, DID table or routine IDs were found. The old 0x7E0/0x7E8 plus K-Line-style 1A 80 definition was unsupported. Physical CAN sessions are blocked before sending a request.",
   "can": {
     "interface": "socketcan",
     "channel": "can0",
-    "bitrate": 500000,
-    "tx_id": 2016,
-    "rx_id": 2024,
-    "padding": 170,
-    "note": "tx 0x7E0 / rx 0x7E8, unconfirmed on this vehicle family."
+    "note": "No bitrate, CAN identifiers, addressing mode, or padding is claimed without a family-specific capture."
   },
   "session": {
-    "access_timing": false,
-    "diagnostic_session": 129,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "protocol": "unknown-can-application",
+    "note": "ISO-TP physical transport alone does not establish UDS/KWP services or identifiers.",
+    "physical_supported": false,
+    "physical_blocked_reason": "ISO-TP transport, CAN identifiers, addressing, and diagnostic application payloads remain unvalidated."
   },
   "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
-      {
-        "name": "Drawing",
-        "offset": 0,
-        "length": 11
-      },
-      {
-        "name": "Hardware",
-        "offset": 11,
-        "length": 11
-      },
-      {
-        "name": "Omologation",
-        "offset": 22,
-        "length": 11
-      },
-      {
-        "name": "Software",
-        "offset": 33,
-        "length": 11
-      },
-      {
-        "name": "Tester",
-        "offset": 44,
-        "length": 11
-      }
-    ]
+    "available": false,
+    "reason": "No validated family-specific diagnostic application definition is available."
   },
   "memory": {
     "image_size": null,
     "read_supported": false,
     "write_supported": false,
-    "write_blocked_reason": "Unverified transport; no write path exists.",
-    "security_access": true
+    "write_blocked_reason": "Unverified transport; no write path exists."
   },
-  "capabilities": [
-    "identify",
-    "dtc_read",
-    "discover"
-  ],
+  "capabilities": [],
   "sources": [
-    "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-    "ISO 15765-2 (ISO-TP)"
+    "Moto Guzzi Euro 5 service-station manuals: IAW 11MP application and diagnostic-tool procedures",
+    "Diagcode Piaggio Group 11MP coverage: operation existence only; no wire definitions",
+    "GuzziDiag/GuzziCANDiag public download site: no 11MP diagnostic definition or capture published"
   ],
   "parameters": [],
   "actuators": [],

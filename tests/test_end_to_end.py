@@ -11,6 +11,7 @@ from guzzionboard.diagnostics import DiagnosticsService, NotConnected
 from guzzionboard.protocol.kwp2000 import NegativeResponse, ProtocolError
 from guzzionboard.safety import Mode, SafetyGate, VehicleState
 from guzzionboard.sessionlog import SessionLog
+from guzzionboard.transports.base import TransportUnavailable
 from guzzionboard.transports.simulator import EngineModel, SimulatedEcu, SimulatorTransport
 from guzzionboard.workstation import Workstation
 
@@ -64,6 +65,14 @@ def test_identification_fields_follow_the_catalog_layout(catalog):
     # The 7SM block carries a Serial field that the 5AM does not.
     assert "Serial" in identity.fields
     assert identity.fields["Hardware"] == "IAW7SMHW320"
+    service.disconnect()
+
+
+def test_research_only_parameters_are_not_simulated_as_a_capability(catalog):
+    service, _, _ = build(catalog, "miug3")
+    service.connect()
+    with pytest.raises(ProtocolError, match="live-data requests are not validated"):
+        service.read_parameters(["manifold_pressure_raw"])
     service.disconnect()
 
 
@@ -377,7 +386,7 @@ def test_workstation_warns_loudly_about_inferred_families(tmp_path):
     result = ws.select(model="V100 Mandello", year=2023, transport="simulator")
     levels = {n["level"] for n in result["notices"]}
     assert "warn" in levels
-    assert any("inferred" in n["text"] for n in result["notices"])
+    assert any("unknown" in n["text"] for n in result["notices"])
 
 
 def test_workstation_refuses_an_unknown_motorcycle(tmp_path):
@@ -402,9 +411,10 @@ def test_cross_brand_selection_degrades_to_read_only(catalog):
     assert selection["ecu"]["confidence"] == "inferred"
     assert selection["make"] == "Ducati"
     assert "unverified here" in selection["ecu"]["notes"]
-    # the same ECU selected as a Guzzi keeps its own level
+    # A Guzzi selection keeps the mapped 15M family's own level rather than
+    # inheriting the cross-brand 16M selection above.
     guzzi = ws.select(model="V11 Sport", year=2001)
-    assert guzzi["ecu"]["confidence"] == catalog.ecu("16m").confidence
+    assert guzzi["ecu"]["confidence"] == catalog.ecu("15m").confidence
 
 
 def test_cross_brand_bike_still_identifies_over_the_simulator(catalog):
@@ -415,22 +425,31 @@ def test_cross_brand_bike_still_identifies_over_the_simulator(catalog):
     assert identity.raw
 
 
-def test_can_identifiers_are_configurable(catalog):
-    """The CAN pair is unconfirmed on the CAN families, so it is a setting."""
+def test_can_identifiers_are_configurable_only_for_virtual_rehearsal(catalog):
     ws = Workstation(record=False)
     ws.select(
         model="V7 III Stone", year=2019, transport="can",
         can_tx_id="0x18DA10F1", can_rx_id="0x18DAF110",
     )
+    with pytest.raises(TransportUnavailable, match="no transport was constructed"):
+        ws._build_transport()
+    with pytest.raises(TransportUnavailable, match="no transport was constructed"):
+        ws.connect(mode="read_only")
+    assert ws.log is None and ws.service is None
+
+    ws.select(
+        model="V7 III Stone", year=2019, transport="cansim",
+        can_tx_id="0x18DA10F1", can_rx_id="0x18DAF110",
+    )
     transport = ws._build_transport()
     assert (transport.tx_id, transport.rx_id) == (0x18DA10F1, 0x18DAF110)
 
-    # defaults come from the catalog when nothing is overridden
-    ws.select(model="V7 III Stone", year=2019, transport="can")
+    # Conventional values are explicit virtual-lab defaults, never bike claims.
+    ws.select(model="V7 III Stone", year=2019, transport="cansim")
     transport = ws._build_transport()
     assert (transport.tx_id, transport.rx_id) == (0x7E0, 0x7E8)
 
-    # garbage is refused, not guessed
+    # Garbage is refused, not guessed.
     with pytest.raises(ValueError):
         ws.select(model="V7 III Stone", year=2019, transport="can",
                   can_tx_id="whatever")

@@ -102,15 +102,35 @@ def test_landing_page_links_the_workstation_demo():
     assert 'href="web/index.html"' in html
 
 
-# -- honesty --------------------------------------------------------------
+def test_workstation_has_accessible_guided_state_prompts():
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    source = (WEB / "app.js").read_text(encoding="utf-8")
+    assert 'role="dialog"' in html and 'aria-modal="true"' in html
+    assert "prepareEngineState" in source
+    for instruction in (
+        "stop it with the kill switch",
+        "Leave the ignition key ON",
+        "start the engine",
+        "Turn the ignition key OFF",
+        "Begin listening",
+    ):
+        assert instruction.lower() in source.lower()
+    assert "window.confirm" not in source
 
-#: Still refused in the browser, and meant to stay that way: a web page
-#: cannot open a serial port or a CAN interface, and faking one would teach
-#: the reader something false about their motorcycle.
-HARDWARE_ONLY_CLAIMS = (
-    "can only connect to the built-in simulator",
-    "cannot enumerate",
-)
+
+def test_unvalidated_can_ids_are_only_defaults_in_the_virtual_rehearsal():
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    tour = (WEB / "tour.html").read_text(encoding="utf-8")
+    source = (WEB / "app.js").read_text(encoding="utf-8")
+    assert 'id="canTxId" placeholder="not validated"' in html
+    assert 'id="canRxId" placeholder="not validated"' in html
+    assert "else if (kind === 'cansim')" in source
+    assert "A virtual pair for transport rehearsal only" in source
+    assert "physical CAN sessions are blocked" in tour
+    assert "assumes the standard pair" not in tour
+
+
+# -- honesty --------------------------------------------------------------
 
 #: Simulated in the browser by demo-lab.js — each of these has to be both
 #: implemented *and* labelled.
@@ -138,24 +158,24 @@ def test_the_simulated_half_says_that_it_is_simulated():
     # The two compressions the user has to be told about.
     assert "Time-compressed" in source
     assert "time-compressed" in source.lower()
-    # And the banner has to say it before anything is clicked.
-    assert "Nothing here has touched a motorcycle." in source
+    # And the banner has to establish the virtual boundary before a click.
+    assert "Nothing here can " in source and "connect to real hardware." in source
 
 
-def test_the_demo_shim_still_refuses_what_it_cannot_do():
-    """demo-api.js keeps its 501 list for anything demo-lab.js has not taken
-    over, and the message points at the local tool."""
-    source = DEMO_API.read_text(encoding="utf-8")
-    assert "run python3 run_server.py" in source
-    assert "LOCAL_ONLY" in source
-
-
-def test_the_demo_cannot_claim_a_hardware_transport():
-    combined = (DEMO_API.read_text(encoding="utf-8")
-                + DEMO_LAB.read_text(encoding="utf-8"))
-    for claim in HARDWARE_ONLY_CLAIMS:
-        assert claim in combined
-    # No Web Serial, no WebUSB, no pretending.
+def test_the_hosted_demo_is_virtual_only_but_connector_steps_are_runnable():
+    api_source = DEMO_API.read_text(encoding="utf-8")
+    lab_source = DEMO_LAB.read_text(encoding="utf-8")
+    app_source = (WEB / "app.js").read_text(encoding="utf-8")
+    combined = api_source + lab_source
+    assert "name: 'Demo motorcycle'" in api_source
+    assert "transport: 'simulator'" in api_source
+    assert "demo://virtual-adapter" in api_source
+    assert "demo://virtual-kline" in lab_source
+    assert "SIMULATED CONNECTOR" in lab_source
+    assert "isHostedDemo" in app_source
+    assert "vehicle.ecu === '5am'" in app_source
+    assert "Griso 1200 8V" in app_source
+    # The stand-ins never request browser access to real hardware.
     assert "navigator.serial" not in combined
     assert "navigator.usb" not in combined
 

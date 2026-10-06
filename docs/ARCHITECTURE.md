@@ -39,14 +39,20 @@ Three implementations:
 |---|---|---|
 | `SimulatorTransport` | `simulator.py` | Complete, drives the test suite |
 | `KLineTransport` | `kline.py` | Written, untested on hardware |
-| `CanTransport` | `can.py` | Written, identifiers unconfirmed |
+| `CanTransport` | `can.py` | Generic ISO-TP mechanics written; no physical ECU profile is enabled without validated bitrate, identifiers, addressing, and application protocol |
 
 `pyserial` and `python-can` are imported lazily, so the simulator and the tests
 run on a machine with no drivers installed. A missing driver raises
 `TransportUnavailable` with the install command in the message.
 
 `read_frame` uses the KWP2000 length field rather than a timeout heuristic, so
-a frame is consumed exactly, not guessed at.
+a frame is consumed exactly, not guessed at. `InitResult` says whether the
+transport already completed the handshake and retains any pre-session request
+and response bytes. This matters on K-Line: fast init includes a validated
+StartCommunication exchange, while the simulator leaves that frame to
+`KWP2000Session`. The explicit flag prevents a duplicate hardware `0x81` and
+lets the early exchange enter the same raw-frame log. See
+[`HANDSHAKE_PROTOCOLS.md`](HANDSHAKE_PROTOCOLS.md).
 
 ### The simulator is a transport, not a mock
 
@@ -235,7 +241,7 @@ two implementations:
 | Sessions | JSONL files under `~/.guzzionboard/sessions` | in-tab recordings plus two pre-recorded ones, same replay/export/compare code paths |
 | Guided tests | real observation windows | the same steps and verdicts, windows compressed ~8x against the engine model |
 | Tools | read and write files | the same arithmetic over pasted text and browser downloads |
-| Serial ports, CAN | yes | refused with `501 demo_local_only` — a page cannot, and faking it would mislead |
+| Connector / adapter setup | physical serial and CAN hardware | labelled in-tab connector and adapter fixtures; no real-bike transport option or browser hardware permission |
 
 Why a second implementation exists: GitHub Pages has no process to run, and a
 diagnostic tool nobody can try is a diagnostic tool nobody adopts. Why it is
@@ -251,14 +257,12 @@ not allowed to drift:
   confirmation token and keeps the same audit list. A refusal in the demo
   reads exactly like a refusal from the real tool, because it is the same
   policy.
-* **A simulation is announced, and a refusal is honest.** `demo-lab.js` fakes
-  *processes* — a flash read, a map render, a guided test — and every payload
-  it returns carries `simulated: true` with a note saying what was invented
-  and by how much it was compressed; the page decorates each view and the
-  banner to match. What it does not fake is hardware: opening a serial port
-  or a CAN interface from a web page is refused with a message naming
-  `python3 run_server.py`, because a reader who is told a port exists will go
-  looking for it on their bike.
+* **Every stand-in is announced.** `demo-lab.js` simulates a flash read, map
+  render, guided test, connector, and adapter; every payload carries
+  `simulated: true` with a note saying what was invented and by how much time
+  was compressed. The hosted page omits physical transports entirely and
+  never requests Web Serial, WebUSB, CAN, or local-filesystem access. The
+  installed application keeps the real controls.
 * **The ports are checked against the originals, not eyeballed.** The XDF
   parser, the gearing arithmetic, the DIF conversion, the hashes and the WAV
   renderer are ports; `tests/test_demo_mode.py` renders three bundled
@@ -276,7 +280,7 @@ with tokens → blocked and unblocked actuator → fault seeding → discovery
 sweep → key-provider opt-in → backup, validate, arm programming, write and
 verify → render and diff maps → replay, export and compare sessions →
 report → a guided test to its verdict → every tool → the comms sliders
-spoiling the simulated wire → hardware still refused), and
+spoiling the simulated wire → virtual connector and adapter pre-flight), and
 `tests/demo_xdf_parity.mjs` renders a definition the browser's way so the
 Python side can compare. `tests/test_demo_mode.py` runs both when Node is
 available.

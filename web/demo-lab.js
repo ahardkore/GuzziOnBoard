@@ -24,14 +24,15 @@
  *   * Guided tests — the real step lists from ``procedures.py`` with the
  *     observation windows time-compressed against the simulated engine.
  *   * Tools — gearing, Zeitronix→DIF, the bench RPM WAV generator, and the
- *     CAN/K-Line capture analysers (pasted text only: no disk here).
+ *     CAN/K-Line capture analysers with preloaded sample logs.
+ *   * Connector setup — an explicitly virtual K-Line adapter and FTDI latency
+ *     control make the pre-flight workflow runnable without exposing hardware.
  *   * Comms quality — the drop/corrupt/pending/latency sliders now actually
  *     spoil the reads, at the API seam rather than on a wire.
  *
- * Two things are still refused rather than faked, on purpose:
- *
- *   * opening a real serial port or CAN interface from a web page, and
- *   * anything that reads or writes a file on your machine.
+ * The boundary stays simple: the hosted page never requests a real serial,
+ * USB, CAN, or local-filesystem handle. All of those surfaces use labelled
+ * in-tab fixtures; the installed application owns actual hardware and files.
  *
  * A simulation that is announced is a demonstration; one that is not is a
  * lie. Every payload below carries ``simulated: true`` and a note, and the
@@ -3517,9 +3518,10 @@
     0x83: 'access timing parameter', 0x84: 'secured data transmission',
     0x85: 'control DTC setting', 0x86: 'response on event', 0x87: 'link control',
   };
+  // Recognition labels for observed logs, never motorcycle defaults.
   var STANDARD_PAIRS = {
-    '7E0:7E8': 'the 11-bit ISO 15765-4 pair this workstation assumes',
-    '18DA10F1:18DAF110': 'the 29-bit ISO 15765-4 pair',
+    '7E0:7E8': 'the conventional 11-bit ISO 15765-4 reference pair',
+    '18DA10F1:18DAF110': 'the conventional 29-bit ISO 15765-4 reference pair',
   };
   var FUNCTIONAL_ID = 0x7DF;
 
@@ -3956,33 +3958,51 @@
     }];
   });
 
-  /* -- adapter pre-flight ----------------------------------------------- */
+  /* -- virtual adapter pre-flight --------------------------------------- */
 
+  var demoAdapterLatency = 1;
   D.register('GET', '/api/adapter', function () {
+    var healthy = demoAdapterLatency === 1;
     return [200, {
-      ports: [],
-      report: {},
-      text: 'No serial ports: this is a web page. A browser cannot enumerate '
-        + 'USB serial adapters, read an FTDI latency timer or set one — and '
-        + 'GuzziOnBoard will not pretend otherwise by faking an adapter that '
-        + 'is not there.\n\n'
-        + 'On the local workstation this view lists every port it can see, '
-        + 'flags the ones that look like a K-Line adapter, reads the FTDI '
-        + 'latency timer (16 ms by default, 1 ms is what KWP2000 timing '
-        + 'wants) and tells you how to fix it on your OS.\n\n'
-        + '    python3 run_server.py   ->   http://127.0.0.1:8000',
-      simulated: false,
+      ports: [{
+        device: 'demo://virtual-kline',
+        description: 'GuzziOnBoard virtual K-Line connector',
+        vid: 0x0403, pid: 0x6001, serial_number: 'DEMO-FTDI-01',
+        likely_adapter: true, simulated: true,
+      }],
+      report: {
+        port: 'demo://virtual-kline',
+        likely_adapter: true,
+        latency_ms: demoAdapterLatency,
+        simulated: true,
+        driver: {
+          os: 'browser demo', bundle_available: true,
+          bundle_path: 'virtual://drivers/ftdi',
+          hint: 'Virtual FTDI driver loaded; no host driver or USB device is required.',
+        },
+      },
+      text: [
+        '[SIMULATED CONNECTOR — no USB device opened]',
+        'port       demo://virtual-kline',
+        'adapter    FTDI FT232 + virtual K-Line transceiver',
+        'loopback   pass',
+        'echo       pass',
+        'ground     pass (virtual)',
+        'latency    ' + demoAdapterLatency + ' ms' + (healthy ? ' — ready' : ' — use the button to tune it'),
+        healthy ? 'result     virtual adapter ready' : 'result     tune latency before the demo backup',
+      ].join('\n'),
+      simulated: true,
       demo: true,
     }];
   });
 
   D.register('POST', '/api/adapter/latency', function () {
+    demoAdapterLatency = 1;
     return [200, {
-      ok: false,
-      latency_ms: null,
-      instructions: 'A web page cannot touch a USB device\'s driver settings. '
-        + 'Run the local workstation and this button will set the FTDI '
-        + 'latency timer for you (or tell you the one command that does).',
+      ok: true,
+      latency_ms: demoAdapterLatency,
+      simulated: true,
+      note: 'Changed on the virtual demo adapter only.',
     }];
   });
 
@@ -4024,19 +4044,17 @@
     + 'text rather than files, and the WAV arrives through your browser\'s '
     + 'downloads. K-Line captures are characterised but scalings are not '
     + 'solved: that needs a reference log from disk.';
-  V.discovery = '<b>Hardware is the one thing not faked.</b> Serial ports, '
-    + 'FTDI latency timers and a CAN bus do not exist in a web page, and '
-    + 'inventing them would teach you something false. Everything else here '
-    + 'is a simulation; this is a refusal.';
+  V.discovery = '<b>Demo fixtures are preloaded.</b> Identifier sweeps use the '
+    + 'virtual ECU, and the CAN/K-Line analyzers start with short sample logs. '
+    + 'The connector and adapter pre-flight are simulated too; no hardware is '
+    + 'available or required on this page.';
 
-  D.ui.banner = '<b>Hosted demo</b> — the whole workstation, with a simulated '
-    + 'ECU and a simulated motorcycle running in your browser. Memory reads '
-    + 'and flashes are time-compressed (seconds, not twenty minutes), maps '
-    + 'come from the bundled XDF definitions applied to a synthesised image, '
-    + 'and guided tests run against the engine model at '
-    + OBSERVE_COMPRESSION + 'x. Nothing here has touched a motorcycle. Real '
-    + 'hardware — serial adapters, CAN — needs the local tool: '
-    + '<code>python3 run_server.py</code>. '
+  D.ui.banner = '<b>Hosted demo</b> — the whole workstation with a virtual '
+    + 'motorcycle, ECU, cable, adapter, files, and workshop session in this '
+    + 'browser. Memory reads and flashes are time-compressed (seconds, not '
+    + 'twenty minutes), maps use bundled definitions on a synthesised image, '
+    + 'and guided tests run at ' + OBSERVE_COMPRESSION + 'x. Nothing here can '
+    + 'connect to real hardware. The installed app handles real bikes. '
     + '<a href="../index.html">About GuzziOnBoard</a>';
 
   var MAPS_NOTE = '<b>Simulated.</b> Tables are rendered through the '

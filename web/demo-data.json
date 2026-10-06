@@ -24,38 +24,33 @@
      "family": "Marelli 11MP",
      "display_name": "Magneti Marelli 11MP (CAN)",
      "transport": "can",
-     "confidence": "inferred",
+     "confidence": "unknown",
      "years": "2019-2026",
-     "notes": "Later V85 TT and the V100 Mandello generation, on CAN. Euro5/Euro5+ bikes in this family are likely to require UDS-style security access for anything beyond reading. Everything here is unconfirmed; the workstation stays read-only on this family. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Neither GuzziDiag nor IAWDiag covers this family, so there is no closed tool session to tap: identifiers here have to come from the CAN discovery path.",
-     "capabilities": [
-      "identify",
-      "dtc_read",
-      "discover"
-     ],
-     "effective_capabilities": [
-      "identify",
-      "dtc_read"
-     ],
+     "notes": "Moto Guzzi V85 TT Euro 5, V100 and later applications. OEM/service and commercial material proves this is a CAN diagnostic controller and lists identification, DTC, learning and stored-data functions. No public Moto Guzzi 11MP CAN capture, ODX/PDX definition, CAN identifier pair, DID table or routine IDs were found. The old 0x7E0/0x7E8 plus K-Line-style 1A 80 definition was unsupported. Physical CAN sessions are blocked before sending a request.",
+     "capabilities": [],
+     "effective_capabilities": [],
      "sources": [
-      "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-      "ISO 15765-2 (ISO-TP)"
+      "Moto Guzzi Euro 5 service-station manuals: IAW 11MP application and diagnostic-tool procedures",
+      "Diagcode Piaggio Group 11MP coverage: operation existence only; no wire definitions",
+      "GuzziDiag/GuzziCANDiag public download site: no 11MP diagnostic definition or capture published"
      ],
      "memory": {
       "image_size": null,
       "read_supported": false,
       "write_supported": false,
-      "write_blocked_reason": "Unverified transport; no write path exists.",
-      "security_access": true
+      "write_blocked_reason": "Unverified transport; no write path exists."
      },
      "kline": {},
      "can": {
       "interface": "socketcan",
       "channel": "can0",
-      "bitrate": 500000,
-      "tx_id": 2016,
-      "rx_id": 2024,
-      "padding": 170,
-      "note": "tx 0x7E0 / rx 0x7E8, unconfirmed on this vehicle family."
+      "note": "No bitrate, CAN identifiers, addressing mode, or padding is claimed without a family-specific capture."
+     },
+     "session": {
+      "protocol": "unknown-can-application",
+      "note": "ISO-TP physical transport alone does not establish UDS/KWP services or identifiers.",
+      "physical_supported": false,
+      "physical_blocked_reason": "ISO-TP transport, CAN identifiers, addressing, and diagnostic application payloads remain unvalidated."
      },
      "actuators": [],
      "routines": []
@@ -65,117 +60,31 @@
      "family": "IAW 15M",
      "display_name": "Magneti Marelli IAW 15M",
      "transport": "kline",
-     "confidence": "documented",
+     "confidence": "inferred",
      "years": "1997-2002",
-     "notes": "California 1997-2001 (EV, Jackal, Stone, Special), Quota 1100 ES, V11 Sport and LeMans up to 2002. Open loop - no lambda sensor on most images, so there is no closed-loop trim to read. The TPS is set mechanically with a voltmeter; there is no electronic reset. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: CO-Trim is supported on this family alone, and only once the engine is above 80 °C.",
-     "capabilities": [
-      "actuators",
-      "discover",
-      "dtc_clear",
-      "dtc_read",
-      "eeprom_read",
-      "identify",
-      "live",
-      "memory_read"
-     ],
-     "effective_capabilities": [
-      "actuators",
-      "discover",
-      "dtc_clear",
-      "dtc_read",
-      "eeprom_read",
-      "identify",
-      "live",
-      "memory_read"
-     ],
+     "notes": "California 1997-2001 (EV, Jackal, Stone, Special), Quota 1100 ES, V11 Sport and LeMans up to 2002. Open loop on most images; the TPS is set mechanically with a voltmeter. ScanST and GuzziDiag/IAWDiag establish motorcycle applicability and the existence of CO trim, but the deep search found no public diagnostic initialization, frame transcript, identifier table, DTC payload, or control request. The former sibling-KWP guesses have been withdrawn: physical use and every diagnostic capability are blocked rather than asking an owner to characterize the ECU.",
+     "capabilities": [],
+     "effective_capabilities": [],
      "sources": [
       "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
-      "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-      "ISO 14230-2 and ISO 14230-3"
+      "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)"
      ],
      "memory": {
       "image_size": null,
-      "read_supported": true,
+      "read_supported": false,
       "write_supported": false,
-      "write_blocked_reason": "Handled by IAW15xReader/Writer; no verified fixtures in this project.",
-      "security_access": true,
-      "regions": {
-       "flash": {
-        "start": 0,
-        "size": 0,
-        "block": 64,
-        "writable": false,
-        "expect_vector_table": true,
-        "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-       },
-       "eeprom": {
-        "start": 0,
-        "size": 0,
-        "block": 32,
-        "writable": false,
-        "note": "TPS zero, CO trim, fault memory. Geometry not captured."
-       }
-      },
-      "programming": {
-       "protocol": "iaw_transfer",
-       "confidence": "inferred",
-       "session": 133,
-       "security": {
-        "required": true,
-        "level": 1,
-        "seed_bytes": 4
-       },
-       "read": {
-        "block_subfn": 33
-       },
-       "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-      }
+      "write_blocked_reason": "A dedicated GuzziDiag-family reader/writer proves that a path exists, but no public source or raw family-specific transfer capture establishes the session, geometry, SecurityAccess, or block sequence.",
+      "regions": {}
      },
      "kline": {
-      "baud": 10400,
-      "init": "auto",
-      "address": 51,
-      "addressed": true,
-      "tester_address": 241,
-      "ecu_address": 16,
-      "inter_byte_delay": 0.005
+      "note": "K-Line hardware is established by compatible tooling, but baud rate, initialization, addressing, and application framing are not claimed without a family-specific public definition or capture."
      },
      "can": {},
-     "actuators": [
-      {
-       "key": "injector_front",
-       "name": "Injector, front cylinder",
-       "local_id": 8,
-       "max_pulse_s": 1.0,
-       "group": "fuelling",
-       "requires_engine_off": true,
-       "requires_engine_running": false,
-       "confidence": "inferred",
-       "warning": "Left/right assignment was wrong in older GuzziDiag builds - verify which cylinder actually clicks before trusting it."
-      },
-      {
-       "key": "injector_rear",
-       "name": "Injector, rear cylinder",
-       "local_id": 9,
-       "max_pulse_s": 1.0,
-       "group": "fuelling",
-       "requires_engine_off": true,
-       "requires_engine_running": false,
-       "confidence": "inferred",
-       "warning": "Left/right assignment was wrong in older GuzziDiag builds - verify which cylinder actually clicks before trusting it."
-      },
-      {
-       "key": "fuel_pump",
-       "name": "Fuel pump relay",
-       "local_id": 5,
-       "max_pulse_s": 3.0,
-       "group": "relay",
-       "requires_engine_off": true,
-       "requires_engine_running": false,
-       "confidence": "inferred",
-       "warning": "Pressurises the fuel rail. Check for leaks before and after."
-      }
-     ],
+     "session": {
+      "physical_supported": false,
+      "physical_blocked_reason": "Available compatibility records and closed binaries do not disclose a trustworthy family-specific diagnostic initialization or request definition."
+     },
+     "actuators": [],
      "routines": []
     },
     {
@@ -183,113 +92,32 @@
      "family": "IAW 15RC",
      "display_name": "Magneti Marelli IAW 15RC",
      "transport": "kline",
-     "confidence": "documented",
+     "confidence": "inferred",
      "years": "2002-2012",
-     "notes": "Closed-loop successor to the 15M: V7 Classic, Nevada 750, Breva 750, California from 2002, V11 CAT, Bellagio, California Vintage/Classic. Has a lambda sensor in the crossover, so a piggyback fuel module is trimmed back out by the closed loop below about 4000 rpm. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Lambda is reported in mV. Partial load, idle speed and rich multiplier are signed values. CO-Trim is only meaningful with lambda control switched off. A PF3C throttle body exposes raw throttle only, a PF1C corrected throttle only.",
-     "capabilities": [
-      "co_trim",
-      "discover",
-      "dtc_clear",
-      "dtc_read",
-      "eeprom_read",
-      "identify",
-      "live",
-      "memory_read",
-      "tps_reset"
-     ],
-     "effective_capabilities": [
-      "co_trim",
-      "discover",
-      "dtc_clear",
-      "dtc_read",
-      "eeprom_read",
-      "identify",
-      "live",
-      "memory_read",
-      "tps_reset"
-     ],
+     "notes": "Closed-loop successor used by V7 Classic, Nevada 750, Breva 750, later California and V11 CAT applications. GuzziDiag/IAWDiag changelogs establish that lambda data, signed trims, CO trim under limited conditions, and model-specific TPS handling exist, but do not publish request bytes, initialization, response widths, or scaling. The former generic KWP identification and routine guesses have been withdrawn: physical use and every diagnostic capability are blocked.",
+     "capabilities": [],
+     "effective_capabilities": [],
      "sources": [
       "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
-      "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-      "ISO 14230-2 and ISO 14230-3"
+      "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)"
      ],
      "memory": {
       "image_size": null,
-      "read_supported": true,
+      "read_supported": false,
       "write_supported": false,
-      "write_blocked_reason": "Handled by IAW15xReader/Writer; no verified fixtures in this project.",
-      "security_access": true,
-      "regions": {
-       "flash": {
-        "start": 0,
-        "size": 0,
-        "block": 64,
-        "writable": false,
-        "expect_vector_table": true,
-        "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-       },
-       "eeprom": {
-        "start": 0,
-        "size": 0,
-        "block": 32,
-        "writable": false,
-        "note": "TPS zero, CO trim, fault memory. Geometry not captured."
-       }
-      },
-      "programming": {
-       "protocol": "iaw_transfer",
-       "confidence": "inferred",
-       "session": 133,
-       "security": {
-        "required": true,
-        "level": 1,
-        "seed_bytes": 4
-       },
-       "read": {
-        "block_subfn": 33
-       },
-       "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-      }
+      "write_blocked_reason": "A dedicated GuzziDiag-family reader/writer proves that a path exists, but no public source or raw family-specific transfer capture establishes the session, geometry, SecurityAccess, or block sequence.",
+      "regions": {}
      },
      "kline": {
-      "baud": 10400,
-      "init": "auto",
-      "address": 51,
-      "addressed": true,
-      "tester_address": 241,
-      "ecu_address": 16,
-      "inter_byte_delay": 0.005
+      "note": "K-Line hardware is established by compatible tooling, but baud rate, initialization, addressing, and application framing are not claimed without a family-specific public definition or capture."
      },
      "can": {},
+     "session": {
+      "physical_supported": false,
+      "physical_blocked_reason": "Available compatibility records and closed binaries do not disclose a trustworthy family-specific diagnostic initialization or request definition."
+     },
      "actuators": [],
-     "routines": [
-      {
-       "key": "tps_reset",
-       "name": "Throttle position reset",
-       "service": 49,
-       "local_id": 33,
-       "description": "15RC throttle reset. GuzziDiag uses a family-specific byte (0x89) rather than the 5AM sequence, so this entry is unproven on the wire.",
-       "requires_engine_off": true,
-       "requires_engine_running": false,
-       "follow_up": "Confirm the throttle angle against the model target, then re-check idle.",
-       "reversible": false,
-       "confidence": "inferred",
-       "warning": "Do NOT reset the TPS electronically on a California 1100 or Bellagio - those must be set manually with a voltmeter. Target angle for V7 Classic / Nevada / Breva 750 is about 3.6 degrees."
-      },
-      {
-       "key": "co_trim",
-       "name": "CO trim",
-       "service": 48,
-       "local_id": 126,
-       "description": "Adjusts the base mixture trim. Only meaningful with the lambda loop switched off.",
-       "requires_engine_off": false,
-       "requires_engine_running": false,
-       "follow_up": "",
-       "reversible": true,
-       "confidence": "inferred",
-       "warning": "Changing CO trim with the lambda loop active achieves nothing - the ECU trims it straight back out."
-      }
-     ]
+     "routines": []
     },
     {
      "id": "16m",
@@ -298,44 +126,59 @@
      "transport": "kline",
      "confidence": "documented",
      "years": "1996-2001",
-     "notes": "Sport 1100, V10 Centauro, Daytona RS. Early generation - expect 5-baud slow init and a reduced service set. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: CO-Trim is impossible on the original firmware. The fault reported as 'unknown 03' is the right injector, and the two injector actuators are easily swapped.",
+     "notes": "Sport 1100, V10 Centauro and Daytona RS. This controller uses Marelli's pre-KWP echoed one-byte diagnostic protocol, not ISO 14230 frames. The physical initialization and register layout are corroborated by a field capture/open implementation for the IAW 1.6M family, the published Marelli 16F protocol, IAW Scan 2's independent 16F implementation, and ScanST's tested Moto Guzzi 16M support. Temperature conversion differs between the 16F publication (-40 C) and the recovered 1.6M implementation (-55 C), so the workstation deliberately exposes those channels as raw counts. Active-test bytes, clear-errors and reset bytes are known but intentionally unavailable: they are ECU-timed single-byte commands and do not fit the workstation's explicit on/off safety contract.",
      "capabilities": [
-      "discover",
-      "dtc_clear",
       "dtc_read",
       "identify",
       "live"
      ],
      "effective_capabilities": [
-      "discover",
-      "dtc_clear",
       "dtc_read",
       "identify",
       "live"
      ],
      "sources": [
-      "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
-      "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-      "ISO 14230-2 and ISO 14230-3"
+      "Marelli 3.00600 / 16F Technical Information (November 1997 production standard)",
+      "IAW Scan 2 source a5995eab86e82be60386e99b2eecc9c14810ec85: ECU/ecu.cs and ECU/iaw16f.cs",
+      "Weber Marelli 1.6M ECU Tools Open Source thread: field initialization capture and diagnostic jump table",
+      "ScanST documentation: tested Moto Guzzi 16M identification, parameters, faults and active diagnostics"
      ],
      "memory": {
       "image_size": null,
       "read_supported": false,
       "write_supported": false,
-      "write_blocked_reason": "No reader or writer exists for this family anywhere in the GuzziDiag toolchain, and no memory-access sequence has been captured. These are early-1990s ECUs whose maps generally live in a socketed EPROM, so the practical route is to pull the chip and use an EPROM programmer.",
-      "security_access": false,
+      "write_blocked_reason": "No validated in-circuit memory-access sequence is available for the Moto Guzzi 16M. Maps normally live in a socketed EPROM; use an EPROM programmer and preserve the original chip.",
       "regions": {}
      },
      "kline": {
-      "baud": 10400,
-      "init": "slow",
-      "address": 51,
-      "addressed": true,
-      "tester_address": 241,
-      "ecu_address": 16,
-      "inter_byte_delay": 0.005
+      "baud": 1200,
+      "comm_baud": 7680,
+      "init": "legacy-iaw-16m",
+      "wakeup_timeout": 8.0,
+      "inter_byte_delay": 0.0
      },
      "can": {},
+     "session": {
+      "protocol": "legacy-iaw",
+      "response_timeout": 0.5,
+      "inter_request_delay": 0.005,
+      "fault_registers": [
+       16,
+       17,
+       18,
+       20,
+       21,
+       22,
+       43,
+       44,
+       45,
+       46,
+       47,
+       48
+      ],
+      "physical_supported": true,
+      "physical_evidence_note": "Marelli 3.00600/16F family definition plus the published 1.6M implementation define the key-on initialization and byte-query transport."
+     },
      "actuators": [],
      "routines": []
     },
@@ -346,16 +189,9 @@
      "transport": "kline",
      "confidence": "unknown",
      "years": "2001-2009",
-     "notes": "Ducati's workhorse ECU of the 999/749/air-cooled-Monster era: 749 and 999 Superbikes, 998, the injected air-cooled Monsters (620 through 1000), Multistrada 1000/1100, SportClassic GT1000 / Paul Smart / Sport 1000, S2R, S4R and ST4S. The GuzziDiag and TuneECU ecosystems both speak to it. This entry is a placeholder built from those tools' compatibility lists: no identifier, session or memory sequence has been captured from a 59M here, so it is identification-only until one is. Identification, fault codes and the read-only discovery sweep are safe; everything else waits for a capture. If you own one of these bikes, a single recorded session upgrades the whole family. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: CO-Trim is supported. The tip-over sensor state uses the same encoding as 5AM.",
-     "capabilities": [
-      "identify",
-      "dtc_read",
-      "discover"
-     ],
-     "effective_capabilities": [
-      "identify",
-      "dtc_read"
-     ],
+     "notes": "Ducati 749/999, injected air-cooled Monsters, Multistrada, SportClassic, S2R/S4R and ST4S applications. GuzziDiag, TuneECU, and user documentation establish that tooling exists and mention slow initialization, but no primary family transcript, identifier table, or diagnostic payload definition was recovered. Compatibility is not a protocol definition: this remains an unknown zero-capability placeholder and physical use is blocked.",
+     "capabilities": [],
+     "effective_capabilities": [],
      "sources": [
       "Ducati.ms Model/ECU list (2009)",
       "GuzziTek ECU master list (2011)",
@@ -365,21 +201,17 @@
       "image_size": null,
       "read_supported": false,
       "write_supported": false,
-      "write_blocked_reason": "TuneECU reads and writes the 59M, but no memory-access sequence has been captured for this project. Reading a 59M is a bench session plus one capture away; until then this build refuses.",
-      "security_access": false,
+      "write_blocked_reason": "TuneECU compatibility establishes that a path exists, but no public memory-access sequence, geometry, or security definition was recovered; this build refuses the operation.",
       "regions": {}
      },
      "kline": {
-      "baud": 10400,
-      "init": "fast",
-      "address": 51,
-      "addressed": true,
-      "tester_address": 241,
-      "ecu_address": 16,
-      "inter_byte_delay": 0.005,
-      "note": "10400 baud is the Marelli standard of this era; fast vs slow init and the ECU address follow the sibling Marelli ECUs and are unconfirmed on a 59M."
+      "note": "K-Line hardware is established by compatible tooling, but baud rate, initialization, addressing, and application framing are not claimed without a family-specific public definition or capture."
      },
      "can": {},
+     "session": {
+      "physical_supported": false,
+      "physical_blocked_reason": "Compatibility evidence confirms tooling exists, but no family-specific initialization transcript or primary wire definition was recovered."
+     },
      "actuators": [],
      "routines": []
     },
@@ -393,6 +225,7 @@
      "notes": "Fitted to every CARC-framed Moto Guzzi (Breva 850/1100/1200, Griso, Norge, 1200 Sport, Stelvio). Parameter scalings below were decoded from a live K-Line capture of an IAW 5AM HW610 on a Moto Guzzi. 38 of the 79 answerable identifiers are served from shared zero slots and are marked dead. PF1C and PF2C throttle bodies support the electronic TPS reset; PF3C does not and must be set manually with a voltmeter. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Fast initialisation only. The service interval is reset from the dashboard, not over diagnostics, and the stepper test needs the engine running.",
      "capabilities": [
       "actuators",
+      "discover",
       "dtc_clear",
       "dtc_read",
       "eeprom_read",
@@ -404,6 +237,7 @@
      ],
      "effective_capabilities": [
       "actuators",
+      "discover",
       "dtc_clear",
       "dtc_read",
       "eeprom_read",
@@ -584,6 +418,15 @@
       "inter_byte_delay": 0.005
      },
      "can": {},
+     "session": {
+      "access_timing": true,
+      "diagnostic_session": 129,
+      "diagnostic_session_note": "Session 0x81. The 5AM rejects 0x85 with NRC 0x22 outside the programming flow.",
+      "lazy_session": true,
+      "tester_present_interval": 2.0,
+      "physical_supported": true,
+      "physical_evidence_note": "Validated by the project capture and transcript evidence documented in PROTOCOL_NOTES.md."
+     },
      "actuators": [
       {
        "key": "ac_relay",
@@ -807,30 +650,14 @@
      "family": "IAW 7SM",
      "display_name": "Magneti Marelli IAW 7SM",
      "transport": "kline",
-     "confidence": "documented",
+     "confidence": "inferred",
      "years": "2013-2021",
-     "notes": "California 1400, Audace, Eldorado, MGX-21 and the V85 TT. Ride-by-wire: there is no cable to the throttle bodies, so the handle (grip) and the throttle plates are learned as two separate routines and the order matters. The 7SM has no CO trim. Identification is confirmed to return Drawing / Hardware / Software / Omologation / Serial / Tester, and the session switches baud rate after init. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Front-wheel speed, throttle self-learning, exhaust-valve zero and self-learn, and a track-counter reset all exist on this family.",
+     "notes": "California 1400, Audace, Eldorado, MGX-21 and early V85 TT applications. A published diagnostic session log establishes K-Line initialization/session behaviour, the 1A 80 identification block (Drawing / Hardware / Software / Omologation / Serial / Tester), and a baud switch. Therefore identification alone is exposed. GuzziDiag/IAWDiag changelogs establish that separate handle/throttle learning and other service functions exist, but do not disclose complete payloads, timing, security, or preconditions; all inferred routine, DTC, live-data, discovery, and memory definitions have been removed.",
      "capabilities": [
-      "discover",
-      "dtc_clear",
-      "dtc_read",
-      "handle_learning",
-      "identify",
-      "live",
-      "memory_read",
-      "service_reset",
-      "throttle_learning"
+      "identify"
      ],
      "effective_capabilities": [
-      "discover",
-      "dtc_clear",
-      "dtc_read",
-      "handle_learning",
-      "identify",
-      "live",
-      "memory_read",
-      "service_reset",
-      "throttle_learning"
+      "identify"
      ],
      "sources": [
       "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
@@ -840,40 +667,10 @@
      ],
      "memory": {
       "image_size": null,
-      "read_supported": true,
+      "read_supported": false,
       "write_supported": false,
-      "write_blocked_reason": "7SM writing is the highest-risk operation in the Guzzi world. No verified key algorithm and no recovery path here.",
-      "security_access": true,
-      "hardware_note": "Pull the headlight fuse or use a battery charger - a read takes about 30 minutes. Set the FTDI latency timer to 1 ms; this is essential. Never run a 7SM write inside a virtual machine. NEVER flash an HW1xx image into an HW3xx ECU or the reverse: it bricks the ECU.",
-      "approx_read_minutes": 30,
-      "hardware_compatibility": {
-       "rule": "hw_family_must_match",
-       "detail": "HW1xx and HW3xx images are not interchangeable."
-      },
-      "regions": {
-       "flash": {
-        "start": 0,
-        "size": 0,
-        "block": 64,
-        "writable": false,
-        "expect_vector_table": true,
-        "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-       }
-      },
-      "programming": {
-       "protocol": "iaw_transfer",
-       "confidence": "inferred",
-       "session": 133,
-       "security": {
-        "required": true,
-        "level": 1,
-        "seed_bytes": 4
-       },
-       "read": {
-        "block_subfn": 33
-       },
-       "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-      }
+      "write_blocked_reason": "A dedicated GuzziDiag-family reader/writer proves that a path exists, but no public source or raw family-specific transfer capture establishes the session, geometry, SecurityAccess, or block sequence.",
+      "regions": {}
      },
      "kline": {
       "baud": 10400,
@@ -886,90 +683,50 @@
       "baud_switch_supported": true
      },
      "can": {},
+     "session": {
+      "access_timing": true,
+      "diagnostic_session": 129,
+      "lazy_session": true,
+      "tester_present_interval": 2.0,
+      "physical_supported": true,
+      "physical_evidence_note": "A published 7SM diagnostic session log establishes the K-Line session, identification exchange, and baud switch."
+     },
      "actuators": [],
-     "routines": [
-      {
-       "key": "handle_learning",
-       "name": "Handle (grip) self-learning",
-       "service": 49,
-       "local_id": 35,
-       "description": "Step 1 of 2 on ride-by-wire bikes. Learns the twistgrip sensor end stops. Ignition on, engine off, do not touch the grip while it runs.",
-       "requires_engine_off": true,
-       "requires_engine_running": false,
-       "follow_up": "Immediately run throttle self-learning. Leaving only the handle learned gives an inconsistent pair.",
-       "reversible": false,
-       "confidence": "inferred",
-       "warning": "Must be followed by throttle self-learning before the bike is ridden."
-      },
-      {
-       "key": "throttle_learning",
-       "name": "Throttle self-learning",
-       "service": 49,
-       "local_id": 36,
-       "description": "Step 2 of 2. Learns the motorised throttle plate end stops. Run immediately after handle self-learning.",
-       "requires_engine_off": true,
-       "requires_engine_running": false,
-       "follow_up": "Cycle the ignition, then verify the throttle tracks the grip smoothly before riding.",
-       "reversible": false,
-       "confidence": "inferred",
-       "warning": ""
-      },
-      {
-       "key": "service_reset",
-       "name": "Service interval reset",
-       "service": 49,
-       "local_id": 49,
-       "description": "Resets the maintenance counter.",
-       "requires_engine_off": true,
-       "requires_engine_running": false,
-       "follow_up": "",
-       "reversible": false,
-       "confidence": "inferred",
-       "warning": "On most Guzzi models the service reset is done from the dashboard, not the ECU."
-      }
-     ]
+     "routines": []
     },
     {
      "id": "mana_tcu",
      "family": "Aprilia Mana CVT TCU",
      "display_name": "Aprilia Mana 850 CVT transmission controller",
      "transport": "kline",
-     "confidence": "unknown",
+     "confidence": "inferred",
      "years": "2007-2016",
-     "notes": "The continuously-variable-transmission controller of the Aprilia Mana 850. The Mana's ENGINE controller is the shared Magneti Marelli IAW 5AM and is handled by the normal vehicle selection ('Mana 850' resolves to the 5AM, read-only as a cross-brand entry); this entry is the OTHER box on the same bike, the CVT TCU, the device ManaTCU_V1.03 exists for. Its existence and channel set are evidenced by that mirrored tool (vendor/guzzidiag/tools/ManaTCU_V1.03.exe, hash in vendor/guzzidiag/MANIFEST.json): K-line with fast init, a SecurityAccess seed/key exchange, EEPROM access, live channels (driving pulley potentiometer tracks 1 and 2 with voltages, gear mode switch) and actuators (pedal and handlebar gear up/downshift controls, driving pulley electrical motor). Nothing here has been captured on the wire by this project, so the identification layout is labelled unverified, and anything beyond identification, fault codes and the read-only discovery sweep refuses. Flashing, EEPROM engineering and clutch/gear learning stay with ManaTCU; if you can record one identification session against a real Mana TCU, this entry upgrades like any other family.",
-     "capabilities": [
-      "identify",
-      "dtc_read",
-      "discover"
-     ],
-     "effective_capabilities": [
-      "identify",
-      "dtc_read"
-     ],
+     "notes": "The Mana engine ECU is the shared IAW 5AM; this entry is the separate CVT controller. A published PADS K-Line capture proves KWP2000 physical addressing to target 0xEC from tester 0xF1 and records the two learning commands exactly: IOControl 30 02 08 (belt replacement) followed by 30 01 08 (pulley-potentiometer reset). ManaTCU V1.03 was built from those captures, includes SecurityAccess, and has been field tested. Identification, fault-request and live-data wire definitions were not published, so this workstation does not guess them. The two captured routines remain unavailable because they require security access plus motorcycle-specific conditions (engine running, rear wheel free, side stand up, ordered execution) that the current safety state cannot verify.",
+     "capabilities": [],
+     "effective_capabilities": [],
      "sources": [
-      "ManaTCU_V1.03.exe channel/actuator/security strings, mirrored unmodified in vendor/guzzidiag/tools/ (SHA-256 in vendor/guzzidiag/MANIFEST.json)",
-      "vehicle side established from the GuzziTek master list mapping of Mana 850 to the shared IAW 5AM"
+      "ApriliaForum Mana belt thread: PADS/K-Spy K-Line capture, 30 02 08 and 30 01 08 routine frames, field-test reports (September-October 2023)",
+      "ManaTCU V1.03 executable mirrored in vendor/guzzidiag/tools/ (SHA-256 in MANIFEST.json)",
+      "Aprilia Mana 850 service-station manual: TCU K-Line pinout, required learning procedures and DTC descriptions"
      ],
      "memory": {
       "image_size": null,
       "read_supported": false,
       "write_supported": false,
-      "write_blocked_reason": "ManaTCU_V1.03 reads and flashes this controller with a SecurityAccess seed/key exchange, but no memory-access sequence has been captured for this project and no key provider exists. Until one is, this build refuses; use ManaTCU for TCU memory work.",
-      "security_access": true,
-      "note": "SecurityAccess seed/key is present on this controller ('Send key failed' in the mirrored tool); the algorithm is unknown to this project.",
+      "write_blocked_reason": "ManaTCU V1.03 accesses this controller after a four-byte SecurityAccess exchange, but neither its key algorithm nor memory-transfer sequence is public in source form.",
       "regions": {}
      },
      "kline": {
-      "baud": 10400,
-      "init": "fast",
-      "address": 51,
-      "addressed": true,
       "tester_address": 241,
-      "ecu_address": 16,
-      "inter_byte_delay": 0.005,
-      "note": "10400 baud and fast init are the Marelli standard of this era and ManaTCU's strings confirm fast init on this controller; the ECU address follows the sibling boxes and is unconfirmed on the TCU."
+      "ecu_address": 236,
+      "note": "Captured traffic establishes tester 0xF1 and TCU 0xEC addressing. Baud rate and initialization are not claimed because the capture begins after session bring-up."
      },
      "can": {},
+     "session": {
+      "physical_supported": false,
+      "physical_blocked_reason": "The raw capture establishes physical addresses and two routine payloads, but not the complete initialization, session, security access, or safe read services.",
+      "note": "Captured KWP routine frames do not establish initialization, session selection, or security sequencing."
+     },
      "actuators": [],
      "routines": []
     },
@@ -978,96 +735,46 @@
      "family": "Marelli MIU G3",
      "display_name": "Magneti Marelli MIU G3",
      "transport": "kline",
-     "confidence": "documented",
+     "confidence": "inferred",
      "years": "2012-2016",
-     "notes": "Single-throttle-body V7 II, V9 and the 2012-on V7. Uses throttle self-learning rather than a TPS reset, and has no CO trim. Target throttle readings: 0.9-1.0 degrees for V7/V7 III/V9, 1.0-1.2 for V7 II. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: TPS-reset, a stepper test, corrected injection time and front-wheel speed all exist on this family.",
-     "capabilities": [
-      "discover",
-      "dtc_clear",
-      "dtc_read",
-      "eeprom_read",
-      "identify",
-      "live",
-      "memory_read",
-      "throttle_learning"
-     ],
-     "effective_capabilities": [
-      "discover",
-      "dtc_clear",
-      "dtc_read",
-      "eeprom_read",
-      "identify",
-      "live",
-      "memory_read",
-      "throttle_learning"
-     ],
+     "notes": "Single-throttle-body V7, V7 II and V9 applications. The official Piaggio MIU G3 technical-training presentation publishes the RLI, IOLI and RELI tables now recorded here. It does not publish payload widths, byte order, numeric scaling, K-Line initialization, addresses or identification layout. Therefore the known RLI channels are retained only as raw research definitions; physical use and all capabilities are unavailable. RELI 0x21 is explicitly TPS zero-position setting (not a generic throttle-learning guess) and is recorded as a documented operation, but profile-level uncertainty keeps it disabled. IOLI 0x7E adaptation reset and RELI 0x24 P0611 buffer transfer are documented but omitted because their command payload/preconditions are not published.",
+     "capabilities": [],
+     "effective_capabilities": [],
      "sources": [
-      "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
-      "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-      "ISO 14230-2 and ISO 14230-3"
+      "Piaggio Group / Moto Guzzi ECU MIU G3 Technical Training presentation: published RLI, IOLI and RELI tables",
+      "IAWDiag V0.52 and IAWMIUG3 Reader/Writer binaries: implementation existence only; no unpublished constants promoted",
+      "Moto Guzzi V7 II service-station manual: application, DTC descriptions and service conditions"
      ],
      "memory": {
       "image_size": null,
-      "read_supported": true,
+      "read_supported": false,
       "write_supported": false,
-      "write_blocked_reason": "Handled by IAWMIUG3Reader/Writer; no verified fixtures in this project.",
-      "security_access": true,
-      "regions": {
-       "flash": {
-        "start": 0,
-        "size": 0,
-        "block": 64,
-        "writable": false,
-        "expect_vector_table": true,
-        "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-       },
-       "eeprom": {
-        "start": 0,
-        "size": 0,
-        "block": 32,
-        "writable": false,
-        "note": "TPS zero, CO trim, fault memory. Geometry not captured."
-       }
-      },
-      "programming": {
-       "protocol": "iaw_transfer",
-       "confidence": "inferred",
-       "session": 133,
-       "security": {
-        "required": true,
-        "level": 1,
-        "seed_bytes": 4
-       },
-       "read": {
-        "block_subfn": 33
-       },
-       "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-      }
+      "write_blocked_reason": "IAWMIUG3Reader/Writer proves a path exists, but no public source, raw transfer capture, region geometry or verified key algorithm was found.",
+      "regions": {}
      },
      "kline": {
-      "baud": 10400,
-      "init": "fast",
-      "address": 51,
-      "addressed": true,
-      "tester_address": 241,
-      "ecu_address": 16,
-      "inter_byte_delay": 0.005
+      "note": "The OEM material establishes K-Line diagnosis and application identifier names, but not baud rate, initialization, addressing, framing, response widths, or scaling."
      },
      "can": {},
+     "session": {
+      "physical_supported": false,
+      "physical_blocked_reason": "The official training table defines application identifiers, but not the physical initialization, framing, response widths, or scaling.",
+      "note": "Closed tools implement the missing session details, but compatibility is not a publishable protocol definition."
+     },
      "actuators": [],
      "routines": [
       {
        "key": "throttle_learning",
-       "name": "Throttle self-learning",
+       "name": "TPS zero-position setting",
        "service": 49,
        "local_id": 33,
-       "description": "MIU G3 equivalent of the TPS reset. Ignition on, engine off.",
+       "description": "Official MIU G3 RELI 0x21. Sets the throttle-position zero reference.",
        "requires_engine_off": true,
        "requires_engine_running": false,
-       "follow_up": "Check the throttle angle lands in the model's target band (0.9-1.2 degrees), then re-check idle.",
+       "follow_up": "Verify the throttle reading against the service-manual target before starting the engine.",
        "reversible": false,
-       "confidence": "inferred",
-       "warning": ""
+       "confidence": "documented",
+       "warning": "Recorded from the OEM RELI table, but disabled until the enclosing K-Line/session definition is independently validated."
       }
      ]
     },
@@ -1076,39 +783,33 @@
      "family": "Marelli MIU G4",
      "display_name": "Magneti Marelli MIU G4 (CAN)",
      "transport": "can",
-     "confidence": "inferred",
+     "confidence": "unknown",
      "years": "2017-2021",
-     "notes": "V7 III 850 generation on CAN bus. Diagnostics move inside ISO-TP, so the application layer is unchanged but the framing is not. Request and response identifiers below are the ISO 15765-4 defaults and have not been confirmed on a Guzzi - verify with a passive sniff before trusting them. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Neither GuzziDiag nor IAWDiag covers this family, so there is no closed tool session to tap: identifiers here have to come from the CAN discovery path.",
-     "capabilities": [
-      "identify",
-      "dtc_read",
-      "discover"
-     ],
-     "effective_capabilities": [
-      "identify",
-      "dtc_read"
-     ],
+     "notes": "Moto Guzzi V7/V9 Euro 5 applications. The Moto Guzzi service manual and MIUG4 technical material prove CAN diagnostics and commercial tools prove identification, DTC, TPS/adaptation and memory functions exist. No public Moto Guzzi capture or definition file was found for the diagnostic CAN identifiers, ISO-TP addressing or UDS/KWP payloads. The old 0x7E0/0x7E8 plus K-Line-style 1A 80 definition was generic inference, not evidence. Physical CAN sessions are therefore blocked before sending a request.",
+     "capabilities": [],
+     "effective_capabilities": [],
      "sources": [
-      "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-      "ISO 15765-2 (ISO-TP)",
-      "ISO 14230-2 and ISO 14230-3"
+      "Moto Guzzi V7/V9 Euro 5 service-station manual 2Q000466: MIU G4 application and diagnostic-tool procedures",
+      "ASW-NEXT MIUG4 technical user manual: CAN connection and supported operations (no wire identifiers/payloads)",
+      "Diagcode Piaggio Group coverage: MIU G4 Euro 5 CAN operation existence only"
      ],
      "memory": {
       "image_size": null,
       "read_supported": false,
       "write_supported": false,
-      "write_blocked_reason": "Unverified transport; no write path exists.",
-      "security_access": true
+      "write_blocked_reason": "Unverified transport; no write path exists."
      },
      "kline": {},
      "can": {
       "interface": "socketcan",
       "channel": "can0",
-      "bitrate": 500000,
-      "tx_id": 2016,
-      "rx_id": 2024,
-      "padding": 170,
-      "note": "tx 0x7E0 / rx 0x7E8, unconfirmed on this vehicle family."
+      "note": "No bitrate, CAN identifiers, addressing mode, or padding is claimed without a family-specific capture."
+     },
+     "session": {
+      "protocol": "unknown-can-application",
+      "note": "ISO-TP physical transport alone does not establish UDS/KWP services or identifiers.",
+      "physical_supported": false,
+      "physical_blocked_reason": "ISO-TP transport, CAN identifiers, addressing, and diagnostic application payloads remain unvalidated."
      },
      "actuators": [],
      "routines": []
@@ -1120,38 +821,35 @@
      "transport": "kline",
      "confidence": "inferred",
      "years": "1993-1997",
-     "notes": "Daytona 1000, Quota 1000, California 1100 i.e., California III from 1993. Outside the 25-year window for most owners and only partially supported by the open tools. Read-only identification here. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: This family stores no faults at all - there is nothing to read and nothing to clear. 'Unknown 0B' is the CO trimmer value, 'unknown 12' and 'unknown 13' are one 16-bit integer, and 'unknown 14' is a flag byte.",
-     "capabilities": [
-      "discover",
-      "dtc_read",
-      "identify"
-     ],
-     "effective_capabilities": [
-      "dtc_read",
-      "identify"
-     ],
+     "notes": "Daytona 1000, Quota 1000 and early California injection applications. The previous KWP2000/1A 80 definition was unsupported and has been removed. Vendored IAW Scan 2 source proves that the automotive IAW-04K.P8 uses direct 7680-baud echoed one-byte requests, ISO bytes 0x30-0x35 and part-number bytes 0x36-0x3F. No Moto Guzzi P8 capture or primary definition ties that register map to motorcycle firmware, so no capability is exposed and physical use is blocked. The automotive layout remains only as provenance metadata.",
+     "capabilities": [],
+     "effective_capabilities": [],
      "sources": [
-      "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
-      "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)"
+      "IAW Scan 2 source a5995eab86e82be60386e99b2eecc9c14810ec85: ECU/ecu.cs and ECU/iaw04k.cs (automotive IAW-04K.P8; application to Moto Guzzi remains unconfirmed)",
+      "GuzziDiag / IAWDiag changelogs and feature list (family support only; not wire evidence)"
      ],
      "memory": {
       "image_size": null,
       "read_supported": false,
       "write_supported": false,
-      "write_blocked_reason": "No reader or writer exists for this family anywhere in the GuzziDiag toolchain, and no memory-access sequence has been captured. These are early-1990s ECUs whose maps generally live in a socketed EPROM, so the practical route is to pull the chip and use an EPROM programmer.",
-      "security_access": false,
+      "write_blocked_reason": "No validated in-circuit memory-access sequence is available for the Moto Guzzi P8. Maps normally live in a socketed EPROM; use an EPROM programmer and preserve the original chip.",
       "regions": {}
      },
      "kline": {
-      "baud": 10400,
-      "init": "slow",
-      "address": 51,
-      "addressed": true,
-      "tester_address": 241,
-      "ecu_address": 16,
-      "inter_byte_delay": 0.005
+      "baud": 7680,
+      "comm_baud": 7680,
+      "init": "legacy-iaw-direct",
+      "inter_byte_delay": 0.0
      },
      "can": {},
+     "session": {
+      "protocol": "legacy-iaw",
+      "response_timeout": 0.5,
+      "inter_request_delay": 0.005,
+      "fault_registers": [],
+      "physical_supported": false,
+      "physical_blocked_reason": "Automotive IAW-04K evidence defines the legacy direct protocol, but no Moto Guzzi P8 primary definition or capture was recovered."
+     },
      "actuators": [],
      "routines": []
     }
@@ -1210,7 +908,7 @@
       "ecu": "16m",
       "displacement": "748",
       "tps": "",
-      "notes": "All 748 versions (E, Biposto, S, R, SP, SPS) ran the 16M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "All 748 versions (E, Biposto, S, R, SP, SPS) ran the 16M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "748 (1995-2002)",
       "can": {}
@@ -1228,7 +926,7 @@
       "ecu": "59m",
       "displacement": "749",
       "tps": "",
-      "notes": "All 749 versions. ECU family newly modelled here - identification only.",
+      "notes": "All 749 versions. ECU family newly modelled here - fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "749 (2003-2006)",
       "can": {}
@@ -1246,7 +944,7 @@
       "ecu": "15m",
       "displacement": "748",
       "tps": "",
-      "notes": "750SS ie. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "750SS ie. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "750 SS (1999-2002)",
       "can": {}
@@ -1264,7 +962,7 @@
       "ecu": "p8",
       "displacement": "888",
       "tps": "",
-      "notes": "Later 888s (from chassis s/n 000509) carry the P8, like the Guzzi Daytona 1000. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "Later 888s (from chassis s/n 000509) carry the P8, like the Guzzi Daytona 1000. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "888 (1993-1994)",
       "can": {}
@@ -1282,7 +980,7 @@
       "ecu": "15m",
       "displacement": "904",
       "tps": "",
-      "notes": "900SS ie. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "900SS ie. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "900 SS (1998-2002)",
       "can": {}
@@ -1300,7 +998,7 @@
       "ecu": "p8",
       "displacement": "916",
       "tps": "",
-      "notes": "916 Strada / SP / SPS ran the P8; the later Biposto/Senna cars moved to the 16M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "916 Strada / SP / SPS ran the P8; the later Biposto/Senna cars moved to the 16M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "916 (1994-1996)",
       "can": {}
@@ -1313,7 +1011,7 @@
       "ecu": "16m",
       "displacement": "916",
       "tps": "",
-      "notes": "Biposto / Monoposto / Senna versions moved to the 16M - the same ECU as the Guzzi V11 Sport. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "Biposto / Monoposto / Senna versions moved to the 16M - the same ECU as the Guzzi V11 Sport. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "916 (1997-1998)",
       "can": {}
@@ -1331,7 +1029,7 @@
       "ecu": "16m",
       "displacement": "996",
       "tps": "",
-      "notes": "996 and 996 S ran the 16M; the SPS kept the P8. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "996 and 996 S ran the 16M; the SPS kept the P8. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "996 (1996-2001)",
       "can": {}
@@ -1349,7 +1047,7 @@
       "ecu": "59m",
       "displacement": "998",
       "tps": "",
-      "notes": "998 / 998S / 998R (Testastretta). ECU family newly modelled here - identification only.",
+      "notes": "998 / 998S / 998R (Testastretta). ECU family newly modelled here - fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "998 (2002-2004)",
       "can": {}
@@ -1367,7 +1065,7 @@
       "ecu": "59m",
       "displacement": "999",
       "tps": "",
-      "notes": "999 / 999S (2003-2005 shape). ECU family newly modelled here - identification only.",
+      "notes": "999 / 999S (2003-2005 shape). ECU family newly modelled here - fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "999 (2003-2006)",
       "can": {}
@@ -1820,7 +1518,7 @@
       "ecu": "p8",
       "displacement": "992",
       "tps": "PF09",
-      "notes": "Pre-OBD Marelli P8. Identification only.",
+      "notes": "Pre-OBD Marelli P8. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Daytona 1000 (1992-1997)",
       "can": {}
@@ -1856,7 +1554,7 @@
       "ecu": "16m",
       "displacement": "998",
       "tps": "",
-      "notes": "Adventure twin; TuneECU lists full map support. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "Adventure twin; TuneECU lists full map support. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "ETV Caponord 1000 (2001-2007)",
       "can": {}
@@ -1892,7 +1590,7 @@
       "ecu": "59m",
       "displacement": "992",
       "tps": "",
-      "notes": "SportClassic GT 1000 Touring. Identification only.",
+      "notes": "SportClassic GT 1000 Touring. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "GT 1000 (2006-2009)",
       "can": {}
@@ -1964,7 +1662,7 @@
       "ecu": "5am",
       "displacement": "1078",
       "tps": "",
-      "notes": "Hypermotard 1100 / 1100 S / SP. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "Hypermotard 1100 / 1100 S / SP. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "Hypermotard 1100 (2007-2012)",
       "can": {}
@@ -2000,7 +1698,7 @@
       "ecu": "5am",
       "displacement": "839",
       "tps": "",
-      "notes": "GuzziTek master list maps the Mana 850 to the 5AM. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed. The Mana also carries a CVT transmission controller: selectable directly as ECU 'mana_tcu' (identification and read-only discovery only; TCU flashing and gear/clutch learning stay with ManaTCU).",
+      "notes": "GuzziTek master list maps the Mana 850 to the 5AM. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled. The Mana also carries a CVT transmission controller selectable as ECU 'mana_tcu'; captured routine bytes are recorded for provenance, but every physical TCU operation remains blocked because session, security, and safety preconditions are incomplete.",
       "confidence": "inferred",
       "label": "Mana 850 (2008-2012)",
       "can": {}
@@ -2018,7 +1716,7 @@
       "ecu": "59m",
       "displacement": "992",
       "tps": "",
-      "notes": "Monster 1000 / 1000 S ie (dual spark). Identification only.",
+      "notes": "Monster 1000 / 1000 S ie (dual spark). Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Monster 1000 S (2003-2006)",
       "can": {}
@@ -2036,7 +1734,7 @@
       "ecu": "59m",
       "displacement": "618",
       "tps": "",
-      "notes": "Injected air-cooled Monsters of this era all carry the 59M. Identification only.",
+      "notes": "Injected air-cooled Monsters of this era all carry the 59M. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Monster 620 (2002-2006)",
       "can": {}
@@ -2054,7 +1752,7 @@
       "ecu": "59m",
       "displacement": "803",
       "tps": "",
-      "notes": "Identification only.",
+      "notes": "Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Monster 800 (2003-2006)",
       "can": {}
@@ -2072,7 +1770,7 @@
       "ecu": "15m",
       "displacement": "904",
       "tps": "",
-      "notes": "Monster 900 ie; 2002-on models moved to the 59M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "Monster 900 ie; 2002-on models moved to the 59M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "Monster 900 (1998-2001)",
       "can": {}
@@ -2090,7 +1788,7 @@
       "ecu": "59m",
       "displacement": "803",
       "tps": "",
-      "notes": "S2R 800; the S2R 1000 shares the family. Identification only.",
+      "notes": "S2R 800; the S2R 1000 shares the family. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Monster S2R (2004-2007)",
       "can": {}
@@ -2108,7 +1806,7 @@
       "ecu": "59m",
       "displacement": "996",
       "tps": "",
-      "notes": "S4R Testastretta. Identification only.",
+      "notes": "S4R Testastretta. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Monster S4R (2003-2006)",
       "can": {}
@@ -2126,7 +1824,7 @@
       "ecu": "59m",
       "displacement": "992",
       "tps": "",
-      "notes": "Multistrada 1000 DS. Identification only.",
+      "notes": "Multistrada 1000 DS. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Multistrada 1000 DS (2003-2006)",
       "can": {}
@@ -2252,7 +1950,7 @@
       "ecu": "59m",
       "displacement": "992",
       "tps": "",
-      "notes": "SportClassic Paul Smart replica. Identification only.",
+      "notes": "SportClassic Paul Smart replica. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Paul Smart 1000 LE (2006-2008)",
       "can": {}
@@ -2270,7 +1968,7 @@
       "ecu": "p8",
       "displacement": "992",
       "tps": "PF09",
-      "notes": "Pre-OBD Marelli P8. Identification only.",
+      "notes": "Pre-OBD Marelli P8. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Quota 1000 (1992-1997)",
       "can": {}
@@ -2306,7 +2004,7 @@
       "ecu": "16m",
       "displacement": "998",
       "tps": "",
-      "notes": "Sport-tourer. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "Sport-tourer. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "RST Futura 1000 (2001-2004)",
       "can": {}
@@ -2324,7 +2022,7 @@
       "ecu": "16m",
       "displacement": "998",
       "tps": "",
-      "notes": "The Rotax-twin Aprilias run the same IAW 16M as the Guzzi V11 family - GuzziDiag and TuneECU both cover them. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "The Rotax-twin Aprilias run the same IAW 16M as the Guzzi V11 family - GuzziDiag and TuneECU both cover them. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "RSV Mille (1998-2003)",
       "can": {}
@@ -2342,7 +2040,7 @@
       "ecu": "16m",
       "displacement": "998",
       "tps": "",
-      "notes": "ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "RSV Mille R (1999-2003)",
       "can": {}
@@ -2360,7 +2058,7 @@
       "ecu": "7sm",
       "displacement": "999",
       "tps": "",
-      "notes": "GuzziTek master list maps the 2009-2011 RSV4 Factory to the 7SM - the same ECU family as the Guzzi California 1400. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "GuzziTek master list maps the 2009-2011 RSV4 Factory to the 7SM - the same ECU family as the Guzzi California 1400. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "RSV4 Factory (2009-2011)",
       "can": {}
@@ -2378,7 +2076,7 @@
       "ecu": "16m",
       "displacement": "998",
       "tps": "",
-      "notes": "ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "SL Falco 1000 (2000-2003)",
       "can": {}
@@ -2396,7 +2094,7 @@
       "ecu": "16m",
       "displacement": "944",
       "tps": "",
-      "notes": "One injector per cylinder: 16M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "One injector per cylinder: 16M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "ST2 (1997-2003)",
       "can": {}
@@ -2414,7 +2112,7 @@
       "ecu": "5am",
       "displacement": "992",
       "tps": "",
-      "notes": "ST3 / ST3 ABS. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "ST3 / ST3 ABS. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "ST3 (2004-2007)",
       "can": {}
@@ -2432,7 +2130,7 @@
       "ecu": "16m",
       "displacement": "916",
       "tps": "",
-      "notes": "ST4 (916 engine): 16M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "ST4 (916 engine): 16M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "ST4 (1999-2002)",
       "can": {}
@@ -2450,7 +2148,7 @@
       "ecu": "59m",
       "displacement": "996",
       "tps": "",
-      "notes": "ST4S. Identification only.",
+      "notes": "ST4S. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "ST4 S (2002-2004)",
       "can": {}
@@ -2468,7 +2166,7 @@
       "ecu": "59m",
       "displacement": "992",
       "tps": "",
-      "notes": "SportClassic Sport 1000 (early cars: 59M; later: 5AM running change). Identification only.",
+      "notes": "SportClassic Sport 1000 (early cars: 59M; later: 5AM running change). Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Sport 1000 (2006-2009)",
       "can": {}
@@ -2558,7 +2256,7 @@
       "ecu": "5am",
       "displacement": "1099",
       "tps": "",
-      "notes": "Streetfighter / Streetfighter S. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "Streetfighter / Streetfighter S. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "Streetfighter (2009-2011)",
       "can": {}
@@ -2576,7 +2274,7 @@
       "ecu": "5am",
       "displacement": "1099",
       "tps": "",
-      "notes": "1098 / 1098 S. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "1098 / 1098 S. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "Superbike 1098 (2007-2008)",
       "can": {}
@@ -2594,7 +2292,7 @@
       "ecu": "5am",
       "displacement": "1198",
       "tps": "",
-      "notes": "1198 / 1198 S / 1198 SP. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "1198 / 1198 S / 1198 SP. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "Superbike 1198 (2009-2011)",
       "can": {}
@@ -2612,7 +2310,7 @@
       "ecu": "5am",
       "displacement": "849",
       "tps": "",
-      "notes": "The 848/1098/1198 Superbikes run the 5AM - the same ECU family as the Guzzi CARC bikes. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "The 848/1098/1198 Superbikes run the 5AM - the same ECU family as the Guzzi CARC bikes. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "Superbike 848 (2008-2010)",
       "can": {}
@@ -2630,7 +2328,7 @@
       "ecu": "16m",
       "displacement": "998",
       "tps": "",
-      "notes": "First-generation Tuono. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+      "notes": "First-generation Tuono. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "Tuono 1000 (2002-2005)",
       "can": {}
@@ -4082,38 +3780,33 @@
     "family": "Marelli 11MP",
     "display_name": "Magneti Marelli 11MP (CAN)",
     "transport": "can",
-    "confidence": "inferred",
+    "confidence": "unknown",
     "years": "2019-2026",
-    "notes": "Later V85 TT and the V100 Mandello generation, on CAN. Euro5/Euro5+ bikes in this family are likely to require UDS-style security access for anything beyond reading. Everything here is unconfirmed; the workstation stays read-only on this family. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Neither GuzziDiag nor IAWDiag covers this family, so there is no closed tool session to tap: identifiers here have to come from the CAN discovery path.",
-    "capabilities": [
-     "identify",
-     "dtc_read",
-     "discover"
-    ],
-    "effective_capabilities": [
-     "identify",
-     "dtc_read"
-    ],
+    "notes": "Moto Guzzi V85 TT Euro 5, V100 and later applications. OEM/service and commercial material proves this is a CAN diagnostic controller and lists identification, DTC, learning and stored-data functions. No public Moto Guzzi 11MP CAN capture, ODX/PDX definition, CAN identifier pair, DID table or routine IDs were found. The old 0x7E0/0x7E8 plus K-Line-style 1A 80 definition was unsupported. Physical CAN sessions are blocked before sending a request.",
+    "capabilities": [],
+    "effective_capabilities": [],
     "sources": [
-     "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-     "ISO 15765-2 (ISO-TP)"
+     "Moto Guzzi Euro 5 service-station manuals: IAW 11MP application and diagnostic-tool procedures",
+     "Diagcode Piaggio Group 11MP coverage: operation existence only; no wire definitions",
+     "GuzziDiag/GuzziCANDiag public download site: no 11MP diagnostic definition or capture published"
     ],
     "memory": {
      "image_size": null,
      "read_supported": false,
      "write_supported": false,
-     "write_blocked_reason": "Unverified transport; no write path exists.",
-     "security_access": true
+     "write_blocked_reason": "Unverified transport; no write path exists."
     },
     "kline": {},
     "can": {
      "interface": "socketcan",
      "channel": "can0",
-     "bitrate": 500000,
-     "tx_id": 2016,
-     "rx_id": 2024,
-     "padding": 170,
-     "note": "tx 0x7E0 / rx 0x7E8, unconfirmed on this vehicle family."
+     "note": "No bitrate, CAN identifiers, addressing mode, or padding is claimed without a family-specific capture."
+    },
+    "session": {
+     "protocol": "unknown-can-application",
+     "note": "ISO-TP physical transport alone does not establish UDS/KWP services or identifiers.",
+     "physical_supported": false,
+     "physical_blocked_reason": "ISO-TP transport, CAN identifiers, addressing, and diagnostic application payloads remain unvalidated."
     },
     "actuators": [],
     "routines": [],
@@ -4124,117 +3817,31 @@
     "family": "IAW 15M",
     "display_name": "Magneti Marelli IAW 15M",
     "transport": "kline",
-    "confidence": "documented",
+    "confidence": "inferred",
     "years": "1997-2002",
-    "notes": "California 1997-2001 (EV, Jackal, Stone, Special), Quota 1100 ES, V11 Sport and LeMans up to 2002. Open loop - no lambda sensor on most images, so there is no closed-loop trim to read. The TPS is set mechanically with a voltmeter; there is no electronic reset. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: CO-Trim is supported on this family alone, and only once the engine is above 80 °C.",
-    "capabilities": [
-     "actuators",
-     "discover",
-     "dtc_clear",
-     "dtc_read",
-     "eeprom_read",
-     "identify",
-     "live",
-     "memory_read"
-    ],
-    "effective_capabilities": [
-     "actuators",
-     "discover",
-     "dtc_clear",
-     "dtc_read",
-     "eeprom_read",
-     "identify",
-     "live",
-     "memory_read"
-    ],
+    "notes": "California 1997-2001 (EV, Jackal, Stone, Special), Quota 1100 ES, V11 Sport and LeMans up to 2002. Open loop on most images; the TPS is set mechanically with a voltmeter. ScanST and GuzziDiag/IAWDiag establish motorcycle applicability and the existence of CO trim, but the deep search found no public diagnostic initialization, frame transcript, identifier table, DTC payload, or control request. The former sibling-KWP guesses have been withdrawn: physical use and every diagnostic capability are blocked rather than asking an owner to characterize the ECU.",
+    "capabilities": [],
+    "effective_capabilities": [],
     "sources": [
      "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
-     "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-     "ISO 14230-2 and ISO 14230-3"
+     "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)"
     ],
     "memory": {
      "image_size": null,
-     "read_supported": true,
+     "read_supported": false,
      "write_supported": false,
-     "write_blocked_reason": "Handled by IAW15xReader/Writer; no verified fixtures in this project.",
-     "security_access": true,
-     "regions": {
-      "flash": {
-       "start": 0,
-       "size": 0,
-       "block": 64,
-       "writable": false,
-       "expect_vector_table": true,
-       "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-      },
-      "eeprom": {
-       "start": 0,
-       "size": 0,
-       "block": 32,
-       "writable": false,
-       "note": "TPS zero, CO trim, fault memory. Geometry not captured."
-      }
-     },
-     "programming": {
-      "protocol": "iaw_transfer",
-      "confidence": "inferred",
-      "session": 133,
-      "security": {
-       "required": true,
-       "level": 1,
-       "seed_bytes": 4
-      },
-      "read": {
-       "block_subfn": 33
-      },
-      "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-     }
+     "write_blocked_reason": "A dedicated GuzziDiag-family reader/writer proves that a path exists, but no public source or raw family-specific transfer capture establishes the session, geometry, SecurityAccess, or block sequence.",
+     "regions": {}
     },
     "kline": {
-     "baud": 10400,
-     "init": "auto",
-     "address": 51,
-     "addressed": true,
-     "tester_address": 241,
-     "ecu_address": 16,
-     "inter_byte_delay": 0.005
+     "note": "K-Line hardware is established by compatible tooling, but baud rate, initialization, addressing, and application framing are not claimed without a family-specific public definition or capture."
     },
     "can": {},
-    "actuators": [
-     {
-      "key": "injector_front",
-      "name": "Injector, front cylinder",
-      "local_id": 8,
-      "max_pulse_s": 1.0,
-      "group": "fuelling",
-      "requires_engine_off": true,
-      "requires_engine_running": false,
-      "confidence": "inferred",
-      "warning": "Left/right assignment was wrong in older GuzziDiag builds - verify which cylinder actually clicks before trusting it."
-     },
-     {
-      "key": "injector_rear",
-      "name": "Injector, rear cylinder",
-      "local_id": 9,
-      "max_pulse_s": 1.0,
-      "group": "fuelling",
-      "requires_engine_off": true,
-      "requires_engine_running": false,
-      "confidence": "inferred",
-      "warning": "Left/right assignment was wrong in older GuzziDiag builds - verify which cylinder actually clicks before trusting it."
-     },
-     {
-      "key": "fuel_pump",
-      "name": "Fuel pump relay",
-      "local_id": 5,
-      "max_pulse_s": 3.0,
-      "group": "relay",
-      "requires_engine_off": true,
-      "requires_engine_running": false,
-      "confidence": "inferred",
-      "warning": "Pressurises the fuel rail. Check for leaks before and after."
-     }
-    ],
+    "session": {
+     "physical_supported": false,
+     "physical_blocked_reason": "Available compatibility records and closed binaries do not disclose a trustworthy family-specific diagnostic initialization or request definition."
+    },
+    "actuators": [],
     "routines": [],
     "parameters": []
    },
@@ -4243,113 +3850,32 @@
     "family": "IAW 15RC",
     "display_name": "Magneti Marelli IAW 15RC",
     "transport": "kline",
-    "confidence": "documented",
+    "confidence": "inferred",
     "years": "2002-2012",
-    "notes": "Closed-loop successor to the 15M: V7 Classic, Nevada 750, Breva 750, California from 2002, V11 CAT, Bellagio, California Vintage/Classic. Has a lambda sensor in the crossover, so a piggyback fuel module is trimmed back out by the closed loop below about 4000 rpm. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Lambda is reported in mV. Partial load, idle speed and rich multiplier are signed values. CO-Trim is only meaningful with lambda control switched off. A PF3C throttle body exposes raw throttle only, a PF1C corrected throttle only.",
-    "capabilities": [
-     "co_trim",
-     "discover",
-     "dtc_clear",
-     "dtc_read",
-     "eeprom_read",
-     "identify",
-     "live",
-     "memory_read",
-     "tps_reset"
-    ],
-    "effective_capabilities": [
-     "co_trim",
-     "discover",
-     "dtc_clear",
-     "dtc_read",
-     "eeprom_read",
-     "identify",
-     "live",
-     "memory_read",
-     "tps_reset"
-    ],
+    "notes": "Closed-loop successor used by V7 Classic, Nevada 750, Breva 750, later California and V11 CAT applications. GuzziDiag/IAWDiag changelogs establish that lambda data, signed trims, CO trim under limited conditions, and model-specific TPS handling exist, but do not publish request bytes, initialization, response widths, or scaling. The former generic KWP identification and routine guesses have been withdrawn: physical use and every diagnostic capability are blocked.",
+    "capabilities": [],
+    "effective_capabilities": [],
     "sources": [
      "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
-     "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-     "ISO 14230-2 and ISO 14230-3"
+     "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)"
     ],
     "memory": {
      "image_size": null,
-     "read_supported": true,
+     "read_supported": false,
      "write_supported": false,
-     "write_blocked_reason": "Handled by IAW15xReader/Writer; no verified fixtures in this project.",
-     "security_access": true,
-     "regions": {
-      "flash": {
-       "start": 0,
-       "size": 0,
-       "block": 64,
-       "writable": false,
-       "expect_vector_table": true,
-       "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-      },
-      "eeprom": {
-       "start": 0,
-       "size": 0,
-       "block": 32,
-       "writable": false,
-       "note": "TPS zero, CO trim, fault memory. Geometry not captured."
-      }
-     },
-     "programming": {
-      "protocol": "iaw_transfer",
-      "confidence": "inferred",
-      "session": 133,
-      "security": {
-       "required": true,
-       "level": 1,
-       "seed_bytes": 4
-      },
-      "read": {
-       "block_subfn": 33
-      },
-      "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-     }
+     "write_blocked_reason": "A dedicated GuzziDiag-family reader/writer proves that a path exists, but no public source or raw family-specific transfer capture establishes the session, geometry, SecurityAccess, or block sequence.",
+     "regions": {}
     },
     "kline": {
-     "baud": 10400,
-     "init": "auto",
-     "address": 51,
-     "addressed": true,
-     "tester_address": 241,
-     "ecu_address": 16,
-     "inter_byte_delay": 0.005
+     "note": "K-Line hardware is established by compatible tooling, but baud rate, initialization, addressing, and application framing are not claimed without a family-specific public definition or capture."
     },
     "can": {},
+    "session": {
+     "physical_supported": false,
+     "physical_blocked_reason": "Available compatibility records and closed binaries do not disclose a trustworthy family-specific diagnostic initialization or request definition."
+    },
     "actuators": [],
-    "routines": [
-     {
-      "key": "tps_reset",
-      "name": "Throttle position reset",
-      "service": 49,
-      "local_id": 33,
-      "description": "15RC throttle reset. GuzziDiag uses a family-specific byte (0x89) rather than the 5AM sequence, so this entry is unproven on the wire.",
-      "requires_engine_off": true,
-      "requires_engine_running": false,
-      "follow_up": "Confirm the throttle angle against the model target, then re-check idle.",
-      "reversible": false,
-      "confidence": "inferred",
-      "warning": "Do NOT reset the TPS electronically on a California 1100 or Bellagio - those must be set manually with a voltmeter. Target angle for V7 Classic / Nevada / Breva 750 is about 3.6 degrees."
-     },
-     {
-      "key": "co_trim",
-      "name": "CO trim",
-      "service": 48,
-      "local_id": 126,
-      "description": "Adjusts the base mixture trim. Only meaningful with the lambda loop switched off.",
-      "requires_engine_off": false,
-      "requires_engine_running": false,
-      "follow_up": "",
-      "reversible": true,
-      "confidence": "inferred",
-      "warning": "Changing CO trim with the lambda loop active achieves nothing - the ECU trims it straight back out."
-     }
-    ],
+    "routines": [],
     "parameters": []
    },
    {
@@ -4359,47 +3885,195 @@
     "transport": "kline",
     "confidence": "documented",
     "years": "1996-2001",
-    "notes": "Sport 1100, V10 Centauro, Daytona RS. Early generation - expect 5-baud slow init and a reduced service set. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: CO-Trim is impossible on the original firmware. The fault reported as 'unknown 03' is the right injector, and the two injector actuators are easily swapped.",
+    "notes": "Sport 1100, V10 Centauro and Daytona RS. This controller uses Marelli's pre-KWP echoed one-byte diagnostic protocol, not ISO 14230 frames. The physical initialization and register layout are corroborated by a field capture/open implementation for the IAW 1.6M family, the published Marelli 16F protocol, IAW Scan 2's independent 16F implementation, and ScanST's tested Moto Guzzi 16M support. Temperature conversion differs between the 16F publication (-40 C) and the recovered 1.6M implementation (-55 C), so the workstation deliberately exposes those channels as raw counts. Active-test bytes, clear-errors and reset bytes are known but intentionally unavailable: they are ECU-timed single-byte commands and do not fit the workstation's explicit on/off safety contract.",
     "capabilities": [
-     "discover",
-     "dtc_clear",
      "dtc_read",
      "identify",
      "live"
     ],
     "effective_capabilities": [
-     "discover",
-     "dtc_clear",
      "dtc_read",
      "identify",
      "live"
     ],
     "sources": [
-     "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
-     "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-     "ISO 14230-2 and ISO 14230-3"
+     "Marelli 3.00600 / 16F Technical Information (November 1997 production standard)",
+     "IAW Scan 2 source a5995eab86e82be60386e99b2eecc9c14810ec85: ECU/ecu.cs and ECU/iaw16f.cs",
+     "Weber Marelli 1.6M ECU Tools Open Source thread: field initialization capture and diagnostic jump table",
+     "ScanST documentation: tested Moto Guzzi 16M identification, parameters, faults and active diagnostics"
     ],
     "memory": {
      "image_size": null,
      "read_supported": false,
      "write_supported": false,
-     "write_blocked_reason": "No reader or writer exists for this family anywhere in the GuzziDiag toolchain, and no memory-access sequence has been captured. These are early-1990s ECUs whose maps generally live in a socketed EPROM, so the practical route is to pull the chip and use an EPROM programmer.",
-     "security_access": false,
+     "write_blocked_reason": "No validated in-circuit memory-access sequence is available for the Moto Guzzi 16M. Maps normally live in a socketed EPROM; use an EPROM programmer and preserve the original chip.",
      "regions": {}
     },
     "kline": {
-     "baud": 10400,
-     "init": "slow",
-     "address": 51,
-     "addressed": true,
-     "tester_address": 241,
-     "ecu_address": 16,
-     "inter_byte_delay": 0.005
+     "baud": 1200,
+     "comm_baud": 7680,
+     "init": "legacy-iaw-16m",
+     "wakeup_timeout": 8.0,
+     "inter_byte_delay": 0.0
     },
     "can": {},
+    "session": {
+     "protocol": "legacy-iaw",
+     "response_timeout": 0.5,
+     "inter_request_delay": 0.005,
+     "fault_registers": [
+      16,
+      17,
+      18,
+      20,
+      21,
+      22,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48
+     ],
+     "physical_supported": true,
+     "physical_evidence_note": "Marelli 3.00600/16F family definition plus the published 1.6M implementation define the key-on initialization and byte-query transport."
+    },
     "actuators": [],
     "routines": [],
-    "parameters": []
+    "parameters": [
+     {
+      "key": "rpm",
+      "name": "Engine speed",
+      "local_id": 1,
+      "request_ids": [
+       1,
+       2
+      ],
+      "unit": "rpm",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "injection_ms",
+      "name": "Injection duration",
+      "local_id": 3,
+      "request_ids": [
+       3,
+       4
+      ],
+      "unit": "ms",
+      "group": "fuel",
+      "digits": 2,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "advance",
+      "name": "Ignition advance",
+      "local_id": 5,
+      "request_ids": [],
+      "unit": "deg",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "manifold_pressure",
+      "name": "Manifold absolute pressure",
+      "local_id": 6,
+      "request_ids": [],
+      "unit": "mmHg",
+      "group": "air",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "air_temp_raw",
+      "name": "Air temperature sensor (raw)",
+      "local_id": 7,
+      "request_ids": [],
+      "unit": "count",
+      "group": "temperature",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "coolant_temp_raw",
+      "name": "Engine temperature sensor (raw)",
+      "local_id": 8,
+      "request_ids": [],
+      "unit": "count",
+      "group": "temperature",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "throttle_raw",
+      "name": "Throttle position (raw)",
+      "local_id": 9,
+      "request_ids": [],
+      "unit": "count",
+      "group": "air",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "battery",
+      "name": "Battery voltage",
+      "local_id": 10,
+      "request_ids": [],
+      "unit": "V",
+      "group": "electrical",
+      "digits": 2,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "fuel_trim_raw",
+      "name": "Fuel trim (raw)",
+      "local_id": 34,
+      "request_ids": [],
+      "unit": "count",
+      "group": "fuel",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     }
+    ]
    },
    {
     "id": "59m",
@@ -4408,16 +4082,9 @@
     "transport": "kline",
     "confidence": "unknown",
     "years": "2001-2009",
-    "notes": "Ducati's workhorse ECU of the 999/749/air-cooled-Monster era: 749 and 999 Superbikes, 998, the injected air-cooled Monsters (620 through 1000), Multistrada 1000/1100, SportClassic GT1000 / Paul Smart / Sport 1000, S2R, S4R and ST4S. The GuzziDiag and TuneECU ecosystems both speak to it. This entry is a placeholder built from those tools' compatibility lists: no identifier, session or memory sequence has been captured from a 59M here, so it is identification-only until one is. Identification, fault codes and the read-only discovery sweep are safe; everything else waits for a capture. If you own one of these bikes, a single recorded session upgrades the whole family. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: CO-Trim is supported. The tip-over sensor state uses the same encoding as 5AM.",
-    "capabilities": [
-     "identify",
-     "dtc_read",
-     "discover"
-    ],
-    "effective_capabilities": [
-     "identify",
-     "dtc_read"
-    ],
+    "notes": "Ducati 749/999, injected air-cooled Monsters, Multistrada, SportClassic, S2R/S4R and ST4S applications. GuzziDiag, TuneECU, and user documentation establish that tooling exists and mention slow initialization, but no primary family transcript, identifier table, or diagnostic payload definition was recovered. Compatibility is not a protocol definition: this remains an unknown zero-capability placeholder and physical use is blocked.",
+    "capabilities": [],
+    "effective_capabilities": [],
     "sources": [
      "Ducati.ms Model/ECU list (2009)",
      "GuzziTek ECU master list (2011)",
@@ -4427,21 +4094,17 @@
      "image_size": null,
      "read_supported": false,
      "write_supported": false,
-     "write_blocked_reason": "TuneECU reads and writes the 59M, but no memory-access sequence has been captured for this project. Reading a 59M is a bench session plus one capture away; until then this build refuses.",
-     "security_access": false,
+     "write_blocked_reason": "TuneECU compatibility establishes that a path exists, but no public memory-access sequence, geometry, or security definition was recovered; this build refuses the operation.",
      "regions": {}
     },
     "kline": {
-     "baud": 10400,
-     "init": "fast",
-     "address": 51,
-     "addressed": true,
-     "tester_address": 241,
-     "ecu_address": 16,
-     "inter_byte_delay": 0.005,
-     "note": "10400 baud is the Marelli standard of this era; fast vs slow init and the ECU address follow the sibling Marelli ECUs and are unconfirmed on a 59M."
+     "note": "K-Line hardware is established by compatible tooling, but baud rate, initialization, addressing, and application framing are not claimed without a family-specific public definition or capture."
     },
     "can": {},
+    "session": {
+     "physical_supported": false,
+     "physical_blocked_reason": "Compatibility evidence confirms tooling exists, but no family-specific initialization transcript or primary wire definition was recovered."
+    },
     "actuators": [],
     "routines": [],
     "parameters": []
@@ -4456,6 +4119,7 @@
     "notes": "Fitted to every CARC-framed Moto Guzzi (Breva 850/1100/1200, Griso, Norge, 1200 Sport, Stelvio). Parameter scalings below were decoded from a live K-Line capture of an IAW 5AM HW610 on a Moto Guzzi. 38 of the 79 answerable identifiers are served from shared zero slots and are marked dead. PF1C and PF2C throttle bodies support the electronic TPS reset; PF3C does not and must be set manually with a voltmeter. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Fast initialisation only. The service interval is reset from the dashboard, not over diagnostics, and the stepper test needs the engine running.",
     "capabilities": [
      "actuators",
+     "discover",
      "dtc_clear",
      "dtc_read",
      "eeprom_read",
@@ -4467,6 +4131,7 @@
     ],
     "effective_capabilities": [
      "actuators",
+     "discover",
      "dtc_clear",
      "dtc_read",
      "eeprom_read",
@@ -4647,6 +4312,15 @@
      "inter_byte_delay": 0.005
     },
     "can": {},
+    "session": {
+     "access_timing": true,
+     "diagnostic_session": 129,
+     "diagnostic_session_note": "Session 0x81. The 5AM rejects 0x85 with NRC 0x22 outside the programming flow.",
+     "lazy_session": true,
+     "tester_present_interval": 2.0,
+     "physical_supported": true,
+     "physical_evidence_note": "Validated by the project capture and transcript evidence documented in PROTOCOL_NOTES.md."
+    },
     "actuators": [
      {
       "key": "ac_relay",
@@ -4869,6 +4543,7 @@
       "key": "rpm",
       "name": "Engine speed",
       "local_id": 48,
+      "request_ids": [],
       "unit": "rpm",
       "group": "engine",
       "digits": 0,
@@ -4882,6 +4557,7 @@
       "key": "air_temp",
       "name": "Intake air temperature",
       "local_id": 50,
+      "request_ids": [],
       "unit": "°C",
       "group": "engine",
       "digits": 0,
@@ -4895,6 +4571,7 @@
       "key": "coolant_temp",
       "name": "Head/oil temperature",
       "local_id": 51,
+      "request_ids": [],
       "unit": "°C",
       "group": "engine",
       "digits": 0,
@@ -4908,6 +4585,7 @@
       "key": "throttle",
       "name": "Throttle angle",
       "local_id": 52,
+      "request_ids": [],
       "unit": "°",
       "group": "fuelling",
       "digits": 1,
@@ -4921,6 +4599,7 @@
       "key": "advance_latched",
       "name": "Ignition advance (latched)",
       "local_id": 53,
+      "request_ids": [],
       "unit": "°",
       "group": "ignition",
       "digits": 1,
@@ -4934,6 +4613,7 @@
       "key": "advance",
       "name": "Ignition advance",
       "local_id": 55,
+      "request_ids": [],
       "unit": "°",
       "group": "ignition",
       "digits": 1,
@@ -4947,6 +4627,7 @@
       "key": "injection_ms",
       "name": "Injection time",
       "local_id": 57,
+      "request_ids": [],
       "unit": "ms",
       "group": "fuelling",
       "digits": 2,
@@ -4960,6 +4641,7 @@
       "key": "idle_target",
       "name": "Idle target",
       "local_id": 58,
+      "request_ids": [],
       "unit": "rpm",
       "group": "idle",
       "digits": 0,
@@ -4973,6 +4655,7 @@
       "key": "battery",
       "name": "Battery voltage",
       "local_id": 60,
+      "request_ids": [],
       "unit": "V",
       "group": "electrical",
       "digits": 2,
@@ -4986,6 +4669,7 @@
       "key": "co_trim",
       "name": "CO trim",
       "local_id": 61,
+      "request_ids": [],
       "unit": "",
       "group": "diagnostic",
       "digits": 0,
@@ -4999,6 +4683,7 @@
       "key": "config_byte",
       "name": "Configuration byte",
       "local_id": 62,
+      "request_ids": [],
       "unit": "",
       "group": "diagnostic",
       "digits": 0,
@@ -5012,6 +4697,7 @@
       "key": "lambda_f",
       "name": "Lambda front",
       "local_id": 69,
+      "request_ids": [],
       "unit": "mV",
       "group": "lambda",
       "digits": 0,
@@ -5025,6 +4711,7 @@
       "key": "lambda_r",
       "name": "Lambda rear",
       "local_id": 70,
+      "request_ids": [],
       "unit": "mV",
       "group": "lambda",
       "digits": 0,
@@ -5038,6 +4725,7 @@
       "key": "lambda_int_f",
       "name": "Lambda integrator front",
       "local_id": 71,
+      "request_ids": [],
       "unit": "%",
       "group": "lambda",
       "digits": 1,
@@ -5051,6 +4739,7 @@
       "key": "lambda_int_r",
       "name": "Lambda integrator rear",
       "local_id": 72,
+      "request_ids": [],
       "unit": "%",
       "group": "lambda",
       "digits": 1,
@@ -5064,6 +4753,7 @@
       "key": "lambda_loop",
       "name": "Lambda loop",
       "local_id": 73,
+      "request_ids": [],
       "unit": "",
       "group": "lambda",
       "digits": 0,
@@ -5080,6 +4770,7 @@
       "key": "lambda_loop_r",
       "name": "Lambda loop, rear",
       "local_id": 74,
+      "request_ids": [],
       "unit": "",
       "group": "fuel",
       "digits": 0,
@@ -5093,6 +4784,7 @@
       "key": "lambda_phase_f",
       "name": "Lambda phase front",
       "local_id": 75,
+      "request_ids": [],
       "unit": "",
       "group": "lambda",
       "digits": 0,
@@ -5113,6 +4805,7 @@
       "key": "lambda_phase_r",
       "name": "Lambda phase, rear",
       "local_id": 76,
+      "request_ids": [],
       "unit": "",
       "group": "fuel",
       "digits": 0,
@@ -5126,6 +4819,7 @@
       "key": "road_speed",
       "name": "Road speed",
       "local_id": 83,
+      "request_ids": [],
       "unit": "km/h",
       "group": "chassis",
       "digits": 0,
@@ -5139,6 +4833,7 @@
       "key": "dwell_f",
       "name": "Coil charge time front",
       "local_id": 84,
+      "request_ids": [],
       "unit": "raw",
       "group": "ignition",
       "digits": 0,
@@ -5152,6 +4847,7 @@
       "key": "dwell_r",
       "name": "Coil charge time rear",
       "local_id": 85,
+      "request_ids": [],
       "unit": "raw",
       "group": "ignition",
       "digits": 0,
@@ -5165,6 +4861,7 @@
       "key": "stop_state",
       "name": "Stop state",
       "local_id": 87,
+      "request_ids": [],
       "unit": "",
       "group": "status",
       "digits": 0,
@@ -5182,6 +4879,7 @@
       "key": "engine_state",
       "name": "Engine state",
       "local_id": 88,
+      "request_ids": [],
       "unit": "",
       "group": "status",
       "digits": 0,
@@ -5199,6 +4897,7 @@
       "key": "throttle_closed",
       "name": "Throttle closed",
       "local_id": 92,
+      "request_ids": [],
       "unit": "",
       "group": "status",
       "digits": 0,
@@ -5215,6 +4914,7 @@
       "key": "air_pressure",
       "name": "Barometric pressure",
       "local_id": 96,
+      "request_ids": [],
       "unit": "mbar",
       "group": "engine",
       "digits": 0,
@@ -5228,6 +4928,7 @@
       "key": "neutral",
       "name": "Neutral switch",
       "local_id": 97,
+      "request_ids": [],
       "unit": "",
       "group": "chassis",
       "digits": 0,
@@ -5244,6 +4945,7 @@
       "key": "engine_run_flag",
       "name": "Starter / run flag",
       "local_id": 98,
+      "request_ids": [],
       "unit": "",
       "group": "status",
       "digits": 0,
@@ -5261,6 +4963,7 @@
       "key": "unknown_6a",
       "name": "Unidentified 0x6A",
       "local_id": 106,
+      "request_ids": [],
       "unit": "",
       "group": "diagnostic",
       "digits": 0,
@@ -5274,6 +4977,7 @@
       "key": "stepper_base",
       "name": "Idle stepper base",
       "local_id": 107,
+      "request_ids": [],
       "unit": "steps",
       "group": "idle",
       "digits": 0,
@@ -5287,6 +4991,7 @@
       "key": "stepper_position",
       "name": "Idle stepper position",
       "local_id": 108,
+      "request_ids": [],
       "unit": "steps",
       "group": "idle",
       "digits": 0,
@@ -5300,6 +5005,7 @@
       "key": "stepper_trim",
       "name": "Idle stepper trim",
       "local_id": 109,
+      "request_ids": [],
       "unit": "steps",
       "group": "idle",
       "digits": 0,
@@ -5313,6 +5019,7 @@
       "key": "unknown_74",
       "name": "Unidentified 0x74",
       "local_id": 116,
+      "request_ids": [],
       "unit": "",
       "group": "diagnostic",
       "digits": 0,
@@ -5326,6 +5033,7 @@
       "key": "starter",
       "name": "Starter engaged",
       "local_id": 117,
+      "request_ids": [],
       "unit": "",
       "group": "status",
       "digits": 0,
@@ -5342,6 +5050,7 @@
       "key": "sidestand",
       "name": "Side stand",
       "local_id": 118,
+      "request_ids": [],
       "unit": "",
       "group": "chassis",
       "digits": 0,
@@ -5358,6 +5067,7 @@
       "key": "unknown_77",
       "name": "Unidentified 0x77",
       "local_id": 119,
+      "request_ids": [],
       "unit": "",
       "group": "diagnostic",
       "digits": 0,
@@ -5371,6 +5081,7 @@
       "key": "clutch",
       "name": "Clutch switch",
       "local_id": 120,
+      "request_ids": [],
       "unit": "",
       "group": "chassis",
       "digits": 0,
@@ -5387,6 +5098,7 @@
       "key": "kill_stop",
       "name": "Kill switch (STOP)",
       "local_id": 121,
+      "request_ids": [],
       "unit": "",
       "group": "chassis",
       "digits": 0,
@@ -5403,6 +5115,7 @@
       "key": "kill_run",
       "name": "Kill switch (RUN)",
       "local_id": 122,
+      "request_ids": [],
       "unit": "",
       "group": "chassis",
       "digits": 0,
@@ -5422,30 +5135,14 @@
     "family": "IAW 7SM",
     "display_name": "Magneti Marelli IAW 7SM",
     "transport": "kline",
-    "confidence": "documented",
+    "confidence": "inferred",
     "years": "2013-2021",
-    "notes": "California 1400, Audace, Eldorado, MGX-21 and the V85 TT. Ride-by-wire: there is no cable to the throttle bodies, so the handle (grip) and the throttle plates are learned as two separate routines and the order matters. The 7SM has no CO trim. Identification is confirmed to return Drawing / Hardware / Software / Omologation / Serial / Tester, and the session switches baud rate after init. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Front-wheel speed, throttle self-learning, exhaust-valve zero and self-learn, and a track-counter reset all exist on this family.",
+    "notes": "California 1400, Audace, Eldorado, MGX-21 and early V85 TT applications. A published diagnostic session log establishes K-Line initialization/session behaviour, the 1A 80 identification block (Drawing / Hardware / Software / Omologation / Serial / Tester), and a baud switch. Therefore identification alone is exposed. GuzziDiag/IAWDiag changelogs establish that separate handle/throttle learning and other service functions exist, but do not disclose complete payloads, timing, security, or preconditions; all inferred routine, DTC, live-data, discovery, and memory definitions have been removed.",
     "capabilities": [
-     "discover",
-     "dtc_clear",
-     "dtc_read",
-     "handle_learning",
-     "identify",
-     "live",
-     "memory_read",
-     "service_reset",
-     "throttle_learning"
+     "identify"
     ],
     "effective_capabilities": [
-     "discover",
-     "dtc_clear",
-     "dtc_read",
-     "handle_learning",
-     "identify",
-     "live",
-     "memory_read",
-     "service_reset",
-     "throttle_learning"
+     "identify"
     ],
     "sources": [
      "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
@@ -5455,40 +5152,10 @@
     ],
     "memory": {
      "image_size": null,
-     "read_supported": true,
+     "read_supported": false,
      "write_supported": false,
-     "write_blocked_reason": "7SM writing is the highest-risk operation in the Guzzi world. No verified key algorithm and no recovery path here.",
-     "security_access": true,
-     "hardware_note": "Pull the headlight fuse or use a battery charger - a read takes about 30 minutes. Set the FTDI latency timer to 1 ms; this is essential. Never run a 7SM write inside a virtual machine. NEVER flash an HW1xx image into an HW3xx ECU or the reverse: it bricks the ECU.",
-     "approx_read_minutes": 30,
-     "hardware_compatibility": {
-      "rule": "hw_family_must_match",
-      "detail": "HW1xx and HW3xx images are not interchangeable."
-     },
-     "regions": {
-      "flash": {
-       "start": 0,
-       "size": 0,
-       "block": 64,
-       "writable": false,
-       "expect_vector_table": true,
-       "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-      }
-     },
-     "programming": {
-      "protocol": "iaw_transfer",
-      "confidence": "inferred",
-      "session": 133,
-      "security": {
-       "required": true,
-       "level": 1,
-       "seed_bytes": 4
-      },
-      "read": {
-       "block_subfn": 33
-      },
-      "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-     }
+     "write_blocked_reason": "A dedicated GuzziDiag-family reader/writer proves that a path exists, but no public source or raw family-specific transfer capture establishes the session, geometry, SecurityAccess, or block sequence.",
+     "regions": {}
     },
     "kline": {
      "baud": 10400,
@@ -5501,48 +5168,16 @@
      "baud_switch_supported": true
     },
     "can": {},
+    "session": {
+     "access_timing": true,
+     "diagnostic_session": 129,
+     "lazy_session": true,
+     "tester_present_interval": 2.0,
+     "physical_supported": true,
+     "physical_evidence_note": "A published 7SM diagnostic session log establishes the K-Line session, identification exchange, and baud switch."
+    },
     "actuators": [],
-    "routines": [
-     {
-      "key": "handle_learning",
-      "name": "Handle (grip) self-learning",
-      "service": 49,
-      "local_id": 35,
-      "description": "Step 1 of 2 on ride-by-wire bikes. Learns the twistgrip sensor end stops. Ignition on, engine off, do not touch the grip while it runs.",
-      "requires_engine_off": true,
-      "requires_engine_running": false,
-      "follow_up": "Immediately run throttle self-learning. Leaving only the handle learned gives an inconsistent pair.",
-      "reversible": false,
-      "confidence": "inferred",
-      "warning": "Must be followed by throttle self-learning before the bike is ridden."
-     },
-     {
-      "key": "throttle_learning",
-      "name": "Throttle self-learning",
-      "service": 49,
-      "local_id": 36,
-      "description": "Step 2 of 2. Learns the motorised throttle plate end stops. Run immediately after handle self-learning.",
-      "requires_engine_off": true,
-      "requires_engine_running": false,
-      "follow_up": "Cycle the ignition, then verify the throttle tracks the grip smoothly before riding.",
-      "reversible": false,
-      "confidence": "inferred",
-      "warning": ""
-     },
-     {
-      "key": "service_reset",
-      "name": "Service interval reset",
-      "service": 49,
-      "local_id": 49,
-      "description": "Resets the maintenance counter.",
-      "requires_engine_off": true,
-      "requires_engine_running": false,
-      "follow_up": "",
-      "reversible": false,
-      "confidence": "inferred",
-      "warning": "On most Guzzi models the service reset is done from the dashboard, not the ECU."
-     }
-    ],
+    "routines": [],
     "parameters": []
    },
    {
@@ -5550,42 +5185,34 @@
     "family": "Aprilia Mana CVT TCU",
     "display_name": "Aprilia Mana 850 CVT transmission controller",
     "transport": "kline",
-    "confidence": "unknown",
+    "confidence": "inferred",
     "years": "2007-2016",
-    "notes": "The continuously-variable-transmission controller of the Aprilia Mana 850. The Mana's ENGINE controller is the shared Magneti Marelli IAW 5AM and is handled by the normal vehicle selection ('Mana 850' resolves to the 5AM, read-only as a cross-brand entry); this entry is the OTHER box on the same bike, the CVT TCU, the device ManaTCU_V1.03 exists for. Its existence and channel set are evidenced by that mirrored tool (vendor/guzzidiag/tools/ManaTCU_V1.03.exe, hash in vendor/guzzidiag/MANIFEST.json): K-line with fast init, a SecurityAccess seed/key exchange, EEPROM access, live channels (driving pulley potentiometer tracks 1 and 2 with voltages, gear mode switch) and actuators (pedal and handlebar gear up/downshift controls, driving pulley electrical motor). Nothing here has been captured on the wire by this project, so the identification layout is labelled unverified, and anything beyond identification, fault codes and the read-only discovery sweep refuses. Flashing, EEPROM engineering and clutch/gear learning stay with ManaTCU; if you can record one identification session against a real Mana TCU, this entry upgrades like any other family.",
-    "capabilities": [
-     "identify",
-     "dtc_read",
-     "discover"
-    ],
-    "effective_capabilities": [
-     "identify",
-     "dtc_read"
-    ],
+    "notes": "The Mana engine ECU is the shared IAW 5AM; this entry is the separate CVT controller. A published PADS K-Line capture proves KWP2000 physical addressing to target 0xEC from tester 0xF1 and records the two learning commands exactly: IOControl 30 02 08 (belt replacement) followed by 30 01 08 (pulley-potentiometer reset). ManaTCU V1.03 was built from those captures, includes SecurityAccess, and has been field tested. Identification, fault-request and live-data wire definitions were not published, so this workstation does not guess them. The two captured routines remain unavailable because they require security access plus motorcycle-specific conditions (engine running, rear wheel free, side stand up, ordered execution) that the current safety state cannot verify.",
+    "capabilities": [],
+    "effective_capabilities": [],
     "sources": [
-     "ManaTCU_V1.03.exe channel/actuator/security strings, mirrored unmodified in vendor/guzzidiag/tools/ (SHA-256 in vendor/guzzidiag/MANIFEST.json)",
-     "vehicle side established from the GuzziTek master list mapping of Mana 850 to the shared IAW 5AM"
+     "ApriliaForum Mana belt thread: PADS/K-Spy K-Line capture, 30 02 08 and 30 01 08 routine frames, field-test reports (September-October 2023)",
+     "ManaTCU V1.03 executable mirrored in vendor/guzzidiag/tools/ (SHA-256 in MANIFEST.json)",
+     "Aprilia Mana 850 service-station manual: TCU K-Line pinout, required learning procedures and DTC descriptions"
     ],
     "memory": {
      "image_size": null,
      "read_supported": false,
      "write_supported": false,
-     "write_blocked_reason": "ManaTCU_V1.03 reads and flashes this controller with a SecurityAccess seed/key exchange, but no memory-access sequence has been captured for this project and no key provider exists. Until one is, this build refuses; use ManaTCU for TCU memory work.",
-     "security_access": true,
-     "note": "SecurityAccess seed/key is present on this controller ('Send key failed' in the mirrored tool); the algorithm is unknown to this project.",
+     "write_blocked_reason": "ManaTCU V1.03 accesses this controller after a four-byte SecurityAccess exchange, but neither its key algorithm nor memory-transfer sequence is public in source form.",
      "regions": {}
     },
     "kline": {
-     "baud": 10400,
-     "init": "fast",
-     "address": 51,
-     "addressed": true,
      "tester_address": 241,
-     "ecu_address": 16,
-     "inter_byte_delay": 0.005,
-     "note": "10400 baud and fast init are the Marelli standard of this era and ManaTCU's strings confirm fast init on this controller; the ECU address follows the sibling boxes and is unconfirmed on the TCU."
+     "ecu_address": 236,
+     "note": "Captured traffic establishes tester 0xF1 and TCU 0xEC addressing. Baud rate and initialization are not claimed because the capture begins after session bring-up."
     },
     "can": {},
+    "session": {
+     "physical_supported": false,
+     "physical_blocked_reason": "The raw capture establishes physical addresses and two routine payloads, but not the complete initialization, session, security access, or safe read services.",
+     "note": "Captured KWP routine frames do not establish initialization, session selection, or security sequencing."
+    },
     "actuators": [],
     "routines": [],
     "parameters": []
@@ -5595,138 +5222,335 @@
     "family": "Marelli MIU G3",
     "display_name": "Magneti Marelli MIU G3",
     "transport": "kline",
-    "confidence": "documented",
+    "confidence": "inferred",
     "years": "2012-2016",
-    "notes": "Single-throttle-body V7 II, V9 and the 2012-on V7. Uses throttle self-learning rather than a TPS reset, and has no CO trim. Target throttle readings: 0.9-1.0 degrees for V7/V7 III/V9, 1.0-1.2 for V7 II. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: TPS-reset, a stepper test, corrected injection time and front-wheel speed all exist on this family.",
-    "capabilities": [
-     "discover",
-     "dtc_clear",
-     "dtc_read",
-     "eeprom_read",
-     "identify",
-     "live",
-     "memory_read",
-     "throttle_learning"
-    ],
-    "effective_capabilities": [
-     "discover",
-     "dtc_clear",
-     "dtc_read",
-     "eeprom_read",
-     "identify",
-     "live",
-     "memory_read",
-     "throttle_learning"
-    ],
+    "notes": "Single-throttle-body V7, V7 II and V9 applications. The official Piaggio MIU G3 technical-training presentation publishes the RLI, IOLI and RELI tables now recorded here. It does not publish payload widths, byte order, numeric scaling, K-Line initialization, addresses or identification layout. Therefore the known RLI channels are retained only as raw research definitions; physical use and all capabilities are unavailable. RELI 0x21 is explicitly TPS zero-position setting (not a generic throttle-learning guess) and is recorded as a documented operation, but profile-level uncertainty keeps it disabled. IOLI 0x7E adaptation reset and RELI 0x24 P0611 buffer transfer are documented but omitted because their command payload/preconditions are not published.",
+    "capabilities": [],
+    "effective_capabilities": [],
     "sources": [
-     "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
-     "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-     "ISO 14230-2 and ISO 14230-3"
+     "Piaggio Group / Moto Guzzi ECU MIU G3 Technical Training presentation: published RLI, IOLI and RELI tables",
+     "IAWDiag V0.52 and IAWMIUG3 Reader/Writer binaries: implementation existence only; no unpublished constants promoted",
+     "Moto Guzzi V7 II service-station manual: application, DTC descriptions and service conditions"
     ],
     "memory": {
      "image_size": null,
-     "read_supported": true,
+     "read_supported": false,
      "write_supported": false,
-     "write_blocked_reason": "Handled by IAWMIUG3Reader/Writer; no verified fixtures in this project.",
-     "security_access": true,
-     "regions": {
-      "flash": {
-       "start": 0,
-       "size": 0,
-       "block": 64,
-       "writable": false,
-       "expect_vector_table": true,
-       "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-      },
-      "eeprom": {
-       "start": 0,
-       "size": 0,
-       "block": 32,
-       "writable": false,
-       "note": "TPS zero, CO trim, fault memory. Geometry not captured."
-      }
-     },
-     "programming": {
-      "protocol": "iaw_transfer",
-      "confidence": "inferred",
-      "session": 133,
-      "security": {
-       "required": true,
-       "level": 1,
-       "seed_bytes": 4
-      },
-      "read": {
-       "block_subfn": 33
-      },
-      "note": "Region geometry and programming protocol are NOT verified for this family. A dedicated reader exists in the GuzziDiag toolchain, but its wire sequence has not been captured here. Reads will be attempted and will fail cleanly if the guess is wrong."
-     }
+     "write_blocked_reason": "IAWMIUG3Reader/Writer proves a path exists, but no public source, raw transfer capture, region geometry or verified key algorithm was found.",
+     "regions": {}
     },
     "kline": {
-     "baud": 10400,
-     "init": "fast",
-     "address": 51,
-     "addressed": true,
-     "tester_address": 241,
-     "ecu_address": 16,
-     "inter_byte_delay": 0.005
+     "note": "The OEM material establishes K-Line diagnosis and application identifier names, but not baud rate, initialization, addressing, framing, response widths, or scaling."
     },
     "can": {},
+    "session": {
+     "physical_supported": false,
+     "physical_blocked_reason": "The official training table defines application identifiers, but not the physical initialization, framing, response widths, or scaling.",
+     "note": "Closed tools implement the missing session details, but compatibility is not a publishable protocol definition."
+    },
     "actuators": [],
     "routines": [
      {
       "key": "throttle_learning",
-      "name": "Throttle self-learning",
+      "name": "TPS zero-position setting",
       "service": 49,
       "local_id": 33,
-      "description": "MIU G3 equivalent of the TPS reset. Ignition on, engine off.",
+      "description": "Official MIU G3 RELI 0x21. Sets the throttle-position zero reference.",
       "requires_engine_off": true,
       "requires_engine_running": false,
-      "follow_up": "Check the throttle angle lands in the model's target band (0.9-1.2 degrees), then re-check idle.",
+      "follow_up": "Verify the throttle reading against the service-manual target before starting the engine.",
       "reversible": false,
-      "confidence": "inferred",
-      "warning": ""
+      "confidence": "documented",
+      "warning": "Recorded from the OEM RELI table, but disabled until the enclosing K-Line/session definition is independently validated."
      }
     ],
-    "parameters": []
+    "parameters": [
+     {
+      "key": "manifold_pressure_raw",
+      "name": "Manifold pressure (raw)",
+      "local_id": 49,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "air",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "air_temp_raw",
+      "name": "Air temperature (raw)",
+      "local_id": 50,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "temperature",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "base_advance_raw",
+      "name": "Base ignition advance (raw)",
+      "local_id": 53,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "applied_advance_raw",
+      "name": "Applied ignition advance (raw)",
+      "local_id": 55,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "target_rpm_raw",
+      "name": "Target engine speed (raw)",
+      "local_id": 58,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "oxygen_voltage_1_raw",
+      "name": "Oxygen sensor 1 voltage (raw)",
+      "local_id": 69,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "fuel",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "oxygen_voltage_2_raw",
+      "name": "Oxygen sensor 2 voltage (raw)",
+      "local_id": 70,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "fuel",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "oxygen_correction_1_raw",
+      "name": "Oxygen correction 1 (raw)",
+      "local_id": 71,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "fuel",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "oxygen_correction_2_raw",
+      "name": "Oxygen correction 2 (raw)",
+      "local_id": 72,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "fuel",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "mixture_state_1_raw",
+      "name": "Mixture-control state 1 (raw)",
+      "local_id": 73,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "fuel",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "mixture_state_2_raw",
+      "name": "Mixture-control state 2 (raw)",
+      "local_id": 74,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "fuel",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "obdi_sensor_state_1_raw",
+      "name": "OBDI sensor state 1 (raw)",
+      "local_id": 75,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "state",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "obdi_sensor_state_2_raw",
+      "name": "OBDI sensor state 2 (raw)",
+      "local_id": 76,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "state",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "gear_clutch_61_raw",
+      "name": "Gear/clutch state 0x61 (raw)",
+      "local_id": 97,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "state",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "stepper_state_raw",
+      "name": "Stepper state (raw)",
+      "local_id": 98,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "idle",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "stepper_base_raw",
+      "name": "Base stepper opening (raw)",
+      "local_id": 107,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "idle",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "stepper_closed_loop_raw",
+      "name": "Closed-loop stepper opening (raw)",
+      "local_id": 108,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "idle",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "gear_clutch_78_raw",
+      "name": "Gear/clutch state 0x78 (raw)",
+      "local_id": 120,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "state",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     }
+    ]
    },
    {
     "id": "miug4",
     "family": "Marelli MIU G4",
     "display_name": "Magneti Marelli MIU G4 (CAN)",
     "transport": "can",
-    "confidence": "inferred",
+    "confidence": "unknown",
     "years": "2017-2021",
-    "notes": "V7 III 850 generation on CAN bus. Diagnostics move inside ISO-TP, so the application layer is unchanged but the framing is not. Request and response identifiers below are the ISO 15765-4 defaults and have not been confirmed on a Guzzi - verify with a passive sniff before trusting them. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Neither GuzziDiag nor IAWDiag covers this family, so there is no closed tool session to tap: identifiers here have to come from the CAN discovery path.",
-    "capabilities": [
-     "identify",
-     "dtc_read",
-     "discover"
-    ],
-    "effective_capabilities": [
-     "identify",
-     "dtc_read"
-    ],
+    "notes": "Moto Guzzi V7/V9 Euro 5 applications. The Moto Guzzi service manual and MIUG4 technical material prove CAN diagnostics and commercial tools prove identification, DTC, TPS/adaptation and memory functions exist. No public Moto Guzzi capture or definition file was found for the diagnostic CAN identifiers, ISO-TP addressing or UDS/KWP payloads. The old 0x7E0/0x7E8 plus K-Line-style 1A 80 definition was generic inference, not evidence. Physical CAN sessions are therefore blocked before sending a request.",
+    "capabilities": [],
+    "effective_capabilities": [],
     "sources": [
-     "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-     "ISO 15765-2 (ISO-TP)",
-     "ISO 14230-2 and ISO 14230-3"
+     "Moto Guzzi V7/V9 Euro 5 service-station manual 2Q000466: MIU G4 application and diagnostic-tool procedures",
+     "ASW-NEXT MIUG4 technical user manual: CAN connection and supported operations (no wire identifiers/payloads)",
+     "Diagcode Piaggio Group coverage: MIU G4 Euro 5 CAN operation existence only"
     ],
     "memory": {
      "image_size": null,
      "read_supported": false,
      "write_supported": false,
-     "write_blocked_reason": "Unverified transport; no write path exists.",
-     "security_access": true
+     "write_blocked_reason": "Unverified transport; no write path exists."
     },
     "kline": {},
     "can": {
      "interface": "socketcan",
      "channel": "can0",
-     "bitrate": 500000,
-     "tx_id": 2016,
-     "rx_id": 2024,
-     "padding": 170,
-     "note": "tx 0x7E0 / rx 0x7E8, unconfirmed on this vehicle family."
+     "note": "No bitrate, CAN identifiers, addressing mode, or padding is claimed without a family-specific capture."
+    },
+    "session": {
+     "protocol": "unknown-can-application",
+     "note": "ISO-TP physical transport alone does not establish UDS/KWP services or identifiers.",
+     "physical_supported": false,
+     "physical_blocked_reason": "ISO-TP transport, CAN identifiers, addressing, and diagnostic application payloads remain unvalidated."
     },
     "actuators": [],
     "routines": [],
@@ -5739,38 +5563,35 @@
     "transport": "kline",
     "confidence": "inferred",
     "years": "1993-1997",
-    "notes": "Daytona 1000, Quota 1000, California 1100 i.e., California III from 1993. Outside the 25-year window for most owners and only partially supported by the open tools. Read-only identification here. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: This family stores no faults at all - there is nothing to read and nothing to clear. 'Unknown 0B' is the CO trimmer value, 'unknown 12' and 'unknown 13' are one 16-bit integer, and 'unknown 14' is a flag byte.",
-    "capabilities": [
-     "discover",
-     "dtc_read",
-     "identify"
-    ],
-    "effective_capabilities": [
-     "dtc_read",
-     "identify"
-    ],
+    "notes": "Daytona 1000, Quota 1000 and early California injection applications. The previous KWP2000/1A 80 definition was unsupported and has been removed. Vendored IAW Scan 2 source proves that the automotive IAW-04K.P8 uses direct 7680-baud echoed one-byte requests, ISO bytes 0x30-0x35 and part-number bytes 0x36-0x3F. No Moto Guzzi P8 capture or primary definition ties that register map to motorcycle firmware, so no capability is exposed and physical use is blocked. The automotive layout remains only as provenance metadata.",
+    "capabilities": [],
+    "effective_capabilities": [],
     "sources": [
-     "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
-     "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)"
+     "IAW Scan 2 source a5995eab86e82be60386e99b2eecc9c14810ec85: ECU/ecu.cs and ECU/iaw04k.cs (automotive IAW-04K.P8; application to Moto Guzzi remains unconfirmed)",
+     "GuzziDiag / IAWDiag changelogs and feature list (family support only; not wire evidence)"
     ],
     "memory": {
      "image_size": null,
      "read_supported": false,
      "write_supported": false,
-     "write_blocked_reason": "No reader or writer exists for this family anywhere in the GuzziDiag toolchain, and no memory-access sequence has been captured. These are early-1990s ECUs whose maps generally live in a socketed EPROM, so the practical route is to pull the chip and use an EPROM programmer.",
-     "security_access": false,
+     "write_blocked_reason": "No validated in-circuit memory-access sequence is available for the Moto Guzzi P8. Maps normally live in a socketed EPROM; use an EPROM programmer and preserve the original chip.",
      "regions": {}
     },
     "kline": {
-     "baud": 10400,
-     "init": "slow",
-     "address": 51,
-     "addressed": true,
-     "tester_address": 241,
-     "ecu_address": 16,
-     "inter_byte_delay": 0.005
+     "baud": 7680,
+     "comm_baud": 7680,
+     "init": "legacy-iaw-direct",
+     "inter_byte_delay": 0.0
     },
     "can": {},
+    "session": {
+     "protocol": "legacy-iaw",
+     "response_timeout": 0.5,
+     "inter_request_delay": 0.005,
+     "fault_registers": [],
+     "physical_supported": false,
+     "physical_blocked_reason": "Automotive IAW-04K evidence defines the legacy direct protocol, but no Moto Guzzi P8 primary definition or capture was recovered."
+    },
     "actuators": [],
     "routines": [],
     "parameters": []
@@ -5786,7 +5607,7 @@
    "ecu": "p8",
    "displacement": "992",
    "tps": "PF09",
-   "notes": "Pre-OBD Marelli P8. Identification only.",
+   "notes": "Pre-OBD Marelli P8. Fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "Daytona 1000 (1992-1997)",
    "can": {}
@@ -5799,7 +5620,7 @@
    "ecu": "p8",
    "displacement": "992",
    "tps": "PF09",
-   "notes": "Pre-OBD Marelli P8. Identification only.",
+   "notes": "Pre-OBD Marelli P8. Fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "Quota 1000 (1992-1997)",
    "can": {}
@@ -6839,7 +6660,7 @@
    "ecu": "p8",
    "displacement": "888",
    "tps": "",
-   "notes": "Later 888s (from chassis s/n 000509) carry the P8, like the Guzzi Daytona 1000. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "Later 888s (from chassis s/n 000509) carry the P8, like the Guzzi Daytona 1000. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "888 (1993-1994)",
    "can": {}
@@ -6852,7 +6673,7 @@
    "ecu": "p8",
    "displacement": "916",
    "tps": "",
-   "notes": "916 Strada / SP / SPS ran the P8; the later Biposto/Senna cars moved to the 16M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "916 Strada / SP / SPS ran the P8; the later Biposto/Senna cars moved to the 16M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "916 (1994-1996)",
    "can": {}
@@ -6865,7 +6686,7 @@
    "ecu": "16m",
    "displacement": "916",
    "tps": "",
-   "notes": "Biposto / Monoposto / Senna versions moved to the 16M - the same ECU as the Guzzi V11 Sport. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "Biposto / Monoposto / Senna versions moved to the 16M - the same ECU as the Guzzi V11 Sport. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "916 (1997-1998)",
    "can": {}
@@ -6878,7 +6699,7 @@
    "ecu": "16m",
    "displacement": "748",
    "tps": "",
-   "notes": "All 748 versions (E, Biposto, S, R, SP, SPS) ran the 16M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "All 748 versions (E, Biposto, S, R, SP, SPS) ran the 16M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "748 (1995-2002)",
    "can": {}
@@ -6891,7 +6712,7 @@
    "ecu": "16m",
    "displacement": "996",
    "tps": "",
-   "notes": "996 and 996 S ran the 16M; the SPS kept the P8. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "996 and 996 S ran the 16M; the SPS kept the P8. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "996 (1996-2001)",
    "can": {}
@@ -6904,7 +6725,7 @@
    "ecu": "16m",
    "displacement": "944",
    "tps": "",
-   "notes": "One injector per cylinder: 16M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "One injector per cylinder: 16M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "ST2 (1997-2003)",
    "can": {}
@@ -6917,7 +6738,7 @@
    "ecu": "16m",
    "displacement": "916",
    "tps": "",
-   "notes": "ST4 (916 engine): 16M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "ST4 (916 engine): 16M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "ST4 (1999-2002)",
    "can": {}
@@ -6930,7 +6751,7 @@
    "ecu": "15m",
    "displacement": "904",
    "tps": "",
-   "notes": "900SS ie. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "900SS ie. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "900 SS (1998-2002)",
    "can": {}
@@ -6943,7 +6764,7 @@
    "ecu": "15m",
    "displacement": "748",
    "tps": "",
-   "notes": "750SS ie. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "750SS ie. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "750 SS (1999-2002)",
    "can": {}
@@ -6956,7 +6777,7 @@
    "ecu": "15m",
    "displacement": "904",
    "tps": "",
-   "notes": "Monster 900 ie; 2002-on models moved to the 59M. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "Monster 900 ie; 2002-on models moved to the 59M. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "Monster 900 (1998-2001)",
    "can": {}
@@ -6969,7 +6790,7 @@
    "ecu": "59m",
    "displacement": "749",
    "tps": "",
-   "notes": "All 749 versions. ECU family newly modelled here - identification only.",
+   "notes": "All 749 versions. ECU family newly modelled here - fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "749 (2003-2006)",
    "can": {}
@@ -6982,7 +6803,7 @@
    "ecu": "59m",
    "displacement": "999",
    "tps": "",
-   "notes": "999 / 999S (2003-2005 shape). ECU family newly modelled here - identification only.",
+   "notes": "999 / 999S (2003-2005 shape). ECU family newly modelled here - fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "999 (2003-2006)",
    "can": {}
@@ -6995,7 +6816,7 @@
    "ecu": "59m",
    "displacement": "998",
    "tps": "",
-   "notes": "998 / 998S / 998R (Testastretta). ECU family newly modelled here - identification only.",
+   "notes": "998 / 998S / 998R (Testastretta). ECU family newly modelled here - fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "998 (2002-2004)",
    "can": {}
@@ -7008,7 +6829,7 @@
    "ecu": "59m",
    "displacement": "618",
    "tps": "",
-   "notes": "Injected air-cooled Monsters of this era all carry the 59M. Identification only.",
+   "notes": "Injected air-cooled Monsters of this era all carry the 59M. Fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "Monster 620 (2002-2006)",
    "can": {}
@@ -7021,7 +6842,7 @@
    "ecu": "59m",
    "displacement": "803",
    "tps": "",
-   "notes": "Identification only.",
+   "notes": "Fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "Monster 800 (2003-2006)",
    "can": {}
@@ -7034,7 +6855,7 @@
    "ecu": "59m",
    "displacement": "992",
    "tps": "",
-   "notes": "Monster 1000 / 1000 S ie (dual spark). Identification only.",
+   "notes": "Monster 1000 / 1000 S ie (dual spark). Fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "Monster 1000 S (2003-2006)",
    "can": {}
@@ -7047,7 +6868,7 @@
    "ecu": "59m",
    "displacement": "803",
    "tps": "",
-   "notes": "S2R 800; the S2R 1000 shares the family. Identification only.",
+   "notes": "S2R 800; the S2R 1000 shares the family. Fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "Monster S2R (2004-2007)",
    "can": {}
@@ -7060,7 +6881,7 @@
    "ecu": "59m",
    "displacement": "996",
    "tps": "",
-   "notes": "S4R Testastretta. Identification only.",
+   "notes": "S4R Testastretta. Fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "Monster S4R (2003-2006)",
    "can": {}
@@ -7073,7 +6894,7 @@
    "ecu": "59m",
    "displacement": "992",
    "tps": "",
-   "notes": "Multistrada 1000 DS. Identification only.",
+   "notes": "Multistrada 1000 DS. Fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "Multistrada 1000 DS (2003-2006)",
    "can": {}
@@ -7086,7 +6907,7 @@
    "ecu": "59m",
    "displacement": "992",
    "tps": "",
-   "notes": "SportClassic GT 1000 Touring. Identification only.",
+   "notes": "SportClassic GT 1000 Touring. Fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "GT 1000 (2006-2009)",
    "can": {}
@@ -7099,7 +6920,7 @@
    "ecu": "59m",
    "displacement": "992",
    "tps": "",
-   "notes": "SportClassic Paul Smart replica. Identification only.",
+   "notes": "SportClassic Paul Smart replica. Fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "Paul Smart 1000 LE (2006-2008)",
    "can": {}
@@ -7112,7 +6933,7 @@
    "ecu": "59m",
    "displacement": "992",
    "tps": "",
-   "notes": "SportClassic Sport 1000 (early cars: 59M; later: 5AM running change). Identification only.",
+   "notes": "SportClassic Sport 1000 (early cars: 59M; later: 5AM running change). Fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "Sport 1000 (2006-2009)",
    "can": {}
@@ -7125,7 +6946,7 @@
    "ecu": "59m",
    "displacement": "996",
    "tps": "",
-   "notes": "ST4S. Identification only.",
+   "notes": "ST4S. Fitment only; physical diagnostics are unavailable.",
    "confidence": "inferred",
    "label": "ST4 S (2002-2004)",
    "can": {}
@@ -7138,7 +6959,7 @@
    "ecu": "5am",
    "displacement": "849",
    "tps": "",
-   "notes": "The 848/1098/1198 Superbikes run the 5AM - the same ECU family as the Guzzi CARC bikes. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "The 848/1098/1198 Superbikes run the 5AM - the same ECU family as the Guzzi CARC bikes. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "Superbike 848 (2008-2010)",
    "can": {}
@@ -7151,7 +6972,7 @@
    "ecu": "5am",
    "displacement": "1099",
    "tps": "",
-   "notes": "1098 / 1098 S. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "1098 / 1098 S. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "Superbike 1098 (2007-2008)",
    "can": {}
@@ -7164,7 +6985,7 @@
    "ecu": "5am",
    "displacement": "1198",
    "tps": "",
-   "notes": "1198 / 1198 S / 1198 SP. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "1198 / 1198 S / 1198 SP. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "Superbike 1198 (2009-2011)",
    "can": {}
@@ -7177,7 +6998,7 @@
    "ecu": "5am",
    "displacement": "1099",
    "tps": "",
-   "notes": "Streetfighter / Streetfighter S. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "Streetfighter / Streetfighter S. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "Streetfighter (2009-2011)",
    "can": {}
@@ -7190,7 +7011,7 @@
    "ecu": "5am",
    "displacement": "1078",
    "tps": "",
-   "notes": "Hypermotard 1100 / 1100 S / SP. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "Hypermotard 1100 / 1100 S / SP. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "Hypermotard 1100 (2007-2012)",
    "can": {}
@@ -7203,7 +7024,7 @@
    "ecu": "5am",
    "displacement": "992",
    "tps": "",
-   "notes": "ST3 / ST3 ABS. ECU mapping documented in the GuzziTek / Ducati.ms ECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "ST3 / ST3 ABS. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "ST3 (2004-2007)",
    "can": {}
@@ -7216,7 +7037,7 @@
    "ecu": "16m",
    "displacement": "998",
    "tps": "",
-   "notes": "The Rotax-twin Aprilias run the same IAW 16M as the Guzzi V11 family - GuzziDiag and TuneECU both cover them. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "The Rotax-twin Aprilias run the same IAW 16M as the Guzzi V11 family - GuzziDiag and TuneECU both cover them. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "RSV Mille (1998-2003)",
    "can": {}
@@ -7229,7 +7050,7 @@
    "ecu": "16m",
    "displacement": "998",
    "tps": "",
-   "notes": "ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "RSV Mille R (1999-2003)",
    "can": {}
@@ -7242,7 +7063,7 @@
    "ecu": "16m",
    "displacement": "998",
    "tps": "",
-   "notes": "First-generation Tuono. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "First-generation Tuono. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "Tuono 1000 (2002-2005)",
    "can": {}
@@ -7255,7 +7076,7 @@
    "ecu": "16m",
    "displacement": "998",
    "tps": "",
-   "notes": "ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "SL Falco 1000 (2000-2003)",
    "can": {}
@@ -7268,7 +7089,7 @@
    "ecu": "16m",
    "displacement": "998",
    "tps": "",
-   "notes": "Adventure twin; TuneECU lists full map support. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "Adventure twin; TuneECU lists full map support. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "ETV Caponord 1000 (2001-2007)",
    "can": {}
@@ -7281,7 +7102,7 @@
    "ecu": "16m",
    "displacement": "998",
    "tps": "",
-   "notes": "Sport-tourer. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "Sport-tourer. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "RST Futura 1000 (2001-2004)",
    "can": {}
@@ -7294,7 +7115,7 @@
    "ecu": "5am",
    "displacement": "839",
    "tps": "",
-   "notes": "GuzziTek master list maps the Mana 850 to the 5AM. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed. The Mana also carries a CVT transmission controller: selectable directly as ECU 'mana_tcu' (identification and read-only discovery only; TCU flashing and gear/clutch learning stay with ManaTCU).",
+   "notes": "GuzziTek master list maps the Mana 850 to the 5AM. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled. The Mana also carries a CVT transmission controller selectable as ECU 'mana_tcu'; captured routine bytes are recorded for provenance, but every physical TCU operation remains blocked because session, security, and safety preconditions are incomplete.",
    "confidence": "inferred",
    "label": "Mana 850 (2008-2012)",
    "can": {}
@@ -7307,7 +7128,7 @@
    "ecu": "7sm",
    "displacement": "999",
    "tps": "",
-   "notes": "GuzziTek master list maps the 2009-2011 RSV4 Factory to the 7SM - the same ECU family as the Guzzi California 1400. ECU mapping documented in the GuzziTek / TuneECU lists; identifier tables are inherited from the Moto Guzzi definition and unverified on this bike - read-only until confirmed.",
+   "notes": "GuzziTek master list maps the 2009-2011 RSV4 Factory to the 7SM - the same ECU family as the Guzzi California 1400. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
    "label": "RSV4 Factory (2009-2011)",
    "can": {}
@@ -7327,59 +7148,19 @@
    },
    "dtc_overrides": {},
    "session": {
-    "access_timing": false,
-    "diagnostic_session": 129,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "protocol": "unknown-can-application",
+    "note": "ISO-TP physical transport alone does not establish UDS/KWP services or identifiers.",
+    "physical_supported": false,
+    "physical_blocked_reason": "ISO-TP transport, CAN identifiers, addressing, and diagnostic application payloads remain unvalidated."
    },
    "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
-     {
-      "name": "Drawing",
-      "offset": 0,
-      "length": 11
-     },
-     {
-      "name": "Hardware",
-      "offset": 11,
-      "length": 11
-     },
-     {
-      "name": "Omologation",
-      "offset": 22,
-      "length": 11
-     },
-     {
-      "name": "Software",
-      "offset": 33,
-      "length": 11
-     },
-     {
-      "name": "Tester",
-      "offset": 44,
-      "length": 11
-     }
-    ]
+    "available": false,
+    "reason": "No validated family-specific diagnostic application definition is available."
    }
   },
   "15m": {
    "parameters": {},
-   "actuators": {
-    "injector_front": {
-     "on_command": 7,
-     "off_command": 0
-    },
-    "injector_rear": {
-     "on_command": 7,
-     "off_command": 0
-    },
-    "fuel_pump": {
-     "on_command": 7,
-     "off_command": 0
-    }
-   },
+   "actuators": {},
    "routines": {},
    "identity": {
     "Drawing": "CM000000",
@@ -7390,56 +7171,15 @@
    },
    "dtc_overrides": {},
    "session": {
-    "access_timing": true,
-    "diagnostic_session": 129,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "physical_supported": false,
+    "physical_blocked_reason": "Available compatibility records and closed binaries do not disclose a trustworthy family-specific diagnostic initialization or request definition."
    },
-   "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
-     {
-      "name": "Drawing",
-      "offset": 0,
-      "length": 11
-     },
-     {
-      "name": "Hardware",
-      "offset": 11,
-      "length": 11
-     },
-     {
-      "name": "Omologation",
-      "offset": 22,
-      "length": 11
-     },
-     {
-      "name": "Software",
-      "offset": 33,
-      "length": 11
-     },
-     {
-      "name": "Tester",
-      "offset": 44,
-      "length": 11
-     }
-    ]
-   }
+   "identification": {}
   },
   "15rc": {
    "parameters": {},
    "actuators": {},
-   "routines": {
-    "tps_reset": {
-     "params": [],
-     "expect": null
-    },
-    "co_trim": {
-     "params": [],
-     "expect": null
-    }
-   },
+   "routines": {},
    "identity": {
     "Drawing": "CM000000",
     "Hardware": "IAW15RCHW000",
@@ -7449,45 +7189,131 @@
    },
    "dtc_overrides": {},
    "session": {
-    "access_timing": true,
-    "diagnostic_session": 129,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "physical_supported": false,
+    "physical_blocked_reason": "Available compatibility records and closed binaries do not disclose a trustworthy family-specific diagnostic initialization or request definition."
    },
-   "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
-     {
-      "name": "Drawing",
-      "offset": 0,
-      "length": 11
-     },
-     {
-      "name": "Hardware",
-      "offset": 11,
-      "length": 11
-     },
-     {
-      "name": "Omologation",
-      "offset": 22,
-      "length": 11
-     },
-     {
-      "name": "Software",
-      "offset": 33,
-      "length": 11
-     },
-     {
-      "name": "Tester",
-      "offset": 44,
-      "length": 11
-     }
-    ]
-   }
+   "identification": {}
   },
   "16m": {
-   "parameters": {},
+   "parameters": {
+    "rpm": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 15000000.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 1,
+     "states": {}
+    },
+    "injection_ms": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.002,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 2,
+     "dead": false,
+     "local_id": 3,
+     "states": {}
+    },
+    "advance": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.5,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 5,
+     "states": {}
+    },
+    "manifold_pressure": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 3.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 6,
+     "states": {}
+    },
+    "air_temp_raw": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 7,
+     "states": {}
+    },
+    "coolant_temp_raw": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 8,
+     "states": {}
+    },
+    "throttle_raw": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 9,
+     "states": {}
+    },
+    "battery": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.0625,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 2,
+     "dead": false,
+     "local_id": 10,
+     "states": {}
+    },
+    "fuel_trim_raw": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 34,
+     "states": {}
+    }
+   },
    "actuators": {},
    "routines": {},
    "identity": {
@@ -7499,39 +7325,46 @@
    },
    "dtc_overrides": {},
    "session": {
-    "access_timing": false,
-    "diagnostic_session": null,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "protocol": "legacy-iaw",
+    "response_timeout": 0.5,
+    "inter_request_delay": 0.005,
+    "fault_registers": [
+     16,
+     17,
+     18,
+     20,
+     21,
+     22,
+     43,
+     44,
+     45,
+     46,
+     47,
+     48
+    ],
+    "physical_supported": true,
+    "physical_evidence_note": "Marelli 3.00600/16F family definition plus the published 1.6M implementation define the key-on initialization and byte-query transport."
    },
    "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
+    "include_wakeup": true,
+    "wakeup_name": "ISO key-on code",
+    "blocks": [
      {
-      "name": "Drawing",
-      "offset": 0,
-      "length": 11
-     },
-     {
-      "name": "Hardware",
-      "offset": 11,
-      "length": 11
-     },
-     {
-      "name": "Omologation",
-      "offset": 22,
-      "length": 11
-     },
-     {
-      "name": "Software",
-      "offset": 33,
-      "length": 11
-     },
-     {
-      "name": "Tester",
-      "offset": 44,
-      "length": 11
+      "name": "ECU part number",
+      "requests": [
+       23,
+       24,
+       25,
+       26,
+       27,
+       28,
+       29,
+       30,
+       31,
+       32,
+       33
+      ],
+      "encoding": "ascii"
      }
     ]
    }
@@ -7549,23 +7382,10 @@
    },
    "dtc_overrides": {},
    "session": {
-    "access_timing": false,
-    "diagnostic_session": null,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "physical_supported": false,
+    "physical_blocked_reason": "Compatibility evidence confirms tooling exists, but no family-specific initialization transcript or primary wire definition was recovered."
    },
-   "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
-     {
-      "name": "Identification",
-      "offset": 0,
-      "length": 40,
-      "note": "field layout unverified; shown as one raw block"
-     }
-    ]
-   }
+   "identification": {}
   },
   "5am": {
    "parameters": {
@@ -8735,7 +8555,9 @@
     "diagnostic_session": 129,
     "diagnostic_session_note": "Session 0x81. The 5AM rejects 0x85 with NRC 0x22 outside the programming flow.",
     "lazy_session": true,
-    "tester_present_interval": 2.0
+    "tester_present_interval": 2.0,
+    "physical_supported": true,
+    "physical_evidence_note": "Validated by the project capture and transcript evidence documented in PROTOCOL_NOTES.md."
    },
    "identification": {
     "service": 26,
@@ -8772,20 +8594,7 @@
   "7sm": {
    "parameters": {},
    "actuators": {},
-   "routines": {
-    "handle_learning": {
-     "params": [],
-     "expect": null
-    },
-    "throttle_learning": {
-     "params": [],
-     "expect": null
-    },
-    "service_reset": {
-     "params": [],
-     "expect": null
-    }
-   },
+   "routines": {},
    "identity": {
     "Drawing": "CM281703",
     "Hardware": "IAW7SMHW320",
@@ -8799,7 +8608,9 @@
     "access_timing": true,
     "diagnostic_session": 129,
     "lazy_session": true,
-    "tester_present_interval": 2.0
+    "tester_present_interval": 2.0,
+    "physical_supported": true,
+    "physical_evidence_note": "A published 7SM diagnostic session log establishes the K-Line session, identification exchange, and baud switch."
    },
    "identification": {
     "service": 26,
@@ -8851,26 +8662,252 @@
    },
    "dtc_overrides": {},
    "session": {
-    "access_timing": false,
-    "diagnostic_session": null,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "physical_supported": false,
+    "physical_blocked_reason": "The raw capture establishes physical addresses and two routine payloads, but not the complete initialization, session, security access, or safe read services.",
+    "note": "Captured KWP routine frames do not establish initialization, session selection, or security sequencing."
    },
    "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
-     {
-      "name": "Identification",
-      "offset": 0,
-      "length": 40,
-      "note": "field layout unverified; shown as one raw block"
-     }
-    ]
+    "available": false,
+    "reason": "ManaTCU displays BIN/TCU versions, but the request and response layout were not published in the available capture."
    }
   },
   "miug3": {
-   "parameters": {},
+   "parameters": {
+    "manifold_pressure_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 49,
+     "states": {}
+    },
+    "air_temp_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 50,
+     "states": {}
+    },
+    "base_advance_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 53,
+     "states": {}
+    },
+    "applied_advance_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 55,
+     "states": {}
+    },
+    "target_rpm_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 58,
+     "states": {}
+    },
+    "oxygen_voltage_1_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 69,
+     "states": {}
+    },
+    "oxygen_voltage_2_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 70,
+     "states": {}
+    },
+    "oxygen_correction_1_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 71,
+     "states": {}
+    },
+    "oxygen_correction_2_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 72,
+     "states": {}
+    },
+    "mixture_state_1_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 73,
+     "states": {}
+    },
+    "mixture_state_2_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 74,
+     "states": {}
+    },
+    "obdi_sensor_state_1_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 75,
+     "states": {}
+    },
+    "obdi_sensor_state_2_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 76,
+     "states": {}
+    },
+    "gear_clutch_61_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 97,
+     "states": {}
+    },
+    "stepper_state_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 98,
+     "states": {}
+    },
+    "stepper_base_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 107,
+     "states": {}
+    },
+    "stepper_closed_loop_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 108,
+     "states": {}
+    },
+    "gear_clutch_78_raw": {
+     "offset": 0,
+     "length": null,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 120,
+     "states": {}
+    }
+   },
    "actuators": {},
    "routines": {
     "throttle_learning": {
@@ -8887,42 +8924,11 @@
    },
    "dtc_overrides": {},
    "session": {
-    "access_timing": true,
-    "diagnostic_session": 129,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "physical_supported": false,
+    "physical_blocked_reason": "The official training table defines application identifiers, but not the physical initialization, framing, response widths, or scaling.",
+    "note": "Closed tools implement the missing session details, but compatibility is not a publishable protocol definition."
    },
-   "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
-     {
-      "name": "Drawing",
-      "offset": 0,
-      "length": 11
-     },
-     {
-      "name": "Hardware",
-      "offset": 11,
-      "length": 11
-     },
-     {
-      "name": "Omologation",
-      "offset": 22,
-      "length": 11
-     },
-     {
-      "name": "Software",
-      "offset": 33,
-      "length": 11
-     },
-     {
-      "name": "Tester",
-      "offset": 44,
-      "length": 11
-     }
-    ]
-   }
+   "identification": {}
   },
   "miug4": {
    "parameters": {},
@@ -8937,41 +8943,14 @@
    },
    "dtc_overrides": {},
    "session": {
-    "access_timing": false,
-    "diagnostic_session": 129,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "protocol": "unknown-can-application",
+    "note": "ISO-TP physical transport alone does not establish UDS/KWP services or identifiers.",
+    "physical_supported": false,
+    "physical_blocked_reason": "ISO-TP transport, CAN identifiers, addressing, and diagnostic application payloads remain unvalidated."
    },
    "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
-     {
-      "name": "Drawing",
-      "offset": 0,
-      "length": 11
-     },
-     {
-      "name": "Hardware",
-      "offset": 11,
-      "length": 11
-     },
-     {
-      "name": "Omologation",
-      "offset": 22,
-      "length": 11
-     },
-     {
-      "name": "Software",
-      "offset": 33,
-      "length": 11
-     },
-     {
-      "name": "Tester",
-      "offset": 44,
-      "length": 11
-     }
-    ]
+    "available": false,
+    "reason": "No validated family-specific diagnostic application definition is available."
    }
   },
   "p8": {
@@ -8987,39 +8966,43 @@
    },
    "dtc_overrides": {},
    "session": {
-    "access_timing": false,
-    "diagnostic_session": null,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "protocol": "legacy-iaw",
+    "response_timeout": 0.5,
+    "inter_request_delay": 0.005,
+    "fault_registers": [],
+    "physical_supported": false,
+    "physical_blocked_reason": "Automotive IAW-04K evidence defines the legacy direct protocol, but no Moto Guzzi P8 primary definition or capture was recovered."
    },
    "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
+    "include_wakeup": false,
+    "blocks": [
      {
-      "name": "Drawing",
-      "offset": 0,
-      "length": 11
+      "name": "ISO code",
+      "requests": [
+       48,
+       49,
+       50,
+       51,
+       52,
+       53
+      ],
+      "encoding": "hex"
      },
      {
-      "name": "Hardware",
-      "offset": 11,
-      "length": 11
-     },
-     {
-      "name": "Omologation",
-      "offset": 22,
-      "length": 11
-     },
-     {
-      "name": "Software",
-      "offset": 33,
-      "length": 11
-     },
-     {
-      "name": "Tester",
-      "offset": 44,
-      "length": 11
+      "name": "ECU part number",
+      "requests": [
+       54,
+       55,
+       56,
+       57,
+       58,
+       59,
+       60,
+       61,
+       62,
+       63
+      ],
+      "encoding": "ascii"
      }
     ]
    }

@@ -35,7 +35,7 @@ h2 { font-size: 1.02rem; letter-spacing: .01em; }
 p { margin: 0 0 .7rem; }
 .muted { color: var(--muted); }
 .small { font-size: .82rem; }
-.hidden { display: none !important; }
+.hidden, [hidden] { display: none !important; }
 .spacer { flex: 1; }
 
 /* ------------------------------------------------------------- sidebar */
@@ -429,7 +429,42 @@ table.data tr.changed td { background: #12281e; }
   box-shadow: 0 24px 60px rgba(0, 0, 0, .6);
 }
 .modal-card p { font-size: .88rem; }
+.modal-card.busy { border-color: #4f7188; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 16px; }
+.modal-actions[hidden] { display: none; }
+
+.guide-intro { color: #d7e2ea; margin: 0 0 14px; }
+.guide-steps {
+  list-style: none; padding: 0; margin: 12px 0; counter-reset: guide-step;
+  display: grid; gap: 9px;
+}
+.guide-steps li {
+  counter-increment: guide-step; position: relative; min-height: 34px;
+  padding: 8px 10px 8px 44px; background: var(--panel-2);
+  border: 1px solid var(--line); border-radius: 8px; font-size: .88rem;
+}
+.guide-steps li::before {
+  content: counter(guide-step); position: absolute; left: 10px; top: 7px;
+  width: 24px; height: 24px; display: grid; place-items: center;
+  border-radius: 50%; background: #274253; color: #dcecf5; font-weight: 700;
+}
+.guide-callout {
+  border-left: 3px solid var(--warn); background: rgba(227, 197, 106, .08);
+  border-radius: 5px; padding: 9px 11px; font-size: .84rem; color: #eadcae;
+}
+.guide-callout.danger { border-color: var(--danger); color: #f0b5b5; background: rgba(224, 100, 100, .08); }
+.guide-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.guide-choice .btn { min-height: 54px; white-space: normal; }
+.guide-spinner {
+  width: 28px; height: 28px; margin: 18px auto 8px; border-radius: 50%;
+  border: 3px solid var(--line); border-top-color: var(--accent);
+  animation: guide-spin .8s linear infinite;
+}
+@keyframes guide-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 520px) {
+  .guide-choice { grid-template-columns: 1fr; }
+}
 
 @media (max-width: 880px) {
   body { grid-template-columns: 1fr; }

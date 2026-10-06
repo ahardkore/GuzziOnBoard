@@ -5,50 +5,51 @@
   "transport": "kline",
   "confidence": "inferred",
   "years": "1993-1997",
-  "notes": "Daytona 1000, Quota 1000, California 1100 i.e., California III from 1993. Outside the 25-year window for most owners and only partially supported by the open tools. Read-only identification here. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: This family stores no faults at all - there is nothing to read and nothing to clear. 'Unknown 0B' is the CO trimmer value, 'unknown 12' and 'unknown 13' are one 16-bit integer, and 'unknown 14' is a flag byte.",
+  "notes": "Daytona 1000, Quota 1000 and early California injection applications. The previous KWP2000/1A 80 definition was unsupported and has been removed. Vendored IAW Scan 2 source proves that the automotive IAW-04K.P8 uses direct 7680-baud echoed one-byte requests, ISO bytes 0x30-0x35 and part-number bytes 0x36-0x3F. No Moto Guzzi P8 capture or primary definition ties that register map to motorcycle firmware, so no capability is exposed and physical use is blocked. The automotive layout remains only as provenance metadata.",
   "kline": {
-    "baud": 10400,
-    "init": "slow",
-    "address": 51,
-    "addressed": true,
-    "tester_address": 241,
-    "ecu_address": 16,
-    "inter_byte_delay": 0.005
+    "baud": 7680,
+    "comm_baud": 7680,
+    "init": "legacy-iaw-direct",
+    "inter_byte_delay": 0.0
   },
   "session": {
-    "access_timing": false,
-    "diagnostic_session": null,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "protocol": "legacy-iaw",
+    "response_timeout": 0.5,
+    "inter_request_delay": 0.005,
+    "fault_registers": [],
+    "physical_supported": false,
+    "physical_blocked_reason": "Automotive IAW-04K evidence defines the legacy direct protocol, but no Moto Guzzi P8 primary definition or capture was recovered."
   },
   "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
+    "include_wakeup": false,
+    "blocks": [
       {
-        "name": "Drawing",
-        "offset": 0,
-        "length": 11
+        "name": "ISO code",
+        "requests": [
+          48,
+          49,
+          50,
+          51,
+          52,
+          53
+        ],
+        "encoding": "hex"
       },
       {
-        "name": "Hardware",
-        "offset": 11,
-        "length": 11
-      },
-      {
-        "name": "Omologation",
-        "offset": 22,
-        "length": 11
-      },
-      {
-        "name": "Software",
-        "offset": 33,
-        "length": 11
-      },
-      {
-        "name": "Tester",
-        "offset": 44,
-        "length": 11
+        "name": "ECU part number",
+        "requests": [
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63
+        ],
+        "encoding": "ascii"
       }
     ]
   },
@@ -56,20 +57,16 @@
     "image_size": null,
     "read_supported": false,
     "write_supported": false,
-    "write_blocked_reason": "No reader or writer exists for this family anywhere in the GuzziDiag toolchain, and no memory-access sequence has been captured. These are early-1990s ECUs whose maps generally live in a socketed EPROM, so the practical route is to pull the chip and use an EPROM programmer.",
-    "security_access": false,
+    "write_blocked_reason": "No validated in-circuit memory-access sequence is available for the Moto Guzzi P8. Maps normally live in a socketed EPROM; use an EPROM programmer and preserve the original chip.",
     "regions": {}
   },
-  "capabilities": [
-    "discover",
-    "dtc_read",
-    "identify"
-  ],
+  "capabilities": [],
   "sources": [
-    "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
-    "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)"
+    "IAW Scan 2 source a5995eab86e82be60386e99b2eecc9c14810ec85: ECU/ecu.cs and ECU/iaw04k.cs (automotive IAW-04K.P8; application to Moto Guzzi remains unconfirmed)",
+    "GuzziDiag / IAWDiag changelogs and feature list (family support only; not wire evidence)"
   ],
   "parameters": [],
   "actuators": [],
-  "routines": []
+  "routines": [],
+  "dtc_descriptions": {}
 }

@@ -13,7 +13,8 @@ def catalog():
 
 def test_catalog_loads_every_ecu_family(catalog):
     assert set(catalog.ecus) >= {
-        "p8", "16m", "15m", "15rc", "5am", "7sm", "miug3", "miug4", "11mp"
+        "p8", "16m", "15m", "15rc", "59m", "5am", "7sm", "miug3",
+        "miug4", "11mp", "mana_tcu",
     }
 
 
@@ -56,9 +57,23 @@ def test_low_confidence_families_cannot_offer_control_actions(catalog):
         if profile.confidence in ("inferred", "unknown"):
             assert not profile.supports("actuators")
             assert not profile.supports("dtc_clear")
-            # ...but observation stays available, which is the whole point.
+            # Catalogued observations remain usable in simulation/replay;
+            # the physical_supported boundary is enforced separately.
             if "identify" in profile.capabilities:
                 assert profile.supports("identify")
+
+
+def test_unvalidated_family_transports_are_explicitly_blocked(catalog):
+    blocked = {"p8", "15m", "15rc", "59m", "miug3", "miug4", "11mp", "mana_tcu"}
+    for ecu_id in blocked:
+        session = catalog.ecu(ecu_id).session
+        assert session["physical_supported"] is False
+        assert session["physical_blocked_reason"]
+
+    # These are the non-5AM families with a family-specific primary framing
+    # definition or raw physical-address capture in the evidence bundle.
+    assert catalog.ecu("16m").session.get("physical_supported", True)
+    assert catalog.ecu("7sm").session.get("physical_supported", True)
 
 
 def test_local_identifiers_are_unique_within_a_family(catalog):
@@ -219,5 +234,5 @@ def test_the_59m_family_is_an_honest_placeholder(catalog):
     assert profile.confidence == "unknown"
     assert not profile.parameters and not profile.actuators
     assert not profile.memory.get("read_supported")
-    # identification, DTCs and the read-only sweep only
-    assert set(profile.capabilities) <= {"identify", "dtc_read", "discover"}
+    # Compatibility evidence is not enough to publish any operation.
+    assert profile.capabilities == ()

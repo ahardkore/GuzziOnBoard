@@ -5,9 +5,10 @@ protocol or UI layers may hardcode a local identifier, a scaling factor or an
 actuator number - it all comes from here, so adding a motorcycle is a data
 change rather than a code change.
 
-Each definition carries an explicit ``confidence`` level, and the diagnostics
-service degrades to read-only identification for anything below
-``documented``. Guessing at an unknown byte is how tools brick ECUs.
+Each definition carries an explicit ``confidence`` level. Read operations are
+available only when an evidence-backed capability is declared; control
+operations additionally require ``documented`` confidence or better. Guessing
+at an unknown byte is how tools brick ECUs.
 """
 from __future__ import annotations
 
@@ -25,7 +26,7 @@ CONFIDENCE_LEVELS = (
     "verified-capture", # decoded from a real K-Line/CAN capture
     "documented",       # from a service manual or a mature open-source tool
     "inferred",         # pattern-matched from a sibling ECU, unproven
-    "unknown",          # placeholder; read-only identification only
+    "unknown",          # placeholder; no operation unless separately evidenced
 )
 
 #: Capabilities below this confidence are not offered to the user.
@@ -54,6 +55,8 @@ class Parameter:
     key: str
     name: str
     local_id: int
+    #: Ordered one-byte legacy requests. Empty means use ``local_id`` once.
+    request_ids: tuple[int, ...] = ()
     unit: str = ""
     offset: int = 0
     length: int | None = None
@@ -77,7 +80,8 @@ class Parameter:
         return cls(
             key=raw["key"],
             name=raw["name"],
-            local_id=int(raw["local_id"]),
+            local_id=int(raw.get("local_id", (raw.get("request_ids") or [0])[0])),
+            request_ids=tuple(int(i) for i in raw.get("request_ids", ())),
             unit=raw.get("unit", ""),
             offset=int(raw.get("offset", 0)),
             length=raw.get("length"),
@@ -99,6 +103,7 @@ class Parameter:
     def as_dict(self) -> dict:
         return {
             "key": self.key, "name": self.name, "local_id": self.local_id,
+            "request_ids": list(self.request_ids),
             "unit": self.unit, "group": self.group, "digits": self.digits,
             "default": self.default, "states": self.states,
             "min": self.min, "max": self.max, "confidence": self.confidence,
@@ -283,6 +288,7 @@ class EcuProfile:
             "memory": self.memory,
             "kline": self.kline,
             "can": self.can,
+            "session": self.session,
             "actuators": [a.as_dict() for a in self.actuators],
             "routines": [r.as_dict() for r in self.routines],
         }

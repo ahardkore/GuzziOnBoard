@@ -267,9 +267,10 @@ relevant if pass-thru hardware support is ever wanted).
   is the best English-language documentation hub for the whole toolchain
   family, including which reader versions work.
 - **Piaggio PADS + MDI-3** (dealer tooling) — the official path for the CAN
-  era. Not obtainable for us, but any workshop capture of a PADS session on a
-  V7 850 / V85 would settle the CAN identifier question instantly; worth
-  asking around the forums for exactly that capture.
+  era. Public material proves feature existence but does not disclose the
+  identifier or application layer. Recovering that evidence is a project-side
+  archival or controlled-bench task; the workstation does not ask a customer
+  to probe an unknown ECU and keeps these physical profiles blocked.
 
 ---
 
@@ -292,25 +293,23 @@ relevant if pass-thru hardware support is ever wanted).
 | # | Gap (from PROTOCOL_NOTES) | Program | Action | Done when |
 |---|---|---|---|---|
 | 1 | No verified SecurityAccess key | 5am_util (§1.1) | register `iaw5am-kwp-divmod`, retire affine hypothesis | provider ships, one bench unlock on a real 5AM promotes it to `verified` |
-| 2 | CAN IDs 0x7E0/0x7E8 unconfirmed | GuzziCanDiag + SavvyCAN (§2, §4) | passive-sniff a GuzziCanDiag↔V7 850/V85 session; also test 29-bit `0x18DA10F1`/`0x18DAF110` | catalog `can_ids` flips from `inferred`; simulator speaks the same IDs. **Software half landed:** the pair is now a per-session setting (catalog default ← vehicle override ← operator), 29-bit accepted, exposed in the Garage UI; only the capture remains. **Capture analyser landed** (`guzzionboard/canlog.py`, Discovery view): paste or point it at a candump / SavvyCAN CSV / CRTD sniff of a GuzziCanDiag session and it reports the pair with its evidence — flow-control answering a first frame, service ids, tester-present cadence, padding — and whether it is either standard pair |
-| 3 | Only 5AM has characterised identifiers | GuzziDiag + IAWDiag captures (§2), TuneECU (§5) | serial-tap the closed tools against bench ECUs, decode into catalog | 15RC / MIU G3 / 7SM identifier tables at `documented`+ |
-| 4 | Transports never met a bike | aster94 lib, RPMSensorEmu, AdapterTest (§4, §6) | diff timing against aster94; bench ECU + wheel emulator; port-permission preflight vs AdapterTest | one full identify + live-data session per transport on real hardware. **Software half for CAN landed:** the `cansim` transport runs the full ISO-TP path (segmentation, flow control, reassembly, the `CanConnection` code itself) against the simulated ECU over a python-can virtual bus, with the catalog/vehicle/operator id overrides in force. Open until a capture settles it: this project carries KWP K-Line-framed messages inside ISO-TP, while the ISO 15765-3 convention strips the framing — the first real CAN capture decides, and the §7-item-2 analyser already expects the stripped convention |
+| 2 | MIU G4 / 11MP CAN transport and application are unpublished | Service/commercial records, GuzziCanDiag + SavvyCAN (§2, §4) | Continue project-owned archive research or controlled maintainer bench capture; do not probe a customer bike | A reproducible family-specific capture or primary definition establishes bitrate, IDs, addressing, transport, session, and payloads. Until then the profiles have no CAN defaults or capabilities and fail before transport construction. The offline capture analyser remains available for existing research logs. |
+| 3 | Most non-5AM application identifiers remain incomplete | OEM MIU G3 tables, IAW Scan 2, ScanST, GuzziDiag/IAWDiag records | Preserve only values established by a primary definition, source, or reproducible session; keep the rest unavailable | 16M now has evidence-bounded read-only support and 7SM has captured identity only. MIU G3's OEM RLI names remain non-executable raw research metadata; 15M, 15RC, 59M, P8 and the remaining families expose no guessed operations. |
+| 4 | Physical transports have not met project-controlled hardware | aster94 lib, RPMSensorEmu, AdapterTest (§4, §6) | Diff timing against prior art, then use maintainer-owned bench ECUs and a wheel emulator | One full evidence-preserving session per enabled family on controlled hardware. `cansim` validates generic ISO-TP mechanics only and makes no claim about a Piaggio CAN application. |
 | 5 | Write path unproven (5AM) | 5am_util (§1.2, §1.3) | adopt write sequence + encoder into firmware/programming, simulator-tested first | a sacrificial 5AM is read, written with its own dump, read back equal |
 | 6 | No map-level view of dumps | XDF library (§3) | ~~XDF parser + map diff in firmware.py~~ **Done** — shipped as the standalone `guzzionboard/maps.py` (parser, render, named diff; `GET /api/maps`, `/api/maps/render`, `/api/maps/diff`; "Maps & tables" panel in the UI) | a 5AM dump renders named fuel/ignition tables |
 
-Items 1 and 6 are pure software and can land without hardware. Items 2–5
-need a bench: one ECU per family of interest, a KKL adapter, an STN or
-ELM327-class CAN adapter, and ideally the phonic-wheel emulator.
-Item 6 landed: the parser is grounded on a real TunerPro v5 XDF (§3), and
-XDFs are user-supplied at runtime from `~/.guzzionboard/xdfs/` because none
-of the Guzzi files may be redistributed with this repo.
-Item 2's software half landed with it (see the table). Cross-brand coverage
-(Ducati P8/15M/16M/59M/5AM, Aprilia 16M/5AM/7SM) is in the catalog at
-`inferred`/`unknown` — model→ECU mappings from the GuzziTek master list
-(guzzitek.org/documents/injection/ECU_MasterList_2011.pdf), the Ducati.ms
-model/ECU list and tuneecu.net; identifier captures on those bikes are the
-promotion path. Known but deliberately unmodelled for now: Aprilia 5DM
-(Shiver/Dorsoduro 750) and 5SM (RSV4 R), and Ducati's Siemens era
+Items 1 and 6 are pure software and can land without hardware. Remaining
+bench work belongs to the project's maintainers: one controlled ECU per family
+of interest, an appropriate adapter, and ideally the phonic-wheel emulator.
+No unsupported profile is turned into a customer protocol experiment.
+Item 6 landed: the parser is grounded on a real TunerPro v5 XDF (§3), and the
+repository now includes a provenance-tracked XDF library while still allowing
+local overrides from `~/.guzzionboard/xdfs/`.
+Cross-brand fitments (Ducati P8/15M/16M/59M/5AM, Aprilia 16M/5AM/7SM) remain
+`inferred`/`unknown`: model-to-ECU compatibility does not promote application
+bytes established on another make. Known but deliberately unmodelled for now:
+Aprilia 5DM (Shiver/Dorsoduro 750) and 5SM (RSV4 R), and Ducati's Siemens era
 (696/796/1100).
 
 ---

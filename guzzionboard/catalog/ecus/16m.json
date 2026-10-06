@@ -5,50 +5,55 @@
   "transport": "kline",
   "confidence": "documented",
   "years": "1996-2001",
-  "notes": "Sport 1100, V10 Centauro, Daytona RS. Early generation - expect 5-baud slow init and a reduced service set. Live local identifiers for this family have not been captured yet. Run the read-only identifier discovery scan and contribute the result; until then the workstation offers identification, DTCs and raw discovery only. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: CO-Trim is impossible on the original firmware. The fault reported as 'unknown 03' is the right injector, and the two injector actuators are easily swapped.",
+  "notes": "Sport 1100, V10 Centauro and Daytona RS. This controller uses Marelli's pre-KWP echoed one-byte diagnostic protocol, not ISO 14230 frames. The physical initialization and register layout are corroborated by a field capture/open implementation for the IAW 1.6M family, the published Marelli 16F protocol, IAW Scan 2's independent 16F implementation, and ScanST's tested Moto Guzzi 16M support. Temperature conversion differs between the 16F publication (-40 C) and the recovered 1.6M implementation (-55 C), so the workstation deliberately exposes those channels as raw counts. Active-test bytes, clear-errors and reset bytes are known but intentionally unavailable: they are ECU-timed single-byte commands and do not fit the workstation's explicit on/off safety contract.",
   "kline": {
-    "baud": 10400,
-    "init": "slow",
-    "address": 51,
-    "addressed": true,
-    "tester_address": 241,
-    "ecu_address": 16,
-    "inter_byte_delay": 0.005
+    "baud": 1200,
+    "comm_baud": 7680,
+    "init": "legacy-iaw-16m",
+    "wakeup_timeout": 8.0,
+    "inter_byte_delay": 0.0
   },
   "session": {
-    "access_timing": false,
-    "diagnostic_session": null,
-    "lazy_session": true,
-    "tester_present_interval": 2.0
+    "protocol": "legacy-iaw",
+    "response_timeout": 0.5,
+    "inter_request_delay": 0.005,
+    "fault_registers": [
+      16,
+      17,
+      18,
+      20,
+      21,
+      22,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48
+    ],
+    "physical_supported": true,
+    "physical_evidence_note": "Marelli 3.00600/16F family definition plus the published 1.6M implementation define the key-on initialization and byte-query transport."
   },
   "identification": {
-    "service": 26,
-    "option": 128,
-    "fields": [
+    "include_wakeup": true,
+    "wakeup_name": "ISO key-on code",
+    "blocks": [
       {
-        "name": "Drawing",
-        "offset": 0,
-        "length": 11
-      },
-      {
-        "name": "Hardware",
-        "offset": 11,
-        "length": 11
-      },
-      {
-        "name": "Omologation",
-        "offset": 22,
-        "length": 11
-      },
-      {
-        "name": "Software",
-        "offset": 33,
-        "length": 11
-      },
-      {
-        "name": "Tester",
-        "offset": 44,
-        "length": 11
+        "name": "ECU part number",
+        "requests": [
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33
+        ],
+        "encoding": "ascii"
       }
     ]
   },
@@ -56,23 +61,131 @@
     "image_size": null,
     "read_supported": false,
     "write_supported": false,
-    "write_blocked_reason": "No reader or writer exists for this family anywhere in the GuzziDiag toolchain, and no memory-access sequence has been captured. These are early-1990s ECUs whose maps generally live in a socketed EPROM, so the practical route is to pull the chip and use an EPROM programmer.",
-    "security_access": false,
+    "write_blocked_reason": "No validated in-circuit memory-access sequence is available for the Moto Guzzi 16M. Maps normally live in a socketed EPROM; use an EPROM programmer and preserve the original chip.",
     "regions": {}
   },
   "capabilities": [
-    "discover",
-    "dtc_clear",
     "dtc_read",
     "identify",
     "live"
   ],
   "sources": [
-    "GuzziDiag / IAWDiag changelogs and feature list (von-der-salierburg.de)",
-    "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-    "ISO 14230-2 and ISO 14230-3"
+    "Marelli 3.00600 / 16F Technical Information (November 1997 production standard)",
+    "IAW Scan 2 source a5995eab86e82be60386e99b2eecc9c14810ec85: ECU/ecu.cs and ECU/iaw16f.cs",
+    "Weber Marelli 1.6M ECU Tools Open Source thread: field initialization capture and diagnostic jump table",
+    "ScanST documentation: tested Moto Guzzi 16M identification, parameters, faults and active diagnostics"
   ],
-  "parameters": [],
+  "parameters": [
+    {
+      "key": "rpm",
+      "name": "Engine speed",
+      "local_id": 1,
+      "request_ids": [
+        1,
+        2
+      ],
+      "unit": "rpm",
+      "length": 2,
+      "recip": 15000000,
+      "digits": 0,
+      "group": "engine",
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "injection_ms",
+      "name": "Injection duration",
+      "local_id": 3,
+      "request_ids": [
+        3,
+        4
+      ],
+      "unit": "ms",
+      "length": 2,
+      "scale": 0.002,
+      "digits": 2,
+      "group": "fuel",
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "advance",
+      "name": "Ignition advance",
+      "local_id": 5,
+      "unit": "deg",
+      "length": 1,
+      "scale": 0.5,
+      "digits": 1,
+      "group": "engine",
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "manifold_pressure",
+      "name": "Manifold absolute pressure",
+      "local_id": 6,
+      "unit": "mmHg",
+      "length": 1,
+      "scale": 3.0,
+      "digits": 0,
+      "group": "air",
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "air_temp_raw",
+      "name": "Air temperature sensor (raw)",
+      "local_id": 7,
+      "unit": "count",
+      "length": 1,
+      "digits": 0,
+      "group": "temperature",
+      "confidence": "documented"
+    },
+    {
+      "key": "coolant_temp_raw",
+      "name": "Engine temperature sensor (raw)",
+      "local_id": 8,
+      "unit": "count",
+      "length": 1,
+      "digits": 0,
+      "group": "temperature",
+      "confidence": "documented"
+    },
+    {
+      "key": "throttle_raw",
+      "name": "Throttle position (raw)",
+      "local_id": 9,
+      "unit": "count",
+      "length": 1,
+      "digits": 0,
+      "group": "air",
+      "confidence": "documented"
+    },
+    {
+      "key": "battery",
+      "name": "Battery voltage",
+      "local_id": 10,
+      "unit": "V",
+      "length": 1,
+      "scale": 0.0625,
+      "digits": 2,
+      "group": "electrical",
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "fuel_trim_raw",
+      "name": "Fuel trim (raw)",
+      "local_id": 34,
+      "unit": "count",
+      "length": 1,
+      "digits": 0,
+      "group": "fuel",
+      "confidence": "documented"
+    }
+  ],
   "actuators": [],
-  "routines": []
+  "routines": [],
+  "dtc_descriptions": {}
 }

@@ -118,6 +118,26 @@ def test_workstation_has_accessible_guided_state_prompts():
     assert "window.confirm" not in source
 
 
+def test_map_builder_exposes_professional_editing_without_weakening_the_gate():
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    source = (WEB / "app.js").read_text(encoding="utf-8")
+    for ident in (
+        "mapSetBtn", "mapAddBtn", "mapPercentBtn",
+        "mapInterpolateRowsBtn", "mapInterpolateColsBtn",
+        "mapSmoothBtn", "mapBlendBtn", "mapCopyBtn", "mapPasteBtn",
+        "mapUndoBtn", "mapRedoBtn", "mapExportProjectBtn", "mapImportProjectBtn",
+        "mapsValidateDefinitionBtn", "mapLogAnalyzeBtn", "mapLogStageBtn",
+        "mapLogStddev",
+        "mapChecksumProvider", "mapPackageSelect", "mapPackageStageBtn",
+    ):
+        assert f'id="{ident}"' in html
+    assert "'/api/maps/preview'" in source
+    assert "expected_plan_sha256" in source
+    assert "Shift-click for a rectangle" in html
+    assert "source SHA-256" in source
+    assert "liability acknowledgement" in source.lower()
+
+
 def test_unvalidated_can_ids_are_only_defaults_in_the_virtual_rehearsal():
     html = (WEB / "index.html").read_text(encoding="utf-8")
     tour = (WEB / "tour.html").read_text(encoding="utf-8")
@@ -137,7 +157,11 @@ def test_unvalidated_can_ids_are_only_defaults_in_the_virtual_rehearsal():
 SIMULATED_ENDPOINTS = (
     "/api/memory", "/api/memory/read", "/api/memory/backup",
     "/api/memory/validate", "/api/memory/write", "/api/maps",
-    "/api/maps/render", "/api/maps/diff", "/api/report", "/api/procedures",
+    "/api/maps/render", "/api/maps/diff", "/api/maps/validate-definition",
+    "/api/maps/analyze-log", "/api/maps/preview", "/api/maps/build",
+    "/api/checksum-providers", "/api/recommendations",
+    "/api/recommendations/validate", "/api/physical-validation",
+    "/api/physical-validation/validate", "/api/report", "/api/procedures",
     "/api/procedures/start", "/api/procedures/advance", "/api/sessions",
     "/api/sessions/replay", "/api/sessions/export", "/api/sessions/compare",
     "/api/tools/gearing", "/api/tools/z2dif", "/api/tools/rpmsignal",

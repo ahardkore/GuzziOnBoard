@@ -623,6 +623,22 @@
     return out;
   }
 
+  function axisDict(axis, bytes, offset, littleEndian) {
+    return {
+      id: axis.ident,
+      units: axis.units,
+      values: axisHeader(axis, bytes, offset, littleEndian),
+      raw_values: axis.embedded
+        ? readEmbedded(axis.embedded, bytes, offset, littleEndian) : [],
+      equation: axis.math,
+      address: axis.embedded
+        ? '0x' + axis.embedded.address.toString(16).toUpperCase() : '',
+      size_bits: axis.embedded ? axis.embedded.size_bits : 0,
+      signed: axis.embedded ? axis.embedded.signed : false,
+      editable: !!axis.embedded,
+    };
+  }
+
   function parseXdf(text, path) {
     var root = parseXml(text);
     var header = kid(root, 'XDFHEADER');
@@ -816,8 +832,17 @@
     xdf.tables.forEach(function (table) {
       var offset = fileOffset(xdf, table.embedded.address) - addressBase;
       try {
+        var tableRaw = readEmbedded(table.embedded, bytes, offset, xdf.little_endian);
+        var rawRows = [];
+        for (var rr = 0; rr < table.embedded.rows; rr++) {
+          rawRows.push(tableRaw.slice(
+            rr * table.embedded.cols, (rr + 1) * table.embedded.cols));
+        }
         tables.push({
+          id: table.uniqueid || ('address:0x'
+            + table.embedded.address.toString(16).toUpperCase()),
           title: table.title,
+          description: table.description,
           category: table.category,
           units: table.units,
           address: '0x' + table.embedded.address.toString(16).toUpperCase(),
@@ -825,7 +850,18 @@
           cols: table.x.count,
           x: axisHeader(table.x, bytes, axisOffset(table.x, offset), xdf.little_endian),
           y: axisHeader(table.y, bytes, axisOffset(table.y, offset), xdf.little_endian),
+          x_units: table.x.units,
+          y_units: table.y.units,
+          axes: {
+            x: axisDict(table.x, bytes, axisOffset(table.x, offset), xdf.little_endian),
+            y: axisDict(table.y, bytes, axisOffset(table.y, offset), xdf.little_endian),
+          },
           values: tableValues(table, bytes, offset, xdf.little_endian),
+          raw_values: rawRows,
+          equation: table.math,
+          size_bits: table.embedded.size_bits,
+          signed: table.embedded.signed,
+          editable: true,
         });
       } catch (exc) {
         errors.push({
@@ -842,12 +878,19 @@
         var raw = readEmbedded(constant.embedded, bytes, offset, xdf.little_endian)[0];
         var value = compileMath(constant.math)(raw);
         constants.push({
+          id: constant.uniqueid || ('address:0x'
+            + constant.embedded.address.toString(16).toUpperCase()),
           title: constant.title,
+          description: constant.description,
           category: constant.category,
           units: constant.units,
           address: '0x' + constant.embedded.address.toString(16).toUpperCase(),
           raw: raw,
-          value: constant.decimalpl ? round(value, constant.decimalpl) : value,
+          value: constant.decimalpl !== null ? round(value, constant.decimalpl) : value,
+          equation: constant.math,
+          size_bits: constant.embedded.size_bits,
+          signed: constant.embedded.signed,
+          editable: true,
         });
       } catch (exc) {
         errors.push({
@@ -875,6 +918,147 @@
     };
   }
 
+  function inverseMath(equation, wanted, embedded, decimalpl) {
+    wanted = Number(wanted);
+    if (!isFinite(wanted)) throw new Error('value must be finite');
+    var fn = compileMath(equation);
+    var bits = embedded.size_bits;
+    var low = embedded.signed ? -Math.pow(2, bits - 1) : 0;
+    var high = embedded.signed ? Math.pow(2, bits - 1) - 1 : Math.pow(2, bits) - 1;
+    var shown = function (v) { return decimalpl !== null ? round(v, decimalpl) : v; };
+    var candidates = {};
+    var add = function (raw) {
+      raw = Math.round(raw);
+      if (raw >= low && raw <= high) candidates[raw] = true;
+    };
+    [low, high, -2, -1, 0, 1, 2, 3].forEach(add);
+    try {
+      var f1 = fn(1), f2 = fn(2), f3 = fn(3);
+      var slope = f2 - f1;
+      if (slope && Math.abs(slope - (f3 - f2)) < 1e-10) {
+        var estimate = (wanted - (f1 - slope)) / slope;
+        for (var n = -2; n <= 2; n++) add(estimate + n);
+      }
+    } catch (_) { /* reciprocal at zero or another valid non-linear form */ }
+    var domains = [];
+    if (low <= -1) domains.push([low, Math.min(high, -1)]);
+    if (high >= 1) domains.push([Math.max(low, 1), high]);
+    domains.forEach(function (domain) {
+      var lo = domain[0], hi = domain[1];
+      var first, last;
+      try { first = fn(lo); last = fn(hi); } catch (_) { return; }
+      var ascending = last >= first;
+      while (lo <= hi) {
+        var mid = Math.floor((lo + hi) / 2), current;
+        try { current = fn(mid); } catch (_) { break; }
+        add(mid);
+        if (current === wanted) { lo = hi = mid; break; }
+        if ((current < wanted) === ascending) lo = mid + 1;
+        else hi = mid - 1;
+      }
+      for (var raw = Math.max(domain[0], hi - 2);
+        raw <= Math.min(domain[1], lo + 2); raw++) add(raw);
+    });
+    var evaluated = Object.keys(candidates).map(Number).map(function (raw) {
+      try { return { raw: raw, value: shown(fn(raw)) }; } catch (_) { return null; }
+    }).filter(Boolean).sort(function (a, b) {
+      return Math.abs(a.value - wanted) - Math.abs(b.value - wanted);
+    });
+    if (!evaluated.length) throw new Error('equation has no usable raw values');
+    var best = evaluated[0], quanta = [];
+    [best.raw - 1, best.raw + 1].forEach(function (raw) {
+      if (raw < low || raw > high) return;
+      try {
+        var q = Math.abs(shown(fn(raw)) - best.value);
+        if (q > 0) quanta.push(q);
+      } catch (_) { /* no neighbour */ }
+    });
+    var quantum = quanta.length ? Math.min.apply(Math, quanta) : 0;
+    var displayQuantum = decimalpl !== null ? Math.pow(10, -decimalpl) : 0;
+    var tolerance = Math.max(quantum / 2, displayQuantum / 2, 1e-9);
+    if (Math.abs(best.value - wanted) > tolerance + Math.abs(wanted) * 1e-12) {
+      throw new Error(String(wanted) + ' cannot be represented; nearest is '
+        + best.value + ' (raw ' + best.raw + ')');
+    }
+    return best;
+  }
+
+  function applyXdfChanges(xdf, image, changes, addressBase) {
+    if (!Array.isArray(changes) || !changes.length) {
+      throw new Error('at least one map change is required');
+    }
+    if (changes.length > 4096) throw new Error('a tuning build is limited to 4096 explicit changes');
+    if (addressBase === null || addressBase === undefined) {
+      addressBase = suggestAddressBase(xdf, image.bytes.length);
+    }
+    var bytes = new Uint8Array(image.bytes), applied = [], touched = {};
+    changes.forEach(function (change) {
+      var kind = String(change.kind || '').toLowerCase();
+      var ref = String(change.id || change.item_id || change.title || '');
+      var lookupKind = kind === 'axis' ? 'table' : kind;
+      var items = lookupKind === 'table' ? xdf.tables
+        : lookupKind === 'constant' ? xdf.constants : [];
+      if (!items.length) throw new Error('unknown change kind ' + JSON.stringify(kind));
+      var matches = items.filter(function (candidate) {
+        var candidateId = candidate.uniqueid || ('address:0x'
+          + candidate.embedded.address.toString(16).toUpperCase());
+        return candidateId === ref || candidate.uniqueid === ref || candidate.title === ref;
+      });
+      if (matches.length !== 1) throw new Error('no unique ' + lookupKind + ' ' + JSON.stringify(ref));
+      var owner = matches[0], item = owner, row = 0, col = 0;
+      var axisName = '';
+      if (kind === 'axis') {
+        axisName = String(change.axis || '').toLowerCase();
+        if (axisName !== 'x' && axisName !== 'y') throw new Error(owner.title + ': invalid axis');
+        item = owner[axisName];
+        if (!item.embedded) throw new Error(owner.title + ': static axis cannot be edited');
+        row = Number(change.index);
+        if (!Number.isInteger(row) || row < 0 || row >= item.embedded.cols) {
+          throw new Error(owner.title + ': axis index is outside the axis');
+        }
+      } else if (kind === 'table') {
+        row = Number(change.row); col = Number(change.col);
+        if (!Number.isInteger(row) || !Number.isInteger(col)
+          || row < 0 || row >= item.embedded.rows
+          || col < 0 || col >= item.embedded.cols) {
+          throw new Error(item.title + ': cell is outside the table');
+        }
+      }
+      var index = kind === 'table' ? row * item.embedded.cols + col
+        : kind === 'axis' ? row : 0;
+      var id = owner.uniqueid || ('address:0x'
+        + owner.embedded.address.toString(16).toUpperCase());
+      var title = kind === 'axis' ? owner.title + ' (' + axisName + ' axis)' : item.title;
+      var key = kind + ':' + id + ':' + axisName + ':' + index;
+      if (touched[key]) throw new Error(title + ': cell is changed more than once');
+      touched[key] = true;
+      var offset = fileOffset(xdf, item.embedded.address) - addressBase;
+      var raws = readEmbedded(item.embedded, image.bytes, offset, xdf.little_endian);
+      var beforeRaw = raws[index];
+      if (change.expected_raw === undefined || Number(change.expected_raw) !== beforeRaw) {
+        throw new Error(title + ': source changed; render the source again');
+      }
+      var decimals = kind === 'axis' ? null : item.decimalpl;
+      var converted = inverseMath(item.math, change.value, item.embedded, decimals);
+      if (converted.raw === beforeRaw) throw new Error(title + ': requested value is unchanged');
+      var before = compileMath(item.math)(beforeRaw);
+      if (decimals !== null) before = round(before, decimals);
+      raws[index] = converted.raw;
+      writeEmbedded(item.embedded, bytes, offset, xdf.little_endian, raws);
+      applied.push({
+        kind: kind, id: id, axis: axisName,
+        index: kind === 'axis' ? index : null, title: title,
+        row: kind === 'table' ? row : null, col: kind === 'table' ? col : null,
+        x: kind === 'table' ? String(change.x || '') : '',
+        y: kind === 'table' ? String(change.y || '') : '', units: item.units,
+        before_raw: beforeRaw, after_raw: converted.raw,
+        before: before, requested: Number(change.value), after: converted.value,
+        quantized: converted.value !== Number(change.value),
+      });
+    });
+    return { bytes: bytes, changes: applied, address_base: addressBase };
+  }
+
   function diffXdf(xdf, before, after, addressBase) {
     var a = before.bytes, b = after.bytes;
     if (a.length !== b.length) {
@@ -887,7 +1071,7 @@
     var tables = [];
     xdf.tables.forEach(function (table) {
       var offset = fileOffset(xdf, table.embedded.address) - addressBase;
-      var beforeRows, afterRows, x, y;
+      var beforeRows, afterRows, x, y, xAfter, yAfter;
       try {
         beforeRows = tableValues(table, a, offset, xdf.little_endian);
         afterRows = tableValues(table, b, offset, xdf.little_endian);
@@ -895,6 +1079,12 @@
           ? fileOffset(xdf, table.x.embedded.address) - addressBase : offset,
         xdf.little_endian);
         y = axisHeader(table.y, a, table.y.embedded
+          ? fileOffset(xdf, table.y.embedded.address) - addressBase : offset,
+        xdf.little_endian);
+        xAfter = axisHeader(table.x, b, table.x.embedded
+          ? fileOffset(xdf, table.x.embedded.address) - addressBase : offset,
+        xdf.little_endian);
+        yAfter = axisHeader(table.y, b, table.y.embedded
           ? fileOffset(xdf, table.y.embedded.address) - addressBase : offset,
         xdf.little_endian);
       } catch (exc) {
@@ -915,12 +1105,25 @@
           }
         });
       });
-      if (cells.length) {
+      var axisChanges = [];
+      [["x", x, xAfter, table.x], ["y", y, yAfter, table.y]]
+        .forEach(function (entry) {
+          entry[1].forEach(function (value, index) {
+            if (value !== entry[2][index]) {
+              axisChanges.push({
+                axis: entry[0], index: index, units: entry[3].units,
+                before: value, after: entry[2][index],
+              });
+            }
+          });
+        });
+      if (cells.length || axisChanges.length) {
         tables.push({
           title: table.title, category: table.category, units: table.units,
           changed_cells: cells.length,
           cells: cells.slice(0, 512),
           cells_truncated: cells.length > 512,
+          axis_changes: axisChanges,
         });
       }
     });
@@ -2067,6 +2270,56 @@
     };
   }
 
+  D.register('GET', '/api/physical-validation', function () {
+    return [200, {
+      directory: '~/.guzzionboard/validation', records: [], errors: [],
+      physically_validated: false, complete_evidence_records: 0, simulated: true,
+      note: 'No real-ECU or dyno evidence is bundled. Simulator and hosted-demo results are not physical validation.',
+    }];
+  });
+
+  D.register('POST', '/api/physical-validation/validate', function (body) {
+    var value = body.manifest;
+    if (!value || value.schema !== 'guzzionboard.physical-validation/v1'
+        || ['real-ecu', 'dyno'].indexOf(value.kind) < 0
+        || ['pass', 'fail', 'incomplete'].indexOf(value.result) < 0
+        || !Array.isArray(value.artifacts) || !value.artifacts.length
+        || !Array.isArray(value.checks) || !value.checks.length) {
+      throw bad('manifest does not satisfy the physical-validation/v1 structure');
+    }
+    return [200, { valid: true, record: Object.assign({}, value, {
+      registry_status: 'evidence-index-incomplete',
+      endorsement: 'operator-supplied-not-core-certified', simulated_validation: true,
+    }) }];
+  });
+
+  D.register('GET', '/api/recommendations', function () {
+    return [200, {
+      directory: '~/.guzzionboard/recommendations', packages: [], errors: [], bundled: 0,
+      simulated: true,
+      note: 'No tune values are bundled. Hosted demo cannot access local user/community packages.',
+    }];
+  });
+
+  D.register('POST', '/api/recommendations/validate', function (body) {
+    var value = body.package;
+    if (!value || value.schema !== 'guzzionboard.recommendation/v1'
+        || !value.id || !value.version || !Array.isArray(value.changes) || !value.changes.length
+        || !Array.isArray(value.evidence) || !value.evidence.length) {
+      throw bad('package does not satisfy the recommendation/v1 structure');
+    }
+    return [200, { valid: true, package: Object.assign({}, value, {
+      status: 'user-supplied-unendorsed', simulated_validation: true,
+    }) }];
+  });
+
+  D.register('GET', '/api/checksum-providers', function () {
+    return [200, {
+      directory: '~/.guzzionboard/checksums', providers: [], errors: [], simulated: true,
+      note: 'Hosted demo cannot execute local checksum plugins. No calibration checksum algorithm is bundled or guessed.',
+    }];
+  });
+
   D.register('GET', '/api/maps', function () {
     return [200, {
       directory: 'guzzionboard/xdfs, bundled with the project and fetched '
@@ -2091,6 +2344,14 @@
       }),
       groups: groupXdfs(xdfIndex()),
       vehicle: mapsVehicle(),
+      base_map: baseMapStatus('flash'),
+      build: {
+        available: true,
+        acknowledgement: 'I understand modified maps can damage the engine and accept responsibility',
+        requires_recommendation_evidence: true,
+        note: 'Map builds are new files made from a hashed source. No tuning '
+          + 'values ship without a traceable recommendation.',
+      },
       simulated: true,
       demo_note: 'The definitions are the real bundled XDFs. The dump they '
         + 'are rendered against is synthesised in your browser.',
@@ -2098,18 +2359,317 @@
   });
 
   D.register('POST', '/api/maps/render', function (body) {
-    if (!body.path) throw bad("an image 'path' is required");
     if (!body.xdf) throw bad("an 'xdf' (title or .xdf path) is required");
-    var image = imageAt(body.path);
+    var baseStatus = baseMapStatus(body.region || 'flash');
+    var sourceIsBase = !!body.use_base_map;
+    if (sourceIsBase && !baseStatus.intact) {
+      throw bad(baseStatus.reason || 'no intact base map is available');
+    }
+    var path = sourceIsBase ? baseStatus.path : body.path;
+    if (!path) throw bad("an image 'path' is required, or set use_base_map=true");
+    var image = imageAt(path);
+    if (!sourceIsBase && baseStatus.intact && baseStatus.path === path) sourceIsBase = true;
     var base = addressBaseOf(body);
     return loadXdf(xdfEntryFor(body.xdf)).then(function (xdf) {
       var render = renderXdf(xdf, image, base);
       render.image = describeImage(image);
+      render.source = {
+        path: path, sha256: sha256(image.bytes),
+        is_base_map: sourceIsBase,
+        base_map: sourceIsBase ? baseStatus : null,
+      };
       render.simulated = true;
       render.demo_note = 'Real TunerPro definition, simulated dump: the table '
         + 'names, addresses, axes and scalings come from ' + xdf.path
         + '; the values come from an image this page invented.';
       return [200, render];
+    });
+  });
+
+  D.register('POST', '/api/maps/analyze-log', function (body) {
+    if (!body.xdf || !body.table) throw bad("'xdf' and 'table' are required");
+    var channels = ['x_channel', 'y_channel', 'measured_afr_channel', 'target_afr_channel'];
+    channels.forEach(function (name) { if (!body[name]) throw bad(name + ' is required'); });
+    if (body.measured_afr_channel === body.target_afr_channel) {
+      throw bad('measured and target AFR must use different columns');
+    }
+    var rows = body.rows;
+    if (!Array.isArray(rows) || !rows.length) throw bad('at least one log row is required');
+    if (rows.length > 200000) throw bad('log analysis is limited to 200000 rows');
+    var minSamples = body.min_samples === undefined ? 3 : Number(body.min_samples);
+    var limit = body.max_correction_percent === undefined ? 10 : Number(body.max_correction_percent);
+    var deviationLimit = body.max_afr_stddev === undefined ? 0.5 : Number(body.max_afr_stddev);
+    var timeChannel = String(body.time_channel || '');
+    var timestampUnit = String(body.timestamp_unit || 'seconds').toLowerCase();
+    var delayMs = body.wideband_delay_ms === undefined ? 0 : Number(body.wideband_delay_ms);
+    var settleMs = body.settle_time_ms === undefined ? 500 : Number(body.settle_time_ms);
+    var gapMs = body.max_time_gap_ms === undefined ? 250 : Number(body.max_time_gap_ms);
+    function optionalPositive(name) {
+      if (body[name] === undefined || body[name] === null || body[name] === '') return null;
+      var value = Number(body[name]);
+      if (!Number.isFinite(value) || value <= 0) throw bad(name + ' must be greater than zero when provided');
+      return value;
+    }
+    var xRateLimit = optionalPositive('max_x_rate_per_s');
+    var yRateLimit = optionalPositive('max_y_rate_per_s');
+    if (timestampUnit !== 'seconds' && timestampUnit !== 'milliseconds') {
+      throw bad("timestamp_unit must be 'seconds' or 'milliseconds'");
+    }
+    [['wideband_delay_ms', delayMs, true], ['settle_time_ms', settleMs, true],
+      ['max_time_gap_ms', gapMs, false]].forEach(function (setting) {
+      if (!Number.isFinite(setting[1]) || (setting[2] ? setting[1] < 0 : setting[1] <= 0)
+          || setting[1] > 5000) throw bad(setting[0] + ' is outside its allowed range');
+    });
+    if (!timeChannel && (delayMs || xRateLimit !== null || yRateLimit !== null)) {
+      throw bad('time_channel is required for delay compensation and rate filtering');
+    }
+    if (!Number.isInteger(minSamples) || minSamples < 1 || minSamples > 1000) {
+      throw bad('min_samples must be an integer from 1 to 1000');
+    }
+    if (!Number.isFinite(limit) || limit <= 0 || limit > 15) {
+      throw bad('max_correction_percent must be greater than 0 and at most 15');
+    }
+    if (!Number.isFinite(deviationLimit) || deviationLimit < 0.05 || deviationLimit > 3) {
+      throw bad('max_afr_stddev must be from 0.05 to 3 AFR');
+    }
+    var entry = xdfEntryFor(body.xdf);
+    return loadXdf(entry).then(function (xdf) {
+      var status = baseMapStatus(body.region || 'flash');
+      var path = body.use_base_map ? status.path : body.path;
+      if (!path) throw bad("an image 'path' is required, or set use_base_map=true");
+      var render = renderXdf(xdf, imageAt(path), addressBaseOf(body));
+      var matches = render.tables.filter(function (table) {
+        return table.id === String(body.table) || table.title === String(body.table);
+      });
+      if (matches.length !== 1) throw bad('no unique rendered table matches ' + JSON.stringify(body.table));
+      var table = matches[0], xs = table.x.map(Number), ys = table.y.map(Number);
+      if (xs.some(function (v) { return !Number.isFinite(v); })
+          || ys.some(function (v) { return !Number.isFinite(v); })) {
+        throw bad('table axes must be numeric');
+      }
+      var buckets = {}, skipped = {
+        invalid: 0, invalid_timestamp: 0, alignment_gap: 0, transient: 0,
+        outside_axes: 0, afr_out_of_range: 0,
+      };
+      function nearest(values, value) {
+        if (value < Math.min.apply(null, values) || value > Math.max.apply(null, values)) return null;
+        var best = 0;
+        values.forEach(function (candidate, index) {
+          if (Math.abs(candidate - value) < Math.abs(values[best] - value)) best = index;
+        });
+        return best;
+      }
+      var factor = timestampUnit === 'milliseconds' ? 0.001 : 1;
+      var delayS = delayMs / 1000, settleS = settleMs / 1000, gapS = gapMs / 1000;
+      var timeline = [], originalTimes = [];
+      if (timeChannel) {
+        rows.forEach(function (source) {
+          var time = Number(source[timeChannel]) * factor;
+          var x = Number(source[body.x_channel]), y = Number(source[body.y_channel]);
+          var target = Number(source[body.target_afr_channel]);
+          if ([time, x, y, target].every(Number.isFinite)) {
+            timeline.push([time, x, y, target]); originalTimes.push(time);
+          }
+        });
+        timeline.sort(function (a, b) { return a[0] - b[0]; });
+        var unique = [];
+        timeline.forEach(function (point) {
+          if (unique.length && point[0] === unique[unique.length - 1][0]) unique[unique.length - 1] = point;
+          else unique.push(point);
+        });
+        timeline = unique;
+        if (timeline.length < 2) throw bad('time-aware analysis requires at least two valid, distinct timestamps');
+      }
+      var timelineReordered = timeChannel && (timeline.length !== originalTimes.length
+        || originalTimes.some(function (time, index) { return timeline[index] && timeline[index][0] !== time; }));
+      function interpolatedAt(when) {
+        if (!timeline.length || when < timeline[0][0] || when > timeline[timeline.length - 1][0]) return null;
+        var hi = 0;
+        while (hi < timeline.length && timeline[hi][0] < when) hi += 1;
+        if (hi < timeline.length && timeline[hi][0] === when) {
+          var exact = timeline[hi];
+          var neighbourGap = hi + 1 < timeline.length ? timeline[hi + 1][0] - exact[0]
+            : hi > 0 ? exact[0] - timeline[hi - 1][0] : Infinity;
+          if (neighbourGap > gapS) return null;
+          return [exact[1], exact[2], exact[3]];
+        }
+        if (!hi || hi >= timeline.length) return null;
+        var left = timeline[hi - 1], right = timeline[hi], span = right[0] - left[0];
+        if (span <= 0 || span > gapS) return null;
+        var ratio = (when - left[0]) / span;
+        return [left[1] + (right[1] - left[1]) * ratio,
+          left[2] + (right[2] - left[2]) * ratio,
+          left[3] + (right[3] - left[3]) * ratio];
+      }
+      function locationAt(when) {
+        var stateAt = interpolatedAt(when);
+        if (!stateAt) return null;
+        var col = nearest(xs, stateAt[0]), row = nearest(ys, stateAt[1]);
+        return col === null || row === null ? [-1, -1] : [row, col];
+      }
+      function rateAt(when, index) {
+        if (!timeline.length) return 0;
+        var hi = 0;
+        while (hi < timeline.length && timeline[hi][0] < when) hi += 1;
+        var left = hi > 0 ? timeline[hi - 1] : timeline[hi];
+        var right = hi < timeline.length ? timeline[hi] : timeline[hi - 1];
+        if (!left || !right || right[0] === left[0] || right[0] - left[0] > gapS) return null;
+        return Math.abs(right[index] - left[index]) / (right[0] - left[0]);
+      }
+      rows.forEach(function (source) {
+        var measured = Number(source[body.measured_afr_channel]);
+        var x, y, target, sampleTime = null;
+        if (timeChannel) {
+          sampleTime = Number(source[timeChannel]) * factor;
+          if (!Number.isFinite(sampleTime)) { skipped.invalid_timestamp += 1; return; }
+          var operatingTime = sampleTime - delayS;
+          var stateAt = interpolatedAt(operatingTime);
+          if (!stateAt) { skipped.alignment_gap += 1; return; }
+          x = stateAt[0]; y = stateAt[1]; target = stateAt[2];
+          var colAt = nearest(xs, x), rowAt = nearest(ys, y);
+          if (colAt === null || rowAt === null) { skipped.outside_axes += 1; return; }
+          if (settleS > 0 && (String(locationAt(operatingTime - settleS)) !== String([rowAt, colAt])
+              || String(locationAt(operatingTime + settleS)) !== String([rowAt, colAt]))) {
+            skipped.transient += 1; return;
+          }
+          var xRate = rateAt(operatingTime, 1), yRate = rateAt(operatingTime, 2);
+          if ((xRateLimit !== null && (xRate === null || xRate > xRateLimit))
+              || (yRateLimit !== null && (yRate === null || yRate > yRateLimit))) {
+            skipped.transient += 1; return;
+          }
+        } else {
+          x = Number(source[body.x_channel]); y = Number(source[body.y_channel]);
+          target = Number(source[body.target_afr_channel]);
+        }
+        if (![x, y, measured, target].every(Number.isFinite)) { skipped.invalid += 1; return; }
+        if (measured < 6 || measured > 30 || target < 6 || target > 30) {
+          skipped.afr_out_of_range += 1; return;
+        }
+        var col = nearest(xs, x), row = nearest(ys, y);
+        if (col === null || row === null) { skipped.outside_axes += 1; return; }
+        var key = row + ':' + col;
+        (buckets[key] = buckets[key] || []).push([measured, target, sampleTime]);
+      });
+      var cells = [], proposals = [];
+      Object.keys(buckets).sort().forEach(function (key) {
+        var parts = key.split(':').map(Number), row = parts[0], col = parts[1], samples = buckets[key];
+        var measured = samples.reduce(function (sum, value) { return sum + value[0]; }, 0) / samples.length;
+        var target = samples.reduce(function (sum, value) { return sum + value[1]; }, 0) / samples.length;
+        function stddev(sampleIndex, mean) {
+          return Math.sqrt(samples.reduce(function (sum, value) {
+            return sum + Math.pow(value[sampleIndex] - mean, 2);
+          }, 0) / samples.length);
+        }
+        var measuredStddev = stddev(0, measured), targetStddev = stddev(1, target);
+        var unbounded = (measured / target - 1) * 100;
+        var correction = Math.max(-limit, Math.min(limit, unbounded));
+        var enough = samples.length >= minSamples;
+        var stable = measuredStddev <= deviationLimit && targetStddev <= deviationLimit;
+        var reasons = [];
+        if (!enough) reasons.push('needs at least ' + minSamples + ' samples');
+        if (measuredStddev > deviationLimit) reasons.push('measured AFR is too variable');
+        if (targetStddev > deviationLimit) reasons.push('target AFR is too variable');
+        var sampleTimes = samples.map(function (sample) { return sample[2]; })
+          .filter(function (time) { return time !== null; });
+        var cell = {
+          row: row, col: col, x: table.x[col], y: table.y[row], samples: samples.length,
+          time_span_s: sampleTimes.length > 1
+            ? round(Math.max.apply(null, sampleTimes) - Math.min.apply(null, sampleTimes), 4)
+            : sampleTimes.length ? 0 : null,
+          measured_afr: round(measured, 4), target_afr: round(target, 4),
+          measured_afr_stddev: round(measuredStddev, 4),
+          target_afr_stddev: round(targetStddev, 4),
+          error_percent: round(unbounded, 4), correction_percent: round(correction, 4),
+          clamped: correction !== unbounded, eligible: enough && stable,
+          eligibility: enough && stable ? 'eligible' : reasons.join('; '),
+        };
+        cells.push(cell);
+        if (cell.eligible) proposals.push(Object.assign({}, cell, {
+          kind: 'table', id: table.id, title: table.title, units: table.units,
+          expected_raw: table.raw_values[row][col], before: Number(table.values[row][col]),
+          proposed_value: Number(table.values[row][col]) * (1 + correction / 100),
+        }));
+      });
+      return [200, {
+        table: { id: table.id, title: table.title, units: table.units,
+          x_units: table.x_units, y_units: table.y_units },
+        rows_received: rows.length,
+        rows_used: Object.keys(buckets).reduce(function (sum, key) { return sum + buckets[key].length; }, 0),
+        skipped: skipped, min_samples: minSamples, max_correction_percent: limit,
+        max_afr_stddev: deviationLimit,
+        time_alignment: {
+          enabled: !!timeChannel, time_channel: timeChannel, timestamp_unit: timestampUnit,
+          wideband_delay_ms: delayMs, settle_time_ms: settleMs, max_time_gap_ms: gapMs,
+          max_x_rate_per_s: xRateLimit, max_y_rate_per_s: yRateLimit,
+          timeline_reordered: !!timelineReordered,
+          method: timeChannel
+            ? 'measured AFR at t; linearly interpolated x/y/target at t minus wideband delay'
+            : 'row-synchronous; no timestamp alignment',
+        },
+        cells: cells, proposals: proposals,
+        formula: 'fuel change percent = clamp((mean measured AFR / mean target AFR - 1) * 100)',
+        review_only: true, simulated: true,
+        warnings: [
+          'No image was changed. These are review-only mathematical proposals.',
+          'Confirm that the selected table controls fuel quantity in the logged operating state.',
+          'Cells whose measured or target AFR population standard deviation exceeds the configured limit are not eligible.',
+          timeChannel
+            ? 'Timestamp alignment compensates the configured wideband delay and rejects unsettled/rate-limited samples; inspect the skipped counts.'
+            : 'No timestamp channel was selected, so sensor delay and transient alignment were not evaluated.',
+          'Closed-loop correction, bad sensors, exhaust leaks, and incorrect delay settings can invalidate AFR corrections.',
+          'A proposal still requires configuration-specific evidence, exact preview review, and liability acknowledgement before a separate build.',
+        ],
+      }];
+    });
+  });
+
+  D.register('POST', '/api/maps/validate-definition', function (body) {
+    if (!body.xdf) throw bad("an 'xdf' (filename or .xdf path) is required");
+    var entry = xdfEntryFor(body.xdf);
+    return loadXdf(entry).then(function (xdf) {
+      var findings = [];
+      if (xdf.checksums.length) findings.push({
+        level: 'warn', check: 'calibration-checksum', item: '',
+        detail: 'definition declares checksum(s) requiring an explicit compatible provider: ' + xdf.checksums.join(', '),
+      });
+      else findings.push({
+        level: 'ok', check: 'calibration-checksum', item: '',
+        detail: 'definition declares no calibration checksum',
+      });
+      if (!entry.family) findings.push({ level: 'fatal', check: 'fitment', detail: 'no ECU family' });
+      else findings.push({ level: 'ok', check: 'fitment', detail: 'cataloged for ' + entry.family });
+      var ids = {};
+      xdf.tables.concat(xdf.constants).forEach(function (item) {
+        var id = item.uniqueid || ('address:0x' + item.embedded.address.toString(16));
+        ids[id] = (ids[id] || 0) + 1;
+      });
+      Object.keys(ids).forEach(function (id) {
+        if (ids[id] > 1) findings.push({
+          level: 'fatal', check: 'unique-id', item: id,
+          detail: 'id is shared by ' + ids[id] + ' items',
+        });
+      });
+      var render = null;
+      if (body.path || body.use_base_map) {
+        var status = baseMapStatus(body.region || 'flash');
+        var path = body.use_base_map ? status.path : body.path;
+        if (!path) throw bad('no image available for render validation');
+        render = renderXdf(xdf, imageAt(path), addressBaseOf(body));
+        render.errors.forEach(function (error) {
+          findings.push({ level: 'fatal', check: 'render', item: error.title, detail: error.reason });
+        });
+      }
+      var fatal = findings.filter(function (finding) { return finding.level === 'fatal'; }).length;
+      var warnings = findings.filter(function (finding) { return finding.level === 'warn'; }).length;
+      return [200, {
+        ok: !fatal, fatal: fatal, warnings: warnings, findings: findings,
+        definition: entry, render: render, simulated: true,
+        checksum: {
+          declared: xdf.checksums.slice(), compatible_providers: [], plugin_errors: [],
+          selection_required: xdf.checksums.length > 0,
+        },
+        note: 'Structural validation cannot prove that community labels, addresses, or values are physically correct.',
+      }];
     });
   });
 
@@ -2129,6 +2689,151 @@
       diff.image = describeImage(before);
       diff.simulated = true;
       return [200, diff];
+    });
+  });
+
+  D.register('POST', '/api/maps/preview', function (body) {
+    if (!body.xdf) throw bad("an 'xdf' (filename or .xdf path) is required");
+    if (body.recommendation_package) {
+      throw bad('hosted demo has no local recommendation package registry; detach the package');
+    }
+    var baseStatus = baseMapStatus(body.region || 'flash');
+    var sourceIsBase = !!body.use_base_map;
+    if (sourceIsBase && !baseStatus.intact) throw bad(baseStatus.reason || 'no intact base map');
+    var sourcePath = sourceIsBase ? baseStatus.path : body.path;
+    if (!sourcePath) throw bad("an image 'path' is required, or set use_base_map=true");
+    if (!sourceIsBase && baseStatus.intact && baseStatus.path === sourcePath) sourceIsBase = true;
+    var source = imageAt(sourcePath), base = addressBaseOf(body);
+    var entry = xdfEntryFor(body.xdf);
+    var benchLabel = String(mapsVehicle().ecu_family || '').toUpperCase();
+    var bench = benchLabel.replace(/[^A-Z0-9]/g, '');
+    var entryFamily = String(entry.family || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (entryFamily && bench && bench.indexOf(entryFamily) < 0
+      && !(entryFamily === '5AM' && bench.indexOf('5AM') >= 0)) {
+      throw bad('the selected XDF is for ' + entry.family
+        + ', but the bench ECU is ' + benchLabel + '; mismatched definitions cannot build a map');
+    }
+    return loadXdf(entry).then(function (xdf) {
+      if (xdf.checksums.length) {
+        throw bad('this XDF declares calibration checksums whose algorithms are not implemented');
+      }
+      var prepared;
+      try { prepared = applyXdfChanges(xdf, source, body.changes, base); }
+      catch (exc) { throw bad(String(exc.message || exc)); }
+      var outputHash = sha256(prepared.bytes);
+      return [200, {
+        source: {
+          path: sourcePath, sha256: sha256(source.bytes), bytes: source.bytes.length,
+          is_base_map: sourceIsBase, ecu_id: source.ecu_id, region: source.region,
+        },
+        xdf: { path: xdf.path, title: xdf.title, version: xdf.version },
+        address_base: prepared.address_base,
+        changes: prepared.changes,
+        output_sha256: outputHash,
+        plan_sha256: outputHash,
+        diff: diffXdf(xdf, source, { bytes: prepared.bytes }, prepared.address_base),
+        writes_file: false,
+        simulated: true,
+      }];
+    });
+  });
+
+  D.register('POST', '/api/maps/build', function (body) {
+    var acknowledgement = 'I understand modified maps can damage the engine and accept responsibility';
+    if (body.recommendation_package) {
+      throw bad('hosted demo has no local recommendation package registry; detach the package');
+    }
+    if (String(body.acknowledgement || '').trim() !== acknowledgement) {
+      throw bad('to build a modified map, repeat exactly: ' + JSON.stringify(acknowledgement));
+    }
+    if (!body.xdf) throw bad("an 'xdf' (filename or .xdf path) is required");
+    var evidence = body.recommendation || {};
+    if (String(evidence.title || evidence.source_title || '').trim().length < 3) {
+      throw bad('recommendation evidence needs a source title');
+    }
+    var sourceUrl = String(evidence.url || evidence.source_url || '').trim();
+    if (!/^https?:\/\/[^/]+/i.test(sourceUrl)) {
+      throw bad('recommendation evidence needs an inspectable http(s) source URL');
+    }
+    if (String(evidence.rationale || '').trim().length < 10) {
+      throw bad('explain why this recommendation applies to this motorcycle and configuration');
+    }
+    var baseStatus = baseMapStatus(body.region || 'flash');
+    var sourceIsBase = !!body.use_base_map;
+    if (sourceIsBase && !baseStatus.intact) throw bad(baseStatus.reason || 'no intact base map');
+    var sourcePath = sourceIsBase ? baseStatus.path : body.path;
+    if (!sourcePath) throw bad("an image 'path' is required, or set use_base_map=true");
+    if (!sourceIsBase && baseStatus.intact && baseStatus.path === sourcePath) sourceIsBase = true;
+    if (!sourceIsBase && !body.accept_non_base_source) {
+      throw bad('the source is not the protected base map; explicitly acknowledge the non-base source');
+    }
+    var source = imageAt(sourcePath), base = addressBaseOf(body);
+    var entry = xdfEntryFor(body.xdf);
+    var benchLabel = String(mapsVehicle().ecu_family || '').toUpperCase();
+    var bench = benchLabel.replace(/[^A-Z0-9]/g, '');
+    var entryFamily = String(entry.family || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (entryFamily && bench && bench.indexOf(entryFamily) < 0) {
+      // 5AM2 definitions are cataloged under 5AM.
+      if (!(entryFamily === '5AM' && bench.indexOf('5AM') >= 0)) {
+        throw bad('the selected XDF is for ' + entry.family
+          + ', but the bench ECU is ' + benchLabel + '; mismatched definitions cannot build a map');
+      }
+    }
+    return loadXdf(entry).then(function (xdf) {
+      if (xdf.checksums.length) {
+        throw bad('this XDF declares calibration checksums whose algorithms are not implemented');
+      }
+      var built;
+      try { built = applyXdfChanges(xdf, source, body.changes, base); }
+      catch (exc) { throw bad(String(exc.message || exc)); }
+      var now = epoch(), outputHash = sha256(built.bytes);
+      if (body.expected_plan_sha256 && body.expected_plan_sha256 !== outputHash) {
+        throw bad('the reviewed tuning plan no longer matches this source/XDF/change set');
+      }
+      var evidenceRecord = {
+        title: String(evidence.title || evidence.source_title).trim(),
+        url: sourceUrl,
+        publisher: String(evidence.publisher || '').trim(),
+        published: String(evidence.published || '').trim(),
+        rationale: String(evidence.rationale || '').trim(),
+        quote: String(evidence.quote || '').trim(),
+        status: 'traceable-not-endorsed',
+      };
+      var manifest = {
+        schema: 1, built_at: now, built_at_text: timeText(now),
+        source: {
+          path: sourcePath, sha256: sha256(source.bytes), bytes: source.bytes.length,
+          is_base_map: sourceIsBase, ecu_id: source.ecu_id, region: source.region,
+        },
+        xdf: { path: xdf.path, title: xdf.title, version: xdf.version },
+        recommendation: evidenceRecord,
+        liability_acknowledged: true, acknowledgement: acknowledgement,
+        address_base: built.address_base, changes: built.changes,
+        output_sha256: outputHash, plan_sha256: outputHash,
+        warnings: [
+          'Recommendation evidence is traceable, not endorsed by GuzziOnBoard.',
+          'This hosted-demo image is synthetic and exists only in this browser tab.',
+        ],
+      };
+      var outputPath = IMAGE_DIR + String(sourcePath.split('/').pop() || 'basemap')
+        .replace(/\.bin$/i, '') + '-tune-' + stamp(now) + '-' + outputHash.slice(0, 8) + '.bin';
+      var image = {
+        ecu_id: source.ecu_id, region: source.region, source: 'tuning-build',
+        bytes: built.bytes, identity: Object.assign({}, source.identity), read_at: now,
+        meta: { tuning_build: manifest, simulated: true },
+      };
+      saveImage(outputPath, image);
+      manifest.output_path = outputPath;
+      var diff = diffXdf(xdf, source, image, built.address_base);
+      WS.gate.audit.push({
+        at: now, event: 'map build (simulated)', output_path: outputPath,
+        changes: built.changes.length, liability_acknowledged: true,
+      });
+      return [201, {
+        path: outputPath, image: describeImage(image), manifest: manifest,
+        changes: built.changes, diff: diff, simulated: true,
+        demo_note: 'The builder changed only the synthetic image in this browser tab.',
+      }];
     });
   });
 

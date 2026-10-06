@@ -41,7 +41,7 @@ opened.
 | ECU memory **read** | Implemented; 5AM path grounded in a verified capture |
 | Backup with two-read verification | Implemented |
 | Firmware image validation (size, vector table, entropy, HW family) | Implemented |
-| **Maps & tables**: TunerPro XDF render + named diff of dumps | Implemented; 94 XDFs (3842 tables) ship with the repo, more can be added |
+| **Maps & tables**: XDF render/validation, 2D/3D editor, named diff, log overlay, and evidence-backed builder | Implemented; 94 XDFs (3842 tables) ship with the repo. Includes rectangular keyboard editing, smoothing/blending, editable embedded axes, explicitly configured live-channel/scale/offset tracing (no name/unit guessing), wideband-delay-aligned timestamp analysis with settling/rate filters, bounded AFR proposals, isolated checksum-plugin workers, and unendorsed package registries. Builds prefer the protected base map, require traceable evidence plus typed liability acknowledgement, and always create a new image with a complete manifest. Physical ECU/dyno validation remains pending evidence. |
 | ECU memory **write / erase / program / verify** | Full flow **runs against the simulated ECU** (backup → validate → token → write → read-back verify, honestly labelled); the `hardware-family` gate check refuses any cross-family image before a frame moves (app and demo); gated on hardware pending a bench-confirmed key |
 | Interrupted-write checkpoints and recovery guidance | Implemented |
 | SecurityAccess seed/key plumbing + key-provider plugins | Implemented; the shipped 5AM key is unverified — armable per session via explicit, audited opt-in |
@@ -54,13 +54,14 @@ opened.
 | Standalone browser engine simulator (`web/sim.html`) | Implemented; single self-contained page |
 | **Hosted workstation demo** — the real UI with a virtual motorcycle and ECU running in the browser (`web/demo-api.js` + `web/demo-lab.js`) | Implemented; every view works with labelled in-browser fixtures, including a virtual connector/adapter, memory, maps, sessions, reports, guided tests and tools. The demo's write path runs the same hardware-family gate as the installed app and keeps a wrong-family fixture on its virtual bench so the refusal can be watched. Real-bike transport choices are omitted entirely; only the installed app exposes hardware |
 
-More than 450 tests cover framing, checksums, scaling, DTC decoding, handshake negotiation, the safety gate,
+More than 500 tests cover framing, checksums, scaling, DTC decoding, handshake negotiation, the safety gate,
 image validation, XDF parsing/render/diff, the full read/backup/write/verify
 round trip (including the hardware-family brick gate, in the app and in the
 browser demo), fault injection, session comparison, the packaging entry point,
 the reference-tool inclusions (log conversion, bench signal, driver bundle,
 Mana TCU) and complete simulated sessions — plus `scripts/e2e_smoke.py`, a
-28-check full-capability sweep over the live HTTP API.
+30-check full-capability sweep over the live HTTP API and Playwright tests that
+exercise the map editor through a real Chromium DOM.
 
 ## Run it
 
@@ -152,13 +153,109 @@ Then point the panel at an image (a previous read lands in
 `~/.guzzionboard/images/`) and render, or diff it against a second image —
 every changed cell is reported by table name and axis value, not raw offset.
 A region read of a full-device XDF is handled automatically (address base
-0x4000, detected and reported). Strictly read-only.
+0x4000, detected and reported). Rendering and comparison are strictly
+read-only.
+
+### Evidence-backed map builds
+
+The same panel has an intentionally separate **Advanced** builder. Prefer
+**Load protected base map**: this opens the immutable, re-hashed vault copy
+already required by the programming gate. Click only the cells or constants
+covered by a recommendation, then attach the recommendation's title, HTTP(S)
+source, applicability rationale, and (optionally) its exact excerpt. The app
+ships no generic “stage 1” numbers—fuel, ignition, lambda, idle and limiter
+changes are motorcycle- and configuration-specific, so an unattributed value
+is not a recommendation.
+
+Every build requires typing:
+
+```
+I understand modified maps can damage the engine and accept responsibility
+```
+
+The editor provides heat-mapped tables, rectangular Shift-selection, keyboard
+navigation, set/add/percentage transforms, row/column interpolation, weighted
+surface smoothing, bilinear blending, TSV copy/paste, 50-level undo/redo, and
+portable `.tune.json` projects. Every table has dynamically refreshed SVG 2D
+row profiles and a projected 3D surface. Image-backed embedded axes are editable
+with the same raw-value lock; static XDF labels are not. Live tracing never
+infers a channel from an axis name or unit: each table stores explicit X/Y
+channel keys plus scale and offset (`axis = channel × scale + offset`) in browser
+preferences and portable projects. A nearest cell is highlighted read-only only
+when both mapped, validated channels are polled and both transformed values are
+inside the declared axes; up to four surrounding cells expose bilinear
+interpolation weights in the diagnostics. Out-of-range values do not falsely pin
+an edge cell.
+
+Projects are plans, not images: import verifies the source SHA-256, XDF filename
+and every expected raw cell. Before the liability confirmation, the server
+quantizes the complete plan and returns the exact stored values and named diff
+without writing a file. The accepted preview gets its own SHA-256, and the build
+is refused if that reviewed plan changes.
+
+The offline log tool imports CSV, requires separate measured- and target-AFR
+columns, bins only samples inside numeric table axes, requires a configurable
+sample count, rejects cells whose measured or target AFR variation exceeds the
+configured population-standard-deviation limit, and caps fuel proposals at 15%
+or less. With an explicit timestamp column it evaluates each measured AFR at
+`t` against linearly interpolated X/Y/target state at `t − configured wideband
+delay`; seconds and milliseconds are supported. It rejects excessive timeline
+gaps, state that did not remain in the same cell for the configured settling
+window, and optional X/Y rate-limit violations, and reports each skip category.
+Without timestamps it explicitly reports row-synchronous analysis and cannot
+claim delay/transient alignment. It only creates a review overlay/proposal;
+staging and building still go through source locks, evidence, preview, and
+liability review. Mathematical AFR correction is not treated as proof that a
+chosen table controls fuel in those operating conditions.
+
+A build never modifies its source and never enables ECU programming. It writes
+a new `.bin` plus sidecar under `~/.guzzionboard/images/`; the sidecar records
+the source and output SHA-256, exact XDF hash, evidence, acknowledgement,
+address base, each engineering/raw before-and-after value, and each byte
+offset. `expected_raw` acts as an optimistic lock, so edits rendered from one
+map cannot be silently applied to a different one. A non-base source needs a
+second explicit acknowledgement and a mismatched XDF can be viewed but cannot
+build.
+
+No calibration-checksum algorithm is invented or bundled. An XDF that declares
+a checksum is refused unless the operator explicitly selects a compatible local
+plugin from `~/.guzzionboard/checksums/`. Plugins name the exact XDF checksum
+titles they support, update deterministically, verify their output, and have
+their version, source SHA-256, isolation mode, output hash, and exact changed byte
+ranges folded into the reviewed plan. Inspection and calculation run in fresh
+resource-limited, audit-guarded subprocesses with filesystem/network/process
+restrictions and independent-repeat checks. This is containment, not a perfect
+kernel sandbox; plugin self-verification is not core endorsement or physical-ECU
+proof.
+
+Likewise, `~/.guzzionboard/recommendations/` is a validated registry for
+source/XDF/raw-locked, evidence-carrying third-party recommendation packages.
+Preview and build re-load the selected package, require exact package/XDF hashes,
+motorcycle and hardware fitment, evidence, change count, raw locks and target
+values, then fold that provenance into the plan hash and sidecar. Manual edits
+break the package lock until it is restaged or detached. The app bundles zero
+tune packages or values and labels loaded packages user-supplied and unendorsed.
+See `docs/PHYSICAL_VALIDATION.md` for the real-ECU
+and dyno evidence protocol and machine-readable manifest schema. The repository
+currently bundles no physical-validation record. Validate and review the named
+diff before considering the ordinary, separately gated write workflow.
 
 Run the tests with:
 
 ```bash
 pip install -e '.[dev]' && pytest
+
+# Real-browser map-editor suite
+npm install
+npm run test:browser
+# macOS/Windows only, if Chromium is not already installed:
+# npx playwright install chromium
 ```
+
+The Playwright suite loads the static hosted workstation and drives the actual
+DOM: protected-base rendering, rectangular and keyboard selection, arithmetic,
+interpolation/smoothing/blending, clipboard paste/copy, axes, undo/redo, project
+round-trips, explicit live tracing, and timestamp-aligned log analysis.
 
 ## Coverage
 

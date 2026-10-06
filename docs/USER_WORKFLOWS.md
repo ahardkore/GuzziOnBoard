@@ -29,9 +29,57 @@ The reference uses eight selectable readouts. GuzziOnBoard should provide:
 
 A **Create verified backup** action should be available before any service or map operation. It must show estimated duration, prevent computer sleep, retain the raw file, calculate a hash, and require the user to confirm that the backup can be reopened. Long operations need pause/resume behavior or a clear recovery path—not a generic spinner.
 
-## Map writing
+## Map building and writing
 
-Map writing should be a guided workflow, not an enabled button in the normal dashboard. It should include compatibility validation, stable-power checks, exclusive adapter ownership, typed confirmation, progress, post-write verification, and ignition-off timing. See `7SM_WORKFLOW.md` for 7SM-specific rules.
+Building and writing are separate operations. The advanced builder starts from
+the protected base map by default, stages explicit named XDF cells, requires an
+inspectable recommendation source plus an applicability rationale, and requires
+the exact tuning-liability acknowledgement for every output. It supports
+rectangular transforms, interpolation, smoothing, bilinear blending, editable
+image-backed axes, undo/redo and portable projects. Heat maps plus dynamically
+refreshed 2D profiles and projected 3D surfaces make the staged surface visible.
+Live highlighting requires a per-table explicit mapping from both axes to
+validated channel keys, including scale and offset; channel names and units are
+never guessed. Mappings persist in browser preferences and portable projects.
+Only an in-axis nearest rendered cell is highlighted read-only; diagnostics
+show the transformed values and bilinear weights for up to four surrounding
+cells.
+The builder then quantizes and diffs the complete plan without creating a file.
+The operator accepts that exact hashed preview, not merely the values they meant
+to enter.
+It never mutates the base map or enables programming. The output sidecar carries
+source, XDF, preview-plan and output hashes plus every raw/engineering
+before-and-after value, making the recommendation reviewable instead of
+presenting a mystery “stage” button.
+Uncatalogued or wrong-family XDFs, stale source cells, missing evidence and
+checksums without an explicitly selected compatible provider are refused. No
+generic tuning values or checksum algorithm ships with the workstation.
+
+An offline CSV overlay requires separate measured and target AFR, numeric map
+axes, in-range samples and a minimum sample count. Cells exceeding the chosen
+measured/target AFR population-standard-deviation limit are ineligible.
+Corrections are capped at 15% or less and remain review-only until the operator
+deliberately stages them. Selecting an explicit time column enables seconds- or
+milliseconds-based alignment: measured AFR at `t` is paired with interpolated
+load/RPM/target at `t − wideband delay`. Maximum timeline gap, same-cell settling
+and optional axis-rate limits reject unaligned or transient samples, with every
+skip reason reported. Omitting time leaves row-synchronous analysis and is
+labelled accordingly. Delay and filter values must come from the actual logger,
+sensor and installation; the app supplies no asserted calibration defaults.
+Closed-loop state, leaks, sensor health and table semantics remain operator
+review items; log arithmetic is not evidence by itself.
+
+User/community recommendation packages are loaded only from the local registry.
+They require maintainer/source provenance, exact XDF SHA-256, ECU/motorcycle
+fitment and raw-value locks, and remain explicitly unendorsed. Real-ECU and dyno
+claims require linked evidence. The broader physical protocol and evidence
+manifest are in `PHYSICAL_VALIDATION.md`; no physical record ships with the app.
+
+Map **writing** remains a guided workflow, not an enabled button in the normal
+dashboard. It includes compatibility validation, stable-power checks, exclusive
+adapter ownership, its own programming acknowledgement, progress, post-write
+verification, and ignition-off timing. Building a file satisfies none of those
+write gates. See `7SM_WORKFLOW.md` for 7SM-specific rules.
 
 ## TPS reset and actor operations
 

@@ -286,7 +286,7 @@ class FirmwareImage:
     # -- construction -----------------------------------------------------
     @classmethod
     def from_file(cls, path: str | Path, **kw) -> "FirmwareImage":
-        path = Path(path)
+        path = Path(path).expanduser()
         # The workstation's own save() writes a `<name>.bin.json` sidecar
         # carrying the captured provenance (which ECU, which identity block).
         # Read it back: it is the only way a file-based image can ever carry
@@ -306,19 +306,25 @@ class FirmwareImage:
                     kw["identity"] = meta["identity"]
                 if meta.get("ecu_id") and "ecu_id" not in kw:
                     kw["ecu_id"] = str(meta["ecu_id"])
+                if meta.get("region") and "region" not in kw:
+                    kw["region"] = str(meta["region"])
+                if isinstance(meta.get("meta"), dict) and "meta" not in kw:
+                    kw["meta"] = meta["meta"]
         return cls(data=path.read_bytes(), source="file", path=str(path), **kw)
 
     def save(self, path: str | Path) -> Path:
-        path = Path(path)
+        path = Path(path).expanduser()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(self.data)
+        # Set this before serialising so a moved/opened sidecar identifies the
+        # artifact it actually describes, rather than the source path.
+        self.path = str(path)
         sidecar = path.with_suffix(path.suffix + ".json")
         import json
 
         sidecar.write_text(
             json.dumps(self.describe(), indent=2, default=str), encoding="utf-8"
         )
-        self.path = str(path)
         return path
 
     # -- description ------------------------------------------------------

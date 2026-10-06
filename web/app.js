@@ -1092,6 +1092,14 @@ async function loadParameters() {
   }
   await loadDerivedCatalog();
   renderChannelPicker();
+  $$('[data-trace-table]').forEach((panel) => {
+    const table = mapItem('table', panel.dataset.traceTable);
+    const mapping = table ? mapTraceMapping(table) : null;
+    for (const axisName of ['x', 'y']) {
+      const select = $(`[data-trace-channel="${axisName}"]`, panel);
+      if (select) select.innerHTML = traceChannelOptions(mapping?.[axisName]?.channel || '');
+    }
+  });
 }
 
 async function loadDerivedCatalog() {
@@ -1193,8 +1201,110 @@ function sparkline(values, min, max) {
     <polyline points="${points}"/></svg>`;
 }
 
+function loadMapTraceMappings() {
+  try {
+    const value = JSON.parse(Prefs.get('mapTraceMappings', '{}'));
+    maps.traceMappings = new Map(Object.entries(value && typeof value === 'object' ? value : {}));
+  } catch (_) { maps.traceMappings = new Map(); }
+}
+
+function saveMapTraceMappings() {
+  Prefs.set('mapTraceMappings', JSON.stringify(Object.fromEntries(maps.traceMappings)));
+}
+
+function mapTraceMappingKey(table) {
+  const definition = maps.render?.xdf || {};
+  return `${definition.sha256 || definition.path || definition.title}:${table.id}`;
+}
+
+function mapTraceMapping(table) {
+  return maps.traceMappings.get(mapTraceMappingKey(table)) || null;
+}
+
+function mappedLiveValue(mapping, samples) {
+  if (!mapping?.channel) return null;
+  const sample = samples.find((candidate) => candidate.key === mapping.channel
+    && !candidate.error && !candidate.text && Number.isFinite(Number(candidate.value)));
+  if (!sample) return null;
+  const scale = Number(mapping.scale); const offset = Number(mapping.offset);
+  if (!Number.isFinite(scale) || !Number.isFinite(offset)) return null;
+  return { sample, value: Number(sample.value) * scale + offset };
+}
+
+function axisInterpolationWeights(values, target) {
+  const numeric = values.map(Number);
+  if (numeric.some((value) => !Number.isFinite(value))
+      || target < Math.min(...numeric) || target > Math.max(...numeric)) return null;
+  const exact = numeric.findIndex((value) => Math.abs(value - target) < 1e-12);
+  if (exact >= 0) return [{ index: exact, weight: 1 }];
+  for (let index = 0; index < numeric.length - 1; index += 1) {
+    const first = numeric[index]; const second = numeric[index + 1];
+    if ((target >= first && target <= second) || (target >= second && target <= first)) {
+      const ratio = (target - first) / (second - first);
+      return [{ index, weight: 1 - ratio }, { index: index + 1, weight: ratio }];
+    }
+  }
+  return null;
+}
+
+function updateMapLiveTrace(samples = state.lastSamples || []) {
+  $$('.map-value.live-trace, .map-value.live-trace-weight').forEach((cell) => {
+    cell.classList.remove('live-trace', 'live-trace-weight');
+    cell.style.removeProperty('--trace-weight');
+    delete cell.dataset.traceWeight;
+  });
+  if (!maps.render) return;
+  const traces = []; let mappedTables = 0; let waiting = 0; let outside = 0;
+  maps.render.tables.forEach((table) => {
+    const mapping = mapTraceMapping(table);
+    if (!mapping?.x?.channel || !mapping?.y?.channel) return;
+    mappedTables += 1;
+    const xLive = mappedLiveValue(mapping.x, samples);
+    const yLive = mappedLiveValue(mapping.y, samples);
+    if (!xLive || !yLive) { waiting += 1; return; }
+    const xWeights = axisInterpolationWeights(table.axes.x.values, xLive.value);
+    const yWeights = axisInterpolationWeights(table.axes.y.values, yLive.value);
+    if (!xWeights || !yWeights) { outside += 1; return; }
+    const weightedCells = yWeights.flatMap((yPart) => xWeights.map((xPart) => ({
+      row: yPart.index, col: xPart.index, weight: yPart.weight * xPart.weight,
+    }))).filter((part) => part.weight > 1e-9);
+    weightedCells.forEach((part) => {
+      const candidate = $$('.map-value').find((cell) => cell.dataset.mapId === table.id
+        && Number(cell.dataset.mapRow) === part.row
+        && Number(cell.dataset.mapCol) === part.col);
+      if (!candidate) return;
+      candidate.classList.add('live-trace-weight');
+      candidate.style.setProperty('--trace-weight', part.weight.toFixed(6));
+      candidate.dataset.traceWeight = part.weight.toFixed(6);
+    });
+    const nearestPart = weightedCells.reduce((best, part) =>
+      part.weight > best.weight ? part : best, weightedCells[0]);
+    const cell = $$('.map-value').find((candidate) => candidate.dataset.mapId === table.id
+      && Number(candidate.dataset.mapRow) === nearestPart.row
+      && Number(candidate.dataset.mapCol) === nearestPart.col);
+    if (cell) cell.classList.add('live-trace');
+    const weights = weightedCells.map((part) =>
+      `r${part.row + 1}c${part.col + 1} ${(part.weight * 100).toFixed(1)}%`).join(', ');
+    traces.push(`${table.title}: ${mapping.y.channel}→${fmtValue(yLive.value)} ${table.axes.y.units}, `
+      + `${mapping.x.channel}→${fmtValue(xLive.value)} ${table.axes.x.units} · nearest `
+      + `${table.axes.y.values[nearestPart.row]} × ${table.axes.x.values[nearestPart.col]} · interpolation ${weights}`);
+  });
+  const status = $('#mapLiveTraceStatus');
+  if (!status) return;
+  if (traces.length) {
+    status.textContent = `Read-only explicit live trace: ${traces.length} nearest cell${traces.length === 1 ? '' : 's'} highlighted; interpolation weights shown on surrounding cells · ${traces.slice(0, 2).join(' · ')}`;
+  } else if (!mappedTables) {
+    status.textContent = 'No explicit live-trace mappings. Open a table’s “Live trace mapping” controls and map both axes to validated channels.';
+  } else if (waiting) {
+    status.textContent = `${waiting} mapped table(s) waiting for both selected live channels to be polled.`;
+  } else if (outside) {
+    status.textContent = `${outside} mapped table(s) received values outside their defined axes; no edge cell was falsely highlighted.`;
+  }
+}
+
 function renderLive(samples) {
   state.lastSamples = samples;
+  updateMapLiveTrace(samples);
   const byKey = new Map(state.parameters.map((p) => [p.key, p]));
 
   $('#liveGrid').innerHTML = samples.map((s) => {
@@ -2296,9 +2406,23 @@ $$('.nav').forEach((b) => {
  * live in ~/.guzzionboard/xdfs — nothing ships with the app. This view is
  * strictly read-only: it renders and diffs, it never writes. */
 
-const maps = { xdfs: [], byFile: {}, vehicle: null, lastDoc: null };
+const maps = {
+  xdfs: [], byFile: {}, vehicle: null, lastDoc: null,
+  render: null, changes: new Map(), build: null, baseMap: null,
+  selection: new Set(), selectionAnchor: null,
+  undo: [], redo: [], preview: null,
+  logRows: [], logHeaders: [], logAnalysis: null,
+  checksumProviders: [], checksumDirectory: '',
+  recommendationPackages: [], recommendationDirectory: '',
+  activePackage: null,
+  traceMappings: new Map(),
+};
 
 const fmtValue = (v) => (Number.isInteger(v) ? String(v) : String(+v.toPrecision(4)));
+const mapChangeLocation = (change) => change.kind === 'table'
+  ? `${esc(change.y)} × ${esc(change.x)}`
+  : change.kind === 'axis' ? `${esc(String(change.axis || '').toUpperCase())} axis ${esc(change.index)}`
+    : 'constant';
 
 /* The ECU family the bike on the bench actually has. A definition is only
  * "for this bike" if its family matches: an XDF is a map of where the
@@ -2306,7 +2430,7 @@ const fmtValue = (v) => (Number.isInteger(v) ? String(v) : String(+v.toPrecision
  * different tables entirely. */
 function benchFamilies() {
   const family = (maps.vehicle?.ecu_family
-    || state.status?.vehicle?.ecu?.family || '').toUpperCase();
+    || state.status?.vehicle?.ecu?.family || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   const tokens = family.match(/(MIUG3|MIU1|MBC1|5AM2|5AM|16M|15RC|15M|15P|59M|7SM|5SM|5DM|11MP|P7|P8)/g) || [];
   // "IAW 5AM / 5AM2" and "MIU G3" both have to land on the catalog's ids.
   return [...new Set(tokens.map((t) => (t === '5AM2' ? '5AM' : t)))];
@@ -2403,13 +2527,80 @@ function renderXdfFitNote() {
   </div>`;
 }
 
+function checksumSelectionCompatible() {
+  const declared = maps.render?.checksums || [];
+  const selected = $('#mapChecksumProvider').value;
+  if (!declared.length) return !selected;
+  const provider = maps.checksumProviders.find((candidate) => candidate.id === selected);
+  return Boolean(provider && declared.every((title) => provider.supported_checksums.includes(title)));
+}
+
+function renderChecksumProviderNote() {
+  const provider = maps.checksumProviders.find((candidate) =>
+    candidate.id === $('#mapChecksumProvider').value);
+  const declared = maps.render?.checksums || [];
+  const compatible = provider && declared.length
+    && declared.every((title) => provider.supported_checksums.includes(title));
+  let detail;
+  if (!provider) {
+    detail = maps.checksumProviders.length
+      ? `${maps.checksumProviders.length} local provider(s) loaded from ${esc(maps.checksumDirectory)}. None selected.`
+      : `No local providers in ${esc(maps.checksumDirectory)}.`;
+  } else {
+    detail = `<b>${esc(provider.name)} ${esc(provider.version)}</b> ·
+      ${provider.verified ? 'provider claims hardware verification' : 'unverified provider claim'} ·
+      plugin <code>${esc(provider.plugin_sha256)}</code> · ${esc(provider.isolation || 'isolation unknown')}<br>
+      Exact supported XDF titles: ${provider.supported_checksums.map(esc).join(' · ')}${
+        provider.note ? `<br>${esc(provider.note)}` : ''}`;
+  }
+  if (declared.length) {
+    detail += `<br><b>Rendered XDF declares:</b> ${declared.map(esc).join(' · ')} · ${
+      compatible ? 'selected provider is explicitly compatible'
+        : '<span class="err">no compatible provider selected; preview/build will be refused</span>'}`;
+  } else if (maps.render) {
+    detail += '<br>Rendered XDF declares no calibration checksum; selecting a provider would be refused.';
+  }
+  $('#mapChecksumNote').innerHTML = detail;
+}
+
 async function loadXdfs() {
+  loadMapTraceMappings();
   try {
-    const data = await api('/api/maps');
+    const [data, checksumData, recommendationData, physicalData] = await Promise.all([
+      api('/api/maps'), api('/api/checksum-providers'), api('/api/recommendations'),
+      api('/api/physical-validation'),
+    ]);
     maps.xdfs = data.xdfs || [];
+    maps.checksumProviders = checksumData.providers || [];
+    maps.checksumDirectory = checksumData.directory || '';
+    maps.recommendationPackages = recommendationData.packages || [];
+    maps.recommendationDirectory = recommendationData.directory || '';
     maps.vehicle = data.vehicle || null;
+    maps.build = data.build || null;
+    maps.baseMap = data.base_map || null;
     maps.byFile = {};
     maps.xdfs.forEach((x) => { maps.byFile[x.filename] = x; });
+    $('#mapAckText').textContent = maps.build?.acknowledgement || 'Unavailable';
+    $('#mapChecksumProvider').innerHTML = '<option value="">None — XDF declares no checksum</option>'
+      + maps.checksumProviders.map((provider) => `<option value="${esc(provider.id)}">${esc(provider.name)} ${esc(provider.version)}${provider.verified ? ' · provider claims hardware verification' : ' · unverified'}</option>`).join('');
+    $('#mapChecksumProvider').onchange = () => {
+      renderChecksumProviderNote();
+      renderMapBuildState();
+    };
+    renderChecksumProviderNote();
+    $('#mapPackageSelect').innerHTML = maps.recommendationPackages.length
+      ? '<option value="">— choose a local package —</option>' + maps.recommendationPackages.map((pkg, index) =>
+        `<option value="${index}">${esc(pkg.title)} · ${esc(pkg.version)} · ${esc(pkg.fitment.motorcycle)}</option>`).join('')
+      : '<option value="">— none loaded —</option>';
+    $('#mapPackageNote').textContent = maps.recommendationPackages.length
+      ? `${maps.recommendationPackages.length} validated, user-supplied package(s) in ${maps.recommendationDirectory}; none are endorsed.`
+      : `No packages in ${maps.recommendationDirectory}. GuzziOnBoard bundles no tune values.`;
+    $('#mapPackageReviewBtn').disabled = true;
+    $('#mapPackageStageBtn').disabled = true;
+    $('#physicalValidationOut').innerHTML = `<h4>Physical validation not established by this application</h4>
+      <p class="small">${physicalData.records.length} operator record(s) indexed · ${physicalData.complete_evidence_records || 0} locally complete passing evidence set(s). ${esc(physicalData.note)}</p>
+      <p class="muted small">Registry: <code>${esc(physicalData.directory)}</code> · protocol: <code>docs/PHYSICAL_VALIDATION.md</code></p>`;
+    $('#mapsBaseBtn').disabled = !(maps.baseMap && maps.baseMap.intact);
     $('#mapsXdfDir').textContent = maps.xdfs.length
       ? `${maps.xdfs.length} definition file(s) in ${data.directory}`
       : `none in ${data.directory} yet`;
@@ -2453,12 +2644,138 @@ function suggestXdf() {
   if (first) { select.value = first.filename; Prefs.set('xdf', first.filename); }
 }
 
+function mapChangeKey(kind, id, row = 0, col = 0, axis = '') {
+  return `${kind}:${id}:${axis}:${row}:${col}`;
+}
+
+function mapAxisValueHtml(t, axisName, index, label) {
+  const axis = t.axes?.[axisName];
+  if (!axis?.editable) return esc(label);
+  const key = mapChangeKey('axis', t.id, index, 0, axisName);
+  const staged = maps.changes.get(key);
+  const value = staged ? staged.value : Number(label);
+  return `<button class="map-axis-value ${staged ? 'modified' : ''}" type="button"
+    data-map-kind="axis" data-map-id="${esc(t.id)}" data-map-title="${esc(t.title)}"
+    data-map-axis="${axisName}" data-map-row="${index}" data-map-col="0"
+    data-map-raw="${esc(axis.raw_values[index])}" data-map-value="${esc(value)}"
+    title="Editable ${axisName.toUpperCase()} axis · ${esc(axis.units)}">${esc(fmtValue(value))}</button>`;
+}
+
+function traceChannelOptions(selected = '') {
+  const parameters = [...state.parameters];
+  if (selected && !parameters.some((parameter) => parameter.key === selected)) {
+    parameters.unshift({ key: selected, name: `${selected} (not available now)`, unit: '' });
+  }
+  return '<option value="">— explicit channel required —</option>' + parameters.map((parameter) =>
+    `<option value="${esc(parameter.key)}" ${parameter.key === selected ? 'selected' : ''}>${
+      esc(parameter.name || parameter.key)} · ${esc(parameter.key)}${parameter.unit ? ` (${esc(parameter.unit)})` : ''}</option>`).join('');
+}
+
+function mapTraceMappingHtml(table) {
+  const mapping = mapTraceMapping(table) || {
+    x: { channel: '', scale: 1, offset: 0 },
+    y: { channel: '', scale: 1, offset: 0 },
+  };
+  const axis = (name) => `<fieldset class="trace-axis"><legend>${name.toUpperCase()} axis · ${esc(table.axes[name].units || 'no units')}</legend>
+    <label>Live channel<select data-trace-channel="${name}">${traceChannelOptions(mapping[name]?.channel || '')}</select></label>
+    <label>Scale<input type="number" step="any" data-trace-scale="${name}" value="${esc(mapping[name]?.scale ?? 1)}"></label>
+    <label>Offset<input type="number" step="any" data-trace-offset="${name}" value="${esc(mapping[name]?.offset ?? 0)}"></label>
+    <small class="muted">axis value = channel × scale + offset</small></fieldset>`;
+  return `<details class="map-trace-mapping" data-trace-table="${esc(table.id)}">
+    <summary>Live trace mapping · ${mapping.x?.channel && mapping.y?.channel ? 'explicitly mapped' : 'not mapped'}</summary>
+    <p class="muted small">No unit or channel is guessed. Select two validated ECU channels and enter any documented unit conversion explicitly.</p>
+    <div class="trace-axis-grid">${axis('x')}${axis('y')}</div>
+    <div class="toolbar"><button class="btn small" type="button" data-trace-save>Save explicit mapping</button>
+      <button class="btn small" type="button" data-trace-clear>Clear mapping</button></div>
+  </details>`;
+}
+
 function mapsTableHtml(t) {
   const head = `<tr><th>${esc(t.units || '')}</th>`
-    + t.x.map((x) => `<th>${esc(x)}</th>`).join('') + '</tr>';
-  const body = t.values.map((row, r) => `<tr><th>${esc(t.y[r] ?? '')}</th>`
-    + row.map((v) => `<td>${esc(fmtValue(v))}</td>`).join('') + '</tr>').join('');
-  return `<div class="table-wrap"><table class="data"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+    + t.x.map((x, index) => `<th>${mapAxisValueHtml(t, 'x', index, x)}</th>`).join('') + '</tr>';
+  const matrix = currentTableMatrix(t);
+  const numeric = matrix.flat().map(Number).filter(Number.isFinite);
+  const low = numeric.length ? Math.min(...numeric) : 0;
+  const high = numeric.length ? Math.max(...numeric) : low;
+  const body = t.values.map((row, r) => `<tr><th>${mapAxisValueHtml(t, 'y', r, t.y[r] ?? '')}</th>`
+    + row.map((v, c) => {
+      const key = mapChangeKey('table', t.id, r, c);
+      const staged = maps.changes.get(key);
+      const shown = staged ? staged.value : v;
+      const raw = t.raw_values?.[r]?.[c];
+      const heat = high === low ? 50 : Math.max(0, Math.min(100,
+        (Number(shown) - low) / (high - low) * 100));
+      return `<td><button class="map-value ${staged ? 'modified' : ''}" type="button"
+        data-map-kind="table" data-map-id="${esc(t.id)}" data-map-title="${esc(t.title)}"
+        data-map-row="${r}" data-map-col="${c}" data-map-raw="${esc(raw)}"
+        data-map-value="${esc(shown)}" style="--map-heat:${heat.toFixed(1)}%"
+        title="Select ${esc(t.title)}, ${esc(t.y[r] ?? r)} × ${esc(t.x[c] ?? c)}; double-click to edit">
+        ${esc(fmtValue(shown))}</button></td>`;
+    }).join('') + '</tr>').join('');
+  return `${mapTraceMappingHtml(t)}
+    <div class="table-wrap"><table class="data map-grid"><thead>${head}</thead><tbody>${body}</tbody></table></div>
+    ${mapVisualizationHtml(t, matrix, low, high)}`;
+}
+
+function mapVisualizationHtml(table, matrix, min, max) {
+  if (!matrix.length || !matrix[0]?.length) return '';
+  const width = 520; const height = 220; const pad = 24;
+  const rows = matrix.length; const cols = matrix[0].length;
+  const yPoint = (value) => height - pad
+    - (max === min ? 0.5 : (value - min) / (max - min)) * (height - pad * 2);
+  const rowStep = Math.max(1, Math.ceil(rows / 12));
+  const shownRows = matrix.map((row, r) => ({ row, r }))
+    .filter((entry, i) => i % rowStep === 0 || entry.r === rows - 1);
+  const profiles = shownRows.map((entry, i) => {
+    const points = entry.row.map((value, c) => {
+      const x = cols === 1 ? width / 2 : pad + c * (width - pad * 2) / (cols - 1);
+      return `${x.toFixed(1)},${yPoint(Number(value)).toFixed(1)}`;
+    }).join(' ');
+    const hue = shownRows.length === 1 ? 205 : 205 + i * 105 / (shownRows.length - 1);
+    return `<polyline points="${points}" fill="none" stroke="hsl(${hue} 72% 55%)" stroke-width="2" opacity=".82"/>`;
+  }).join('');
+
+  const project = (r, c, value) => {
+    const nx = cols === 1 ? 0 : c / (cols - 1);
+    const ny = rows === 1 ? 0 : r / (rows - 1);
+    const nz = max === min ? 0.5 : (value - min) / (max - min);
+    return [55 + nx * 340 + ny * 75, 170 - nz * 105 - ny * 48 + nx * 8];
+  };
+  let surface = '';
+  const indices = (length) => {
+    const step = Math.max(1, Math.ceil((length - 1) / 16));
+    const result = [];
+    for (let index = 0; index < length; index += step) result.push(index);
+    if (result[result.length - 1] !== length - 1) result.push(length - 1);
+    return result;
+  };
+  const surfaceRows = indices(rows); const surfaceCols = indices(cols);
+  for (let ri = surfaceRows.length - 2; ri >= 0; ri -= 1) {
+    const r = surfaceRows[ri]; const nextRow = surfaceRows[ri + 1];
+    for (let ci = 0; ci < surfaceCols.length - 1; ci += 1) {
+      const c = surfaceCols[ci]; const nextCol = surfaceCols[ci + 1];
+      const values = [matrix[r][c], matrix[r][nextCol], matrix[nextRow][nextCol], matrix[nextRow][c]].map(Number);
+      const points = [project(r, c, values[0]), project(r, nextCol, values[1]),
+        project(nextRow, nextCol, values[2]), project(nextRow, c, values[3])]
+        .map((point) => point.map((value) => value.toFixed(1)).join(',')).join(' ');
+      const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+      const heat = max === min ? 0.5 : (average - min) / (max - min);
+      surface += `<polygon points="${points}" fill="hsl(${215 - heat * 170} 78% 52%)" fill-opacity=".68" stroke="var(--line)" stroke-width=".7"/>`;
+    }
+  }
+  if (rows === 1 || cols === 1) {
+    const points = matrix.flatMap((row, r) => row.map((value, c) => project(r, c, Number(value))))
+      .map((point) => point.map((value) => value.toFixed(1)).join(',')).join(' ');
+    surface = `<polyline points="${points}" fill="none" stroke="var(--cyan)" stroke-width="3"/>`;
+  }
+  return `<div class="map-viz-grid" data-map-viz-id="${esc(table.id)}">
+    <figure class="map-viz"><figcaption>2D row profiles · ${esc(table.units || 'value')}</figcaption>
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Two-dimensional row profiles">
+        <line x1="${pad}" y1="${height - pad}" x2="${width - pad}" y2="${height - pad}" class="map-viz-axis"/>
+        <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height - pad}" class="map-viz-axis"/>${profiles}</svg></figure>
+    <figure class="map-viz"><figcaption>Projected 3D surface · staged values</figcaption>
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Projected three-dimensional map surface">${surface}</svg></figure>
+  </div>`;
 }
 
 function mapsNotices(render) {
@@ -2523,8 +2840,761 @@ function wireMapsToolbar() {
   });
 }
 
+function mapChangesSnapshot() {
+  return [...maps.changes.entries()].map(([key, value]) => [key, { ...value }]);
+}
+
+function restoreMapChanges(snapshot) {
+  maps.changes = new Map(snapshot.map(([key, value]) => [key, { ...value }]));
+  maps.preview = null;
+  syncMapEditorButtons();
+  renderMapBuildState();
+}
+
+function mutateMapChanges(mutator) {
+  const before = mapChangesSnapshot();
+  const signature = JSON.stringify(before);
+  mutator();
+  if (JSON.stringify(mapChangesSnapshot()) !== signature) {
+    maps.undo.push(before);
+    if (maps.undo.length > 50) maps.undo.shift();
+    maps.redo = [];
+    maps.preview = null;
+  }
+  syncMapEditorButtons();
+  renderMapBuildState();
+}
+
+function mapItem(kind, id, axis = '') {
+  if (!maps.render) return null;
+  if (kind === 'constant') return maps.render.constants.find((item) => item.id === id);
+  const table = maps.render.tables.find((item) => item.id === id);
+  if (kind === 'axis' && table) return table.axes?.[axis] || null;
+  return table;
+}
+
+function mapCellDescriptor(button) {
+  const kind = button.dataset.mapKind;
+  const id = button.dataset.mapId;
+  const axis = button.dataset.mapAxis || '';
+  const row = Number(button.dataset.mapRow || 0);
+  const col = Number(button.dataset.mapCol || 0);
+  const item = mapItem(kind, id, axis);
+  if (!item) return null;
+  const table = kind === 'axis' ? mapItem('table', id) : null;
+  const before = kind === 'table' ? item.values[row][col]
+    : kind === 'axis' ? Number(item.values[row]) : item.value;
+  const raw = kind === 'table' ? item.raw_values[row][col]
+    : kind === 'axis' ? item.raw_values[row] : item.raw;
+  const key = mapChangeKey(kind, id, row, col, axis);
+  return {
+    key, kind, id, axis, index: kind === 'axis' ? row : null,
+    row, col, item, before, raw,
+    value: maps.changes.get(key)?.value ?? before,
+    title: kind === 'axis' ? `${table.title} (${axis} axis)` : item.title,
+    units: item.units || '',
+    x: kind === 'table' ? String(item.x[col] ?? col) : '',
+    y: kind === 'table' ? String(item.y[row] ?? row) : '',
+  };
+}
+
+function selectedMapCells() {
+  return $$('[data-map-change-key]')
+    .filter((button) => maps.selection.has(button.dataset.mapChangeKey))
+    .map(mapCellDescriptor).filter(Boolean);
+}
+
+function setMapValue(cell, value) {
+  if (!Number.isFinite(value)) throw new Error(`${cell.title}: value is not finite`);
+  if (value === Number(cell.before)) {
+    maps.changes.delete(cell.key);
+  } else {
+    maps.changes.set(cell.key, {
+      key: cell.key, kind: cell.kind, id: cell.id,
+      axis: cell.axis || '', index: cell.index,
+      row: cell.row, col: cell.col, expected_raw: cell.raw,
+      before: cell.before, value, title: cell.title, units: cell.units,
+      x: cell.x, y: cell.y,
+    });
+  }
+}
+
+function refreshMapVisualizations() {
+  (maps.render?.tables || []).forEach((table) => {
+    const current = $$('[data-map-viz-id]').find((element) => element.dataset.mapVizId === table.id);
+    if (!current) return;
+    const matrix = currentTableMatrix(table);
+    const numeric = matrix.flat().map(Number).filter(Number.isFinite);
+    const low = numeric.length ? Math.min(...numeric) : 0;
+    const high = numeric.length ? Math.max(...numeric) : low;
+    $$('.map-value').filter((button) => button.dataset.mapKind === 'table'
+      && button.dataset.mapId === table.id).forEach((button) => {
+      const value = Number(button.dataset.mapValue);
+      const heat = high === low ? 50 : Math.max(0, Math.min(100,
+        (value - low) / (high - low) * 100));
+      button.style.setProperty('--map-heat', `${heat.toFixed(1)}%`);
+    });
+    const holder = document.createElement('div');
+    holder.innerHTML = mapVisualizationHtml(table, matrix, low, high);
+    if (holder.firstElementChild) current.replaceWith(holder.firstElementChild);
+  });
+}
+
+function syncMapEditorButtons() {
+  $$('[data-map-change-key]').forEach((button) => {
+    const key = button.dataset.mapChangeKey;
+    const staged = maps.changes.get(key);
+    const original = Number(button.dataset.mapOriginal);
+    button.textContent = fmtValue(staged ? staged.value : original);
+    button.dataset.mapValue = staged ? staged.value : original;
+    button.classList.toggle('modified', !!staged);
+    button.classList.toggle('selected', maps.selection.has(key));
+    button.setAttribute('aria-selected', maps.selection.has(key) ? 'true' : 'false');
+  });
+  refreshMapVisualizations();
+  updateMapLiveTrace();
+}
+
+function selectMapCell(button, event = {}) {
+  const cell = mapCellDescriptor(button);
+  if (!cell) return;
+  const additive = !!(event.ctrlKey || event.metaKey);
+  if (event.shiftKey && maps.selectionAnchor
+      && maps.selectionAnchor.kind === 'table' && cell.kind === 'table'
+      && maps.selectionAnchor.id === cell.id) {
+    if (!additive) maps.selection.clear();
+    const r0 = Math.min(maps.selectionAnchor.row, cell.row);
+    const r1 = Math.max(maps.selectionAnchor.row, cell.row);
+    const c0 = Math.min(maps.selectionAnchor.col, cell.col);
+    const c1 = Math.max(maps.selectionAnchor.col, cell.col);
+    for (let row = r0; row <= r1; row += 1) {
+      for (let col = c0; col <= c1; col += 1) {
+        maps.selection.add(mapChangeKey('table', cell.id, row, col));
+      }
+    }
+  } else if (additive) {
+    if (maps.selection.has(cell.key)) maps.selection.delete(cell.key);
+    else maps.selection.add(cell.key);
+    maps.selectionAnchor = cell;
+  } else {
+    maps.selection.clear();
+    maps.selection.add(cell.key);
+    maps.selectionAnchor = cell;
+  }
+  syncMapEditorButtons();
+  renderMapBuildState();
+}
+
+async function transformMapSelection(mode) {
+  const cells = selectedMapCells();
+  if (!cells.length) return;
+  const labels = {
+    set: ['Set selected values', 'New engineering value', 'Set values'],
+    add: ['Add to selected values', 'Engineering-value delta', 'Add delta'],
+    percent: ['Scale selected values', 'Percent change', 'Apply percent'],
+  }[mode];
+  const ready = await confirmDialog(
+    labels[0],
+    `<p class="guide-intro">${cells.length} selected value(s). Calculations use the currently staged values.</p>
+     <label class="field"><span>${labels[1]}</span>
+       <input type="number" id="mapTransformValue" step="any" value="${mode === 'percent' ? '5' : '0'}"></label>
+     <div class="guide-callout danger">The backend will quantize every result through the XDF and refuse values outside the raw data range.</div>`,
+    labels[2], { tone: 'danger' },
+  );
+  if (!ready) return;
+  const operand = Number($('#mapTransformValue')?.value);
+  if (!Number.isFinite(operand)) return toast('Enter a finite transform value.', 'bad');
+  mutateMapChanges(() => cells.forEach((cell) => {
+    const current = Number(maps.changes.get(cell.key)?.value ?? cell.before);
+    const value = mode === 'set' ? operand
+      : mode === 'add' ? current + operand : current * (1 + operand / 100);
+    setMapValue(cell, value);
+  }));
+}
+
+function interpolateMapSelection(direction) {
+  const cells = selectedMapCells();
+  const ids = new Set(cells.map((cell) => `${cell.kind}:${cell.id}`));
+  if (!cells.length || ids.size !== 1 || cells[0].kind !== 'table') {
+    return toast('Interpolation needs one rectangular selection in one table.', 'bad');
+  }
+  const item = cells[0].item;
+  const rows = cells.map((cell) => cell.row);
+  const cols = cells.map((cell) => cell.col);
+  const r0 = Math.min(...rows); const r1 = Math.max(...rows);
+  const c0 = Math.min(...cols); const c1 = Math.max(...cols);
+  if (cells.length !== (r1 - r0 + 1) * (c1 - c0 + 1)) {
+    return toast('Interpolation requires a complete rectangular selection.', 'bad');
+  }
+  if ((direction === 'rows' && c1 - c0 < 2)
+      || (direction === 'cols' && r1 - r0 < 2)) {
+    return toast('Select at least three cells across the interpolation direction.', 'bad');
+  }
+  const descriptor = (row, col) => {
+    const button = $$('[data-map-kind="table"]')
+      .find((candidate) => candidate.dataset.mapId === item.id
+        && Number(candidate.dataset.mapRow) === row
+        && Number(candidate.dataset.mapCol) === col);
+    return button ? mapCellDescriptor(button) : null;
+  };
+  mutateMapChanges(() => {
+    if (direction === 'rows') {
+      for (let row = r0; row <= r1; row += 1) {
+        const left = descriptor(row, c0); const right = descriptor(row, c1);
+        if (!left || !right) continue;
+        const a = Number(maps.changes.get(left.key)?.value ?? left.before);
+        const b = Number(maps.changes.get(right.key)?.value ?? right.before);
+        for (let col = c0 + 1; col < c1; col += 1) {
+          const cell = descriptor(row, col);
+          if (cell) setMapValue(cell, a + (b - a) * (col - c0) / (c1 - c0));
+        }
+      }
+    } else {
+      for (let col = c0; col <= c1; col += 1) {
+        const top = descriptor(r0, col); const bottom = descriptor(r1, col);
+        if (!top || !bottom) continue;
+        const a = Number(maps.changes.get(top.key)?.value ?? top.before);
+        const b = Number(maps.changes.get(bottom.key)?.value ?? bottom.before);
+        for (let row = r0 + 1; row < r1; row += 1) {
+          const cell = descriptor(row, col);
+          if (cell) setMapValue(cell, a + (b - a) * (row - r0) / (r1 - r0));
+        }
+      }
+    }
+  });
+}
+
+function currentTableMatrix(table) {
+  return table.values.map((row, r) => row.map((value, c) =>
+    maps.changes.get(mapChangeKey('table', table.id, r, c))?.value ?? value));
+}
+
+function rectangularTableSelection() {
+  const cells = selectedMapCells();
+  if (!cells.length || cells.some((cell) => cell.kind !== 'table' || cell.id !== cells[0].id)) {
+    throw new Error('Select cells from one table.');
+  }
+  const rows = cells.map((cell) => cell.row);
+  const cols = cells.map((cell) => cell.col);
+  const bounds = {
+    r0: Math.min(...rows), r1: Math.max(...rows),
+    c0: Math.min(...cols), c1: Math.max(...cols),
+  };
+  if (cells.length !== (bounds.r1 - bounds.r0 + 1) * (bounds.c1 - bounds.c0 + 1)) {
+    throw new Error('Smoothing and blending require one complete rectangular selection.');
+  }
+  return { cells, table: mapItem('table', cells[0].id), ...bounds };
+}
+
+async function smoothMapSelection() {
+  let selection;
+  try { selection = rectangularTableSelection(); } catch (err) { return toast(err.message, 'bad'); }
+  const ready = await confirmDialog(
+    'Smooth selected cells',
+    `<p class="guide-intro">Apply a weighted 3 × 3 surface average to ${selection.cells.length} selected cells.</p>
+     <label class="field"><span>Smoothing strength (%)</span>
+       <input type="number" id="mapSmoothStrength" min="1" max="100" step="1" value="50"></label>
+     <p class="muted small">The center and adjacent cells are weighted with a 1–2–1 kernel. Values outside the selection provide boundary context but are not changed.</p>
+     <div class="guide-callout danger">Smoothing is mathematical, not a tuning recommendation. Review every resulting value against evidence for this exact configuration.</div>`,
+    'Stage smoothed values', { tone: 'danger' },
+  );
+  if (!ready) return;
+  const strength = Number($('#mapSmoothStrength')?.value) / 100;
+  if (!Number.isFinite(strength) || strength <= 0 || strength > 1) {
+    return toast('Smoothing strength must be from 1 to 100%.', 'bad');
+  }
+  const source = currentTableMatrix(selection.table);
+  const kernel = [[1, 2, 1], [2, 4, 2], [1, 2, 1]];
+  mutateMapChanges(() => selection.cells.forEach((cell) => {
+    let total = 0; let weight = 0;
+    kernel.forEach((weights, kr) => weights.forEach((w, kc) => {
+      const row = cell.row + kr - 1; const col = cell.col + kc - 1;
+      if (source[row]?.[col] === undefined) return;
+      total += Number(source[row][col]) * w; weight += w;
+    }));
+    const target = total / weight;
+    setMapValue(cell, Number(source[cell.row][cell.col]) * (1 - strength) + target * strength);
+  }));
+}
+
+async function blendMapSelection() {
+  let selection;
+  try { selection = rectangularTableSelection(); } catch (err) { return toast(err.message, 'bad'); }
+  const ready = await confirmDialog(
+    'Bilinear blend selected rectangle',
+    `<p class="guide-intro">Build a continuous surface between the rectangle's four corner values.</p>
+     <label class="field"><span>Blend strength (%)</span>
+       <input type="number" id="mapBlendStrength" min="1" max="100" step="1" value="100"></label>
+     <p class="muted small">At 100%, interior values become the bilinear interpolation of the staged corner values. One-row or one-column selections use linear interpolation.</p>
+     <div class="guide-callout danger">Blending does not establish safe values. Treat the result as a reviewable proposal and attach configuration-specific evidence.</div>`,
+    'Stage blended values', { tone: 'danger' },
+  );
+  if (!ready) return;
+  const strength = Number($('#mapBlendStrength')?.value) / 100;
+  if (!Number.isFinite(strength) || strength <= 0 || strength > 1) {
+    return toast('Blend strength must be from 1 to 100%.', 'bad');
+  }
+  const source = currentTableMatrix(selection.table);
+  const { r0, r1, c0, c1 } = selection;
+  const topLeft = Number(source[r0][c0]); const topRight = Number(source[r0][c1]);
+  const bottomLeft = Number(source[r1][c0]); const bottomRight = Number(source[r1][c1]);
+  mutateMapChanges(() => selection.cells.forEach((cell) => {
+    const ty = r1 === r0 ? 0 : (cell.row - r0) / (r1 - r0);
+    const tx = c1 === c0 ? 0 : (cell.col - c0) / (c1 - c0);
+    const target = topLeft * (1 - tx) * (1 - ty) + topRight * tx * (1 - ty)
+      + bottomLeft * (1 - tx) * ty + bottomRight * tx * ty;
+    const current = Number(source[cell.row][cell.col]);
+    setMapValue(cell, current * (1 - strength) + target * strength);
+  }));
+}
+
+async function copyMapSelection() {
+  const cells = selectedMapCells();
+  if (!cells.length) return;
+  let text;
+  const ids = new Set(cells.map((cell) => `${cell.kind}:${cell.id}`));
+  if (ids.size === 1 && cells[0].kind === 'table') {
+    const rows = [...new Set(cells.map((cell) => cell.row))].sort((a, b) => a - b);
+    const cols = [...new Set(cells.map((cell) => cell.col))].sort((a, b) => a - b);
+    text = rows.map((row) => cols.map((col) => {
+      const cell = cells.find((candidate) => candidate.row === row && candidate.col === col);
+      return cell ? String(maps.changes.get(cell.key)?.value ?? cell.before) : '';
+    }).join('\t')).join('\n');
+  } else {
+    text = cells.map((cell) => [cell.title, cell.y, cell.x,
+      maps.changes.get(cell.key)?.value ?? cell.before].join('\t')).join('\n');
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(`${cells.length} value(s) copied as tab-separated text.`, 'ok');
+  } catch (_) {
+    download(`guzzionboard-map-selection-${Date.now()}.tsv`, text, 'text/tab-separated-values');
+    toast('Clipboard unavailable; downloaded a TSV instead.', 'warn');
+  }
+}
+
+async function pasteMapSelection() {
+  const cells = selectedMapCells();
+  const ids = new Set(cells.map((cell) => `${cell.kind}:${cell.id}`));
+  if (!cells.length || ids.size !== 1 || cells[0].kind !== 'table') {
+    return toast('Paste needs one rectangular table selection.', 'bad');
+  }
+  const rows = [...new Set(cells.map((cell) => cell.row))].sort((a, b) => a - b);
+  const cols = [...new Set(cells.map((cell) => cell.col))].sort((a, b) => a - b);
+  if (cells.length !== rows.length * cols.length) {
+    return toast('Paste needs a complete rectangular selection.', 'bad');
+  }
+  let clipboard = '';
+  try { clipboard = await navigator.clipboard.readText(); } catch (_) { /* paste manually */ }
+  const ready = await confirmDialog(
+    'Paste table values',
+    `<p class="guide-intro">Paste ${rows.length} row(s) × ${cols.length} column(s) of tab- or comma-separated engineering values.</p>
+     <label class="field"><span>Values</span><textarea id="mapPasteValues" rows="8">${esc(clipboard)}</textarea></label>
+     <div class="guide-callout danger">The pasted matrix must match the selected rectangle exactly. Every cell remains subject to XDF range and quantization checks.</div>`,
+    'Stage pasted values', { tone: 'danger' },
+  );
+  if (!ready) return;
+  const matrix = String($('#mapPasteValues')?.value || '').trim().split(/\r?\n/)
+    .map((line) => line.split(line.includes('\t') ? '\t' : ',').map((value) => Number(value.trim())));
+  if (matrix.length !== rows.length
+      || matrix.some((row) => row.length !== cols.length || row.some((value) => !Number.isFinite(value)))) {
+    return toast(`Paste must contain exactly ${rows.length} × ${cols.length} numeric values.`, 'bad');
+  }
+  mutateMapChanges(() => rows.forEach((row, rIndex) => cols.forEach((col, cIndex) => {
+    const cell = cells.find((candidate) => candidate.row === row && candidate.col === col);
+    if (cell) setMapValue(cell, matrix[rIndex][cIndex]);
+  })));
+}
+
+function mapProject() {
+  return {
+    schema: 1,
+    application: 'GuzziOnBoard map project',
+    saved_at: new Date().toISOString(),
+    source: maps.render?.source || null,
+    xdf: {
+      filename: $('#xdfSelect').value,
+      title: maps.render?.xdf?.title || '',
+      path: maps.render?.xdf?.path || '',
+    },
+    address_base: maps.render?.address_base ?? null,
+    checksum_provider: $('#mapChecksumProvider').value || null,
+    recommendation_package: maps.activePackage ? { ...maps.activePackage } : null,
+    trace_mappings: (maps.render?.tables || []).map((table) => {
+      const mapping = mapTraceMapping(table);
+      return mapping ? { table_id: table.id, x: { ...mapping.x }, y: { ...mapping.y } } : null;
+    }).filter(Boolean),
+    changes: [...maps.changes.values()].map((change) => ({ ...change })),
+    recommendation: {
+      title: $('#mapEvidenceTitle').value,
+      url: $('#mapEvidenceUrl').value,
+      rationale: $('#mapEvidenceRationale').value,
+      quote: $('#mapEvidenceQuote').value,
+    },
+    note: 'A project is a plan, not a flashable image. Reopening it verifies the source hash and every expected raw value.',
+  };
+}
+
+function importMapProject(project) {
+  if (!maps.render?.source) throw new Error('Load the project source map before importing edits.');
+  if (!project || project.schema !== 1 || !Array.isArray(project.changes)) {
+    throw new Error('This is not a supported GuzziOnBoard map project.');
+  }
+  if (project.source?.sha256 !== maps.render.source.sha256) {
+    throw new Error('The loaded map does not match the project source SHA-256.');
+  }
+  if (project.xdf?.filename !== $('#xdfSelect').value) {
+    throw new Error(`The project needs XDF ${project.xdf?.filename || '(unknown)'}.`);
+  }
+  const projectProvider = project.checksum_provider || '';
+  if (projectProvider && !maps.checksumProviders.some((candidate) => candidate.id === projectProvider)) {
+    throw new Error(`Project requires checksum provider ${projectProvider}, which is not loaded.`);
+  }
+  const packageRef = project.recommendation_package || null;
+  const projectPackage = packageRef && maps.recommendationPackages.find((pkg) =>
+    pkg.id === packageRef.id && pkg.version === packageRef.version
+      && pkg.package_sha256 === packageRef.package_sha256);
+  if (packageRef && !projectPackage) {
+    throw new Error('Project recommendation package is missing or its SHA-256 changed.');
+  }
+  const imported = new Map();
+  project.changes.forEach((change) => {
+    const kind = String(change.kind || '');
+    if (!['table', 'constant', 'axis'].includes(kind) || !Number.isFinite(Number(change.value))) {
+      throw new Error('A project change has an invalid kind or value.');
+    }
+    const id = String(change.id || '');
+    const axis = kind === 'axis' ? String(change.axis || '') : '';
+    const item = mapItem(kind, id, axis);
+    const owner = kind === 'axis' ? mapItem('table', id) : item;
+    if (!item || !owner) throw new Error(`Project item ${change.id || '(missing)'} is not in this XDF.`);
+    const row = kind === 'axis' ? Number(change.index) : Number(change.row || 0);
+    const col = Number(change.col || 0);
+    const raw = kind === 'table' ? item.raw_values?.[row]?.[col]
+      : kind === 'axis' ? item.raw_values?.[row] : item.raw;
+    if (Number(change.expected_raw) !== Number(raw)) {
+      throw new Error(`${owner.title}: expected raw value no longer matches the loaded source.`);
+    }
+    const key = mapChangeKey(kind, id, row, col, axis);
+    imported.set(key, {
+      ...change, key, id, axis, index: kind === 'axis' ? row : null,
+      title: kind === 'axis' ? `${owner.title} (${axis} axis)` : item.title,
+      units: item.units || '',
+      before: kind === 'table' ? item.values[row][col]
+        : kind === 'axis' ? Number(item.values[row]) : item.value,
+      expected_raw: raw,
+      x: kind === 'table' ? String(item.x[col] ?? col) : '',
+      y: kind === 'table' ? String(item.y[row] ?? row) : '',
+    });
+  });
+  if (projectPackage && !mapChangesMatchPackage(projectPackage, [...imported.values()])) {
+    throw new Error('Project changes no longer match its recommendation package lock.');
+  }
+  const importedMappings = [];
+  for (const mapping of project.trace_mappings || []) {
+    const table = mapItem('table', String(mapping.table_id || ''));
+    if (!table) throw new Error(`Trace mapping table ${mapping.table_id || '(missing)'} is not in this XDF.`);
+    const normalized = {};
+    for (const axisName of ['x', 'y']) {
+      const axisMapping = mapping[axisName] || {};
+      const scale = Number(axisMapping.scale); const offset = Number(axisMapping.offset);
+      if (!axisMapping.channel || !Number.isFinite(scale) || scale === 0 || !Number.isFinite(offset)) {
+        throw new Error(`${table.title}: invalid ${axisName.toUpperCase()} live-trace mapping.`);
+      }
+      normalized[axisName] = { channel: String(axisMapping.channel), scale, offset };
+    }
+    importedMappings.push([mapTraceMappingKey(table), normalized]);
+  }
+  mutateMapChanges(() => { maps.changes = imported; });
+  importedMappings.forEach(([key, mapping]) => maps.traceMappings.set(key, mapping));
+  saveMapTraceMappings();
+  maps.activePackage = packageRef ? { ...packageRef } : null;
+  if (projectPackage) {
+    const packageIndex = maps.recommendationPackages.indexOf(projectPackage);
+    $('#mapPackageSelect').value = String(packageIndex);
+  } else {
+    $('#mapPackageSelect').value = '';
+  }
+  const evidence = project.recommendation || {};
+  $('#mapEvidenceTitle').value = evidence.title || '';
+  $('#mapEvidenceUrl').value = evidence.url || '';
+  $('#mapEvidenceRationale').value = evidence.rationale || '';
+  $('#mapEvidenceQuote').value = evidence.quote || '';
+  $('#mapChecksumProvider').value = projectProvider;
+  renderChecksumProviderNote();
+  $$('[data-trace-table]').forEach((panel) => {
+    const table = mapItem('table', panel.dataset.traceTable);
+    if (table) panel.outerHTML = mapTraceMappingHtml(table);
+  });
+  wireMapTraceMappings();
+  updateMapLiveTrace();
+  renderMapBuildState();
+}
+
+function renderMapBuildState() {
+  const source = maps.render?.source;
+  const sourceBox = $('#mapBuildSource');
+  if (!source) {
+    sourceBox.className = 'gate-card warn';
+    sourceBox.innerHTML = '<h4>No source loaded</h4><p>Render an image, or load the protected base map.</p>';
+  } else {
+    sourceBox.className = `gate-card ${source.is_base_map ? 'ok' : 'warn'}`;
+    sourceBox.innerHTML = `<h4>${source.is_base_map
+      ? 'Protected base map source' : 'Source is not the protected base map'}</h4>
+      <p class="small"><code>${esc(source.path)}</code></p>
+      <p class="small">sha256 ${esc(String(source.sha256 || '').slice(0, 32))}… ${source.is_base_map
+        ? '· the immutable vault copy will not be changed'
+        : '· the builder will require the extra non-base acknowledgement'}</p>`;
+  }
+
+  const changes = [...maps.changes.values()];
+  const activePackage = maps.activePackage && maps.recommendationPackages.find((pkg) =>
+    pkg.id === maps.activePackage.id && pkg.version === maps.activePackage.version
+      && pkg.package_sha256 === maps.activePackage.package_sha256);
+  const packageMatches = !activePackage || mapChangesMatchPackage(activePackage);
+  const packageStatus = activePackage ? `<div class="gate-card ${packageMatches ? 'ok' : 'bad'}">
+    <h4>${packageMatches ? 'Package-locked plan intact' : 'Package lock no longer matches'}</h4>
+    <p class="small">${esc(activePackage.title)} ${esc(activePackage.version)} · <code>${esc(activePackage.package_sha256)}</code></p>
+    <p class="small">${packageMatches
+      ? 'The server will re-load this package and require exact XDF, evidence, raw locks, target values, and change count.'
+      : 'Restage the package or choose “none” in the package selector before creating a different manual plan.'}</p></div>` : '';
+  $('#mapBuildChanges').innerHTML = packageStatus + (changes.length ? `
+    <div class="gate-card warn"><h4>${changes.length} staged change(s)</h4>
+      <div class="table-wrap"><table class="data"><thead><tr>
+        <th>Item</th><th>Cell</th><th>Before</th><th>Requested</th><th></th>
+      </tr></thead><tbody>${changes.map((c) => `<tr>
+        <td>${esc(c.title)}</td><td>${mapChangeLocation(c)}</td>
+        <td>${esc(fmtValue(c.before))} ${esc(c.units)}</td>
+        <td><b>${esc(fmtValue(c.value))}</b> ${esc(c.units)}</td>
+        <td><button class="btn small" data-remove-map-change="${esc(c.key)}">Remove</button></td>
+      </tr>`).join('')}</tbody></table></div></div>`
+    : '<p class="muted small">No staged changes. Select values, then double-click or use a transformation tool.</p>');
+  $$('[data-remove-map-change]').forEach((button) => {
+    button.onclick = () => mutateMapChanges(() => {
+      maps.changes.delete(button.dataset.removeMapChange);
+    });
+  });
+  const selected = selectedMapCells();
+  $('#mapSelectionCount').textContent = `${selected.length} ${selected.length === 1 ? 'value' : 'values'} selected`;
+  ['mapSetBtn', 'mapAddBtn', 'mapPercentBtn', 'mapCopyBtn']
+    .forEach((id) => { $(`#${id}`).disabled = !selected.length; });
+  const oneTable = selected.length && new Set(
+    selected.map((cell) => `${cell.kind}:${cell.id}`)).size === 1
+    && selected[0].kind === 'table';
+  $('#mapInterpolateRowsBtn').disabled = !oneTable;
+  $('#mapInterpolateColsBtn').disabled = !oneTable;
+  $('#mapSmoothBtn').disabled = !oneTable;
+  $('#mapBlendBtn').disabled = !oneTable;
+  $('#mapPasteBtn').disabled = !oneTable;
+  $('#mapUndoBtn').disabled = !maps.undo.length;
+  $('#mapRedoBtn').disabled = !maps.redo.length;
+  $('#mapClearChangesBtn').disabled = !changes.length;
+  $('#mapExportProjectBtn').disabled = !changes.length || !source;
+  $('#mapBuildBtn').disabled = !changes.length || !source || !packageMatches
+    || !checksumSelectionCompatible();
+}
+
+async function stageMapEdit(button) {
+  if (!maps.render) return;
+  const descriptor = mapCellDescriptor(button);
+  if (!descriptor) return toast('That XDF item is no longer in the rendered source.', 'bad');
+  const { kind, item, key } = descriptor;
+  const original = descriptor.before;
+  const staged = maps.changes.get(key);
+  const current = staged ? staged.value : original;
+  const cell = kind === 'table'
+    ? `${descriptor.y} × ${descriptor.x}`
+    : kind === 'axis' ? `${descriptor.axis.toUpperCase()} axis index ${descriptor.index}`
+      : 'constant';
+  const ready = await confirmDialog(
+    `Change ${descriptor.title}`,
+    `<p class="guide-intro">${esc(cell)} · ${esc(item.units || 'no units')}</p>
+     ${item.description ? `<p class="muted small">${esc(item.description)}</p>` : ''}
+     <p class="small">Current source value: <b>${esc(fmtValue(original))}</b>
+       (raw ${esc(descriptor.raw)})</p>
+     <label class="field"><span>Recommended value</span>
+       <input type="number" id="mapEditValue" step="any" value="${esc(current)}"></label>
+     <div class="guide-callout danger">Do not guess. Stage only a value supported by the recommendation source you will attach to this build.</div>`,
+    'Stage change',
+    { tone: 'danger' },
+  );
+  if (!ready) return;
+  const value = Number($('#mapEditValue')?.value);
+  if (!Number.isFinite(value)) return toast('The recommended value must be a finite number.', 'bad');
+  const cellDescriptor = mapCellDescriptor(button);
+  mutateMapChanges(() => setMapValue(cellDescriptor, value));
+}
+
+function wireMapTraceMappings() {
+  $$('[data-trace-table]').forEach((panel) => {
+    const table = mapItem('table', panel.dataset.traceTable);
+    if (!table) return;
+    const replacePanel = () => {
+      const holder = document.createElement('div');
+      holder.innerHTML = mapTraceMappingHtml(table);
+      if (holder.firstElementChild) panel.replaceWith(holder.firstElementChild);
+      wireMapTraceMappings();
+    };
+    $('[data-trace-save]', panel).onclick = () => {
+      const mapping = {};
+      const known = new Set(state.parameters.map((parameter) => parameter.key));
+      for (const axisName of ['x', 'y']) {
+        const channel = $(`[data-trace-channel="${axisName}"]`, panel).value;
+        const scale = Number($(`[data-trace-scale="${axisName}"]`, panel).value);
+        const offset = Number($(`[data-trace-offset="${axisName}"]`, panel).value);
+        if (!channel || !known.has(channel)) {
+          return toast(`${axisName.toUpperCase()} axis needs a currently validated live channel.`, 'bad');
+        }
+        if (!Number.isFinite(scale) || scale === 0 || !Number.isFinite(offset)) {
+          return toast(`${axisName.toUpperCase()} mapping needs a finite, non-zero scale and finite offset.`, 'bad');
+        }
+        mapping[axisName] = { channel, scale, offset };
+      }
+      maps.traceMappings.set(mapTraceMappingKey(table), mapping);
+      saveMapTraceMappings();
+      Object.values(mapping).forEach((axisMapping) =>
+        state.selectedChannels.add(axisMapping.channel));
+      if ($('#channelList')) renderChannelPicker();
+      replacePanel();
+      updateMapLiveTrace();
+      toast('Explicit trace mapping saved; both channels were added to live polling.', 'ok');
+    };
+    $('[data-trace-clear]', panel).onclick = () => {
+      maps.traceMappings.delete(mapTraceMappingKey(table));
+      saveMapTraceMappings();
+      replacePanel();
+      updateMapLiveTrace();
+      toast('Live trace mapping cleared.', 'ok');
+    };
+  });
+}
+
+function wireMapEditors() {
+  const buttons = $$('[data-map-kind]');
+  buttons.forEach((button) => {
+    const key = mapChangeKey(
+      button.dataset.mapKind, button.dataset.mapId,
+      Number(button.dataset.mapRow || 0), Number(button.dataset.mapCol || 0),
+      button.dataset.mapAxis || '');
+    button.dataset.mapChangeKey = key;
+    if (!button.dataset.mapOriginal) button.dataset.mapOriginal = button.dataset.mapValue;
+    button.onclick = (event) => selectMapCell(button, event);
+    button.ondblclick = (event) => { event.preventDefault(); stageMapEdit(button); };
+    button.onkeydown = (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        stageMapEdit(button);
+        return;
+      }
+      const moves = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] };
+      if (!moves[event.key] || button.dataset.mapKind !== 'table') return;
+      event.preventDefault();
+      const [dr, dc] = moves[event.key];
+      const row = Number(button.dataset.mapRow) + dr;
+      const col = Number(button.dataset.mapCol) + dc;
+      const next = buttons.find((candidate) => candidate.dataset.mapKind === 'table'
+        && candidate.dataset.mapId === button.dataset.mapId
+        && Number(candidate.dataset.mapRow) === row
+        && Number(candidate.dataset.mapCol) === col);
+      if (next) {
+        next.focus();
+        selectMapCell(next, { shiftKey: event.shiftKey, ctrlKey: event.ctrlKey, metaKey: event.metaKey });
+      }
+    };
+  });
+  syncMapEditorButtons();
+}
+
+function parseMapLogCsv(text) {
+  const records = [];
+  let row = []; let field = ''; let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (quoted) {
+      if (char === '"' && text[index + 1] === '"') { field += '"'; index += 1; }
+      else if (char === '"') quoted = false;
+      else field += char;
+    } else if (char === '"') quoted = true;
+    else if (char === ',') { row.push(field.trim()); field = ''; }
+    else if (char === '\n') { row.push(field.trim()); records.push(row); row = []; field = ''; }
+    else if (char !== '\r') field += char;
+  }
+  row.push(field.trim());
+  if (row.some((value) => value)) records.push(row);
+  if (quoted) throw new Error('CSV has an unterminated quoted field.');
+  const headers = records.shift()?.map((value) => value.trim()) || [];
+  if (headers.length < 4 || new Set(headers).size !== headers.length || headers.some((value) => !value)) {
+    throw new Error('CSV needs at least four unique, non-empty column headings.');
+  }
+  const rows = records.filter((values) => values.some((value) => value !== '')).map((values) =>
+    Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ''])));
+  if (!rows.length) throw new Error('CSV has headings but no data rows.');
+  if (rows.length > 200000) throw new Error('Log analysis is limited to 200000 rows.');
+  return { headers, rows };
+}
+
+function renderMapLogControls() {
+  const tableSelect = $('#mapLogTable');
+  if (!tableSelect) return;
+  const chosen = tableSelect.value;
+  tableSelect.innerHTML = (maps.render?.tables || []).map((table) =>
+    `<option value="${esc(table.id)}">${esc(table.title)} · ${esc(table.y_units)} × ${esc(table.x_units)}</option>`).join('');
+  if ([...tableSelect.options].some((option) => option.value === chosen)) tableSelect.value = chosen;
+  const options = maps.logHeaders.map((header) => `<option value="${esc(header)}">${esc(header)}</option>`).join('');
+  const previous = Object.fromEntries(['mapLogX', 'mapLogY', 'mapLogMeasured', 'mapLogTarget', 'mapLogTime']
+    .map((id) => [id, $(`#${id}`).value]));
+  ['mapLogX', 'mapLogY', 'mapLogMeasured', 'mapLogTarget'].forEach((id) => { $(`#${id}`).innerHTML = options; });
+  $('#mapLogTime').innerHTML = '<option value="">— no time alignment —</option>' + options;
+  const choose = (id, expressions) => {
+    const select = $(`#${id}`);
+    if (previous[id] && [...select.options].some((option) => option.value === previous[id])) {
+      select.value = previous[id]; return;
+    }
+    const match = maps.logHeaders.find((header) => expressions.some((expression) => expression.test(header)));
+    if (match) select.value = match;
+  };
+  choose('mapLogX', [/rpm/i, /speed/i]);
+  choose('mapLogY', [/throttle/i, /tps/i, /load/i, /pressure/i, /map/i]);
+  choose('mapLogMeasured', [/measured.*afr/i, /wideband/i, /^afr$/i, /lambda.*meas/i]);
+  choose('mapLogTarget', [/target.*afr/i, /command.*afr/i, /lambda.*target/i]);
+  choose('mapLogTime', [/^time$/i, /timestamp/i, /^time[_ ]?(s|ms)$/i, /elapsed/i]);
+  const setTimeControlState = () => {
+    const disabled = !$('#mapLogTime').value;
+    ['mapLogTimeUnit', 'mapLogDelay', 'mapLogSettle', 'mapLogGap', 'mapLogXRate', 'mapLogYRate']
+      .forEach((id) => { $(`#${id}`).disabled = disabled; });
+  };
+  $('#mapLogTime').onchange = setTimeControlState;
+  setTimeControlState();
+  $('#mapLogAnalyzeBtn').disabled = !maps.render || !maps.logRows.length;
+  $('#mapLogStageBtn').disabled = !(maps.logAnalysis?.proposals || []).length;
+}
+
+function drawMapLogOverlay(report) {
+  $$('.map-value.log-overlay').forEach((cell) => {
+    cell.classList.remove('log-overlay'); cell.style.removeProperty('--log-error');
+  });
+  (report?.cells || []).forEach((overlay) => {
+    const cell = $$('.map-value').find((candidate) => candidate.dataset.mapId === report.table.id
+      && Number(candidate.dataset.mapRow) === overlay.row && Number(candidate.dataset.mapCol) === overlay.col);
+    if (!cell) return;
+    cell.classList.add('log-overlay');
+    cell.style.setProperty('--log-error', `${Math.max(-15, Math.min(15, overlay.correction_percent))}`);
+    cell.title += ` · log: ${overlay.samples} samples, AFR ${overlay.measured_afr}/${overlay.target_afr}, proposal ${overlay.correction_percent}%`;
+  });
+}
+
 function renderMapsResult(render) {
   const meta = render.xdf || {};
+  maps.render = render;
+  if (render.source?.path) $('#mapsImagePath').value = render.source.path;
+  maps.changes.clear();
+  maps.selection.clear();
+  maps.selectionAnchor = null;
+  maps.undo = [];
+  maps.redo = [];
+  maps.preview = null;
+  maps.logAnalysis = null;
+  maps.activePackage = null;
   maps.lastDoc = {
     title: `${meta.title || 'Maps'} — rendered tables`,
     html: mapsDoc(`${meta.title || 'Maps'} — rendered tables`,
@@ -2543,7 +3613,12 @@ function renderMapsResult(render) {
         <thead><tr><th>Constant</th><th>Category</th><th>Value</th><th>Address</th></tr></thead>
         <tbody>${render.constants.map((c) => `
           <tr><td>${esc(c.title)}</td><td>${esc(c.category)}</td>
-              <td><b>${esc(fmtValue(c.value))}</b> ${esc(c.units)}</td>
+              <td><button class="map-value" type="button" data-map-kind="constant"
+                data-map-id="${esc(c.id)}" data-map-title="${esc(c.title)}"
+                data-map-row="0" data-map-col="0"
+                data-map-raw="${esc(c.raw)}" data-map-value="${esc(c.value)}"
+                title="Stage a sourced change to ${esc(c.title)}">${esc(fmtValue(c.value))}</button>
+                ${esc(c.units)}</td>
               <td><code>${esc(c.address)}</code></td></tr>`).join('')}
         </tbody></table></div></details>` : '';
   $('#mapsOut').innerHTML = mapsResultToolbar() + `
@@ -2561,9 +3636,451 @@ function renderMapsResult(render) {
         </summary>${mapsTableHtml(t)}</details>`).join('')
     + constants;
   wireMapsToolbar();
+  wireMapEditors();
+  wireMapTraceMappings();
+  renderMapBuildState();
+  renderMapLogControls();
+  renderChecksumProviderNote();
+  $('#mapPackageStageBtn').disabled = !selectedRecommendationPackage();
+  updateMapLiveTrace();
 }
 
 $('#mapsRefreshBtn').onclick = loadXdfs;
+
+$('#mapsBaseBtn').onclick = async () => {
+  const xdf = $('#xdfSelect').value;
+  if (!xdf) return toast('Choose the definition for this ECU first.', 'bad');
+  $('#mapsOut').innerHTML = '<p class="muted">Loading the protected base map…</p>';
+  try {
+    renderMapsResult(await api('/api/maps/render', {
+      method: 'POST', body: { use_base_map: true, region: 'flash', xdf },
+    }));
+    toast('Protected base map loaded. Select values, then edit or transform them.', 'ok');
+  } catch (err) {
+    $('#mapsOut').innerHTML = `<div class="gate-card bad"><h4>Could not load base map</h4><p>${esc(err.message)}</p></div>`;
+  }
+};
+
+$('#mapClearChangesBtn').onclick = () => mutateMapChanges(() => maps.changes.clear());
+
+$('#mapSetBtn').onclick = () => transformMapSelection('set');
+$('#mapAddBtn').onclick = () => transformMapSelection('add');
+$('#mapPercentBtn').onclick = () => transformMapSelection('percent');
+$('#mapInterpolateRowsBtn').onclick = () => interpolateMapSelection('rows');
+$('#mapInterpolateColsBtn').onclick = () => interpolateMapSelection('cols');
+$('#mapSmoothBtn').onclick = smoothMapSelection;
+$('#mapBlendBtn').onclick = blendMapSelection;
+$('#mapCopyBtn').onclick = copyMapSelection;
+$('#mapPasteBtn').onclick = pasteMapSelection;
+$('#mapUndoBtn').onclick = () => {
+  if (!maps.undo.length) return;
+  maps.redo.push(mapChangesSnapshot());
+  restoreMapChanges(maps.undo.pop());
+};
+$('#mapRedoBtn').onclick = () => {
+  if (!maps.redo.length) return;
+  maps.undo.push(mapChangesSnapshot());
+  restoreMapChanges(maps.redo.pop());
+};
+$('#mapExportProjectBtn').onclick = () => {
+  const project = mapProject();
+  const stem = ($('#xdfSelect').value || 'map').replace(/\.xdf$/i, '');
+  download(`guzzionboard-${stem}-${Date.now()}.tune.json`,
+    JSON.stringify(project, null, 2), 'application/json');
+};
+$('#mapImportProjectBtn').onclick = () => $('#mapProjectFile').click();
+$('#mapProjectFile').onchange = async (event) => {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  try {
+    importMapProject(JSON.parse(await file.text()));
+    toast('Map project loaded and checked against this source.', 'ok');
+  } catch (err) { toast(`Project refused: ${err.message}`, 'bad'); }
+};
+
+$('#mapBuildBtn').onclick = async () => {
+  const source = maps.render?.source;
+  const changes = [...maps.changes.values()];
+  if (!source || !changes.length) return toast('Load a map and stage at least one change.', 'bad');
+  if ($('#mapAckInput').value.trim() !== maps.build?.acknowledgement) {
+    return toast('Type the liability acknowledgement exactly as shown.', 'bad');
+  }
+  if (!source.is_base_map && !$('#mapNonBaseAccept').checked) {
+    return toast('A non-base source needs the additional source acknowledgement.', 'bad');
+  }
+  const evidenceUrl = $('#mapEvidenceUrl').value.trim();
+  if ($('#mapEvidenceTitle').value.trim().length < 3
+      || $('#mapEvidenceRationale').value.trim().length < 10
+      || !/^https?:\/\/[^/]+/i.test(evidenceUrl)) {
+    return toast('Add a source title, inspectable HTTP(S) URL, and applicability rationale.', 'bad');
+  }
+  const activePackage = maps.activePackage && maps.recommendationPackages.find((pkg) =>
+    pkg.id === maps.activePackage.id && pkg.version === maps.activePackage.version
+      && pkg.package_sha256 === maps.activePackage.package_sha256);
+  if (maps.activePackage && (!activePackage || !mapChangesMatchPackage(activePackage))) {
+    return toast('The package-locked plan changed. Restage it or detach the package first.', 'bad');
+  }
+  const body = {
+    xdf: $('#xdfSelect').value,
+    path: source.path,
+    use_base_map: !!source.is_base_map,
+    region: 'flash',
+    address_base: maps.render.address_base,
+    checksum_provider: $('#mapChecksumProvider').value || null,
+    recommendation_package: activePackage ? maps.activePackage : null,
+    changes,
+    accept_non_base_source: $('#mapNonBaseAccept').checked,
+    acknowledgement: $('#mapAckInput').value,
+    recommendation: {
+      title: $('#mapEvidenceTitle').value,
+      url: $('#mapEvidenceUrl').value,
+      rationale: $('#mapEvidenceRationale').value,
+      quote: $('#mapEvidenceQuote').value,
+    },
+  };
+  $('#mapBuildOut').innerHTML = '<p class="muted">Quantizing values and building a review diff…</p>';
+  let preview;
+  try {
+    preview = await api('/api/maps/preview', { method: 'POST', body });
+  } catch (err) {
+    $('#mapBuildOut').innerHTML = `<div class="gate-card bad"><h4>Preview refused</h4><p class="small">${esc(err.message)}</p></div>`;
+    return;
+  }
+  maps.preview = preview;
+  const quantized = preview.changes.filter((change) => change.quantized).length;
+  const rows = preview.changes.slice(0, 40).map((change) => `<tr>
+    <td>${esc(change.title)}</td>
+    <td>${mapChangeLocation(change)}</td>
+    <td>${esc(fmtValue(change.before))}</td><td>${esc(fmtValue(change.requested))}</td>
+    <td><b>${esc(fmtValue(change.after))}</b> ${esc(change.units)}</td>
+  </tr>`).join('');
+  const ready = await confirmDialog(
+    'Review the exact tuning plan',
+    `<p class="guide-intro">No file has been written. These are the values that the XDF can actually store.</p>
+     <div class="preview-scroll"><table class="data"><thead><tr>
+       <th>Item</th><th>Cell</th><th>Before</th><th>Requested</th><th>Stored</th>
+     </tr></thead><tbody>${rows}</tbody></table></div>
+     ${preview.changes.length > 40 ? `<p class="small muted">First 40 of ${preview.changes.length} changes shown; export the project for the complete plan.</p>` : ''}
+     <p class="small">${preview.changes.length} change(s) · ${quantized} quantized · output sha256
+       <code>${esc(preview.output_sha256.slice(0, 24))}…</code></p>
+     ${preview.recommendation_package ? `<p class="small"><b>Server-verified package:</b>
+       ${esc(preview.recommendation_package.title)} ${esc(preview.recommendation_package.version)} ·
+       <code>${esc(preview.recommendation_package.package_sha256)}</code></p>` : ''}
+     ${preview.checksum_provider ? `<details><summary>Checksum plugin byte review ·
+       ${esc(preview.checksum_provider.changed_bytes)} changed byte(s)</summary>
+       <p class="small"><b>${esc(preview.checksum_provider.name)} ${esc(preview.checksum_provider.version)}</b> ·
+       plugin <code>${esc(preview.checksum_provider.plugin_sha256)}</code> · ${esc(preview.checksum_provider.status)}</p>
+       <div class="preview-scroll"><table class="data"><thead><tr><th>Offset</th><th>Length</th><th>Before</th><th>After</th></tr></thead><tbody>
+       ${preview.checksum_provider.byte_changes.map((change) => `<tr><td><code>${esc(change.offset)}</code></td>
+         <td>${esc(change.length)}</td><td><code>${esc(change.before_hex)}</code></td><td><code>${esc(change.after_hex)}</code></td></tr>`).join('')}
+       </tbody></table></div></details>` : ''}
+     <div class="guide-callout danger">Incorrect fuel, ignition, lambda, idle, or limiter values can damage the engine or make the motorcycle unsafe. Recommendation evidence is traceable, not endorsed.</div>`,
+    'Accept plan and build file',
+    { tone: 'danger' },
+  );
+  if (!ready) {
+    $('#mapBuildOut').innerHTML = '<div class="gate-card warn"><h4>Plan previewed; no file built</h4><p class="small">Change the staged values or build again when the plan is ready.</p></div>';
+    return;
+  }
+  body.expected_plan_sha256 = preview.plan_sha256;
+  $('#mapBuildOut').innerHTML = '<p class="muted">Building the reviewed map file…</p>';
+  try {
+    const result = await api('/api/maps/build', { method: 'POST', body });
+    $('#imagePath').value = result.path;
+    $('#mapsDiffPath').value = result.path;
+    const quantized = (result.changes || []).filter((c) => c.quantized).length;
+    $('#mapBuildOut').innerHTML = `<div class="gate-card ok">
+      <h4>Modified map built — source unchanged</h4>
+      <p class="small"><code>${esc(result.path)}</code></p>
+      <p class="small">${result.changes.length} explicit change(s) · sha256
+        ${esc(String(result.image?.checksums?.sha256 || '').slice(0, 32))}…</p>
+      ${quantized ? `<p class="small">${quantized} value(s) were quantized to the nearest raw value; review the exact stored values below.</p>` : ''}
+      ${result.manifest?.recommendation_package ? `<p class="small"><b>Package provenance recorded:</b>
+        ${esc(result.manifest.recommendation_package.id)} ${esc(result.manifest.recommendation_package.version)} ·
+        <code>${esc(result.manifest.recommendation_package.package_sha256)}</code></p>` : ''}
+      ${result.manifest?.checksum_provider ? `<p class="small"><b>Checksum plugin recorded:</b>
+        ${esc(result.manifest.checksum_provider.id)} ${esc(result.manifest.checksum_provider.version)} ·
+        ${esc(result.manifest.checksum_provider.changed_bytes)} changed byte(s) ·
+        <code>${esc(result.manifest.checksum_provider.plugin_sha256)}</code></p>` : ''}
+      <p class="small">The build is now in the Validate/Write image field. Building did not enable programming.</p>
+    </div>
+    <details open><summary>Review exact build changes</summary>
+      <div class="table-wrap"><table class="data"><thead><tr>
+        <th>Item</th><th>Cell</th><th>Before</th><th>Requested</th><th>Stored</th><th>Raw</th>
+      </tr></thead><tbody>${result.changes.map((c) => `<tr>
+        <td>${esc(c.title)}</td><td>${mapChangeLocation(c)}</td>
+        <td>${esc(fmtValue(c.before))}</td><td>${esc(fmtValue(c.requested))}</td>
+        <td><b>${esc(fmtValue(c.after))}</b> ${esc(c.units)}</td>
+        <td><code>${esc(c.before_raw)} → ${esc(c.after_raw)}</code></td>
+      </tr>`).join('')}</tbody></table></div>
+      <p class="muted small">Named diff: ${(result.diff?.tables || []).length} table(s), ${(result.diff?.constants || []).length} constant(s). Source and output paths are prefilled in the Diff controls above.</p>
+    </details>`;
+    maps.changes.clear();
+    renderMapsResult(maps.render);
+    renderWriteGate();
+    toast('New map built. Validate and review its diff before any write.', 'ok');
+  } catch (err) {
+    $('#mapBuildOut').innerHTML = `<div class="gate-card bad"><h4>Build refused</h4><p class="small">${esc(err.message)}</p></div>`;
+  }
+};
+
+function packageChangeIdentity(change) {
+  const kind = String(change.kind || '');
+  if (kind === 'table') return `${kind}:${change.id}:${Number(change.row)}:${Number(change.col)}`;
+  if (kind === 'axis') return `${kind}:${change.id}:${change.axis}:${Number(change.index)}`;
+  return `${kind}:${change.id}`;
+}
+
+function mapChangesMatchPackage(pkg, changes = [...maps.changes.values()]) {
+  if (!pkg || changes.length !== pkg.changes.length) return false;
+  const current = new Map(changes.map((change) =>
+    [packageChangeIdentity(change), change]));
+  if (current.size !== pkg.changes.length) return false;
+  return pkg.changes.every((expected) => {
+    const actual = current.get(packageChangeIdentity(expected));
+    return actual && Number(actual.expected_raw) === Number(expected.expected_raw)
+      && Math.abs(Number(actual.value) - Number(expected.value)) <= 1e-12;
+  });
+}
+
+function selectedRecommendationPackage() {
+  const value = $('#mapPackageSelect').value;
+  return value === '' ? null : maps.recommendationPackages[Number(value)] || null;
+}
+
+$('#mapPackageSelect').onchange = () => {
+  maps.activePackage = null;
+  const available = Boolean(selectedRecommendationPackage());
+  $('#mapPackageReviewBtn').disabled = !available;
+  $('#mapPackageStageBtn').disabled = !available || !maps.render;
+  $('#mapPackageOut').innerHTML = '';
+  renderMapBuildState();
+};
+
+$('#mapPackageReviewBtn').onclick = () => {
+  const pkg = selectedRecommendationPackage();
+  if (!pkg) return;
+  const validation = (kind) => pkg.validation?.[kind]?.status || 'not-provided';
+  $('#mapPackageOut').innerHTML = `<div class="gate-card warn"><h4>${esc(pkg.title)} · ${esc(pkg.version)}</h4>
+    <p class="small"><b>Unendorsed package:</b> ${esc(pkg.id)} · SHA-256 <code>${esc(pkg.package_sha256 || 'not recorded')}</code></p>
+    <p class="small"><b>Fitment:</b> ${esc(pkg.fitment.motorcycle)} · ${esc(pkg.fitment.ecu_family)} · ${esc(pkg.fitment.hardware)}<br>${esc(pkg.fitment.configuration)}</p>
+    <p class="small"><b>XDF lock:</b> ${esc(pkg.xdf.filename)} · <code>${esc(pkg.xdf.sha256)}</code></p>
+    <p class="small"><b>Changes:</b> ${pkg.changes.length} · <b>Real ECU:</b> ${esc(validation('real_ecu'))} · <b>Dyno:</b> ${esc(validation('dyno'))}</p>
+    <p class="small"><b>Maintainers:</b> ${pkg.maintainers.map((maintainer) =>
+      `<a href="${esc(maintainer.url)}" target="_blank" rel="noopener">${esc(maintainer.name)}</a>`).join(' · ')}</p>
+    ${(pkg.evidence || []).map((source) => `<p class="small"><b>Evidence:</b> <a href="${esc(source.url)}" target="_blank" rel="noopener">${esc(source.title)}</a><br>${esc(source.rationale)}</p>`).join('')}
+    <p class="muted small">Package metadata and maintainer claims are validated for structure, not endorsed or independently proven by GuzziOnBoard.</p></div>`;
+};
+
+$('#mapPackageStageBtn').onclick = async () => {
+  const pkg = selectedRecommendationPackage();
+  if (!pkg || !maps.render) return toast('Render the exact source map before staging a package.', 'bad');
+  const renderedFilename = String(maps.render.xdf?.path || '').split(/[\\/]/).pop();
+  if (renderedFilename !== pkg.xdf.filename || maps.render.xdf?.sha256 !== pkg.xdf.sha256) {
+    return toast('Package refused: the rendered XDF filename or SHA-256 does not match its lock.', 'bad');
+  }
+  const packageFamily = String(pkg.fitment.ecu_family || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (benchFamilies().length && !benchFamilies().some((family) => packageFamily.includes(family))) {
+    return toast('Package refused: its ECU-family fitment does not match the bike on the bench.', 'bad');
+  }
+  const bike = `${maps.vehicle?.make || ''} ${maps.vehicle?.model || ''}`.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const packageBike = String(pkg.fitment.motorcycle || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (bike && packageBike && !bike.includes(packageBike) && !packageBike.includes(bike)) {
+    return toast('Package refused: its named motorcycle does not match the current selection.', 'bad');
+  }
+  const hardwareValues = Object.entries(maps.render.image?.identity || {})
+    .filter(([key, value]) => /hardware/i.test(key) && String(value).trim())
+    .map(([, value]) => String(value).toUpperCase().replace(/[^A-Z0-9]/g, ''));
+  const packageHardware = String(pkg.fitment.hardware || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!hardwareValues.length) {
+    return toast('Package refused: the rendered source has no recorded hardware identity.', 'bad');
+  }
+  if (!hardwareValues.some((known) => known.includes(packageHardware) || packageHardware.includes(known))) {
+    return toast('Package refused: its hardware fitment does not match the rendered source identity.', 'bad');
+  }
+  const staged = [];
+  try {
+    pkg.changes.forEach((change) => {
+      const kind = change.kind; const axis = change.axis || '';
+      const item = mapItem(kind, change.id, axis);
+      const owner = kind === 'axis' ? mapItem('table', change.id) : item;
+      if (!item || !owner) throw new Error(`Package item ${change.id} is absent from this XDF.`);
+      const row = kind === 'axis' ? Number(change.index) : Number(change.row || 0);
+      const col = Number(change.col || 0);
+      const raw = kind === 'table' ? item.raw_values?.[row]?.[col]
+        : kind === 'axis' ? item.raw_values?.[row] : item.raw;
+      if (Number(raw) !== Number(change.expected_raw)) {
+        throw new Error(`${owner.title}: source raw value does not match the package lock.`);
+      }
+      const before = kind === 'table' ? item.values[row][col]
+        : kind === 'axis' ? Number(item.values[row]) : item.value;
+      if (Number(before) === Number(change.value)) {
+        throw new Error(`${owner.title}: package target is unchanged from the source.`);
+      }
+      staged.push({
+        key: mapChangeKey(kind, change.id, row, col, axis), kind, id: change.id,
+        axis, index: kind === 'axis' ? row : null, row, col, item, before, raw,
+        value: before, title: kind === 'axis' ? `${owner.title} (${axis} axis)` : item.title,
+        units: item.units || '',
+        x: kind === 'table' ? String(item.x[col] ?? col) : '',
+        y: kind === 'table' ? String(item.y[row] ?? row) : '',
+        target: Number(change.value),
+      });
+    });
+  } catch (err) { return toast(`Package refused: ${err.message}`, 'bad'); }
+  const ready = await confirmDialog(
+    'Stage an unendorsed recommendation package',
+    `<p class="guide-intro">${esc(pkg.title)} proposes ${staged.length} source-locked changes.</p>
+     <p class="small"><b>Declared configuration:</b> ${esc(pkg.fitment.configuration)}</p>
+     <p class="small"><b>Physical evidence:</b> real ECU ${esc(pkg.validation.real_ecu.status)} · dyno ${esc(pkg.validation.dyno.status)}</p>
+     <div class="guide-callout danger">Confirm the hardware, engine, intake, exhaust, fuel, and operating conditions yourself. A package's provenance and validation are maintainer claims, not GuzziOnBoard endorsements.</div>`,
+    'Stage locked changes', { tone: 'danger' },
+  );
+  if (!ready) return;
+  mutateMapChanges(() => staged.forEach((cell) => setMapValue(cell, cell.target)));
+  maps.activePackage = {
+    id: pkg.id, version: pkg.version, package_sha256: pkg.package_sha256,
+  };
+  const source = pkg.evidence[0];
+  $('#mapEvidenceTitle').value = source.title;
+  $('#mapEvidenceUrl').value = source.url;
+  $('#mapEvidenceRationale').value = source.rationale;
+  renderMapBuildState();
+  toast('Package changes staged with their source locks. Preview and review every stored value.', 'ok');
+};
+
+$('#mapLogFile').onchange = async () => {
+  const file = $('#mapLogFile').files?.[0];
+  if (!file) return;
+  try {
+    const parsed = parseMapLogCsv(await file.text());
+    maps.logHeaders = parsed.headers;
+    maps.logRows = parsed.rows;
+    maps.logAnalysis = null;
+    $('#mapLogSummary').textContent = `${file.name} · ${parsed.rows.length} row(s) · ${parsed.headers.length} columns`;
+    $('#mapLogOut').innerHTML = '';
+    renderMapLogControls();
+    toast('Offline log loaded. Map each required column before analysis.', 'ok');
+  } catch (err) {
+    maps.logRows = []; maps.logHeaders = []; maps.logAnalysis = null;
+    $('#mapLogSummary').textContent = 'No usable log loaded.';
+    renderMapLogControls();
+    toast(err.message, 'bad');
+  }
+};
+
+$('#mapLogAnalyzeBtn').onclick = async () => {
+  if (!maps.render?.source || !maps.logRows.length) return toast('Render a source map and load a CSV first.', 'bad');
+  const measured = $('#mapLogMeasured').value;
+  const target = $('#mapLogTarget').value;
+  if (!measured || !target || measured === target) {
+    return toast('Measured AFR and target AFR must be separate, explicit log columns.', 'bad');
+  }
+  $('#mapLogOut').innerHTML = '<p class="muted small">Binning in-range log samples…</p>';
+  try {
+    const report = await api('/api/maps/analyze-log', {
+      method: 'POST',
+      body: {
+        path: maps.render.source.path,
+        xdf: $('#xdfSelect').value,
+        address_base: maps.render.address_base || null,
+        table: $('#mapLogTable').value,
+        rows: maps.logRows,
+        x_channel: $('#mapLogX').value,
+        y_channel: $('#mapLogY').value,
+        measured_afr_channel: measured,
+        target_afr_channel: target,
+        min_samples: Number($('#mapLogMinSamples').value),
+        max_correction_percent: Number($('#mapLogCap').value),
+        max_afr_stddev: Number($('#mapLogStddev').value),
+        time_channel: $('#mapLogTime').value,
+        timestamp_unit: $('#mapLogTimeUnit').value,
+        wideband_delay_ms: Number($('#mapLogDelay').value),
+        settle_time_ms: Number($('#mapLogSettle').value),
+        max_time_gap_ms: Number($('#mapLogGap').value),
+        max_x_rate_per_s: $('#mapLogXRate').value === '' ? null : Number($('#mapLogXRate').value),
+        max_y_rate_per_s: $('#mapLogYRate').value === '' ? null : Number($('#mapLogYRate').value),
+      },
+    });
+    maps.logAnalysis = report;
+    drawMapLogOverlay(report);
+    renderMapLogControls();
+    const skipped = Object.values(report.skipped || {}).reduce((sum, value) => sum + value, 0);
+    $('#mapLogOut').innerHTML = `<div class="gate-card warn"><h4>Review-only overlay · no image changed</h4>
+      <p class="small">${report.rows_used} of ${report.rows_received} rows binned · ${skipped} skipped ·
+        ${report.cells.length} populated cells · <b>${report.proposals.length} eligible bounded proposals</b>.</p>
+      <p class="small"><b>Alignment:</b> ${esc(report.time_alignment?.method || 'not reported')}
+        ${report.time_alignment?.enabled ? ` · delay ${esc(report.time_alignment.wideband_delay_ms)} ms · settle ${esc(report.time_alignment.settle_time_ms)} ms · max gap ${esc(report.time_alignment.max_time_gap_ms)} ms` : ''}</p>
+      <p class="small"><b>Skipped:</b> ${Object.entries(report.skipped || {}).map(([reason, count]) => `${esc(reason)} ${count}`).join(' · ') || 'none'}</p>
+      <p class="small"><code>${esc(report.formula)}</code></p></div>
+      <div class="preview-scroll"><table class="data"><thead><tr><th>Cell</th><th>Samples</th><th>Measured / target AFR</th><th>Fuel proposal</th><th>Status</th></tr></thead><tbody>
+        ${report.cells.map((cell) => `<tr><td>${esc(cell.y)} × ${esc(cell.x)}</td><td>${cell.samples}</td>
+          <td>${esc(cell.measured_afr)} ± ${esc(cell.measured_afr_stddev)} / ${esc(cell.target_afr)} ± ${esc(cell.target_afr_stddev)}</td>
+          <td>${cell.correction_percent > 0 ? '+' : ''}${esc(cell.correction_percent)}%</td>
+          <td>${cell.eligible ? (cell.clamped ? 'eligible · capped' : 'eligible') : esc(cell.eligibility)}</td></tr>`).join('')}
+      </tbody></table></div>
+      ${(report.warnings || []).map((warning) => `<p class="muted small">• ${esc(warning)}</p>`).join('')}`;
+  } catch (err) {
+    maps.logAnalysis = null; renderMapLogControls();
+    $('#mapLogOut').innerHTML = `<div class="gate-card bad"><h4>Log analysis refused</h4><p>${esc(err.message)}</p></div>`;
+  }
+};
+
+$('#mapLogStageBtn').onclick = async () => {
+  const report = maps.logAnalysis;
+  if (!report?.proposals?.length) return;
+  const ready = await confirmDialog(
+    'Stage bounded log proposals',
+    `<p class="guide-intro">Stage ${report.proposals.length} mathematical fuel proposals in the normal review pipeline?</p>
+     <ul><li>The selected table must actually control fuel quantity.</li><li>Measured and target AFR must represent steady, synchronized conditions.</li><li>Eligible cells have AFR standard deviation at or below ${esc(report.max_afr_stddev)}.</li><li>The correction cap is ${esc(report.max_correction_percent)}%; every stored value will still be quantized and previewed.</li></ul>
+     <div class="guide-callout danger">This does not turn log math into a verified tuning recommendation. Attach inspectable, configuration-specific evidence and review every cell.</div>`,
+    'Stage proposals', { tone: 'danger' },
+  );
+  if (!ready) return;
+  const table = mapItem('table', report.table.id);
+  if (!table) return toast('The analyzed table is no longer rendered.', 'bad');
+  mutateMapChanges(() => report.proposals.forEach((proposal) => {
+    const cell = {
+      key: mapChangeKey('table', table.id, proposal.row, proposal.col),
+      kind: 'table', id: table.id, row: proposal.row, col: proposal.col,
+      item: table, before: table.values[proposal.row][proposal.col],
+      raw: table.raw_values[proposal.row][proposal.col],
+      value: table.values[proposal.row][proposal.col], title: table.title, units: table.units || '',
+      x: String(table.x[proposal.col] ?? proposal.col), y: String(table.y[proposal.row] ?? proposal.row),
+    };
+    setMapValue(cell, proposal.proposed_value);
+  }));
+  toast('Eligible log proposals staged. Review the exact preview before any build.', 'ok');
+};
+
+$('#mapsValidateDefinitionBtn').onclick = async () => {
+  const xdf = $('#xdfSelect').value;
+  const path = $('#mapsImagePath').value.trim() || $('#imagePath').value.trim();
+  if (!xdf) return toast('Choose an XDF definition first.', 'bad');
+  $('#xdfValidationOut').innerHTML = '<p class="muted small">Validating definition structure and renderability…</p>';
+  try {
+    const report = await api('/api/maps/validate-definition', {
+      method: 'POST', body: { xdf, ...(path ? { path } : {}) },
+    });
+    const levelLabel = { fatal: 'FAIL', warn: 'WARN', ok: 'OK' };
+    $('#xdfValidationOut').innerHTML = `<details open class="gate-card ${report.ok ? (report.warnings ? 'warn' : 'ok') : 'bad'}">
+      <summary><b>Definition validation: ${report.ok ? 'structurally usable' : 'failed'}</b>
+        · ${report.fatal} fatal · ${report.warnings} warning(s)</summary>
+      <div class="table-wrap"><table class="data"><thead><tr><th>Level</th><th>Check</th><th>Item</th><th>Finding</th></tr></thead><tbody>
+        ${(report.findings || []).map((finding) => `<tr><td><b>${esc(levelLabel[finding.level] || finding.level)}</b></td>
+          <td>${esc(finding.check)}</td><td>${esc(finding.item || 'definition')}</td><td>${esc(finding.detail)}</td></tr>`).join('')}
+      </tbody></table></div>
+      ${report.checksum?.declared?.length ? `<p class="small"><b>Declared calibration checksums:</b>
+        ${esc(report.checksum.declared.join(' · '))}<br><b>Compatible local providers:</b>
+        ${report.checksum.compatible_providers.length
+          ? esc(report.checksum.compatible_providers.map((provider) => `${provider.name} ${provider.version}`).join(' · '))
+          : 'none — builds will be refused'}</p>` : ''}
+      <p class="muted small">${esc(report.note || '')}</p></details>`;
+  } catch (err) {
+    $('#xdfValidationOut').innerHTML = `<div class="gate-card bad"><h4>Definition validation failed</h4><p>${esc(err.message)}</p></div>`;
+  }
+};
 
 $('#mapsRenderBtn').onclick = async () => {
   const path = $('#mapsImagePath').value.trim() || $('#imagePath').value.trim();

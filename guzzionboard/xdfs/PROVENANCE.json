@@ -1,12 +1,722 @@
 {
   "moto_guzzi/P7_GuzziDiag_16k_V1.26.xdf": {
     "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/P7_GuzziDiag_16k_V1.26.zip",
-    "retrieved_via": "https://github.com/Snoman002/Engine-Tune-Repository-TunerPro-EFIlive-TunerCat (mirror; the official site was not reachable from the environment this file was vendored from)",
-    "sha256": "c2ae8796db8de5d754ec4267043de38ac549a7eec8d2858e9f200a9d7f685918",
+    "origin_zip": "P7_GuzziDiag_16k_V1.26.zip",
+    "sha256": "bd51e7d279ecad4d538dfa226bb200888cb27ebf90c8fd657f6e3fb0a51506d1",
     "title": "Moto Guzzi P7",
     "author": "beard",
     "version": "1.26",
-    "imported_utc": "2026-10-06T00:00:00Z",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/15M_428_00_GuzziDiag_V2.28.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_428_00_GuzziDiag_V2.28.zip",
+    "origin_zip": "15M_428_00_GuzziDiag_V2.28.zip",
+    "sha256": "5f408a78e0cfd0b0bec7b60d6edcc75b07dbda83fab12dd52e993b5d5ecd1f3b",
+    "title": "15M for 61600.428.00",
+    "author": "916 RS / DiLo / pauldaytona / beard / Meinolf",
+    "version": "2.28",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/15M_61600.381.00_Cali_V2.52.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_61600.381.00_Cali_V2.52.zip",
+    "origin_zip": "15M_61600.381.00_Cali_V2.52.zip",
+    "sha256": "ba93207e4b633043d92dfc084a54511b1f9e6d4d56bf17ff5a21531d0c09e8c0",
+    "title": "15M Marelli",
+    "author": "916 RS / DiLo / pauldaytona / beard / Meinolf",
+    "version": "2.47",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/15M_Ducati_750SS_V2.28.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_Ducati_750SS_V2.28.zip",
+    "origin_zip": "15M_Ducati_750SS_V2.28.zip",
+    "sha256": "3558a069117c27fb3a620901e911d6f5e0dcb537c0d299a885a5f87cbccd56e6",
+    "title": "15M Marelli",
+    "author": "916 RS / DiLo / pauldaytona / beard / Meinolf",
+    "version": "2.28",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/15M_Ducati_M900_V1.0.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_Ducati_M900_V1.0.zip",
+    "origin_zip": "15M_Ducati_M900_V1.0.zip",
+    "sha256": "413b4cac8c62bc9dfef3a8416e42cee239c4f3a54273a932d6024dfef06c5dcc",
+    "title": "15M Marelli",
+    "author": "916 RS / DiLo / pauldaytona / beard / Meinolf",
+    "version": "2.29",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/15M_EEPROM_V1.01.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_EEPROM_V1.01.zip",
+    "origin_zip": "15M_EEPROM_V1.01.zip",
+    "sha256": "6590f27fd01b6b3a764fb2d5700bd47f5e5f0f5788a6e8139e09d1736e0678c7",
+    "title": "IAW 15x EEPROM",
+    "author": "Beard",
+    "version": "1.01",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/15M_GuzziDiag_V2.32.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_GuzziDiag_V2.32.zip",
+    "origin_zip": "15M_GuzziDiag_V2.32.zip",
+    "sha256": "29e5c2e9502d5f973ad25b2a509b5f02f1097a85d230210156901a0a92917806",
+    "title": "15M Marelli",
+    "author": "916 RS / DiLo / pauldaytona / beard / Meinolf",
+    "version": "2.32",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "gasgas/15P_00_GasGas450_V1.02.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_00_GasGas450_V1.02.zip",
+    "origin_zip": "15P_00_GasGas450_V1.02.zip",
+    "sha256": "0cb0657b5796ef8a2301a5ca7846daaff8c0fa1209b338d9cbd74f623e8db64f",
+    "title": "Magnetti Marelli IAW 15P GasGas 450",
+    "author": "Beard",
+    "version": "1.02",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "gasgas/15P_00_GasGasFSR450_V1.02.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_00_GasGasFSR450_V1.02.zip",
+    "origin_zip": "15P_00_GasGasFSR450_V1.02.zip",
+    "sha256": "34b2572f263db467ab5bedbdc8b7817bcd70cad38ec43b9fe80b41d526322396",
+    "title": "Magnetti Marelli IAW 15P GasGas 450",
+    "author": "Beard",
+    "version": "1.02",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "piaggio/15P_1P0P_V1.03.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0P_V1.03.zip",
+    "origin_zip": "15P_1P0P_V1.03.zip",
+    "sha256": "3852ef3111fea96590062a960a11d392422f072c08eb11b442bf06853e2b0801",
+    "title": "Magnetti Marelli IAW 15P 1P10",
+    "author": "Beard Meinolf",
+    "version": "1.02",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "piaggio/15P_1P0T_V1.02.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0T_V1.02.zip",
+    "origin_zip": "15P_1P0T_V1.02.zip",
+    "sha256": "03974e8cdd62533bdbdc16209ba9242c1836988d5e752a7514834561a07ba912",
+    "title": "Magnetti Marelli IAW 15P 1P0T",
+    "author": "Beard",
+    "version": "1.02",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "aprilia/15P_1P0Z_V1.02.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0Z_V1.02.zip",
+    "origin_zip": "15P_1P0Z_V1.02.zip",
+    "sha256": "dd63d9379b0f4bccb48226e8dbc73a4f926983b68a00e93582a689e6d08c268d",
+    "title": "Magnetti Marelli IAW 15P 1P10",
+    "author": "Beard",
+    "version": "1.02",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "gilera/15P_1P10_V1.03.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P10_V1.03.zip",
+    "origin_zip": "15P_1P10_V1.03.zip",
+    "sha256": "a33ca048e09b62a3ee5c038490e856a29478eb736f91eebc8930135abbc59497",
+    "title": "Magnetti Marelli IAW 15P 1P10",
+    "author": "Beard Meinolf",
+    "version": "1.03",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "gasgas/15P_GasGasFE400_V1.00.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_GasGasFE400_V1.00.zip",
+    "origin_zip": "15P_GasGasFE400_V1.00.zip",
+    "sha256": "bf7c3e973e73e714348800684d136da97d5e47cecae8edbef96e871770328d9e",
+    "title": "",
+    "author": "",
+    "version": "",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/15RC_EEPROM_V1.01.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_EEPROM_V1.01.zip",
+    "origin_zip": "15RC_EEPROM_V1.01.zip",
+    "sha256": "dee03d8b446f6a1d5c17317ef9faac9cdb1b3dcff2d11098fd049467572d899c",
+    "title": "IAW 15RC EEPROM",
+    "author": "Beard",
+    "version": "1.01",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/15RC_GuzziDiag_1100_V2.17.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_GuzziDiag_1100_V2.17.zip",
+    "origin_zip": "15RC_GuzziDiag_1100_V2.17.zip",
+    "sha256": "197a374ba2f3f374f418fe63bd35096f6d041a4b6a4211bce7af75ceb084e6e2",
+    "title": "IAW 15RC V11 / California 1100",
+    "author": "DiLo / Pauldaytona / Beard",
+    "version": "2.17",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/15RC_GuzziDiag_V7_V2.17.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_GuzziDiag_V7_V2.17.zip",
+    "origin_zip": "15RC_GuzziDiag_V7_V2.17.zip",
+    "sha256": "900221f3f0f5810994d758c609dbdfd4bd3b66d545eb85d341f36d6dbdca7902",
+    "title": "IAW 15RC V7",
+    "author": "DiLo / Pauldaytona / Beard",
+    "version": "2.17",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/16M_Duc748_916S_64k_V1.1.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_Duc748_916S_64k_V1.1.zip",
+    "origin_zip": "16M_Duc748_916S_64k_V1.1.zip",
+    "sha256": "6d455f36e53a81f15ba8a1e3e97ca6bd5bbfab00a2e19370a5d83b7bede2246c",
+    "title": "16M Ducati  748, SP, 916 Biposto",
+    "author": "Gerd J.",
+    "version": "1.1",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/16M_GuzziDiag_32k_V1.23.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_32k_V1.23.zip",
+    "origin_zip": "16M_GuzziDiag_32k_V1.23.zip",
+    "sha256": "ffece2061a2dbf3a162a7af2d96b8937ea228070de4133d673d69bbc6e9a6e42",
+    "title": "Moto Guzzi 16M",
+    "author": "beard, gerdj",
+    "version": "1.23",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.zip",
+    "origin_zip": "16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.zip",
+    "sha256": "9de7a2101771ec50489ee3cc7af8f5ee7dd0d2496114832ab4152a7c4a195c15",
+    "title": "Moto Guzzi 16M",
+    "author": "beard",
+    "version": "1.21",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/16M_GuzziDiag_64k_V1.23.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_64k_V1.23.zip",
+    "origin_zip": "16M_GuzziDiag_64k_V1.23.zip",
+    "sha256": "cc17d9edd4d0aa4f620afb6a2b4715f04b8f1d836266f3ed58f3c0a7de963d7f",
+    "title": "Moto Guzzi 16M",
+    "author": "beard, gerdj",
+    "version": "1.23",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/59M_Ducati_1000SS_V1.28.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Ducati_1000SS_V1.28.zip",
+    "origin_zip": "59M_Ducati_1000SS_V1.28.zip",
+    "sha256": "303894198e527d837699fc7cf5f57d4fdefaf4d64a9a41fec9170543ab7641d8",
+    "title": "59M Ducati 1000SS",
+    "author": "Beard",
+    "version": "1.28",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/59M_Ducati_ST4S_2003_1.01.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Ducati_ST4S_2003_1.01.xdf.zip",
+    "origin_zip": "59M_Ducati_ST4S_2003_1.01.xdf.zip",
+    "sha256": "efb73aba4841e1720ce6c24a5ddc941c184416e8d4e2fbdd425116ad1667841d",
+    "title": "59M 2003 Ducati ST4S,800SS,1000SS",
+    "author": "Beard Meinolf",
+    "version": "1.01",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/59M_Monster S4_2002_96508702B_V1.28.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Monster%20S4_2002_96508702B_V1.28.zip",
+    "origin_zip": "59M_Monster S4_2002_96508702B_V1.28.zip",
+    "sha256": "d1a66314a102dccb0d501e1de6e2cedf8b72112ff11c68fe62b3faa6793f082b",
+    "title": "59M",
+    "author": "Pauldaytona",
+    "version": "1.28",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/59M_SS-800_28640671A_V1.28.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_SS-800_28640671A_V1.28.zip",
+    "origin_zip": "59M_SS-800_28640671A_V1.28.zip",
+    "sha256": "a425ffe343add8f4a93b4d41559c32c0dd8a09745eb0a716094ad0119f1a10b2",
+    "title": "59M",
+    "author": "Pauldaytona",
+    "version": "1.27",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_1198SP_96520411B_2.2.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_1198SP_96520411B_2.2.zip",
+    "origin_zip": "5AM_1198SP_96520411B_2.2.zip",
+    "sha256": "29fdf7c3afa80a92c221ba74c369b9c73db9b31048ee6762af96b7f4d36ea3f8",
+    "title": "Ducati 1198",
+    "author": "Beard Pauldaytona / ZetaTre / Meinolf",
+    "version": "2.20",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "aprilia/5AM_Aprilia_SRV850_V1.00.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_SRV850_V1.00.zip",
+    "origin_zip": "5AM_Aprilia_SRV850_V1.00.zip",
+    "sha256": "05a5611cc3cf0146f495c45a237cba205ae7bf4412726500bc1e6e06275eb28b",
+    "title": "5AM Aprilia SRV 850",
+    "author": "Meinolf",
+    "version": "1.00",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_1098R_22C3_013_V1.28.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1098R_22C3_013_V1.28.zip",
+    "origin_zip": "5AM_Ducati_1098R_22C3_013_V1.28.zip",
+    "sha256": "0133ec9f61f3ba490f78fa22e7537d9ae47fd4e0acff31ef6d2c741af8d42d48",
+    "title": "Two Lambda1198 XDF",
+    "author": "Beard Pauldaytona",
+    "version": "1.27",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_1098_S_DP_V1.1.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1098_S_DP_V1.1.zip",
+    "origin_zip": "5AM_Ducati_1098_S_DP_V1.1.zip",
+    "sha256": "9626ea8ec72e7449cdec6863ecc82d4093be6962549f42d949fadf877e02a347",
+    "title": "IAW 5AM file for Ducati 1098 Std + DP",
+    "author": "Pauldaytona, Gerd_J",
+    "version": "V1.1",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_1198S_3213_PQ58_V1.27.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198S_3213_PQ58_V1.27.zip",
+    "origin_zip": "5AM_Ducati_1198S_3213_PQ58_V1.27.zip",
+    "sha256": "78b8e0f77742498991bb2c52f3902a49691ab2a8f589669ac13825051a237778",
+    "title": "Two Lambda1198 XDF",
+    "author": "Beard Pauldaytona",
+    "version": "1.27",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_1198_328641831D_V1.27.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198_328641831D_V1.27.zip",
+    "origin_zip": "5AM_Ducati_1198_328641831D_V1.27.zip",
+    "sha256": "76f7845bc7e8efc5abbe5faff153c7b163df032fa7c13d57d8ab799b4d873451",
+    "title": "Two Lambda 1198 XDF",
+    "author": "Beard Pauldaytona",
+    "version": "1.27",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_1198_DP_V1.27.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198_DP_V1.27.zip",
+    "origin_zip": "5AM_Ducati_1198_DP_V1.27.zip",
+    "sha256": "b7d32dd2505374be1497bca37c8edbf7eda12b7722e523f4139ac60524450fa9",
+    "title": "IWA5AMHW610 96520311B XDF",
+    "author": "Beard Pauldaytona Bmo",
+    "version": "1.27",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_848_22AELM26_28641571A_V1.1.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_22AELM26_28641571A_V1.1.zip",
+    "origin_zip": "5AM_Ducati_848_22AELM26_28641571A_V1.1.zip",
+    "sha256": "33deb1a9b3efa9ca8eb2f6b2b5e21dc7cac7e402842cbf688c08e4d677cfac60",
+    "title": "IAW 5AM file for Ducati 848",
+    "author": "pauldaytona",
+    "version": "V1.0",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_848_22aesma2_96519408B_V1.0.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_22aesma2_96519408B_V1.0.zip",
+    "origin_zip": "5AM_Ducati_848_22aesma2_96519408B_V1.0.zip",
+    "sha256": "901c599ddf525d19b5b7603ef5a7e45df73798d76581ff1e6da64e1b8a047c01",
+    "title": "IAW 5AM file for Ducati 848",
+    "author": "pauldaytona",
+    "version": "V1.0",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_848_V1.0.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_V1.0.zip",
+    "origin_zip": "5AM_Ducati_848_V1.0.zip",
+    "sha256": "ac6e7c95e83e41b42ffa3c8ffadc18f1e59547937a1401e42d1f885693282eea",
+    "title": "IAW 5AM file for Ducati 848",
+    "author": "",
+    "version": "V1.0",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_Hypermotard_1100_V1.0.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_Hypermotard_1100_V1.0.zip",
+    "origin_zip": "5AM_Ducati_Hypermotard_1100_V1.0.zip",
+    "sha256": "78e106977ef2b25c76e1fba31f98d2a12d184bdc2ca4ac592f9d2bbafb06bcf4",
+    "title": "IAW 5AM file for Ducati Hypermotard 1100",
+    "author": "Beard",
+    "version": "V1.0",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_MTS1000_HW103_V1.0.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_MTS1000_HW103_V1.0.zip",
+    "origin_zip": "5AM_Ducati_MTS1000_HW103_V1.0.zip",
+    "sha256": "32d839df1db637fca1eefbd5e131e725cdbdf967b070fcbf6d74206e702f2007",
+    "title": "IAW 5AM file for Ducati 1098",
+    "author": "",
+    "version": "V1.0",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_MTS1000_HW610_V1.0.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_MTS1000_HW610_V1.0.zip",
+    "origin_zip": "5AM_Ducati_MTS1000_HW610_V1.0.zip",
+    "sha256": "6fd3de622c0f465d5031bc7eb9c5952e92ccc2115aaffec19a4e1acb6636914a",
+    "title": "IAW 5AM file for Ducati MTS 1000 HW610",
+    "author": "",
+    "version": "V1.0",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_Multistrada_1100_V1.28.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_Multistrada_1100_V1.28.zip",
+    "origin_zip": "5AM_Ducati_Multistrada_1100_V1.28.zip",
+    "sha256": "d338d500fe096131660c0793efd5e9e146f5a806e93ab8c18b6eb32b72735fea",
+    "title": "5AM with one Lambda",
+    "author": "Pauldaytona Beard",
+    "version": "1.28",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_S2_1000R_DP_V1.28.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S2_1000R_DP_V1.28.zip",
+    "origin_zip": "5AM_Ducati_S2_1000R_DP_V1.28.zip",
+    "sha256": "35cac57f7bd1ad5e64d14fce42471bc1853323f713013ff6131a0082a9769527",
+    "title": "5AM with one Lambda",
+    "author": "Pauldaytona Beard",
+    "version": "1.28",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_S2_800R_V1.28.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S2_800R_V1.28.zip",
+    "origin_zip": "5AM_Ducati_S2_800R_V1.28.zip",
+    "sha256": "aa314426b9af61844853302274b5d869da60f1ee54fd517e13d70781eae3adc3",
+    "title": "5AM with one Lambda",
+    "author": "Pauldaytona Beard",
+    "version": "1.28",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_S4R_996_Monster_HW610_V1.0.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S4R_996_Monster_HW610_V1.0.zip",
+    "origin_zip": "5AM_Ducati_S4R_996_Monster_HW610_V1.0.zip",
+    "sha256": "f2d2957266f934dee9e1ab7437aeb8d77699854ce4e5613707fc2b35535a7e54",
+    "title": "IAW 5AM file for Ducati S4R HW610",
+    "author": "",
+    "version": "V1.0",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.zip",
+    "origin_zip": "5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.zip",
+    "sha256": "c1ff0fd526ed43024291ef9fd346a676c291dfcbf19ab40ac18adbef6526edce",
+    "title": "5AM Ducati (one Lambda) + corrections",
+    "author": "Impulsive_Duc Pauldaytona Beard",
+    "version": "1.35",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.zip",
+    "origin_zip": "5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.zip",
+    "sha256": "5af35df92a19c4d5a390c8ab3c3273dedd05e9a12c09099a4ac62e9e51ad8c85",
+    "title": "5AM Ducati (one Lambda) + corrections",
+    "author": "Impulsive_Duc Pauldaytona Beard",
+    "version": "1.32",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.zip",
+    "origin_zip": "5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.zip",
+    "sha256": "a0ef34eb75e691f9035cbe24267af69099b3060a1e1f160f545a58abcc7c17ac",
+    "title": "5AM Ducati (one Lambda) + corrections",
+    "author": "Impulsive_Duc Pauldaytona Beard",
+    "version": "1.35",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_SF_Serie_V1.28.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SF_Serie_V1.28.zip",
+    "origin_zip": "5AM_Ducati_SF_Serie_V1.28.zip",
+    "sha256": "88beac656b4a274140d69d5768a530c686c6b91a524607a046769b90b23b32eb",
+    "title": "5AM with two Lambda",
+    "author": "Pauldaytona Beard",
+    "version": "1.28",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "ducati/5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.zip",
+    "origin_zip": "5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.zip",
+    "sha256": "aa7f5fe591b4cfffa3026d854164db9ec52cadb8db1d9d7af7d512c70162931c",
+    "title": "5AM Ducati 2235SD01 96517506B",
+    "author": "Pauldaytona Beard",
+    "version": "1.28",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/5AM_EEPROM_V1.01.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_EEPROM_V1.01.zip",
+    "origin_zip": "5AM_EEPROM_V1.01.zip",
+    "sha256": "6983f0d884bb2f327af2936e3b86666076241a281b32e762eb0eecfcb9bb21e7",
+    "title": "IAW5AM EEPROM",
+    "author": "Beard",
+    "version": "1.01",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "gilera/5AM_Gilera_GP800_V1.05.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Gilera_GP800_V1.05.zip",
+    "origin_zip": "5AM_Gilera_GP800_V1.05.zip",
+    "sha256": "5e683b3ce16ce1b4039b5ed23c15dc5fef0f063e34623eb721acf3c3982bde54",
+    "title": "",
+    "author": "Beard",
+    "version": "1.05",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/5AM_GuzziDiag_One_Lambda_V1.41.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_GuzziDiag_One_Lambda_V1.41.zip",
+    "origin_zip": "5AM_GuzziDiag_One_Lambda_V1.41.zip",
+    "sha256": "a53f2a3cf772d61ebc5a071909363b449d96dbed69b3036f3b253080a173bac0",
+    "title": "5AM with one Lambda",
+    "author": "Beard Pauldaytona Meinolf John",
+    "version": "1.41",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/5AM_GuzziDiag_Two_Lambda_V1.40.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_GuzziDiag_Two_Lambda_V1.40.zip",
+    "origin_zip": "5AM_GuzziDiag_Two_Lambda_V1.40.zip",
+    "sha256": "988369cc3db349043a91f014ccc1229224e4a71a5963a21c0726247c13047e6f",
+    "title": "Two Lambda Guzzi XDF",
+    "author": "Beard Pauldaytona Meinolf",
+    "version": "1.40",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "morini/5AM_Morini_Corsaro_Two_Lambda_V1.34.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Corsaro_Two_Lambda_V1.34.zip",
+    "origin_zip": "5AM_Morini_Corsaro_Two_Lambda_V1.34.zip",
+    "sha256": "378c0351bc4578cc49016530d629553c07443954f54a6f2742c239cb3667848f",
+    "title": "Two Lambda Morini Corsaroi XDF",
+    "author": "Beard Pauldaytona",
+    "version": "1.31",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "morini/5AM_Morini_Corsaro_V1.25.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Corsaro_V1.25.zip",
+    "origin_zip": "5AM_Morini_Corsaro_V1.25.zip",
+    "sha256": "31874e90f98e80c18ee5ac7dfade0255dca6578eb7d72ec869fb465e45c194b9",
+    "title": "5AM Morini GP with one Lambda",
+    "author": "Beard Pauldaytona Meinolf",
+    "version": "1.25",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "morini/5AM_Morini_GP_2_Lambda_V1.22.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_GP_2_Lambda_V1.22.zip",
+    "origin_zip": "5AM_Morini_GP_2_Lambda_V1.22.zip",
+    "sha256": "c850ff147a77869235f769dbbd17629b373e84548b93fadf55023ba86f43a9b0",
+    "title": "5AM  Morini GP with two Lambda",
+    "author": "Beard Pauldaytona",
+    "version": "1.22",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "morini/5AM_Morini_Sport_GP_95_Scrambler_V1.25.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Sport_GP_95_Scrambler_V1.25.zip",
+    "origin_zip": "5AM_Morini_Sport_GP_95_Scrambler_V1.25.zip",
+    "sha256": "b629ae6ce0ff499176ecc43b69b4ec281cb0afd64f4e7b9d09c67167691b5703",
+    "title": "5AM Morini GP with one Lambda",
+    "author": "Beard Pauldaytona Meinolf",
+    "version": "1.25",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "aprilia/7SM_RSV4_6404XXxx_V0.15.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_6404XXxx_V0.15.zip",
+    "origin_zip": "7SM_RSV4_6404XXxx_V0.15.zip",
+    "sha256": "1635544a8b43ac677c9c406d50b889b6cca1d1f06d9596988996c890bdacdac6",
+    "title": "7SM Aprilia RSV4 2016",
+    "author": "Beetle, Beard, Pauldaytona",
+    "version": "0.15",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "bmw/MBC1_BMW_C600_V1.01.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_BMW_C600_V1.01.zip",
+    "origin_zip": "MBC1_BMW_C600_V1.01.zip",
+    "sha256": "99510771a9792b06b575aacd38166c4b23d0952455b62222527a63b30f5b9dcb",
+    "title": "BMW MBC1 00268L63/8543645",
+    "author": "meinolf",
+    "version": "1.01",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "husqvarna/MBC1_Nuda_900_V1.00.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_Nuda_900_V1.00.zip",
+    "origin_zip": "MBC1_Nuda_900_V1.00.zip",
+    "sha256": "fc4471b83033a6cdcf7a4421c50c0c5b00cc4202d150dca911ee3f224f7e95bf",
+    "title": "Husqvarna MBC1",
+    "author": "meinolf / beard",
+    "version": "1.00",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "piaggio/MIU1_CM081701_22A3GS14_V0.03.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIU1_CM081701_22A3GS14_V0.03.zip",
+    "origin_zip": "MIU1_CM081701_22A3GS14_V0.03.zip",
+    "sha256": "1ea0aec6f91bfec24dc427b070080c1ce5a52e903f00968105788df184b16ed0",
+    "title": "MIU1 CM081701 22A3GS14",
+    "author": "beard",
+    "version": "0.02",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "aprilia/MIUG3_Aprilia_SR_MAX_300ie_V1.02.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_SR_MAX_300ie_V1.02.zip",
+    "origin_zip": "MIUG3_Aprilia_SR_MAX_300ie_V1.02.zip",
+    "sha256": "a8911c57248dbfde58a921855b38ee3de6f2da2e968e9f00741b58f43ed72643",
+    "title": "Aprilia SR Max 300ie",
+    "author": "beard pauldaytona",
+    "version": "1.02",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "malaguti/MIUG3_Malaguti_4643AFC1_XTM125_V1.02.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Malaguti_4643AFC1_XTM125_V1.02.zip",
+    "origin_zip": "MIUG3_Malaguti_4643AFC1_XTM125_V1.02.zip",
+    "sha256": "4b9d610e8f422eef6ddf701ff818cf84a394f3525ebf7b4c6e687d3bcda917dc",
+    "title": "MIUG3 Malaguti XTM 125",
+    "author": "beard",
+    "version": "1.02",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/MIUG3_MotoGuzzi_V7II_V1.15.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7II_V1.15.zip",
+    "origin_zip": "MIUG3_MotoGuzzi_V7II_V1.15.zip",
+    "sha256": "fbdbd06ad782b7aed667fb120f642e1865bd187edb0b63541d05012616299fe4",
+    "title": "Moto Guzzi MIUG3 V7 III",
+    "author": "beard pauldaytona meinolf",
+    "version": "1.15",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/MIUG3_MotoGuzzi_V7_V1.10.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7_V1.10.zip",
+    "origin_zip": "MIUG3_MotoGuzzi_V7_V1.10.zip",
+    "sha256": "6c64bf986dd8e44c1c7fd5ad87edffd79acc4ef966bb1f8212f68831b19b6d5b",
+    "title": "Moto Guzzi MIUG3 Nevada",
+    "author": "beard pauldaytona",
+    "version": "1.09",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "piaggio/MIUG3_Piaggio_34B9BU42_V1.00.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_34B9BU42_V1.00.zip",
+    "origin_zip": "MIUG3_Piaggio_34B9BU42_V1.00.zip",
+    "sha256": "b5621bbbdd9a2acca15fde59136b4415a30596ca261a9dcf2f408d2a26b9013f",
+    "title": "Piaggio Beverly 350 MIUG3 34B9BU42",
+    "author": "beard",
+    "version": "1.00",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "piaggio/MIUG3_Piaggio_4528BU53_V1.00.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_4528BU53_V1.00.zip",
+    "origin_zip": "MIUG3_Piaggio_4528BU53_V1.00.zip",
+    "sha256": "8ff0dad8befc19cc3e2d2d0501d265546fe5e448e482edda61e10358fd55975f",
+    "title": "Piaggio Beverly MIUG3",
+    "author": "beard",
+    "version": "1.00",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "piaggio/MIUG3_Piaggio_4530xxxx_GTS300_V1.04.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_4530xxxx_GTS300_V1.04.zip",
+    "origin_zip": "MIUG3_Piaggio_4530xxxx_GTS300_V1.04.zip",
+    "sha256": "cb30675ee31c3b90662083e9232eea271ad3180465dd2163f88147e2dee4064d",
+    "title": "Piaggio Fly 3V MIUG3",
+    "author": "gelos, beard, Paul",
+    "version": "1.04",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "piaggio/MIUG3_Piaggio_464CDABL_GTS300_V1.04.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_464CDABL_GTS300_V1.04.zip",
+    "origin_zip": "MIUG3_Piaggio_464CDABL_GTS300_V1.04.zip",
+    "sha256": "55efa7f44aeed8b2f1bc1dabea759913b999c1b53fe80c41fb848e62a70c9c61",
+    "title": "GTS300 MIUG3",
+    "author": "gelos, beard, pauldaytona",
+    "version": "1.04",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "piaggio/MIUG3_Piaggio_Fly_3V_V1.01.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_Fly_3V_V1.01.zip",
+    "origin_zip": "MIUG3_Piaggio_Fly_3V_V1.01.zip",
+    "sha256": "aeba3bc30860b0e3e92ff9fb8b12e9b3a9ebeb0216674758ebabf51e1c852ddf",
+    "title": "Piaggio Fly 3V MIUG3",
+    "author": "beard",
+    "version": "1.01",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "piaggio/MIUG3_Piaggio_GTS300_3417BN15_V1.00.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_GTS300_3417BN15_V1.00.zip",
+    "origin_zip": "MIUG3_Piaggio_GTS300_3417BN15_V1.00.zip",
+    "sha256": "fbab3ef70b8d72d4c7e1d04c06e2e15abcf282ea499b607dece2a91be8127aba",
+    "title": "GTS300 MIUG3",
+    "author": "gelos, beard, pauldaytona",
+    "version": "1.00",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "piaggio/MIUG3_Piaggio_GTS300_V2_V1.03.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_GTS300_V2_V1.03.zip",
+    "origin_zip": "MIUG3_Piaggio_GTS300_V2_V1.03.zip",
+    "sha256": "c953deca62585edefb229f02140bc09cb2df1e306357eafcbd554c0e8fda1407",
+    "title": "GTS300 MIUG3",
+    "author": "gelos, beard, pauldaytona",
+    "version": "1.03",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "scomadi/MIUG3_Scomadi_200_V0.02.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Scomadi_200_V0.02.zip",
+    "origin_zip": "MIUG3_Scomadi_200_V0.02.zip",
+    "sha256": "9551a6210691c7fa8c60e02216c9e307aad676e86f03c44788117e8564815470",
+    "title": "Scomadi 200",
+    "author": "beard",
+    "version": "0.02",
+    "imported_utc": "2026-10-06T02:20:17Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/P8_GuzziDiag_32k_V1.30.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/P8_GuzziDiag_32k_V1.30.zip",
+    "origin_zip": "P8_GuzziDiag_32k_V1.30.zip",
+    "sha256": "1957f3bb020b486be2d00db5fb1e20622a804322a95d21abfe21930c9734694b",
+    "title": "Moto Guzzi IAW P8",
+    "author": "beard, DesmoErnie",
+    "version": "1.30",
+    "imported_utc": "2026-10-06T02:20:17Z",
     "verified_parse": true
   }
 }

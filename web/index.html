@@ -645,7 +645,7 @@
             <b id="mapSelectionCount">0 cells selected</b>
             <span class="muted small">Click to select · Shift-click for a rectangle · double-click or Enter to edit</span>
           </div>
-          <p class="muted small" id="mapLiveTraceStatus">Live tracing waits for validated RPM and load channels; it is read-only and never changes a map.</p>
+          <p class="muted small" id="mapLiveTraceStatus">Live tracing is read-only and starts only after both table axes are mapped explicitly to validated channels.</p>
           <div class="toolbar">
             <button class="btn small" id="mapSetBtn" disabled>Set…</button>
             <button class="btn small" id="mapAddBtn" disabled>Add…</button>
@@ -663,7 +663,7 @@
         <div id="mapBuildChanges"><p class="muted small">No staged changes. Render a map and select table values or constants.</p></div>
         <details class="map-log-tools">
           <summary><b>Offline log overlay &amp; bounded fuel-correction review</b></summary>
-          <p class="muted small">Import a CSV containing time, load/RPM, and separately measured and target AFR. When a time column is selected, ECU state is interpolated at the measured-wideband time minus the explicitly configured delay; gaps, unsettled cells, and excessive axis rates are rejected. Analysis never changes the image and caps proposed fuel changes. Confirm the selected table really controls fuel quantity under the logged conditions.</p>
+          <p class="muted small">Import a CSV containing time, load/RPM, and separately measured and target AFR. When a time column is selected, ECU state is interpolated at the measured-wideband time minus the explicitly configured delay; gaps, unsettled cells, excessive axis rates, and insufficient aligned cell dwell are rejected. Analysis never changes the image and caps proposed fuel changes. Confirm the selected table really controls fuel quantity under the logged conditions.</p>
           <div class="toolbar">
             <label class="inline">Log CSV <input type="file" id="mapLogFile" accept="text/csv,.csv"></label>
             <span class="muted small" id="mapLogSummary">No log loaded.</span>
@@ -678,6 +678,7 @@
             <label>Timestamp unit<select id="mapLogTimeUnit"><option value="seconds">seconds</option><option value="milliseconds">milliseconds</option></select></label>
             <label>Wideband delay (ms)<input type="number" id="mapLogDelay" min="0" max="5000" step="1" value="0"></label>
             <label>Same-cell settling (ms)<input type="number" id="mapLogSettle" min="0" max="5000" step="1" value="500"></label>
+            <label>Minimum aligned dwell/cell (ms)<input type="number" id="mapLogDuration" min="0" max="60000" step="1" value="1000"></label>
             <label>Maximum timeline gap (ms)<input type="number" id="mapLogGap" min="1" max="5000" step="1" value="250"></label>
             <label>Maximum X-axis rate/unit/s (optional)<input type="number" id="mapLogXRate" min="0.000001" step="any" placeholder="disabled"></label>
             <label>Maximum Y-axis rate/unit/s (optional)<input type="number" id="mapLogYRate" min="0.000001" step="any" placeholder="disabled"></label>

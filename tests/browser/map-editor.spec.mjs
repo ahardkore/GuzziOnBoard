@@ -244,6 +244,8 @@ test('explicit live-channel mapping replaces guessing and time-aware log analysi
   await page.locator('#mapLogAnalyzeBtn').click();
   await expect(page.locator('#mapLogOut')).toContainText('linearly interpolated x/y/target', { timeout: 15_000 });
   await expect(page.locator('#mapLogOut')).toContainText('eligible bounded proposals');
+  await expect(page.locator('#mapLogOut')).toContainText('minimum dwell 1000 ms');
+  await expect(page.locator('#mapLogOut')).toContainText('unique state points');
   await expect(page.locator('#mapLogOut')).toContainText('transient');
 
   await page.locator(`[data-trace-table="${table.id}"] summary`).click();

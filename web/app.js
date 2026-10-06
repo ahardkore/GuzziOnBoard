@@ -3560,7 +3560,7 @@ function renderMapLogControls() {
   choose('mapLogTime', [/^time$/i, /timestamp/i, /^time[_ ]?(s|ms)$/i, /elapsed/i]);
   const setTimeControlState = () => {
     const disabled = !$('#mapLogTime').value;
-    ['mapLogTimeUnit', 'mapLogDelay', 'mapLogSettle', 'mapLogGap', 'mapLogXRate', 'mapLogYRate']
+    ['mapLogTimeUnit', 'mapLogDelay', 'mapLogSettle', 'mapLogDuration', 'mapLogGap', 'mapLogXRate', 'mapLogYRate']
       .forEach((id) => { $(`#${id}`).disabled = disabled; });
   };
   $('#mapLogTime').onchange = setTimeControlState;
@@ -3999,6 +3999,7 @@ $('#mapLogAnalyzeBtn').onclick = async () => {
         wideband_delay_ms: Number($('#mapLogDelay').value),
         settle_time_ms: Number($('#mapLogSettle').value),
         max_time_gap_ms: Number($('#mapLogGap').value),
+        min_cell_duration_ms: Number($('#mapLogDuration').value),
         max_x_rate_per_s: $('#mapLogXRate').value === '' ? null : Number($('#mapLogXRate').value),
         max_y_rate_per_s: $('#mapLogYRate').value === '' ? null : Number($('#mapLogYRate').value),
       },
@@ -4011,11 +4012,12 @@ $('#mapLogAnalyzeBtn').onclick = async () => {
       <p class="small">${report.rows_used} of ${report.rows_received} rows binned · ${skipped} skipped ·
         ${report.cells.length} populated cells · <b>${report.proposals.length} eligible bounded proposals</b>.</p>
       <p class="small"><b>Alignment:</b> ${esc(report.time_alignment?.method || 'not reported')}
-        ${report.time_alignment?.enabled ? ` · delay ${esc(report.time_alignment.wideband_delay_ms)} ms · settle ${esc(report.time_alignment.settle_time_ms)} ms · max gap ${esc(report.time_alignment.max_time_gap_ms)} ms` : ''}</p>
+        ${report.time_alignment?.enabled ? ` · delay ${esc(report.time_alignment.wideband_delay_ms)} ms · settle ${esc(report.time_alignment.settle_time_ms)} ms · minimum dwell ${esc(report.time_alignment.min_cell_duration_ms)} ms · max gap ${esc(report.time_alignment.max_time_gap_ms)} ms` : ''}</p>
+      ${report.time_alignment?.enabled ? `<p class="small"><b>Timeline:</b> ${esc(report.time_alignment.timeline_points)} unique state points · ${esc(report.time_alignment.duplicate_timestamps)} duplicate timestamp(s) resolved · ${esc(report.time_alignment.state_only_rows)} state-only row(s) retained</p>` : ''}
       <p class="small"><b>Skipped:</b> ${Object.entries(report.skipped || {}).map(([reason, count]) => `${esc(reason)} ${count}`).join(' · ') || 'none'}</p>
       <p class="small"><code>${esc(report.formula)}</code></p></div>
       <div class="preview-scroll"><table class="data"><thead><tr><th>Cell</th><th>Samples</th><th>Measured / target AFR</th><th>Fuel proposal</th><th>Status</th></tr></thead><tbody>
-        ${report.cells.map((cell) => `<tr><td>${esc(cell.y)} × ${esc(cell.x)}</td><td>${cell.samples}</td>
+        ${report.cells.map((cell) => `<tr><td>${esc(cell.y)} × ${esc(cell.x)}</td><td>${cell.samples}${cell.time_span_s === null || cell.time_span_s === undefined ? '' : ` · ${esc(cell.time_span_s)} s`}</td>
           <td>${esc(cell.measured_afr)} ± ${esc(cell.measured_afr_stddev)} / ${esc(cell.target_afr)} ± ${esc(cell.target_afr_stddev)}</td>
           <td>${cell.correction_percent > 0 ? '+' : ''}${esc(cell.correction_percent)}%</td>
           <td>${cell.eligible ? (cell.clamped ? 'eligible · capped' : 'eligible') : esc(cell.eligibility)}</td></tr>`).join('')}
@@ -4033,7 +4035,7 @@ $('#mapLogStageBtn').onclick = async () => {
   const ready = await confirmDialog(
     'Stage bounded log proposals',
     `<p class="guide-intro">Stage ${report.proposals.length} mathematical fuel proposals in the normal review pipeline?</p>
-     <ul><li>The selected table must actually control fuel quantity.</li><li>Measured and target AFR must represent steady, synchronized conditions.</li><li>Eligible cells have AFR standard deviation at or below ${esc(report.max_afr_stddev)}.</li><li>The correction cap is ${esc(report.max_correction_percent)}%; every stored value will still be quantized and previewed.</li></ul>
+     <ul><li>The selected table must actually control fuel quantity.</li><li>Measured and target AFR must represent steady, synchronized conditions.</li><li>Eligible cells have AFR standard deviation at or below ${esc(report.max_afr_stddev)}${report.time_alignment?.enabled ? ` and at least ${esc(report.time_alignment.min_cell_duration_ms)} ms aligned dwell` : ''}.</li><li>The correction cap is ${esc(report.max_correction_percent)}%; every stored value will still be quantized and previewed.</li></ul>
      <div class="guide-callout danger">This does not turn log math into a verified tuning recommendation. Attach inspectable, configuration-specific evidence and review every cell.</div>`,
     'Stage proposals', { tone: 'danger' },
   );

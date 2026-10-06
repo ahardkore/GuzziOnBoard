@@ -41,7 +41,7 @@ opened.
 | ECU memory **read** | Implemented; 5AM path grounded in a verified capture |
 | Backup with two-read verification | Implemented |
 | Firmware image validation (size, vector table, entropy, HW family) | Implemented |
-| **Maps & tables**: XDF render/validation, 2D/3D editor, named diff, log overlay, and evidence-backed builder | Implemented; 94 XDFs (3842 tables) ship with the repo. Includes rectangular keyboard editing, smoothing/blending, editable embedded axes, explicitly configured live-channel/scale/offset tracing (no name/unit guessing), wideband-delay-aligned timestamp analysis with settling/rate filters, bounded AFR proposals, isolated checksum-plugin workers, and unendorsed package registries. Builds prefer the protected base map, require traceable evidence plus typed liability acknowledgement, and always create a new image with a complete manifest. Physical ECU/dyno validation remains pending evidence. |
+| **Maps & tables**: XDF render/validation, 2D/3D editor, named diff, log overlay, and evidence-backed builder | Implemented; 94 XDFs (3842 tables) ship with the repo. Includes rectangular keyboard editing, smoothing/blending, editable embedded axes, explicitly configured live-channel/scale/offset tracing (no name/unit guessing), wideband-delay-aligned timestamp analysis with settling/rate/minimum-dwell filters, bounded AFR proposals, isolated checksum-plugin workers, and unendorsed package registries. Builds prefer the protected base map, require traceable evidence plus typed liability acknowledgement, and always create a new image with a complete manifest. Physical ECU/dyno validation remains pending evidence. |
 | ECU memory **write / erase / program / verify** | Full flow **runs against the simulated ECU** (backup → validate → token → write → read-back verify, honestly labelled); the `hardware-family` gate check refuses any cross-family image before a frame moves (app and demo); gated on hardware pending a bench-confirmed key |
 | Interrupted-write checkpoints and recovery guidance | Implemented |
 | SecurityAccess seed/key plumbing + key-provider plugins | Implemented; the shipped 5AM key is unverified — armable per session via explicit, audited opt-in |
@@ -199,9 +199,12 @@ sample count, rejects cells whose measured or target AFR variation exceeds the
 configured population-standard-deviation limit, and caps fuel proposals at 15%
 or less. With an explicit timestamp column it evaluates each measured AFR at
 `t` against linearly interpolated X/Y/target state at `t − configured wideband
-delay`; seconds and milliseconds are supported. It rejects excessive timeline
-gaps, state that did not remain in the same cell for the configured settling
-window, and optional X/Y rate-limit violations, and reports each skip category.
+delay`; seconds and milliseconds are supported. State-only logger ticks remain
+interpolation anchors even when that tick has no wideband value. It rejects
+excessive timeline gaps, state that did not remain in the same cell for the
+configured settling window, optional X/Y rate-limit violations, and cells that
+do not span the configured minimum aligned dwell time. Timeline point,
+duplicate-timestamp, state-only-row, and skip diagnostics are reported.
 Without timestamps it explicitly reports row-synchronous analysis and cannot
 claim delay/transient alignment. It only creates a review overlay/proposal;
 staging and building still go through source locks, evidence, preview, and

@@ -61,9 +61,12 @@ measured/target AFR population-standard-deviation limit are ineligible.
 Corrections are capped at 15% or less and remain review-only until the operator
 deliberately stages them. Selecting an explicit time column enables seconds- or
 milliseconds-based alignment: measured AFR at `t` is paired with interpolated
-load/RPM/target at `t − wideband delay`. Maximum timeline gap, same-cell settling
-and optional axis-rate limits reject unaligned or transient samples, with every
-skip reason reported. Omitting time leaves row-synchronous analysis and is
+load/RPM/target at `t − wideband delay`. Rows with valid timestamp/state but no
+wideband sample remain interpolation anchors. Maximum timeline gap, same-cell
+settling and optional axis-rate limits reject unaligned or transient samples;
+a minimum aligned dwell per cell prevents a burst of tightly packed samples
+from satisfying the sample-count gate. Timeline construction and every skip
+reason are reported. Omitting time leaves row-synchronous analysis and is
 labelled accordingly. Delay and filter values must come from the actual logger,
 sensor and installation; the app supplies no asserted calibration defaults.
 Closed-loop state, leaks, sensor health and table semantics remain operator

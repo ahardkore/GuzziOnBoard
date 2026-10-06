@@ -81,7 +81,7 @@ def test_time_aware_log_alignment_compensates_delay_and_filters_transients():
         measured_afr_channel="wideband", target_afr_channel="target",
         time_channel="time_ms", timestamp_unit="milliseconds",
         wideband_delay_ms=1000, settle_time_ms=0, max_time_gap_ms=1100,
-        min_samples=1, max_correction_percent=15,
+        min_cell_duration_ms=0, min_samples=1, max_correction_percent=15,
     )
     assert report["time_alignment"] == {
         "enabled": True,
@@ -90,8 +90,12 @@ def test_time_aware_log_alignment_compensates_delay_and_filters_transients():
         "wideband_delay_ms": 1000.0,
         "settle_time_ms": 0.0,
         "max_time_gap_ms": 1100.0,
+        "min_cell_duration_ms": 0.0,
         "max_x_rate_per_s": None,
         "max_y_rate_per_s": None,
+        "timeline_points": 3,
+        "duplicate_timestamps": 0,
+        "state_only_rows": 0,
         "timeline_reordered": False,
         "method": "measured AFR at t; linearly interpolated x/y/target at t minus wideband delay",
     }
@@ -117,6 +121,41 @@ def test_time_aware_log_alignment_compensates_delay_and_filters_transients():
     )
     assert filtered["skipped"]["transient"] >= 1
     assert filtered["rows_used"] < len(moving)
+
+    short_dwell = analyze_fuel_log(
+        rendered_fuel_table(), [
+            {"time_ms": time_ms, "rpm": 2000, "tps": 10,
+             "wideband": 15, "target": 14}
+            for time_ms in (0, 100, 200)
+        ],
+        x_channel="rpm", y_channel="tps",
+        measured_afr_channel="wideband", target_afr_channel="target",
+        time_channel="time_ms", timestamp_unit="milliseconds",
+        settle_time_ms=0, max_time_gap_ms=200,
+        min_cell_duration_ms=1000, min_samples=3,
+    )
+    assert not short_dwell["proposals"]
+    assert short_dwell["cells"][0]["duration_eligible"] is False
+    assert "1000 ms of aligned dwell" in short_dwell["cells"][0]["eligibility"]
+
+    state_anchor = analyze_fuel_log(
+        rendered_fuel_table(), [
+            {"time_ms": 0, "rpm": 1000, "tps": 10,
+             "wideband": 14, "target": 14},
+            {"time_ms": 1000, "rpm": 3000, "tps": 10,
+             "wideband": "", "target": 14},
+            {"time_ms": 2000, "rpm": 1000, "tps": 10,
+             "wideband": 15, "target": 14},
+        ],
+        x_channel="rpm", y_channel="tps",
+        measured_afr_channel="wideband", target_afr_channel="target",
+        time_channel="time_ms", timestamp_unit="milliseconds",
+        wideband_delay_ms=1000, settle_time_ms=0, max_time_gap_ms=1100,
+        min_cell_duration_ms=0, min_samples=1,
+    )
+    assert state_anchor["cells"][0]["x"] == 3000
+    assert state_anchor["time_alignment"]["state_only_rows"] == 1
+    assert state_anchor["time_alignment"]["timeline_points"] == 3
 
     with pytest.raises(LogAnalysisError, match="time_channel is required"):
         analyze_fuel_log(

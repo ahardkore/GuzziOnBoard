@@ -45,6 +45,7 @@ def test_offline_log_api_returns_review_only_proposals(tmp_path, monkeypatch):
         "min_samples": 3, "max_correction_percent": 5,
         "time_channel": "time_ms", "timestamp_unit": "milliseconds",
         "wideband_delay_ms": 0, "settle_time_ms": 0, "max_time_gap_ms": 200,
+        "min_cell_duration_ms": 0,
         "rows": [
             {"time_ms": time_ms, "rpm": 0, "tps": 0,
              "measured": 15, "target": 14}

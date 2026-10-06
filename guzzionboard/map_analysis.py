@@ -64,6 +64,7 @@ def analyze_fuel_log(
     wideband_delay_ms: float = 0.0,
     settle_time_ms: float = 500.0,
     max_time_gap_ms: float = 250.0,
+    min_cell_duration_ms: float = 1000.0,
     max_x_rate_per_s: float | None = None,
     max_y_rate_per_s: float | None = None,
 ) -> dict:
@@ -105,12 +106,15 @@ def analyze_fuel_log(
     delay_s = _number(wideband_delay_ms, "wideband_delay_ms") / 1000.0
     settle_s = _number(settle_time_ms, "settle_time_ms") / 1000.0
     gap_s = _number(max_time_gap_ms, "max_time_gap_ms") / 1000.0
+    duration_s = _number(min_cell_duration_ms, "min_cell_duration_ms") / 1000.0
     if not 0 <= delay_s <= 5:
         raise LogAnalysisError("wideband_delay_ms must be from 0 to 5000")
     if not 0 <= settle_s <= 5:
         raise LogAnalysisError("settle_time_ms must be from 0 to 5000")
     if not 0.001 <= gap_s <= 5:
         raise LogAnalysisError("max_time_gap_ms must be from 1 to 5000")
+    if not 0 <= duration_s <= 60:
+        raise LogAnalysisError("min_cell_duration_ms must be from 0 to 60000")
     x_rate_limit = None if max_x_rate_per_s in (None, "") else _number(
         max_x_rate_per_s, "max_x_rate_per_s"
     )
@@ -140,53 +144,80 @@ def analyze_fuel_log(
         "afr_out_of_range": 0,
     }
     parsed: list[dict[str, float | None]] = []
+    timeline_rows: list[dict[str, float | None]] = []
     time_scale = 0.001 if timestamp_unit == "milliseconds" else 1.0
     original_times: list[float] = []
+    state_only_rows = 0
     for source in rows:
         if not isinstance(source, dict):
             skipped["invalid"] += 1
             continue
-        try:
-            sample: dict[str, float | None] = {
-                "x": _number(source.get(x_channel), x_channel),
-                "y": _number(source.get(y_channel), y_channel),
-                "measured": _number(
-                    source.get(measured_afr_channel), measured_afr_channel
-                ),
-                "target": _number(source.get(target_afr_channel), target_afr_channel),
-                "time": None,
-            }
-        except LogAnalysisError:
-            skipped["invalid"] += 1
-            continue
         if time_channel:
             try:
-                sample["time"] = (
-                    _number(source.get(time_channel), time_channel) * time_scale
-                )
+                at = _number(source.get(time_channel), time_channel) * time_scale
             except LogAnalysisError:
                 skipped["invalid_timestamp"] += 1
                 continue
-            original_times.append(sample["time"])
-        parsed.append(sample)
+            try:
+                state: dict[str, float | None] = {
+                    "x": _number(source.get(x_channel), x_channel),
+                    "y": _number(source.get(y_channel), y_channel),
+                    "target": _number(
+                        source.get(target_afr_channel), target_afr_channel
+                    ),
+                    "time": at,
+                }
+            except LogAnalysisError:
+                skipped["invalid"] += 1
+                continue
+            # State rows remain useful interpolation anchors even when that
+            # logger tick has no valid wideband observation.
+            timeline_rows.append(state)
+            original_times.append(at)
+            try:
+                measured = _number(
+                    source.get(measured_afr_channel), measured_afr_channel
+                )
+            except LogAnalysisError:
+                skipped["invalid"] += 1
+                state_only_rows += 1
+                continue
+            parsed.append({**state, "measured": measured})
+        else:
+            try:
+                parsed.append({
+                    "x": _number(source.get(x_channel), x_channel),
+                    "y": _number(source.get(y_channel), y_channel),
+                    "measured": _number(
+                        source.get(measured_afr_channel), measured_afr_channel
+                    ),
+                    "target": _number(
+                        source.get(target_afr_channel), target_afr_channel
+                    ),
+                    "time": None,
+                })
+            except LogAnalysisError:
+                skipped["invalid"] += 1
 
     timeline_reordered = False
+    duplicate_timestamps = 0
     timeline: list[dict[str, float | None]] = []
     times: list[float] = []
     if time_channel:
-        # Loggers can emit more than one sample at the same clock tick.  Keep
-        # every AFR observation, but use the final row at that instant as the
-        # state timeline so interpolation is deterministic.
-        by_time = {sample["time"]: sample for sample in parsed}
+        # Loggers can emit more than one state sample at the same clock tick.
+        # Keep every AFR observation, but use the final state at that instant
+        # so interpolation is deterministic.
+        by_time = {sample["time"]: sample for sample in timeline_rows}
         times = sorted(by_time)
         timeline = [by_time[at] for at in times]
+        duplicate_timestamps = len(timeline_rows) - len(timeline)
         if len(timeline) < 2:
             raise LogAnalysisError(
                 "time-aware analysis needs at least two valid, distinct timestamps"
             )
         timeline_reordered = (
             original_times != sorted(original_times)
-            or len(times) != len(original_times)
+            or duplicate_timestamps > 0
         )
 
     def timeline_value(at: float) -> dict[str, float] | None:
@@ -290,25 +321,32 @@ def analyze_fuel_log(
         enough = len(samples) >= min_samples
         stable = (measured_stddev <= deviation_limit
                   and target_stddev <= deviation_limit)
-        eligible = enough and stable
+        sample_times = [sample[4] for sample in samples if sample[4] is not None]
+        time_span_s = (
+            max(sample_times) - min(sample_times)
+            if len(sample_times) > 1 else 0.0
+        )
+        duration_met = not time_channel or time_span_s + 1e-12 >= duration_s
+        eligible = enough and stable and duration_met
         reasons = []
         if not enough:
             reasons.append(f"needs at least {min_samples} samples")
+        if not duration_met:
+            reasons.append(
+                f"needs at least {round(duration_s * 1000)} ms of aligned dwell"
+            )
         if measured_stddev > deviation_limit:
             reasons.append("measured AFR is too variable")
         if target_stddev > deviation_limit:
             reasons.append("target AFR is too variable")
-        sample_times = [sample[4] for sample in samples if sample[4] is not None]
         cell = {
             "row": row,
             "col": col,
             "x": table["x"][col],
             "y": table["y"][row],
             "samples": len(samples),
-            "time_span_s": (
-                round(max(sample_times) - min(sample_times), 4)
-                if len(sample_times) > 1 else 0.0 if sample_times else None
-            ),
+            "time_span_s": round(time_span_s, 4) if time_channel else None,
+            "duration_eligible": duration_met,
             "measured_afr": round(measured, 4),
             "target_afr": round(target, 4),
             "measured_afr_stddev": round(measured_stddev, 4),
@@ -354,8 +392,12 @@ def analyze_fuel_log(
             "wideband_delay_ms": delay_s * 1000.0,
             "settle_time_ms": settle_s * 1000.0,
             "max_time_gap_ms": gap_s * 1000.0,
+            "min_cell_duration_ms": duration_s * 1000.0 if time_channel else None,
             "max_x_rate_per_s": x_rate_limit,
             "max_y_rate_per_s": y_rate_limit,
+            "timeline_points": len(timeline),
+            "duplicate_timestamps": duplicate_timestamps,
+            "state_only_rows": state_only_rows,
             "timeline_reordered": timeline_reordered,
             "method": (
                 "measured AFR at t; linearly interpolated x/y/target at "
@@ -372,8 +414,9 @@ def analyze_fuel_log(
             "Confirm that the selected table controls fuel quantity in the logged operating state.",
             "Cells whose measured or target AFR population standard deviation exceeds the configured limit are not eligible.",
             (
-                "Timestamp alignment compensates the configured wideband delay and "
-                "rejects unsettled/rate-limited samples; inspect the skipped counts."
+                "Timestamp alignment compensates the configured wideband delay, "
+                "rejects unsettled/rate-limited samples, and requires the configured "
+                "per-cell dwell duration; inspect the diagnostics and skipped counts."
                 if time_channel else
                 "No timestamp channel was selected, so sensor delay and transient "
                 "alignment were not evaluated."

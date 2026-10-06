@@ -931,6 +931,7 @@ class Api:
                 wideband_delay_ms=body.get("wideband_delay_ms", 0),
                 settle_time_ms=body.get("settle_time_ms", 500),
                 max_time_gap_ms=body.get("max_time_gap_ms", 250),
+                min_cell_duration_ms=body.get("min_cell_duration_ms", 1000),
                 max_x_rate_per_s=body.get("max_x_rate_per_s"),
                 max_y_rate_per_s=body.get("max_y_rate_per_s"),
             )

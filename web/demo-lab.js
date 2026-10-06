@@ -2404,6 +2404,8 @@
     var delayMs = body.wideband_delay_ms === undefined ? 0 : Number(body.wideband_delay_ms);
     var settleMs = body.settle_time_ms === undefined ? 500 : Number(body.settle_time_ms);
     var gapMs = body.max_time_gap_ms === undefined ? 250 : Number(body.max_time_gap_ms);
+    var durationMs = body.min_cell_duration_ms === undefined
+      ? 1000 : Number(body.min_cell_duration_ms);
     function optionalPositive(name) {
       if (body[name] === undefined || body[name] === null || body[name] === '') return null;
       var value = Number(body[name]);
@@ -2420,6 +2422,9 @@
       if (!Number.isFinite(setting[1]) || (setting[2] ? setting[1] < 0 : setting[1] <= 0)
           || setting[1] > 5000) throw bad(setting[0] + ' is outside its allowed range');
     });
+    if (!Number.isFinite(durationMs) || durationMs < 0 || durationMs > 60000) {
+      throw bad('min_cell_duration_ms must be from 0 to 60000');
+    }
     if (!timeChannel && (delayMs || xRateLimit !== null || yRateLimit !== null)) {
       throw bad('time_channel is required for delay compensation and rate filtering');
     }
@@ -2459,16 +2464,21 @@
         });
         return best;
       }
+      function logNumber(value) {
+        if (value === null || value === undefined || String(value).trim() === '') return NaN;
+        return Number(value);
+      }
       var factor = timestampUnit === 'milliseconds' ? 0.001 : 1;
       var delayS = delayMs / 1000, settleS = settleMs / 1000, gapS = gapMs / 1000;
-      var timeline = [], originalTimes = [];
+      var timeline = [], originalTimes = [], stateOnlyRows = 0, duplicateTimestamps = 0;
       if (timeChannel) {
         rows.forEach(function (source) {
-          var time = Number(source[timeChannel]) * factor;
-          var x = Number(source[body.x_channel]), y = Number(source[body.y_channel]);
-          var target = Number(source[body.target_afr_channel]);
+          var time = logNumber(source[timeChannel]) * factor;
+          var x = logNumber(source[body.x_channel]), y = logNumber(source[body.y_channel]);
+          var target = logNumber(source[body.target_afr_channel]);
           if ([time, x, y, target].every(Number.isFinite)) {
             timeline.push([time, x, y, target]); originalTimes.push(time);
+            if (!Number.isFinite(logNumber(source[body.measured_afr_channel]))) stateOnlyRows += 1;
           }
         });
         timeline.sort(function (a, b) { return a[0] - b[0]; });
@@ -2477,10 +2487,11 @@
           if (unique.length && point[0] === unique[unique.length - 1][0]) unique[unique.length - 1] = point;
           else unique.push(point);
         });
+        duplicateTimestamps = timeline.length - unique.length;
         timeline = unique;
         if (timeline.length < 2) throw bad('time-aware analysis requires at least two valid, distinct timestamps');
       }
-      var timelineReordered = timeChannel && (timeline.length !== originalTimes.length
+      var timelineReordered = timeChannel && (duplicateTimestamps > 0
         || originalTimes.some(function (time, index) { return timeline[index] && timeline[index][0] !== time; }));
       function interpolatedAt(when) {
         if (!timeline.length || when < timeline[0][0] || when > timeline[timeline.length - 1][0]) return null;
@@ -2517,10 +2528,11 @@
         return Math.abs(right[index] - left[index]) / (right[0] - left[0]);
       }
       rows.forEach(function (source) {
-        var measured = Number(source[body.measured_afr_channel]);
+        var measured = logNumber(source[body.measured_afr_channel]);
+        if (!Number.isFinite(measured)) { skipped.invalid += 1; return; }
         var x, y, target, sampleTime = null;
         if (timeChannel) {
-          sampleTime = Number(source[timeChannel]) * factor;
+          sampleTime = logNumber(source[timeChannel]) * factor;
           if (!Number.isFinite(sampleTime)) { skipped.invalid_timestamp += 1; return; }
           var operatingTime = sampleTime - delayS;
           var stateAt = interpolatedAt(operatingTime);
@@ -2538,8 +2550,8 @@
             skipped.transient += 1; return;
           }
         } else {
-          x = Number(source[body.x_channel]); y = Number(source[body.y_channel]);
-          target = Number(source[body.target_afr_channel]);
+          x = logNumber(source[body.x_channel]); y = logNumber(source[body.y_channel]);
+          target = logNumber(source[body.target_afr_channel]);
         }
         if (![x, y, measured, target].every(Number.isFinite)) { skipped.invalid += 1; return; }
         if (measured < 6 || measured > 30 || target < 6 || target > 30) {
@@ -2565,23 +2577,27 @@
         var correction = Math.max(-limit, Math.min(limit, unbounded));
         var enough = samples.length >= minSamples;
         var stable = measuredStddev <= deviationLimit && targetStddev <= deviationLimit;
-        var reasons = [];
-        if (!enough) reasons.push('needs at least ' + minSamples + ' samples');
-        if (measuredStddev > deviationLimit) reasons.push('measured AFR is too variable');
-        if (targetStddev > deviationLimit) reasons.push('target AFR is too variable');
         var sampleTimes = samples.map(function (sample) { return sample[2]; })
           .filter(function (time) { return time !== null; });
+        var timeSpan = sampleTimes.length > 1
+          ? Math.max.apply(null, sampleTimes) - Math.min.apply(null, sampleTimes) : 0;
+        var durationMet = !timeChannel || timeSpan + 1e-12 >= durationMs / 1000;
+        var eligible = enough && stable && durationMet;
+        var reasons = [];
+        if (!enough) reasons.push('needs at least ' + minSamples + ' samples');
+        if (!durationMet) reasons.push('needs at least ' + Math.round(durationMs) + ' ms of aligned dwell');
+        if (measuredStddev > deviationLimit) reasons.push('measured AFR is too variable');
+        if (targetStddev > deviationLimit) reasons.push('target AFR is too variable');
         var cell = {
           row: row, col: col, x: table.x[col], y: table.y[row], samples: samples.length,
-          time_span_s: sampleTimes.length > 1
-            ? round(Math.max.apply(null, sampleTimes) - Math.min.apply(null, sampleTimes), 4)
-            : sampleTimes.length ? 0 : null,
+          time_span_s: timeChannel ? round(timeSpan, 4) : null,
+          duration_eligible: durationMet,
           measured_afr: round(measured, 4), target_afr: round(target, 4),
           measured_afr_stddev: round(measuredStddev, 4),
           target_afr_stddev: round(targetStddev, 4),
           error_percent: round(unbounded, 4), correction_percent: round(correction, 4),
-          clamped: correction !== unbounded, eligible: enough && stable,
-          eligibility: enough && stable ? 'eligible' : reasons.join('; '),
+          clamped: correction !== unbounded, eligible: eligible,
+          eligibility: eligible ? 'eligible' : reasons.join('; '),
         };
         cells.push(cell);
         if (cell.eligible) proposals.push(Object.assign({}, cell, {
@@ -2600,8 +2616,10 @@
         time_alignment: {
           enabled: !!timeChannel, time_channel: timeChannel, timestamp_unit: timestampUnit,
           wideband_delay_ms: delayMs, settle_time_ms: settleMs, max_time_gap_ms: gapMs,
+          min_cell_duration_ms: timeChannel ? durationMs : null,
           max_x_rate_per_s: xRateLimit, max_y_rate_per_s: yRateLimit,
-          timeline_reordered: !!timelineReordered,
+          timeline_points: timeline.length, duplicate_timestamps: duplicateTimestamps,
+          state_only_rows: stateOnlyRows, timeline_reordered: !!timelineReordered,
           method: timeChannel
             ? 'measured AFR at t; linearly interpolated x/y/target at t minus wideband delay'
             : 'row-synchronous; no timestamp alignment',
@@ -2614,7 +2632,7 @@
           'Confirm that the selected table controls fuel quantity in the logged operating state.',
           'Cells whose measured or target AFR population standard deviation exceeds the configured limit are not eligible.',
           timeChannel
-            ? 'Timestamp alignment compensates the configured wideband delay and rejects unsettled/rate-limited samples; inspect the skipped counts.'
+            ? 'Timestamp alignment compensates the configured wideband delay, rejects unsettled/rate-limited samples, and requires the configured per-cell dwell duration; inspect the diagnostics and skipped counts.'
             : 'No timestamp channel was selected, so sensor delay and transient alignment were not evaluated.',
           'Closed-loop correction, bad sensors, exhaust leaks, and incorrect delay settings can invalidate AFR corrections.',
           'A proposal still requires configuration-specific evidence, exact preview review, and liability acknowledgement before a separate build.',

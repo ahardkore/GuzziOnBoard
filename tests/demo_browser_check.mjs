@@ -494,12 +494,15 @@ if (overlayTable) {
     x_channel: 'x', y_channel: 'y', measured_afr_channel: 'measured',
     target_afr_channel: 'target', time_channel: 'time', timestamp_unit: 'seconds',
     wideband_delay_ms: 0, settle_time_ms: 500, max_time_gap_ms: 500,
+    min_cell_duration_ms: 500,
     min_samples: 2, max_correction_percent: 5, max_afr_stddev: 0.5,
   });
   check('hosted log analysis aligns timestamps and filters unsettled edges',
     timed.status === 200 && timed.payload.time_alignment.enabled === true
       && /linearly interpolated/.test(timed.payload.time_alignment.method)
       && timed.payload.skipped.transient === 2
+      && timed.payload.time_alignment.timeline_points === 4
+      && timed.payload.time_alignment.min_cell_duration_ms === 500
       && timed.payload.proposals.length === 1,
     JSON.stringify(timed.payload).slice(0, 220));
   const unstable = await post('/api/maps/analyze-log', {

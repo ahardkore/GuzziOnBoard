@@ -40,7 +40,7 @@ same era, read-only until their identifier tables are confirmed.
 | ECU memory **read** | Implemented; 5AM path grounded in a verified capture |
 | Backup with two-read verification | Implemented |
 | Firmware image validation (size, vector table, entropy, HW family) | Implemented |
-| **Maps & tables**: TunerPro XDF render + named diff of dumps | Implemented; a growing set of XDFs ships with the repo, more can be added |
+| **Maps & tables**: TunerPro XDF render + named diff of dumps | Implemented; 72 XDFs (2616 tables) ship with the repo, more can be added |
 | ECU memory **write / erase / program / verify** | Implemented and simulator-tested; **gated on hardware** |
 | Interrupted-write checkpoints and recovery guidance | Implemented |
 | SecurityAccess seed/key plumbing + key-provider plugins | Implemented; **no verified algorithm ships** |
@@ -84,10 +84,12 @@ python3 run_server.py
 
 The **Firmware → Maps & tables** panel renders a dump as named fuel and
 ignition tables using TunerPro XDF definitions — the same files the GuzziDiag
-ecosystem uses. A set of these ships under `guzzionboard/xdfs/` so common
-families work with nothing to download; see `docs/XDF_LIBRARY.md` for what's
-included, its third-party provenance, and how to vendor more with
-`scripts/import_xdfs.py`. Anything not yet bundled can still be dropped in by
+ecosystem uses. 72 of these ship under `guzzionboard/xdfs/` (2616 tables
+across Moto Guzzi, Ducati, Aprilia, Piaggio, Morini, Gilera, GasGas, BMW,
+Husqvarna, Malaguti and Scomadi) so common families work with nothing to
+download; see `docs/XDF_LIBRARY.md` for what's included, its third-party
+provenance, and how to vendor more with `scripts/import_xdfs.py`. The
+original archive zips are mirrored unmodified in `vendor/guzzidiag/`. Anything not yet bundled can still be dropped in by
 hand, exactly as before:
 
 ```bash

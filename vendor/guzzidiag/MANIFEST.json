@@ -1,0 +1,1591 @@
+{
+  "origin": "https://www.von-der-salierburg.de/download/GuzziDiag/",
+  "note": "Byte-for-byte mirror of the GuzziDiag archive as published. Nothing here is authored by this project; see docs/XDF_LIBRARY.md for provenance and licensing.",
+  "file_count": 96,
+  "total_bytes": 4224462,
+  "files": [
+    {
+      "filename": "15M_428_00_GuzziDiag_V2.28.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15M_428_00_GuzziDiag_V2.28.zip",
+      "bytes": 3251,
+      "sha256": "e4fdcf29d972e83105281decfc8930753df7169b703cfd905046bbe26fcf8521",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_428_00_GuzziDiag_V2.28.zip",
+      "contents": [
+        {
+          "name": "15M_428_00_GuzziDiag_V2.28.xdf",
+          "bytes": 49352,
+          "modified": "2014-03-14T18:19:02"
+        }
+      ]
+    },
+    {
+      "filename": "15M_61600.381.00_Cali_V2.52.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15M_61600.381.00_Cali_V2.52.zip",
+      "bytes": 7200,
+      "sha256": "ff7d372fd0c68e949725bc5cb315d325cbb598156a1c4356b22b182d262aaf18",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_61600.381.00_Cali_V2.52.zip",
+      "contents": [
+        {
+          "name": "15M_61600.381.00_Cali_V2.52.xdf",
+          "bytes": 80590,
+          "modified": "2016-04-29T10:30:38"
+        }
+      ]
+    },
+    {
+      "filename": "15M_Ducati_750SS_V2.28.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15M_Ducati_750SS_V2.28.zip",
+      "bytes": 3194,
+      "sha256": "5d9c612666af0da19e5567df762c00867d2646036c363ec61c67b33ee525f598",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_Ducati_750SS_V2.28.zip",
+      "contents": [
+        {
+          "name": "15M_Ducati_750SS_V2.28.xdf",
+          "bytes": 48913,
+          "modified": "2015-11-29T12:09:26"
+        }
+      ]
+    },
+    {
+      "filename": "15M_Ducati_M900_V1.0.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15M_Ducati_M900_V1.0.zip",
+      "bytes": 3734,
+      "sha256": "fbfe934887dcbf6035511023acf433902cb47553e297089a9d218d6d34c9d0f6",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_Ducati_M900_V1.0.zip",
+      "contents": [
+        {
+          "name": "15M_Ducati_M900_V1.0.xdf",
+          "bytes": 64172,
+          "modified": "2014-04-18T19:43:00"
+        }
+      ]
+    },
+    {
+      "filename": "15M_EEPROM_V1.01.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15M_EEPROM_V1.01.zip",
+      "bytes": 960,
+      "sha256": "38a31236d6deeb066481348556d7ceb8bb508922c467dcc23e874f8fad5240b8",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_EEPROM_V1.01.zip",
+      "contents": [
+        {
+          "name": "15M_EEPROM_V1.01.xdf",
+          "bytes": 2859,
+          "modified": "2016-02-29T08:40:12"
+        }
+      ]
+    },
+    {
+      "filename": "15M_GuzziDiag_V2.32.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15M_GuzziDiag_V2.32.zip",
+      "bytes": 5584,
+      "sha256": "9e46220d30504b7be8b20058c900408ebb4e92cc6652a3827f0d5ac94d6f793f",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_GuzziDiag_V2.32.zip",
+      "contents": [
+        {
+          "name": "15M_GuzziDiag_V2.32.xdf",
+          "bytes": 84667,
+          "modified": "2021-01-27T21:06:42"
+        }
+      ]
+    },
+    {
+      "filename": "15P_00_GasGas450_V1.02.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15P_00_GasGas450_V1.02.zip",
+      "bytes": 2653,
+      "sha256": "f65a51e40c680a0302eca27f5ea28ef88dfc66399ac1c1a8532fb701fb0d2484",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_00_GasGas450_V1.02.zip",
+      "contents": [
+        {
+          "name": "15P_00_GasGas450_V1.02.xdf",
+          "bytes": 79141,
+          "modified": "2014-10-02T13:26:50"
+        }
+      ]
+    },
+    {
+      "filename": "15P_00_GasGasFSR450_V1.02.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15P_00_GasGasFSR450_V1.02.zip",
+      "bytes": 2664,
+      "sha256": "2ebe382588444b795ce166f645d415a9ebf812a1e67c193cc3accb87196ecdac",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_00_GasGasFSR450_V1.02.zip",
+      "contents": [
+        {
+          "name": "15P_00_GasGasFSR450_V1.02.xdf",
+          "bytes": 79141,
+          "modified": "2014-12-05T00:27:56"
+        }
+      ]
+    },
+    {
+      "filename": "15P_1P0P_V1.03.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15P_1P0P_V1.03.zip",
+      "bytes": 2374,
+      "sha256": "5b303f6de9a8ce3eb0b4c5746739f009a74f323293ad1a7a1a2a832bd8cb1ecd",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0P_V1.03.zip",
+      "contents": [
+        {
+          "name": "15P_1P0P_V1.03.xdf",
+          "bytes": 56725,
+          "modified": "2020-06-29T04:00:52"
+        }
+      ]
+    },
+    {
+      "filename": "15P_1P0T_V1.02.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15P_1P0T_V1.02.zip",
+      "bytes": 2157,
+      "sha256": "d540c825b896b5ed00ebbf45861f469699d9e3c80d6469979fb542c791523985",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0T_V1.02.zip",
+      "contents": [
+        {
+          "name": "15P_1P0T_V1.02.xdf",
+          "bytes": 49945,
+          "modified": "2016-02-28T11:38:08"
+        }
+      ]
+    },
+    {
+      "filename": "15P_1P0Z_V1.02.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15P_1P0Z_V1.02.zip",
+      "bytes": 2365,
+      "sha256": "d12c0176ca6f641f70fc7bbcda1d4c62580a179eb232948431c2ecb431e4b54b",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0Z_V1.02.zip",
+      "contents": [
+        {
+          "name": "15P_1P0Z_V1.02.xdf",
+          "bytes": 59154,
+          "modified": "2016-02-27T16:47:44"
+        }
+      ]
+    },
+    {
+      "filename": "15P_1P10_V1.03.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15P_1P10_V1.03.zip",
+      "bytes": 4373,
+      "sha256": "3b55e4ce43dcf6dd04d3d2b7f160d532253423e1a4bb14b6253fe16080f38e37",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P10_V1.03.zip",
+      "contents": [
+        {
+          "name": "15P_1P10_V1.03.xdf",
+          "bytes": 58416,
+          "modified": "2023-06-27T20:49:50"
+        }
+      ]
+    },
+    {
+      "filename": "15P_GasGasFE400_V1.00.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15P_GasGasFE400_V1.00.zip",
+      "bytes": 2654,
+      "sha256": "acd17b69b10aa00d7fa1fe2811d20d846625ae4396283dcd7dcb6d0900e0a81d",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_GasGasFE400_V1.00.zip",
+      "contents": [
+        {
+          "name": "15P_GasGasFE400_V1.00.xdf",
+          "bytes": 107699,
+          "modified": "2017-05-19T20:52:48"
+        }
+      ]
+    },
+    {
+      "filename": "15RC_EEPROM_V1.01.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15RC_EEPROM_V1.01.zip",
+      "bytes": 990,
+      "sha256": "64de293f9fc9563be4dba41006e1a1b91e4aadf71c70b8af98f3a0577ef355fe",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_EEPROM_V1.01.zip",
+      "contents": [
+        {
+          "name": "15RC_EEPROM_V1.01.xdf",
+          "bytes": 3272,
+          "modified": "2016-02-29T08:41:18"
+        }
+      ]
+    },
+    {
+      "filename": "15RC_GuzziDiag_1100_V2.17.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15RC_GuzziDiag_1100_V2.17.zip",
+      "bytes": 5548,
+      "sha256": "71053784330dd5abdd596f1b6ab8c8cf4e56a73912b671c5817f3a45b5e25672",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_GuzziDiag_1100_V2.17.zip",
+      "contents": [
+        {
+          "name": "15RC_GuzziDiag_1100_V2.17.xdf",
+          "bytes": 102210,
+          "modified": "2018-04-28T10:26:50"
+        }
+      ]
+    },
+    {
+      "filename": "15RC_GuzziDiag_V7_V2.17.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/15RC_GuzziDiag_V7_V2.17.zip",
+      "bytes": 5522,
+      "sha256": "14e0f3f236158c38b212e59700bc5c352671ca43222cfdef492774dbb9512c1a",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_GuzziDiag_V7_V2.17.zip",
+      "contents": [
+        {
+          "name": "15RC_GuzziDiag_V7_V2.17.xdf",
+          "bytes": 102232,
+          "modified": "2018-04-02T20:37:42"
+        }
+      ]
+    },
+    {
+      "filename": "16M_Duc748_916S_64k_V1.1.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/16M_Duc748_916S_64k_V1.1.zip",
+      "bytes": 2479,
+      "sha256": "c6dcd0537d629c56ca1ebbfb26dd00038625a897b95d083c92449eb63ce861e1",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_Duc748_916S_64k_V1.1.zip",
+      "contents": [
+        {
+          "name": "16M_Duc748_916S_64k_V1.1.xdf",
+          "bytes": 39264,
+          "modified": "2017-06-15T10:43:52"
+        }
+      ]
+    },
+    {
+      "filename": "16M_GuzziDiag_32k_V1.23.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/16M_GuzziDiag_32k_V1.23.zip",
+      "bytes": 2259,
+      "sha256": "05d3504e8a3aa1ea3562b82d39bd5d6f8d72ec4d48b3830b8ad579c014981e72",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_32k_V1.23.zip",
+      "contents": [
+        {
+          "name": "16M_GuzziDiag_32k_V1.23.xdf",
+          "bytes": 34851,
+          "modified": "2015-10-05T14:49:28"
+        }
+      ]
+    },
+    {
+      "filename": "16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.zip",
+      "bytes": 2122,
+      "sha256": "60fd311dc59113f413e04ca45049d878d73a86564d41d1a513400c3da201df3f",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.zip",
+      "contents": [
+        {
+          "name": "16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.xdf",
+          "bytes": 33754,
+          "modified": "2014-09-24T10:43:00"
+        }
+      ]
+    },
+    {
+      "filename": "16M_GuzziDiag_64k_V1.23.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/16M_GuzziDiag_64k_V1.23.zip",
+      "bytes": 2243,
+      "sha256": "be8c31059eef533dabd3d4b7d8c45e7f8ed94d1f2bd3d5d35ebcc9bfd01e480e",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_64k_V1.23.zip",
+      "contents": [
+        {
+          "name": "16M_GuzziDiag_64k_V1.23.xdf",
+          "bytes": 34767,
+          "modified": "2015-10-05T14:51:26"
+        }
+      ]
+    },
+    {
+      "filename": "59M_Ducati_1000SS_V1.28.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/59M_Ducati_1000SS_V1.28.zip",
+      "bytes": 3182,
+      "sha256": "6be93dabcc3a785c4f159fb9dc73cf34a1a740a2f80cf63ad9e3253efeed9567",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Ducati_1000SS_V1.28.zip",
+      "contents": [
+        {
+          "name": "59M_Ducati_1000SS_V1.28.xdf",
+          "bytes": 58223,
+          "modified": "2016-01-10T19:46:06"
+        }
+      ]
+    },
+    {
+      "filename": "59M_Ducati_ST4S_2003_1.01.xdf.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/59M_Ducati_ST4S_2003_1.01.xdf.zip",
+      "bytes": 17868,
+      "sha256": "58b7d3752b1450e3dca1fe9fb616291cddfe41551653e435c4ab4ac3c696cc1a",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Ducati_ST4S_2003_1.01.xdf.zip",
+      "contents": [
+        {
+          "name": "59M_Ducati_ST4S_2003_1.01.xdf",
+          "bytes": 352453,
+          "modified": "2019-04-11T17:15:10"
+        }
+      ]
+    },
+    {
+      "filename": "59M_Monster S4_2002_96508702B_V1.28.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/59M_Monster S4_2002_96508702B_V1.28.zip",
+      "bytes": 3401,
+      "sha256": "543603a7fb7d56e0903524431e47a69906cc73d1ad6fb58438278867dd361368",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Monster S4_2002_96508702B_V1.28.zip",
+      "contents": [
+        {
+          "name": "59M_Monster S4_2002_96508702B_V1.28.xdf",
+          "bytes": 62311,
+          "modified": "2015-02-03T00:31:24"
+        }
+      ]
+    },
+    {
+      "filename": "59M_SS-800_28640671A_V1.28.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/59M_SS-800_28640671A_V1.28.zip",
+      "bytes": 3351,
+      "sha256": "cd4e663bc1cb537081d33217131299b319956a027c6a66c477ec6f1921b9d4d7",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_SS-800_28640671A_V1.28.zip",
+      "contents": [
+        {
+          "name": "59M_SS-800_28640671A_V1.28.xdf",
+          "bytes": 62264,
+          "modified": "2015-02-02T23:48:20"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_1198SP_96520411B_2.2.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_1198SP_96520411B_2.2.zip",
+      "bytes": 5659,
+      "sha256": "8a7600f315757ec63121c87dc6dc40a203bc58fe29effc81dceadb07a342f331",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_1198SP_96520411B_2.2.zip",
+      "contents": [
+        {
+          "name": "5AM_1198SP_96520411B_2.2 Readme.txt",
+          "bytes": 1305,
+          "modified": "2019-03-19T06:36:52"
+        },
+        {
+          "name": "5AM_1198SP_96520411B_2.2.xdf",
+          "bytes": 77676,
+          "modified": "2019-03-19T06:42:16"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Aprilia_SRV850_V1.00.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Aprilia_SRV850_V1.00.zip",
+      "bytes": 6789,
+      "sha256": "6327758a190c4c4f5ebe27ab744eb5153204c4e1fafba135cf8227dd1b147a92",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_SRV850_V1.00.zip",
+      "contents": [
+        {
+          "name": "5AM_Aprilia_SRV850_V1.00 Readme.txt",
+          "bytes": 80,
+          "modified": "2019-03-20T14:46:30"
+        },
+        {
+          "name": "5AM_Aprilia_SRV850_V1.00.xdf",
+          "bytes": 110923,
+          "modified": "2019-03-20T14:27:52"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_1098R_22C3_013_V1.28.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_1098R_22C3_013_V1.28.zip",
+      "bytes": 4072,
+      "sha256": "15691087d7cfeb2a6e0a9555f2df68efe103bb6344be66f18bb2a8dd0645984c",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1098R_22C3_013_V1.28.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_1098R_22C3_013_V1.28.xdf",
+          "bytes": 78178,
+          "modified": "2020-12-27T18:11:18"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_1098_S_DP_V1.1.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_1098_S_DP_V1.1.zip",
+      "bytes": 3724,
+      "sha256": "72c5292a563fee15deb099a231e0e4aeda4404c6f6d55abc825120b3709e53f2",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1098_S_DP_V1.1.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_1098_S_DP_V1.1.xdf",
+          "bytes": 50180,
+          "modified": "2017-05-16T22:12:08"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_1198S_3213_PQ58_V1.27.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_1198S_3213_PQ58_V1.27.zip",
+      "bytes": 3851,
+      "sha256": "65f4938335d5d542c57058845acb94ede8b11b05f2c07790af9cb582a6e3307a",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198S_3213_PQ58_V1.27.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_1198S_3213_PQ58_V1.27.xdf",
+          "bytes": 58801,
+          "modified": "2014-05-21T08:29:18"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_1198_328641831D_V1.27.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_1198_328641831D_V1.27.zip",
+      "bytes": 3410,
+      "sha256": "2a0a3a9f738461c147b07db2439045cd733584778a07fb37bead89705c6bdd9d",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198_328641831D_V1.27.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_1198_328641831D_V1.27.xdf",
+          "bytes": 49602,
+          "modified": "2014-05-21T08:29:18"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_1198_DP_V1.27.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_1198_DP_V1.27.zip",
+      "bytes": 3950,
+      "sha256": "58d003b2941b6421923366647df9690a18859a5660e609d1b47c47b160725e46",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198_DP_V1.27.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_1198_DP_V1.27.xdf",
+          "bytes": 59655,
+          "modified": "2014-08-11T21:29:34"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_848_22AELM26_28641571A_V1.1.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_848_22AELM26_28641571A_V1.1.zip",
+      "bytes": 3073,
+      "sha256": "4f8851d7e3e50eb4d03ed5314c85d71f6510541a5aa38f6f600e05e25e35146d",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_22AELM26_28641571A_V1.1.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_848_22AELM26_28641571A_V1.1.xdf",
+          "bytes": 47903,
+          "modified": "2021-09-10T22:42:52"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_848_22aesma2_96519408B_V1.0.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_848_22aesma2_96519408B_V1.0.zip",
+      "bytes": 3072,
+      "sha256": "1721d95e6559da3fef67fd58b48734cef9ffed2996a2a8e5f0fefcfec2df597c",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_22aesma2_96519408B_V1.0.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_848_22aesma2_96519408B_V1.0.xdf",
+          "bytes": 46459,
+          "modified": "2016-02-26T07:57:14"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_848_V1.0.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_848_V1.0.zip",
+      "bytes": 1835,
+      "sha256": "49c10ca7d9fa5e2eea4a67cbbd194db0a281108eae3ed02edd0d289fea55b7da",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_V1.0.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_848_V1.0.xdf",
+          "bytes": 16611,
+          "modified": "2013-10-19T20:37:56"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_Hypermotard_1100_V1.0.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_Hypermotard_1100_V1.0.zip",
+      "bytes": 1957,
+      "sha256": "47393d82ec338ae398e90320d9f0e028d98e08365d93cf4230e4de56f5889248",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_Hypermotard_1100_V1.0.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_Hypermotard_1100_V1.0.xdf",
+          "bytes": 16944,
+          "modified": "2013-10-11T21:16:16"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_MTS1000_HW103_V1.0.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_MTS1000_HW103_V1.0.zip",
+      "bytes": 1725,
+      "sha256": "9f5a1941cec78b21b54fc622bd2d5a51aac3ac0e3acbd172453c8cddd9c7d720",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_MTS1000_HW103_V1.0.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_MTS1000_HW103_V1.0.xdf",
+          "bytes": 13355,
+          "modified": "2013-09-16T21:02:18"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_MTS1000_HW610_V1.0.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_MTS1000_HW610_V1.0.zip",
+      "bytes": 1727,
+      "sha256": "77b5f749e2b72d7aaf311a84826986b8788a2249b47f913caa5450f957b8214a",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_MTS1000_HW610_V1.0.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_MTS1000_HW610_V1.0.xdf",
+          "bytes": 14737,
+          "modified": "2013-12-05T21:26:40"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_Multistrada_1100_V1.28.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_Multistrada_1100_V1.28.zip",
+      "bytes": 3726,
+      "sha256": "9b95498d0ef3d8c9bd90aff490d29204dbd2947ff6818e456c3f3d8d72a8c9a5",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_Multistrada_1100_V1.28.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_Multistrada_1100_V1.28.xdf",
+          "bytes": 68540,
+          "modified": "2014-06-18T00:27:28"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_S2_1000R_DP_V1.28.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_S2_1000R_DP_V1.28.zip",
+      "bytes": 3688,
+      "sha256": "5d9e2352e5dd90823738f3fc51006cc49c95e98b4928c6bd9920acaf2b34acea",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S2_1000R_DP_V1.28.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_S2_1000R_DP_V1.28.xdf",
+          "bytes": 68495,
+          "modified": "2014-05-21T08:29:20"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_S2_800R_V1.28.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_S2_800R_V1.28.zip",
+      "bytes": 3677,
+      "sha256": "b857a1a54565fc0ea46bd42ba4aa16b713c443d37aec5612bff0f7ff64df78fa",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S2_800R_V1.28.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_S2_800R_V1.28.xdf",
+          "bytes": 68499,
+          "modified": "2014-04-28T18:39:26"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_S4R_996_Monster_HW610_V1.0.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_S4R_996_Monster_HW610_V1.0.zip",
+      "bytes": 1745,
+      "sha256": "ef1ef006cfb13d6816cb18ea5cbb6aa791b230c7cc6206d55233d52506f85c90",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S4R_996_Monster_HW610_V1.0.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_S4R_996_Monster_HW610_V1.0.xdf",
+          "bytes": 14732,
+          "modified": "2015-01-03T12:40:26"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.zip",
+      "bytes": 5372,
+      "sha256": "c502696372f6dcb9434859be2f7f9795caf0da82f0965ca1b784f5b8e87a4034",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_(28641281D 96518407B)_S4RS_(28641461A 96517906B)_V1.35.xdf",
+          "bytes": 86561,
+          "modified": "2014-06-24T08:04:48"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.zip",
+      "bytes": 5203,
+      "sha256": "a050e88dac41a21a61c75e2023f8f0cbff8620a06352a4b31785910736c27569",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_SC1000_MONOPOSTO_(DP)_(96517006B)_V1.35.xdf",
+          "bytes": 85223,
+          "modified": "2014-06-24T08:04:48"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.zip",
+      "bytes": 5250,
+      "sha256": "3be8d0b85ac3afe9d37c74d9261e0a35354d18c43eab01d047a9f506587a6a89",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_SC1000_MONOPOSTO_(Stock)_(2229B29DAP5 )_PaulSmart_(2229B29DAP6)_V1.35.xdf",
+          "bytes": 85601,
+          "modified": "2014-06-24T08:04:48"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_SF_Serie_V1.28.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_SF_Serie_V1.28.zip",
+      "bytes": 3369,
+      "sha256": "89a08f66a209f4f94232d89e4ab104e4b003fe79ce22917b392d74fd2db9928c",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SF_Serie_V1.28.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_SF_Serie_V1.28.xdf",
+          "bytes": 54896,
+          "modified": "2014-04-28T18:39:26"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.zip",
+      "bytes": 3083,
+      "sha256": "601795d22c2b7480e639937bcfaa342c8444a628a8ccc79794fd9680d9c5a9ca",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.zip",
+      "contents": [
+        {
+          "name": "5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.xdf",
+          "bytes": 47875,
+          "modified": "2016-02-26T07:57:16"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_EEPROM_V1.01.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_EEPROM_V1.01.zip",
+      "bytes": 1450,
+      "sha256": "4e9a0ad0f38d23e1e481e6a3b12ddf5d6e57d8966abcb9b56e68a07140c4db1d",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_EEPROM_V1.01.zip",
+      "contents": [
+        {
+          "name": "5AM_EEPROM_V1.01.xdf",
+          "bytes": 18997,
+          "modified": "2017-11-14T10:31:16"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Gilera_GP800_V1.05.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Gilera_GP800_V1.05.zip",
+      "bytes": 2446,
+      "sha256": "77f5958880e97ba79f00ceb4a95879c77ae0bc5cd5c7ce1b961a0cebcd1debac",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Gilera_GP800_V1.05.zip",
+      "contents": [
+        {
+          "name": "5AM_Gilera_GP800_V1.05.xdf",
+          "bytes": 55705,
+          "modified": "2021-07-10T13:50:22"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_GuzziDiag_One_Lambda_V1.41.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_GuzziDiag_One_Lambda_V1.41.zip",
+      "bytes": 25731,
+      "sha256": "222b16ec554dc53f6b66a83265b0599341488f2097d56c15727b053638f715b8",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_GuzziDiag_One_Lambda_V1.41.zip",
+      "contents": [
+        {
+          "name": "5AM_GuzziDiag_One_Lambda_V1.41.xdf",
+          "bytes": 464670,
+          "modified": "2020-01-13T14:28:58"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_GuzziDiag_Two_Lambda_V1.40.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_GuzziDiag_Two_Lambda_V1.40.zip",
+      "bytes": 38802,
+      "sha256": "cb27cd5feb22d4d2a1d46634e87b9dd46ad01a381bd28813ee164b028c8e574e",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_GuzziDiag_Two_Lambda_V1.40.zip",
+      "contents": [
+        {
+          "name": "5AM_GuzziDiag_Two_Lambda_V1.40.xdf",
+          "bytes": 832210,
+          "modified": "2019-12-21T13:41:06"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Morini_Corsaro_Two_Lambda_V1.34.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Morini_Corsaro_Two_Lambda_V1.34.zip",
+      "bytes": 4553,
+      "sha256": "c5ab1ea8dfec27d6ebf8237a534879ad65dfe23bf2f459b7bc75912ea54f4259",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Corsaro_Two_Lambda_V1.34.zip",
+      "contents": [
+        {
+          "name": "5AM_Morini_Corsaro_Two_Lambda_V1.34.xdf",
+          "bytes": 69650,
+          "modified": "2019-02-12T20:04:30"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Morini_Corsaro_V1.25.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Morini_Corsaro_V1.25.zip",
+      "bytes": 7762,
+      "sha256": "2d0c931fc6f8ef9b39becf4445c1a3e3efce4f2bd30bca85093398226cf5917a",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Corsaro_V1.25.zip",
+      "contents": [
+        {
+          "name": "5AM_Morini_Corsaro_V1.25.xdf",
+          "bytes": 114313,
+          "modified": "2020-01-09T18:03:18"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Morini_GP_2_Lambda_V1.22.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Morini_GP_2_Lambda_V1.22.zip",
+      "bytes": 2903,
+      "sha256": "d56ec9877178aa11b00f9b72f89936f7360e862c0279333d6bb5a79afb462949",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_GP_2_Lambda_V1.22.zip",
+      "contents": [
+        {
+          "name": "5AM_Morini_GP_2_Lambda_V1.22.xdf",
+          "bytes": 39783,
+          "modified": "2014-05-21T08:29:18"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Morini_Sport_GP_95_Scrambler_V1.25.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Morini_Sport_GP_95_Scrambler_V1.25.zip",
+      "bytes": 7799,
+      "sha256": "ba6f2db4ae44ed3392535c6fa48afba9d6fb93d24cc6af91079a5d15d6253dba",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Sport_GP_95_Scrambler_V1.25.zip",
+      "contents": [
+        {
+          "name": "5AM_Morini_Sport_GP_95_Scrambler_V1.25.xdf",
+          "bytes": 114316,
+          "modified": "2020-01-09T18:03:22"
+        }
+      ]
+    },
+    {
+      "filename": "7SM_RSV4_6404XXxx_V0.15.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/7SM_RSV4_6404XXxx_V0.15.zip",
+      "bytes": 2793,
+      "sha256": "8a905c66d4890b65a8e9795c67936812088135893bfee544f5177f033191103f",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_6404XXxx_V0.15.zip",
+      "contents": [
+        {
+          "name": "7SM_RSV4_6404XXxx_V0.15.xdf",
+          "bytes": 60326,
+          "modified": "2021-04-24T22:12:44"
+        }
+      ]
+    },
+    {
+      "filename": "MBC1_BMW_C600_V1.01.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MBC1_BMW_C600_V1.01.zip",
+      "bytes": 4397,
+      "sha256": "336a119e33883e0dc1ea4b43fb97d30ce4871c5a90e7671967ed17006b63fede",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_BMW_C600_V1.01.zip",
+      "contents": [
+        {
+          "name": "MBC1_BMW_C600_V1.01.xdf",
+          "bytes": 66758,
+          "modified": "2021-06-06T10:59:48"
+        }
+      ]
+    },
+    {
+      "filename": "MBC1_Nuda_900_V1.00.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MBC1_Nuda_900_V1.00.zip",
+      "bytes": 4491,
+      "sha256": "ea68c4690eb9b2c9ebbe2dc882f0aabb8e5300290063a54c149df740f4c666d9",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_Nuda_900_V1.00.zip",
+      "contents": [
+        {
+          "name": "MBC1_Nuda_900_V1.00.xdf",
+          "bytes": 67038,
+          "modified": "2023-12-06T22:02:26"
+        }
+      ]
+    },
+    {
+      "filename": "MIU1_CM081701_22A3GS14_V0.03.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIU1_CM081701_22A3GS14_V0.03.zip",
+      "bytes": 2608,
+      "sha256": "4ae1f630f2866c305587a5c94611d607343ae4b7e1fa73e6ca1ee541f9e18adc",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIU1_CM081701_22A3GS14_V0.03.zip",
+      "contents": [
+        {
+          "name": "MIU1_CM081701_22A3GS14_V0.03.xdf",
+          "bytes": 54928,
+          "modified": "2021-10-15T18:18:34"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_Aprilia_SR_MAX_300ie_V1.02.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_Aprilia_SR_MAX_300ie_V1.02.zip",
+      "bytes": 3971,
+      "sha256": "e4a6371671ffb9e0fbcffa445233096958559fba2270046d43bb6675a41f4fb1",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_SR_MAX_300ie_V1.02.zip",
+      "contents": [
+        {
+          "name": "MIUG3_Aprilia_SR_MAX_300ie_V1.02.xdf",
+          "bytes": 114807,
+          "modified": "2016-03-19T00:37:10"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_Malaguti_4643AFC1_XTM125_V1.02.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_Malaguti_4643AFC1_XTM125_V1.02.zip",
+      "bytes": 3472,
+      "sha256": "f6be8ee00079c37ce2ee12dc89a631de80089448c64611e393092c02b0b3c6c4",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Malaguti_4643AFC1_XTM125_V1.02.zip",
+      "contents": [
+        {
+          "name": "MIUG3_Malaguti_4643AFC1_XTM125_V1.02.xdf",
+          "bytes": 77219,
+          "modified": "2022-07-17T13:15:16"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_MotoGuzzi_V7II_V1.15.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_MotoGuzzi_V7II_V1.15.zip",
+      "bytes": 5429,
+      "sha256": "da0d40da99ab243b3be257f1bdea25f5f04c4c8a07c14b1aaffd278310846930",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7II_V1.15.zip",
+      "contents": [
+        {
+          "name": "MIUG3_MotoGuzzi_V7II_V1.15.xdf",
+          "bytes": 83708,
+          "modified": "2022-03-30T20:03:56"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_MotoGuzzi_V7_V1.10.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_MotoGuzzi_V7_V1.10.zip",
+      "bytes": 4943,
+      "sha256": "15933b39fd135623932d8dc8eefa7339fd55cd4ca894f24bfe1d0a3866995128",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7_V1.10.zip",
+      "contents": [
+        {
+          "name": "MIUG3_MotoGuzzi_V7_V1.10.xdf",
+          "bytes": 131682,
+          "modified": "2019-11-03T12:41:10"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_Piaggio_34B9BU42_V1.00.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_Piaggio_34B9BU42_V1.00.zip",
+      "bytes": 1831,
+      "sha256": "58070631964cbeae8eb8b9850b1cfdbe15db8e3def4b7e8717810c655cbbde8a",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_34B9BU42_V1.00.zip",
+      "contents": [
+        {
+          "name": "MIUG3_Piaggio_34B9BU42_V1.00.xdf",
+          "bytes": 34245,
+          "modified": "2016-03-19T00:14:06"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_Piaggio_4528BU53_V1.00.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_Piaggio_4528BU53_V1.00.zip",
+      "bytes": 2477,
+      "sha256": "14b18af3076225d9dcdc90a5ede207a737beab07c6c6aaeb536d9ce7aeb24fdb",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_4528BU53_V1.00.zip",
+      "contents": [
+        {
+          "name": "MIUG3_Piaggio_4528BU53_V1.00.xdf",
+          "bytes": 48637,
+          "modified": "2016-05-08T00:06:16"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_Piaggio_4530xxxx_GTS300_V1.04.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_Piaggio_4530xxxx_GTS300_V1.04.zip",
+      "bytes": 2580,
+      "sha256": "35469d2881ec83544a32d90077b3d4b68917eca24930b8aa9bd53ffde0aee01e",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_4530xxxx_GTS300_V1.04.zip",
+      "contents": [
+        {
+          "name": "MIUG3_Piaggio_4530xxxx_GTS300_V1.04.xdf",
+          "bytes": 50239,
+          "modified": "2019-06-06T23:21:34"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_Piaggio_464CDABL_GTS300_V1.04.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_Piaggio_464CDABL_GTS300_V1.04.zip",
+      "bytes": 2631,
+      "sha256": "25e5636159071ea1f5b27101c8e6802bb46a5c962433490baec85f4464ffb787",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_464CDABL_GTS300_V1.04.zip",
+      "contents": [
+        {
+          "name": "MIUG3_Piaggio_464CDABL_GTS300_V1.04.xdf",
+          "bytes": 49445,
+          "modified": "2019-06-06T22:53:02"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_Piaggio_Fly_3V_V1.01.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_Piaggio_Fly_3V_V1.01.zip",
+      "bytes": 1817,
+      "sha256": "e0828d9536009420ae7684a365db10edd11720259353840d517df62d745da8db",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_Fly_3V_V1.01.zip",
+      "contents": [
+        {
+          "name": "MIUG3_Piaggio_Fly_3V_V1.01.xdf",
+          "bytes": 34236,
+          "modified": "2016-03-19T00:16:22"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_Piaggio_GTS300_3417BN15_V1.00.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_Piaggio_GTS300_3417BN15_V1.00.zip",
+      "bytes": 2686,
+      "sha256": "b23b28c343d7691d93423e5ca6f5ace65673bae3c5fbdd3df1df433e3ae4208b",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_GTS300_3417BN15_V1.00.zip",
+      "contents": [
+        {
+          "name": "MIUG3_Piaggio_GTS300_3417BN15_V1.00.xdf",
+          "bytes": 49757,
+          "modified": "2020-06-28T16:32:32"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_Piaggio_GTS300_V2_V1.03.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_Piaggio_GTS300_V2_V1.03.zip",
+      "bytes": 2525,
+      "sha256": "d51e530859dbf2e2fd453089ace76366184f2a1125d89bc1328717e1b9d16e10",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_GTS300_V2_V1.03.zip",
+      "contents": [
+        {
+          "name": "MIUG3_Piaggio_GTS300_V2_V1.03.xdf",
+          "bytes": 48932,
+          "modified": "2019-06-06T22:44:28"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_Scomadi_200_V0.02.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_Scomadi_200_V0.02.zip",
+      "bytes": 3946,
+      "sha256": "716409ec68b6d06eb29a686d9c4867253013fad3534795c51393e39c88c861e8",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Scomadi_200_V0.02.zip",
+      "contents": [
+        {
+          "name": "MIUG3_Scomadi_200_V0.02.xdf",
+          "bytes": 111968,
+          "modified": "2018-03-11T21:47:12"
+        }
+      ]
+    },
+    {
+      "filename": "P7_GuzziDiag_16k_V1.26.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/P7_GuzziDiag_16k_V1.26.zip",
+      "bytes": 2082,
+      "sha256": "3237cf87e62157b45f4456fa5ee22fc8aa16ac1eb9d2638f550b84326f4e265b",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/P7_GuzziDiag_16k_V1.26.zip",
+      "contents": [
+        {
+          "name": "P7_GuzziDiag_16k_V1.26.xdf",
+          "bytes": 36401,
+          "modified": "2014-09-24T21:32:06"
+        }
+      ]
+    },
+    {
+      "filename": "P8_GuzziDiag_32k_V1.30.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/P8_GuzziDiag_32k_V1.30.zip",
+      "bytes": 3005,
+      "sha256": "c7903226ab0cf2411b2a1a121f95e777417c26753b4197fa1a16141225858709",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/P8_GuzziDiag_32k_V1.30.zip",
+      "contents": [
+        {
+          "name": "P8_GuzziDiag_32k_V1.30.xdf",
+          "bytes": 87473,
+          "modified": "2016-02-15T11:09:04"
+        }
+      ]
+    },
+    {
+      "filename": "AdapterTest_V1.01.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/AdapterTest_V1.01.zip",
+      "bytes": 26393,
+      "sha256": "235499db84671ea951aeba2f0b25615ec26ad68543cc4820850dc69214cb5b31",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/AdapterTest_V1.01.zip",
+      "contents": [
+        {
+          "name": "AdapterTest_V1.01.exe",
+          "bytes": 46080,
+          "modified": "2013-09-18T19:12:16"
+        }
+      ]
+    },
+    {
+      "filename": "CDM-v2.12.36.20-WHQL-Certified.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/CDM-v2.12.36.20-WHQL-Certified.zip",
+      "bytes": 1628167,
+      "sha256": "e8ebf401d06994183694d78e5855ed5ab026bdfa8c3d4e4ccde09ec238a0eaf1",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/CDM-v2.12.36.20-WHQL-Certified.zip",
+      "contents": [
+        {
+          "name": "amd64/ftbusui.dll",
+          "bytes": 170056,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "amd64/ftcserco.dll",
+          "bytes": 76872,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "amd64/ftd2xx.lib",
+          "bytes": 20260,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "amd64/FTD2XX64.dll",
+          "bytes": 808568,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "amd64/ftdibus.sys",
+          "bytes": 152608,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "amd64/ftlang.dll",
+          "bytes": 276552,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "amd64/ftser2k.sys",
+          "bytes": 101520,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "amd64/ftserui2.dll",
+          "bytes": 67144,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "ftd2xx.h",
+          "bytes": 144665,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "ftdibus.cat",
+          "bytes": 26691,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "ftdibus.inf",
+          "bytes": 33850,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "ftdiport.cat",
+          "bytes": 25846,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "ftdiport.inf",
+          "bytes": 19728,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "i386/ftbusui.dll",
+          "bytes": 157768,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "i386/ftcserco.dll",
+          "bytes": 80464,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "i386/ftd2xx.dll",
+          "bytes": 454264,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "i386/ftd2xx.lib",
+          "bytes": 22190,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "i386/ftdibus.sys",
+          "bytes": 124192,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "i386/ftlang.dll",
+          "bytes": 257096,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "i386/ftser2k.sys",
+          "bytes": 87008,
+          "modified": "2024-11-27T14:35:42"
+        },
+        {
+          "name": "i386/ftserui2.dll",
+          "bytes": 57976,
+          "modified": "2024-11-27T14:35:44"
+        },
+        {
+          "name": "Static/amd64/FTD2XX.lib",
+          "bytes": 704594,
+          "modified": "2024-11-27T14:35:44"
+        },
+        {
+          "name": "Static/i386/ftd2xx.lib",
+          "bytes": 575506,
+          "modified": "2024-11-27T14:35:44"
+        }
+      ]
+    },
+    {
+      "filename": "GearSpeed_V1.55.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/GearSpeed_V1.55.zip",
+      "bytes": 73564,
+      "sha256": "f9ac1c7405137a2e1408a353c7db3b483ccd75a4a0415b6da90aaccff53b4aca",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/GearSpeed_V1.55.zip",
+      "contents": [
+        {
+          "name": "GearSpeed_V1.55.exe",
+          "bytes": 159232,
+          "modified": "2022-10-17T19:08:46"
+        }
+      ]
+    },
+    {
+      "filename": "GuzziCanDiag_V0.02.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/GuzziCanDiag_V0.02.zip",
+      "bytes": 293578,
+      "sha256": "cef9d25bda0b9fec9e0000fb134600af43e0f7f52b54f0a1522327187e33c68d",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/GuzziCanDiag_V0.02.zip",
+      "contents": [
+        {
+          "name": "GuzziCanDiag_V0.02.exe",
+          "bytes": 556544,
+          "modified": "2025-09-24T17:15:00"
+        }
+      ]
+    },
+    {
+      "filename": "GuzziDiag_V0.61.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/GuzziDiag_V0.61.zip",
+      "bytes": 211638,
+      "sha256": "9f1b945dafa33c42c3646a76003b350a0310b96b665ef595daf8f9e64d32789d",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/GuzziDiag_V0.61.zip",
+      "contents": [
+        {
+          "name": "GuzziDiag_V0.61.exe",
+          "bytes": 476160,
+          "modified": "2026-06-07T15:09:40"
+        }
+      ]
+    },
+    {
+      "filename": "IAW15xEEPROMTool_V0.04.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAW15xEEPROMTool_V0.04.zip",
+      "bytes": 65470,
+      "sha256": "3d294470ffbffd4fbf18ad1939ea1b4e36c19db7f34c3c321705decafce5e6a5",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAW15xEEPROMTool_V0.04.zip",
+      "contents": [
+        {
+          "name": "IAW15xEEPROMTool_V0.04.exe",
+          "bytes": 128000,
+          "modified": "2016-02-28T12:09:22"
+        }
+      ]
+    },
+    {
+      "filename": "IAW15xReader_V0.68.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAW15xReader_V0.68.zip",
+      "bytes": 63822,
+      "sha256": "50f2c90a202d935d87cc3e292b11c5f4420158a7c3d908a330e0cff61b7e9520",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAW15xReader_V0.68.zip",
+      "contents": [
+        {
+          "name": "IAW15xReader_V0.68.exe",
+          "bytes": 124416,
+          "modified": "2019-08-13T19:38:50"
+        }
+      ]
+    },
+    {
+      "filename": "IAW15xWriter_V0.27.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAW15xWriter_V0.27.zip",
+      "bytes": 85405,
+      "sha256": "502ee0588e271e20fa311bc83e48deb1cd2b885f7e04ceb875f8c654e2f3f028",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAW15xWriter_V0.27.zip",
+      "contents": [
+        {
+          "name": "IAW15xWriter_V0.27.exe",
+          "bytes": 171520,
+          "modified": "2019-08-11T10:53:50"
+        }
+      ]
+    },
+    {
+      "filename": "IAW5AMEEPROMTool_V0.04.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAW5AMEEPROMTool_V0.04.zip",
+      "bytes": 72129,
+      "sha256": "be2237e3a2b600ce54c8d196d146cdee284736eed2aa875fb2e0e5431b4eecb8",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAW5AMEEPROMTool_V0.04.zip",
+      "contents": [
+        {
+          "name": "IAW5AMEEPROMTool_V0.04.exe",
+          "bytes": 140288,
+          "modified": "2018-01-05T19:46:26"
+        }
+      ]
+    },
+    {
+      "filename": "IAW5xReader_V0.28.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAW5xReader_V0.28.zip",
+      "bytes": 72961,
+      "sha256": "6ac8a6d1fdcd6b11877fdf7fd94089a767c7fec12306ff1e2de31843d6b2a11b",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAW5xReader_V0.28.zip",
+      "contents": [
+        {
+          "name": "IAW5xReader_V0.28.exe",
+          "bytes": 142336,
+          "modified": "2017-03-11T17:40:46"
+        }
+      ]
+    },
+    {
+      "filename": "IAW5xWriter_V0.24.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAW5xWriter_V0.24.zip",
+      "bytes": 89751,
+      "sha256": "918772aebd17e93f81989197dba361e1707fa49a76d2b889eece5d178504ebea",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAW5xWriter_V0.24.zip",
+      "contents": [
+        {
+          "name": "IAW5xWriter_V0.24.exe",
+          "bytes": 181760,
+          "modified": "2018-08-21T13:15:26"
+        }
+      ]
+    },
+    {
+      "filename": "IAW7SMEEPROMTool_V0.01.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAW7SMEEPROMTool_V0.01.zip",
+      "bytes": 72670,
+      "sha256": "e3df932065f0cba6fca07da323568e4682014cec1c5c5dd4917f61970427cf8e",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAW7SMEEPROMTool_V0.01.zip",
+      "contents": [
+        {
+          "name": "IAW7SMEEPROMTool_V0.01.exe",
+          "bytes": 141824,
+          "modified": "2018-04-28T20:58:56"
+        }
+      ]
+    },
+    {
+      "filename": "IAW7SMReader_V0.03.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAW7SMReader_V0.03.zip",
+      "bytes": 67817,
+      "sha256": "0597d5119a32a783558143fae493fc9c6d45f68f4f5f40804e84d9eeb9f00a55",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAW7SMReader_V0.03.zip",
+      "contents": [
+        {
+          "name": "IAW7SMReader_V0.03.exe",
+          "bytes": 134144,
+          "modified": "2018-01-12T09:22:08"
+        }
+      ]
+    },
+    {
+      "filename": "IAW7SMWriter_V0.08.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAW7SMWriter_V0.08.zip",
+      "bytes": 92381,
+      "sha256": "17742028111fac539721e6b2fb7d31c402d0545eb62a981d83836f21346e2965",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAW7SMWriter_V0.08.zip",
+      "contents": [
+        {
+          "name": "IAW7SMWriter_V0.08.exe",
+          "bytes": 187904,
+          "modified": "2020-03-22T15:07:36"
+        }
+      ]
+    },
+    {
+      "filename": "IAWDiag_V0.52.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAWDiag_V0.52.zip",
+      "bytes": 233937,
+      "sha256": "a2fb2f1b0fec581e93cbeebef4319ec908ab3ecad3280fb36d802f573c281f6d",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAWDiag_V0.52.zip",
+      "contents": [
+        {
+          "name": "IAWDiag_V0.52.exe",
+          "bytes": 606720,
+          "modified": "2023-05-30T17:25:00"
+        }
+      ]
+    },
+    {
+      "filename": "IAWMBC1Reader_V0.01.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAWMBC1Reader_V0.01.zip",
+      "bytes": 73545,
+      "sha256": "8069e1e1ed3e537e955c95610c183e822f9865f8196089f1907097ce86736765",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAWMBC1Reader_V0.01.zip",
+      "contents": [
+        {
+          "name": "IAWMBC1Reader_V0.01.exe",
+          "bytes": 143360,
+          "modified": "2021-06-01T11:26:04"
+        }
+      ]
+    },
+    {
+      "filename": "IAWMIUG3EEPROMTool_V0.02.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAWMIUG3EEPROMTool_V0.02.zip",
+      "bytes": 72415,
+      "sha256": "d0ca1c7b96d1e27034e71fe6eadd96041b84249ac3678416daef1dce33b67256",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAWMIUG3EEPROMTool_V0.02.zip",
+      "contents": [
+        {
+          "name": "IAWMIUG3EEPROMTool_V0.02.exe",
+          "bytes": 141824,
+          "modified": "2017-05-29T07:51:20"
+        }
+      ]
+    },
+    {
+      "filename": "IAWMIUG3Reader_V0.05.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAWMIUG3Reader_V0.05.zip",
+      "bytes": 72271,
+      "sha256": "353e429a952eacfa8d7c60f162c06f32219f7feadb0643f9c32ce138f6237c22",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAWMIUG3Reader_V0.05.zip",
+      "contents": [
+        {
+          "name": "IAWMIUG3Reader_V0.05.exe",
+          "bytes": 140288,
+          "modified": "2017-03-12T13:36:50"
+        }
+      ]
+    },
+    {
+      "filename": "IAWMIUG3Writer_V0.06.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAWMIUG3Writer_V0.06.zip",
+      "bytes": 90310,
+      "sha256": "1d0418aa9f1ef4ee0866333980d237b8e5cfda4b9c21709761d66cd8a6249083",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAWMIUG3Writer_V0.06.zip",
+      "contents": [
+        {
+          "name": "IAWMIUG3Writer_V0.06.exe",
+          "bytes": 183296,
+          "modified": "2019-11-12T11:01:46"
+        }
+      ]
+    },
+    {
+      "filename": "IAWMIUReader_V0.01.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAWMIUReader_V0.01.zip",
+      "bytes": 71444,
+      "sha256": "75b26240af298c390a92ff032031ab819676e5bd146c7182ccedf215459fe3e9",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAWMIUReader_V0.01.zip",
+      "contents": [
+        {
+          "name": "IAWMIUReader_V0.01.exe",
+          "bytes": 138752,
+          "modified": "2020-07-28T18:48:34"
+        }
+      ]
+    },
+    {
+      "filename": "IAWMIUWriter_V0.01.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/IAWMIUWriter_V0.01.zip",
+      "bytes": 91492,
+      "sha256": "c428977732c244132747332d86e068c05b6231fdd0e8b9c9344eac3890bf7984",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/IAWMIUWriter_V0.01.zip",
+      "contents": [
+        {
+          "name": "IAWMIUWriter_V0.01.exe",
+          "bytes": 185856,
+          "modified": "2021-04-22T14:14:18"
+        }
+      ]
+    },
+    {
+      "filename": "ManaTCU_V1.03.exe",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/ManaTCU_V1.03.exe",
+      "bytes": 163328,
+      "sha256": "4a6be01aab739bdbacde3dfa19b69f73a97f664ddbcd7d93e7f7af578b6ae245",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/ManaTCU_V1.03.exe"
+    },
+    {
+      "filename": "RPMSensorEmu_V0.17.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/RPMSensorEmu_V0.17.zip",
+      "bytes": 58934,
+      "sha256": "4fd0f00c4515bf938feb02d0b89468151ae75b872d0f6a79c72e36cee54e72f4",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/RPMSensorEmu_V0.17.zip",
+      "contents": [
+        {
+          "name": "RPMSensorEmu/BatchExample.rbt",
+          "bytes": 257,
+          "modified": "2013-12-13T19:41:20"
+        },
+        {
+          "name": "RPMSensorEmu/Ducati.cfg",
+          "bytes": 194,
+          "modified": "2013-12-13T19:47:18"
+        },
+        {
+          "name": "RPMSensorEmu/MotoGuzzi.cfg",
+          "bytes": 188,
+          "modified": "2013-12-13T19:47:08"
+        },
+        {
+          "name": "RPMSensorEmu/MotoMorini.cfg",
+          "bytes": 189,
+          "modified": "2013-12-12T23:31:22"
+        },
+        {
+          "name": "RPMSensorEmu/MVAgusta.cfg",
+          "bytes": 237,
+          "modified": "2013-12-13T19:47:54"
+        },
+        {
+          "name": "RPMSensorEmu/RPMSensorEmu_Changelog.txt",
+          "bytes": 863,
+          "modified": "2016-01-02T16:02:36"
+        },
+        {
+          "name": "RPMSensorEmu/RPMSensorEmu_V0.17.exe",
+          "bytes": 102400,
+          "modified": "2016-01-02T16:04:00"
+        }
+      ]
+    },
+    {
+      "filename": "ZT2CSVToLogWorksDIF_V0.71.zip",
+      "section": "tools",
+      "path": "vendor/guzzidiag/tools/ZT2CSVToLogWorksDIF_V0.71.zip",
+      "bytes": 59825,
+      "sha256": "0e16a05fa0ea756ddb55262d621b1e3fe7f5d7a8f226988f21dbd90427dfde77",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/ZT2CSVToLogWorksDIF_V0.71.zip",
+      "contents": [
+        {
+          "name": "ZT2CSVToLogWorksDIF_0.71.oxo",
+          "bytes": 114176,
+          "modified": "2017-05-07T20:22:30"
+        }
+      ]
+    }
+  ]
+}

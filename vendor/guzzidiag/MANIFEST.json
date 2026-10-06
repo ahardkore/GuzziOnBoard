@@ -1,8 +1,8 @@
 {
   "origin": "https://www.von-der-salierburg.de/download/GuzziDiag/",
   "note": "Byte-for-byte mirror of the GuzziDiag archive as published. Nothing here is authored by this project; see docs/XDF_LIBRARY.md for provenance and licensing.",
-  "file_count": 96,
-  "total_bytes": 4224462,
+  "file_count": 112,
+  "total_bytes": 4325995,
   "files": [
     {
       "filename": "15M_428_00_GuzziDiag_V2.28.zip",
@@ -381,6 +381,46 @@
           "name": "5AM_1198SP_96520411B_2.2.xdf",
           "bytes": 77676,
           "modified": "2019-03-19T06:42:16"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Aprilia_GP850_V1.00.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Aprilia_GP850_V1.00.zip",
+      "bytes": 6650,
+      "sha256": "44b89d34a21d366cc19c61b5d664563fdaafd38a407980959b970cddb869c712",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_GP850_V1.00.zip",
+      "contents": [
+        {
+          "name": "5AM_Aprilia_GP850_V1.00 Readme.txt",
+          "bytes": 80,
+          "modified": "2019-03-20T14:46:30"
+        },
+        {
+          "name": "5AM_Aprilia_GP850_V1.00.xdf",
+          "bytes": 106954,
+          "modified": "2019-03-21T06:37:20"
+        }
+      ]
+    },
+    {
+      "filename": "5AM_Aprilia_Mana_V1.38.ZIP",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/5AM_Aprilia_Mana_V1.38.ZIP",
+      "bytes": 33288,
+      "sha256": "a6fcd85082b2c95abf3c83c1d9a2ba81041fed70408348683815078cc4562d88",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_Mana_V1.38.ZIP",
+      "contents": [
+        {
+          "name": "5AM Aprilia Mana 850 2253GX84_641197 readme.txt",
+          "bytes": 207,
+          "modified": "2019-03-17T12:08:20"
+        },
+        {
+          "name": "5AM_Aprilia_Mana_V1.38.xdf",
+          "bytes": 685461,
+          "modified": "2019-03-15T08:49:34"
         }
       ]
     },
@@ -825,6 +865,126 @@
       ]
     },
     {
+      "filename": "7SM_Caponord_1200_1050Fxxx.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/7SM_Caponord_1200_1050Fxxx.zip",
+      "bytes": 2746,
+      "sha256": "4b6ca7a76375f6811eea700e07912b1c1982d245b00d93d167e69845c403b8b3",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_Caponord_1200_1050Fxxx.zip",
+      "contents": [
+        {
+          "name": "7SM_Caponord_1200_1050Fxxx.xdf",
+          "bytes": 60891,
+          "modified": "2018-03-02T21:12:02"
+        }
+      ]
+    },
+    {
+      "filename": "7SM_Dorsoduro_1200_1338XXxx_V0.14.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/7SM_Dorsoduro_1200_1338XXxx_V0.14.zip",
+      "bytes": 3152,
+      "sha256": "c04f8be113d4cdfa043c33dde61ca6ccf68474623c1b6bc7976b3c7a50be361d",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_Dorsoduro_1200_1338XXxx_V0.14.zip",
+      "contents": [
+        {
+          "name": "7SM_Dorsoduro_1200_1338XXxx_V0.14.xdf",
+          "bytes": 62407,
+          "modified": "2019-03-10T23:40:08"
+        }
+      ]
+    },
+    {
+      "filename": "7SM_MotoGuzzi_1400_1050_EURO3_V1.04.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/7SM_MotoGuzzi_1400_1050_EURO3_V1.04.zip",
+      "bytes": 5106,
+      "sha256": "e11b6675a0934c765e9306e6b6abc83c28334f63fd62c27c157feccd22f8b1de",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_1050_EURO3_V1.04.zip",
+      "contents": [
+        {
+          "name": "7SM_MotoGuzzi_1400_1050_EURO3_V1.04.xdf",
+          "bytes": 107343,
+          "modified": "2021-12-29T23:24:34"
+        }
+      ]
+    },
+    {
+      "filename": "7SM_MotoGuzzi_1400_EURO4_V1.04.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/7SM_MotoGuzzi_1400_EURO4_V1.04.zip",
+      "bytes": 5262,
+      "sha256": "c9edee6e7061430c7139c51858937e323afe1c273ff2c3ed52aade1d7558c439",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_EURO4_V1.04.zip",
+      "contents": [
+        {
+          "name": "7SM_MotoGuzzi_1400_EURO4_V1.04.xdf",
+          "bytes": 104734,
+          "modified": "2021-12-30T12:03:18"
+        }
+      ]
+    },
+    {
+      "filename": "7SM_MotoGuzzi_1400_MGX21_V0.14.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/7SM_MotoGuzzi_1400_MGX21_V0.14.zip",
+      "bytes": 2718,
+      "sha256": "0547b0174d4e81f6cfdcaf37d334b834eabfb456e9983acaf1f2b22e29c297b4",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_MGX21_V0.14.zip",
+      "contents": [
+        {
+          "name": "7SM_MotoGuzzi_1400_MGX21_V0.14.xdf",
+          "bytes": 59130,
+          "modified": "2018-04-12T23:15:06"
+        }
+      ]
+    },
+    {
+      "filename": "7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.zip",
+      "bytes": 5575,
+      "sha256": "3c2b6ee8b6ecd4751cbd929cb8b9159e93f677401f22ea61ca4d8df4ff8f76cc",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.zip",
+      "contents": [
+        {
+          "name": "7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.xdf",
+          "bytes": 106052,
+          "modified": "2024-04-01T20:40:24"
+        }
+      ]
+    },
+    {
+      "filename": "7SM_RSV4_40xxXXxx_V0.12.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/7SM_RSV4_40xxXXxx_V0.12.zip",
+      "bytes": 2744,
+      "sha256": "9328f1649d13de94532125528ce2ed0673b1b4e403d156d3c1994a13d114e107",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_40xxXXxx_V0.12.zip",
+      "contents": [
+        {
+          "name": "7SM_RSV4_40xxXXxx_V0.12.xdf",
+          "bytes": 60812,
+          "modified": "2018-02-26T16:20:30"
+        }
+      ]
+    },
+    {
+      "filename": "7SM_RSV4_6403XXxx_V0.13.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/7SM_RSV4_6403XXxx_V0.13.zip",
+      "bytes": 3046,
+      "sha256": "2f5ae291a4eb6660bd2c9fd278821f9d692108b25bb882a303791963d838fd2b",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_6403XXxx_V0.13.zip",
+      "contents": [
+        {
+          "name": "7SM_RSV4_6403XXxx_V0.13.xdf",
+          "bytes": 60846,
+          "modified": "2018-03-17T22:24:16"
+        }
+      ]
+    },
+    {
       "filename": "7SM_RSV4_6404XXxx_V0.15.zip",
       "section": "xdf",
       "path": "vendor/guzzidiag/xdf/7SM_RSV4_6404XXxx_V0.15.zip",
@@ -885,6 +1045,36 @@
       ]
     },
     {
+      "filename": "MIUG3_Aprilia_RS4_125_CM088115_V1.02.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_Aprilia_RS4_125_CM088115_V1.02.zip",
+      "bytes": 2034,
+      "sha256": "d1bf723760341ec57459d573db1af8dd97b9ce56b337ebc0d5d0c3e4cbd07202",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_RS4_125_CM088115_V1.02.zip",
+      "contents": [
+        {
+          "name": "MIUG3_Aprilia_RS4_125_CM088115_V1.02.xdf",
+          "bytes": 45537,
+          "modified": "2016-11-12T23:58:26"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_Aprilia_RS4_125_CM227201_V1.02.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_Aprilia_RS4_125_CM227201_V1.02.zip",
+      "bytes": 4143,
+      "sha256": "8fcfd8b7e0e86d928b005fa849d6644153ec9bdf3659e3602383bafbfbd68f9e",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_RS4_125_CM227201_V1.02.zip",
+      "contents": [
+        {
+          "name": "MIUG3_Aprilia_RS4_125_CM227201_V1.02.xdf",
+          "bytes": 113526,
+          "modified": "2022-07-17T17:00:20"
+        }
+      ]
+    },
+    {
       "filename": "MIUG3_Aprilia_SR_MAX_300ie_V1.02.zip",
       "section": "xdf",
       "path": "vendor/guzzidiag/xdf/MIUG3_Aprilia_SR_MAX_300ie_V1.02.zip",
@@ -900,6 +1090,21 @@
       ]
     },
     {
+      "filename": "MIUG3_Aprilia_SX125_464EA105_V1.00.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_Aprilia_SX125_464EA105_V1.00.zip",
+      "bytes": 7500,
+      "sha256": "e989b8128870c5ddc24a2e1ff8d31c2c4b59ef49d95f13033bd8609b56a1edeb",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_SX125_464EA105_V1.00.zip",
+      "contents": [
+        {
+          "name": "MIUG3_Aprilia_SX125__464EA105_V1.00.xdf",
+          "bytes": 194306,
+          "modified": "2021-05-24T23:31:12"
+        }
+      ]
+    },
+    {
       "filename": "MIUG3_Malaguti_4643AFC1_XTM125_V1.02.zip",
       "section": "xdf",
       "path": "vendor/guzzidiag/xdf/MIUG3_Malaguti_4643AFC1_XTM125_V1.02.zip",
@@ -911,6 +1116,21 @@
           "name": "MIUG3_Malaguti_4643AFC1_XTM125_V1.02.xdf",
           "bytes": 77219,
           "modified": "2022-07-17T13:15:16"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_MotoGuzzi_V7III_V1.15.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_MotoGuzzi_V7III_V1.15.zip",
+      "bytes": 5877,
+      "sha256": "0ff1f769ee8a6582c4c66585801e669ff386672dc4642730c140ad25fa133ef0",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7III_V1.15.zip",
+      "contents": [
+        {
+          "name": "MIUG3_MotoGuzzi_V7III_V1.15.xdf",
+          "bytes": 95056,
+          "modified": "2022-03-31T23:53:00"
         }
       ]
     },
@@ -941,6 +1161,36 @@
           "name": "MIUG3_MotoGuzzi_V7_V1.10.xdf",
           "bytes": 131682,
           "modified": "2019-11-03T12:41:10"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.zip",
+      "bytes": 5603,
+      "sha256": "af97ea520d27db614ef74b6e3cc6fd24f1463c6eaa5ed3a288cf168c0d18fab8",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.zip",
+      "contents": [
+        {
+          "name": "MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.xdf",
+          "bytes": 169007,
+          "modified": "2019-07-21T18:57:42"
+        }
+      ]
+    },
+    {
+      "filename": "MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.zip",
+      "section": "xdf",
+      "path": "vendor/guzzidiag/xdf/MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.zip",
+      "bytes": 6089,
+      "sha256": "57252380ab669423b8d3c8e15f9456d12961776234d0554e6c451e36be6759b3",
+      "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.zip",
+      "contents": [
+        {
+          "name": "MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.xdf",
+          "bytes": 193316,
+          "modified": "2019-07-21T18:53:56"
         }
       ]
     },

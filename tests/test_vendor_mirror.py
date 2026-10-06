@@ -114,9 +114,9 @@ def test_vendored_xdfs_came_out_of_the_mirror_bytes_unchanged(manifest):
 
 def test_every_bundled_xdf_still_parses():
     files = load_bundled_xdfs()
-    assert len(files) >= 72
+    assert len(files) >= 88
     assert all(isinstance(f, XdfFile) for f in files)
-    assert sum(len(f.tables) for f in files) >= 2600
+    assert sum(len(f.tables) for f in files) >= 3587
 
 
 def test_catalog_entries_are_consistent_with_what_is_vendored():

@@ -718,5 +718,165 @@
     "version": "1.30",
     "imported_utc": "2026-10-06T02:20:17Z",
     "verified_parse": true
+  },
+  "aprilia/5AM_Aprilia_GP850_V1.00.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_GP850_V1.00.zip",
+    "origin_zip": "5AM_Aprilia_GP850_V1.00.zip",
+    "sha256": "5faa1272cf6b8f70a9811b26dcc2460db3bb967385e0808d0a60e6434fcf2e2d",
+    "title": "5AM Aprilia GP 850",
+    "author": "Meinolf",
+    "version": "1.00",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "aprilia/5AM_Aprilia_Mana_V1.38.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_Mana_V1.38.ZIP",
+    "origin_zip": "5AM_Aprilia_Mana_V1.38.ZIP",
+    "sha256": "188fd543b639a7e7260245773466598dce5261c641e4333581abdb4ba17ab82c",
+    "title": "5AM Aprilia Mana",
+    "author": "Meinolf",
+    "version": "1.38 long",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "aprilia/7SM_Caponord_1200_1050Fxxx.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_Caponord_1200_1050Fxxx.zip",
+    "origin_zip": "7SM_Caponord_1200_1050Fxxx.zip",
+    "sha256": "41fb9c0820c75d132040c6649939cd9435f605ecd2e0463952ec992296f28937",
+    "title": "7SM Aprilia Caponord 1200",
+    "author": "Beetle, Beard, Pauldaytona",
+    "version": "0.12",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "aprilia/7SM_Dorsoduro_1200_1338XXxx_V0.14.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_Dorsoduro_1200_1338XXxx_V0.14.zip",
+    "origin_zip": "7SM_Dorsoduro_1200_1338XXxx_V0.14.zip",
+    "sha256": "f9fda80b3ca9f86cf9925f248574f2006e811250de3938511a049253d4a82468",
+    "title": "7SM Aprilia Dorsoduro 1200",
+    "author": "Beetle, Beard, Pauldaytona",
+    "version": "0.14",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/7SM_MotoGuzzi_1400_1050_EURO3_V1.04.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_1050_EURO3_V1.04.zip",
+    "origin_zip": "7SM_MotoGuzzi_1400_1050_EURO3_V1.04.zip",
+    "sha256": "c8eff6fd398959fda111a8282abcff0f9aa7175cc8ff5aafc34da2cf0fbc75ab",
+    "title": "7SM California 1400 Euro3 CM228201 HW100",
+    "author": "Meinolf",
+    "version": "1.04",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/7SM_MotoGuzzi_1400_EURO4_V1.04.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_EURO4_V1.04.zip",
+    "origin_zip": "7SM_MotoGuzzi_1400_EURO4_V1.04.zip",
+    "sha256": "fb00ca5699a4487b5c08965e734a4c53d6984ddd08801f19ee947434f0f2e507",
+    "title": "7SM California 1400 Euro3 CM267201 HW310",
+    "author": "Meinolf",
+    "version": "1.04",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/7SM_MotoGuzzi_1400_MGX21_V0.14.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_MGX21_V0.14.zip",
+    "origin_zip": "7SM_MotoGuzzi_1400_MGX21_V0.14.zip",
+    "sha256": "a53110225e0297fc8cc0d3b36c96ffd9e69e129e67343cedd30a9a2feeef9b2b",
+    "title": "7SM California 1400 CM267202_75B8C2AS MGX21",
+    "author": "Beetle, Beard, Pauldaytona",
+    "version": "0.12",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.zip",
+    "origin_zip": "7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.zip",
+    "sha256": "ef3511291144681f3bad700d5513690f4f10c41e85fbe7b74f73fe3e4b231630",
+    "title": "7SM V85TT HW320",
+    "author": "Meinolf / beard",
+    "version": "1.07",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "aprilia/7SM_RSV4_40xxXXxx_V0.12.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_40xxXXxx_V0.12.zip",
+    "origin_zip": "7SM_RSV4_40xxXXxx_V0.12.zip",
+    "sha256": "7de8f76cf1c401183a206d1ca26ecab259414ed1a6cc123569d4352f7d17c266",
+    "title": "7SM Aprilia RSV4 2009",
+    "author": "Beetle, Beard, Pauldaytona",
+    "version": "0.12",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "aprilia/7SM_RSV4_6403XXxx_V0.13.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_6403XXxx_V0.13.zip",
+    "origin_zip": "7SM_RSV4_6403XXxx_V0.13.zip",
+    "sha256": "4fb3bd314bdf15121591c2726fdab2767f277d1c9bc4e409f5619da6b682556a",
+    "title": "7SM Aprilia RSV4 2015",
+    "author": "Beetle, Beard, Pauldaytona",
+    "version": "0.13",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "aprilia/MIUG3_Aprilia_RS4_125_CM088115_V1.02.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_RS4_125_CM088115_V1.02.zip",
+    "origin_zip": "MIUG3_Aprilia_RS4_125_CM088115_V1.02.zip",
+    "sha256": "6ac6b4b2fa63a52a538ab0c9e4c520b4161c03ab0b94636cf1e59e8be9211cf1",
+    "title": "Aprilia RS4 125 MIUG3",
+    "author": "beard",
+    "version": "1.01",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "aprilia/MIUG3_Aprilia_RS4_125_CM227201_V1.02.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_RS4_125_CM227201_V1.02.zip",
+    "origin_zip": "MIUG3_Aprilia_RS4_125_CM227201_V1.02.zip",
+    "sha256": "10a4678a87dda463222f16fe0d4b9cfc0e7ac24034bf9ddb09bcbdedf0872ed1",
+    "title": "Aprilia RS4 MIUG3",
+    "author": "Gabro",
+    "version": "1.00",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "aprilia/MIUG3_Aprilia_SX125_464EA105_V1.00.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_SX125_464EA105_V1.00.zip",
+    "origin_zip": "MIUG3_Aprilia_SX125_464EA105_V1.00.zip",
+    "sha256": "62493d3f683701ab2b8928a8e06a23447cacca444588daab841c064b2238b2e1",
+    "title": "Aprilia SX125 MIUG3 464EA105",
+    "author": "beard pauldaytona",
+    "version": "1.0",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/MIUG3_MotoGuzzi_V7III_V1.15.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7III_V1.15.zip",
+    "origin_zip": "MIUG3_MotoGuzzi_V7III_V1.15.zip",
+    "sha256": "27f7ab55a5655389e0457f9eba699d2c04f5ef58a13f1d1e77b022164e5c0f03",
+    "title": "Moto Guzzi MIUG3 V7 III",
+    "author": "beard pauldaytona meinolf",
+    "version": "1.15",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.zip",
+    "origin_zip": "MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.zip",
+    "sha256": "7e33bc2c719d06283f9cb06bd381fd6f2c389f86511029c9be0267e016e10e0c",
+    "title": "Moto Guzzi MIUG3 V9",
+    "author": "beard pauldaytona",
+    "version": "1.09",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
+  },
+  "moto_guzzi/MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.xdf": {
+    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.zip",
+    "origin_zip": "MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.zip",
+    "sha256": "80cefabf65f17f4448a18aeffcbfc3a5788baa6c5b4375734d79907acfafeb8a",
+    "title": "Moto Guzzi MIUG3 V9",
+    "author": "beard pauldaytona",
+    "version": "1.09",
+    "imported_utc": "2026-10-06T03:11:49Z",
+    "verified_parse": true
   }
 }

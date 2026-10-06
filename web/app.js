@@ -1856,6 +1856,17 @@ function renderMemoryCapabilities(data) {
         .replace(/^Simulated ECU:\s*/, ''))}</p>`
     : '';
 
+  // Demo-only: fixture files that exist to be refused. The hosted demo puts
+  // an image from the wrong hardware family on the virtual bench so the
+  // brick-prevention gate can be watched at work; the local workstation
+  // never sends this key.
+  const hazards = data.demo_images || [];
+  if (hazards.length) {
+    $('#memCapsNote').innerHTML += hazards.map((h) => `
+      <p class="tip"><b>Watch the hardware-family gate refuse a file.</b>
+        ${esc(h.note)}<br>Path: <code>${esc(h.path)}</code></p>`).join('');
+  }
+
   const select = $('#memRegion');
   select.innerHTML = Object.entries(c.regions).map(([name, r]) => {
     const size = r.size ? `${(r.size / 1024).toFixed(0)} KiB` : 'geometry unknown';
@@ -1977,8 +1988,15 @@ if (unverifiedKeysChk) {
 
 async function renderWriteGate() {
   try {
+    const body = { region: $('#memRegion').value || 'flash' };
+    // When a candidate image is named, the gate also checks its hardware
+    // family against the identified ECU - a cross-family file (an HW1xx
+    // image aimed at an HW3xx ECU, say) is refused before the confirmation
+    // dialog, and the write button stays disabled.
+    const path = $('#imagePath').value.trim();
+    if (path) body.path = path;
     const decision = await api('/api/memory/check-write', {
-      method: 'POST', body: { region: $('#memRegion').value || 'flash' },
+      method: 'POST', body,
     });
     renderGate(decision, $('#writeGate'));
     $('#writeBtn').disabled = !decision.allowed;
@@ -2121,6 +2139,7 @@ $('#writeBtn').onclick = async () => {
           'This operation erases and rewrites ECU memory.',
           [
             'Confirm the verified backup can be found and restored.',
+            'The image must belong to this ECU\'s hardware family — flashing across families (HW1xx into HW3xx, or any other mix) bricks the ECU, and the gate refuses it.',
             'Connect stable battery and laptop power; disable sleep and updates.',
             'Leave the ignition key ON and the engine stopped.',
             'Do not touch the key, kill switch, cable, charger, or laptop until verification completes.',

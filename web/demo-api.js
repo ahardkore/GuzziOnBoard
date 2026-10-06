@@ -417,13 +417,27 @@
     return confidenceRank(level) <= confidenceRank(minimum || 'documented');
   }
 
+  /* Port of guzzionboard/firmware.py :: hardware_family - the family digit
+   * that must match between an image and the ECU (HW610 -> '6', HW320 ->
+   * '3'). Flashing across families bricks the ECU; the 7SM documentation
+   * says so in exactly those words. */
+  function hardwareFamily(hardware) {
+    var m = /HW([0-9])/.exec(String(hardware || ''));
+    return m ? m[1] : '';
+  }
+
+  var BRICK_WARNING = 'flashing an image from one hardware family into an '
+    + 'ECU of another bricks the ECU - never flash HW1xx into HW3xx or '
+    + 'vice versa';
+
   function SafetyGate(mode) {
     this.mode = mode || 'simulator';
     this.min_battery_v = 11.5;
     this.allow_programming = false;
     this.allow_unverified_keys = false;
     this.state = {
-      identified: false, ecu_confidence: 'unknown', engine_running: null,
+      identified: false, ecu_confidence: 'unknown', ecu_hardware: '',
+      engine_running: null,
       battery_v: null, verified_backup: false, backup_path: '',
       checklist_accepted: false,
     };
@@ -526,6 +540,16 @@
         name: 'verified-backup', passed: this.state.verified_backup,
         detail: 'take a full ECU backup and verify it by re-reading before writing',
       });
+      /* The hardware-family gate, ported with the rest of safety.py. It
+       * runs only when a concrete candidate image is on the bench; the
+       * write endpoint always passes one, so an HW1xx image aimed at an
+       * HW3xx ECU is refused before a byte moves. */
+      if (opts.image_hardware !== undefined
+          || opts.image_embedded_hardware !== undefined) {
+        checks.push(this._hardwareFamilyCheck(
+          opts.image_hardware || '', opts.image_embedded_hardware || []
+        ));
+      }
     }
 
     var allowed = checks.every(function (c) { return c.passed; });
@@ -545,6 +569,57 @@
     this._record(decision);
     return decision;
   };
+
+  /* Port of SafetyGate._hardware_family_check. Both pieces of evidence - the
+   * provenance identity captured with the image and the IAW..HWnnn strings
+   * embedded in its bytes - must agree with the identified ECU, and a file
+   * with neither is refused rather than assumed fine. */
+  SafetyGate.prototype._hardwareFamilyCheck = function (imageHardware, imageEmbedded) {
+    var target = String(this.state.ecu_hardware || '').trim();
+    var targetFamily = hardwareFamily(target);
+    var provenance = String(imageHardware || '').trim();
+    var provenanceFamily = hardwareFamily(provenance);
+    var embedded = (imageEmbedded || []).filter(function (h) { return !!h; });
+    var families = {};
+    embedded.forEach(function (h) { families[hardwareFamily(h)] = true; });
+
+    if (!targetFamily) {
+      return {
+        name: 'hardware-family', passed: false,
+        detail: 'the ECU reported no usable hardware identity (' + (target || 'none')
+          + '); identify it before writing anything',
+      };
+    }
+    if (!provenanceFamily) {
+      return {
+        name: 'hardware-family', passed: false,
+        detail: 'the image carries no captured hardware identity, so '
+          + 'compatibility with the identified ECU (' + target + ') cannot be '
+          + 'confirmed; writing is refused',
+      };
+    }
+    if (provenanceFamily !== targetFamily) {
+      return {
+        name: 'hardware-family', passed: false,
+        detail: 'image provenance reports ' + provenance + ', but the ECU '
+          + 'reports ' + target + '; ' + BRICK_WARNING,
+      };
+    }
+    if (embedded.length && !families[targetFamily]) {
+      return {
+        name: 'hardware-family', passed: false,
+        detail: 'the image embeds ' + embedded.join(', ') + ', but the ECU '
+          + 'reports ' + target + '; ' + BRICK_WARNING,
+      };
+    }
+    return {
+      name: 'hardware-family', passed: true,
+      detail: embedded.length
+        ? 'image matches the ECU\'s hardware family (' + target + ')'
+        : 'image provenance matches the ECU\'s hardware family (' + target
+          + '); the image embeds no hardware string of its own',
+    };
+  }
 
   SafetyGate.prototype.consume = function (token, operation) {
     var entry = token && this._tokens[token];
@@ -1079,6 +1154,9 @@
     WS.identity = null;
     WS.lastSamples = {};
     WS.history = [];
+    // The hardware identity leaves with the session that produced it; a
+    // string from ECU A must never vouch for ECU B.
+    if (WS.gate) WS.gate.state.ecu_hardware = '';
     return [200, status()];
   };
 
@@ -1093,6 +1171,12 @@
     WS.identity = ecu.identity();
     WS.gate.state.identified = true;
     WS.gate.state.ecu_confidence = WS.sessionProfile.confidence;
+    // Recorded from the ECU's own answer, exactly like the Python side, so
+    // the write path's hardware-family gate compares against what is
+    // actually on the bench - never the selection or a filename.
+    WS.gate.state.ecu_hardware = String(
+      (WS.identity && WS.identity.fields && WS.identity.fields.Hardware) || ''
+    ).trim();
     bump('action');
     return [200, WS.identity];
   };

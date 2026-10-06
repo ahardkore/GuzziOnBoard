@@ -137,6 +137,7 @@ def test_inferred_routine_cannot_hide_inside_documented_profile(profile):
 # ------------------------------------------------------- programming
 
 def test_programming_is_refused_even_with_perfect_evidence(profile, gate):
+
     ready(gate)
     gate.state.verified_backup = True
     decision = gate.evaluate("flash", Risk.IRREVERSIBLE, profile=profile)
@@ -149,6 +150,104 @@ def test_programming_still_needs_a_verified_backup_when_enabled(profile):
     decision = gate.evaluate("flash", Risk.IRREVERSIBLE, profile=profile)
     assert not decision.allowed
     assert any(c.name == "verified-backup" for c in decision.failures)
+
+
+# -------------------------------------------------- hardware family gate
+# The single most destructive mistake in this ECU world: flashing an HW1xx
+# image into an HW3xx ECU (or any other cross-family pair) bricks it.
+
+
+def armed_gate(hardware: str) -> SafetyGate:
+    """A programming-mode gate whose ECU reported ``hardware``."""
+    gate = ready(SafetyGate(mode=Mode.PROGRAMMING, allow_programming=True))
+    gate.state.verified_backup = True
+    gate.state.ecu_hardware = hardware
+    return gate
+
+
+def test_an_hw1xx_image_cannot_be_flashed_into_an_hw3xx_ecu():
+    gate = armed_gate("IAW7SMHW320")
+    decision = gate.evaluate(
+        "write:flash", Risk.IRREVERSIBLE, image_hardware="IAW7SMHW100"
+    )
+    assert not decision.allowed
+    failure = next(c for c in decision.failures if c.name == "hardware-family")
+    assert "IAW7SMHW100" in failure.detail and "IAW7SMHW320" in failure.detail
+    assert "bricks the ECU" in failure.detail
+
+
+def test_the_same_family_is_allowed_through_the_gate():
+    gate = armed_gate("IAW7SMHW320")
+    decision = gate.evaluate(
+        "write:flash", Risk.IRREVERSIBLE,
+        image_hardware="IAW7SMHW340",
+        image_embedded_hardware=["IAW7SMHW340"],
+    )
+    hardware = [c for c in decision.checks if c.name == "hardware-family"]
+    assert len(hardware) == 1 and hardware[0].passed
+    assert not [c for c in decision.failures if c.name == "hardware-family"]
+
+
+def test_the_gate_refuses_the_reverse_direction_too():
+    gate = armed_gate("IAW7SMHW100")
+    decision = gate.evaluate(
+        "write:flash", Risk.IRREVERSIBLE, image_hardware="IAW7SMHW310"
+    )
+    assert not decision.allowed
+    assert any(c.name == "hardware-family" for c in decision.failures)
+
+
+def test_an_image_with_embedded_strings_of_another_family_is_refused():
+    """Provenance says one thing, the bytes say another: the bytes lose."""
+    gate = armed_gate("IAW7SMHW320")
+    decision = gate.evaluate(
+        "write:flash", Risk.IRREVERSIBLE,
+        image_hardware="IAW7SMHW320",
+        image_embedded_hardware=["IAW5AMHW610"],
+    )
+    assert not decision.allowed
+    failure = next(c for c in decision.failures if c.name == "hardware-family")
+    assert "IAW5AMHW610" in failure.detail
+
+
+def test_an_image_without_captured_identity_is_refused_not_assumed():
+    """No provenance, no embedded string: 'cannot confirm' must refuse."""
+    gate = armed_gate("IAW7SMHW320")
+    decision = gate.evaluate(
+        "write:flash", Risk.IRREVERSIBLE, image_hardware="", image_embedded_hardware=[]
+    )
+    assert not decision.allowed
+    failure = next(c for c in decision.failures if c.name == "hardware-family")
+    assert "cannot be confirmed" in failure.detail
+
+
+def test_an_ecu_that_did_not_report_hardware_never_receives_a_write():
+    gate = armed_gate("")            # identified, but no usable Hardware field
+    decision = gate.evaluate(
+        "write:flash", Risk.IRREVERSIBLE, image_hardware="IAW7SMHW100"
+    )
+    assert not decision.allowed
+    assert any(c.name == "hardware-family" for c in decision.failures)
+
+
+def test_a_decision_without_an_image_says_nothing_about_hardware():
+    """check-write without a candidate image must not invent a verdict."""
+    gate = armed_gate("IAW7SMHW320")
+    decision = gate.evaluate("write:flash", Risk.IRREVERSIBLE)
+    assert decision.allowed
+    assert not [c for c in decision.checks if c.name == "hardware-family"]
+
+
+def test_hardware_family_refusals_are_audited():
+    gate = armed_gate("IAW7SMHW320")
+    gate.evaluate(
+        "write:flash", Risk.IRREVERSIBLE, image_hardware="IAW7SMHW100"
+    )
+    refusal = gate.audit_log[-1]
+    assert refusal["allowed"] is False
+    assert any(
+        c["name"] == "hardware-family" and not c["passed"] for c in refusal["checks"]
+    )
 
 
 # ------------------------------------------------------------- tokens

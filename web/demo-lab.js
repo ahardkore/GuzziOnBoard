@@ -1143,6 +1143,24 @@
     }
   }
 
+  /* The identity block every synthesised image carries at 0x120: the Marelli
+   * banner, then the ECU's own identification fields. Factored out so the
+   * wrong-hardware-family fixture can repaint it on a copy of a good image
+   * - the one difference that must make a file unflashable. */
+  function paintIdentityBlock(bytes, family, identity) {
+    var at = 0x120;
+    putAscii(bytes, at, 'MAGNETI MARELLI  ' + (family || ''));
+    at += 64;
+    Object.keys(identity || {}).forEach(function (field) {
+      // Clear the slot first: a shorter value must not leave the tail of a
+      // longer one behind it.
+      for (var i = 0; i < 32 && at + i < bytes.length; i++) bytes[at + i] = 0x20;
+      putAscii(bytes, at, field + ' ' + identity[field]);
+      at += 32;
+    });
+    putAscii(bytes, at, 'SIMULATED IMAGE - GuzziOnBoard browser demo');
+  }
+
   function regionSpec(profile, region) {
     var memory = profile.memory || {};
     var regions = memory.regions || {};
@@ -1170,14 +1188,7 @@
 
     // The strings a real dump carries, taken from the simulated ECU's own
     // identity block rather than typed in again here.
-    var at = 0x120;
-    putAscii(bytes, at, 'MAGNETI MARELLI  ' + (profile.family || ''));
-    at += 64;
-    Object.keys(identity || {}).forEach(function (field) {
-      putAscii(bytes, at, field + ' ' + identity[field]);
-      at += 32;
-    });
-    putAscii(bytes, at, 'SIMULATED IMAGE - GuzziOnBoard browser demo');
+    paintIdentityBlock(bytes, profile.family, identity);
 
     var entry = options.xdf || xdfForEcu(profile.id);
     if (!entry) {
@@ -1374,6 +1385,31 @@
 
   var CHECKPOINTS = {};
 
+  /* Fixture images on the virtual bench that exist to demonstrate a safety
+   * behaviour rather than to be flashed. Listed so the UI can say where they
+   * are and what should happen when they are aimed at the ECU. */
+  function demoHazardImages() {
+    var out = [];
+    Object.keys(FS).forEach(function (path) {
+      var image = FS[path];
+      var hazard = image.meta && image.meta.demo_hazard;
+      if (hazard !== 'wrong-hardware-family') return;
+      out.push({
+        path: path,
+        hazard: hazard,
+        hardware: (image.identity && image.identity.Hardware) || '',
+        ecu_hardware: (WS.identity && WS.identity.fields
+          && WS.identity.fields.Hardware) || '',
+        note: 'Same size, same vector table, same painted tables - but its '
+          + 'identity block belongs to a different hardware family. Validate '
+          + 'it, or point the write at it: the hardware-family gate must '
+          + 'refuse it, because flashing across families (an HW1xx image '
+          + 'into an HW3xx ECU, or any other mix) bricks the ECU.',
+      });
+    });
+    return out;
+  }
+
   D.register('GET', '/api/memory', function () {
     var profile = currentProfile();
     var regions = (profile.memory || {}).regions || {};
@@ -1388,6 +1424,7 @@
       acknowledgement: 'I have a verified backup and accept the risk',
       programming_enabled: WS.gate.allow_programming,
       unverified_keys_accepted: WS.gate.allow_unverified_keys,
+      demo_images: demoHazardImages(),
       simulated: true,
       demo_note: 'Simulated ECU memory. The image is synthesised in this tab '
         + 'and every transfer is time-compressed.',
@@ -1476,6 +1513,34 @@
             };
             saveImage(IMAGE_DIR + profile.id + '-' + region + '-tuned-demo.bin', tuned);
           }
+
+          // The file the hardware-family gate exists for. It is perfect in
+          // every structural way - same ECU id, same size, same vector
+          // table, same painted tables - but its identity block came off an
+          // HW1xx unit, and this ECU reports HW6xx. Flashing across
+          // hardware families is what bricks ECUs ("Don't flash HW1xx
+          // versions in a HW3xx ECU and vice versa. You will brick your
+          // ECU!" - the 7SM reference documentation), so this fixture sits
+          // on the virtual bench for anyone to validate or aim the write
+          // at, and the gate has to refuse it both times.
+          var wrongIdentity = {};
+          Object.keys(identity || {}).forEach(function (field) {
+            wrongIdentity[field] = identity[field];
+          });
+          wrongIdentity.Hardware = 'IAW5AMHW100';
+          var wrongBytes = new Uint8Array(built.bytes);
+          paintIdentityBlock(wrongBytes, profile.family, wrongIdentity);
+          saveImage(IMAGE_DIR + profile.id + '-' + region
+            + '-wrong-family-demo.bin', {
+            ecu_id: profile.id, region: region, source: 'edited',
+            bytes: wrongBytes, identity: wrongIdentity, read_at: epoch(),
+            meta: {
+              simulated: true, derived_from: image.path,
+              edit: 'identity block of a different hardware family '
+                + '(IAW5AMHW100, an HW1xx unit)',
+              demo_hazard: 'wrong-hardware-family',
+            },
+          });
 
           var result = {
             path: image.path,
@@ -1635,9 +1700,17 @@
   D.register('POST', '/api/memory/check-write', function (body) {
     var profile = currentProfile();
     var region = body.region || 'flash';
-    var decision = WS.gate.evaluate('write:' + region, 'irreversible', {
-      profile: profile, capability: 'memory_write',
-    });
+    var opts = { profile: profile, capability: 'memory_write' };
+    if (body.path) {
+      // With the candidate image on the bench the decision includes the
+      // hardware-family check, so a cross-family file is refused before the
+      // confirmation dialog - exactly like the local workstation.
+      var image = imageAt(body.path);
+      opts.image_hardware = image.identity && image.identity.Hardware
+        ? String(image.identity.Hardware) : '';
+      opts.image_embedded_hardware = hardwareStrings(image.bytes);
+    }
+    var decision = WS.gate.evaluate('write:' + region, 'irreversible', opts);
     return [200, decision];
   });
 
@@ -1687,6 +1760,32 @@
     var region = body.region || 'flash';
     if (!body.path || !body.token) throw bad("'path' and 'token' are both required");
     var image = imageAt(body.path);
+
+    // Structure and provenance first, exactly like the local write path:
+    // never silently reinterpret a dump for another region or ECU.
+    if (image.region !== region) {
+      throw httpError(409, "image is labelled for region '" + image.region
+        + "', not '" + region + "'", 'validation');
+    }
+    if (image.ecu_id && image.ecu_id !== profile.id) {
+      throw httpError(409, "image belongs to ECU '" + image.ecu_id
+        + "', not '" + profile.id + "'", 'validation');
+    }
+
+    // The hardware-family gate, on the concrete image and before the token
+    // is spent: flashing an image from one hardware family into another
+    // (HW1xx into HW3xx, or any other mix) bricks the ECU, and this demo
+    // refuses it the same way the installed workstation does.
+    var decision = WS.gate.evaluate('write:' + region, 'irreversible', {
+      profile: profile, capability: 'memory_write',
+      image_hardware: image.identity && image.identity.Hardware
+        ? String(image.identity.Hardware) : '',
+      image_embedded_hardware: hardwareStrings(image.bytes),
+    });
+    if (!decision.allowed) {
+      throw httpError(403, 'refusing to write: ' + decision.reason, 'safety');
+    }
+
     WS.gate.consume(body.token, 'write:' + region);
     securityGate();
     var spec = regionSpec(profile, region) || {};

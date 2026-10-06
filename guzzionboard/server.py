@@ -572,7 +572,19 @@ class Api:
         return 202, self.jobs.start(f"write:{region}", run)
 
     def post_memory_check_write(self, body: dict) -> tuple[int, dict]:
-        decision = self._programming().check_write(body.get("region", "flash"))
+        region = body.get("region", "flash")
+        image = None
+        path = body.get("path")
+        if path:
+            # With the candidate image the decision includes the
+            # hardware-family check, so a cross-family file (an HW1xx image
+            # aimed at an HW3xx ECU, say) is refused before the operator
+            # ever reaches the confirmation dialog.
+            try:
+                image = FirmwareImage.from_file(path)
+            except OSError as exc:
+                return 400, {"error": str(exc)}
+        decision = self._programming().check_write(region, image=image)
         return 200, decision.as_dict()
 
     # -- maps (TunerPro XDF) -----------------------------------------------

@@ -59,7 +59,7 @@ from .firmware import (
     FirmwareImage,
     IncompatibleImage,
     checksums,
-    hardware_family,
+    extract_hardware_strings,
     iaw5am_upload_blob,
     iaw5am_upload_checksum,
     summarise_findings,
@@ -570,10 +570,29 @@ class ProgrammingService:
         self.log.action("image_validate", {"region": region_name, "ok": summary["ok"]})
         return summary
 
-    def check_write(self, region_name: str = "flash") -> Decision:
+    def check_write(self, region_name: str = "flash",
+                    image: FirmwareImage | None = None) -> Decision:
+        """The write gate.  Pass the candidate ``image`` to include the
+        hardware-family check in the decision; without one the decision
+        cannot speak to compatibility and :meth:`write_region` re-evaluates
+        with the image before anything is transmitted.
+        """
+        if self.diag.identity:
+            # The live session is the authority on what is on the bench;
+            # keep the gate's picture of it current.
+            hardware = str(self.diag.identity.fields.get("Hardware", "")).strip()
+            if hardware:
+                self.gate.state.ecu_hardware = hardware
+        image_hardware = None
+        image_embedded = None
+        if image is not None:
+            image_hardware = str((image.identity or {}).get("Hardware", "")).strip()
+            image_embedded = extract_hardware_strings(image.data)
         decision = self.gate.evaluate(
             f"write:{region_name}", Risk.IRREVERSIBLE,
             profile=self.profile, capability="memory_write",
+            image_hardware=image_hardware,
+            image_embedded_hardware=image_embedded,
         )
         self.log.decision(decision.as_dict())
         return decision
@@ -603,7 +622,11 @@ class ProgrammingService:
             raise SafetyViolation(self.check_write(region_name))
         if not region.writable:
             raise ProgrammingError(f"the {region_name} region is not writable")
-        decision = self.check_write(region_name)
+        # The hardware-family gate runs here, on the concrete image: an
+        # HW1xx image into an HW3xx ECU (or any other cross-family pair)
+        # bricks the ECU, and this is the check that refuses it before a
+        # single frame is transmitted.
+        decision = self.check_write(region_name, image=image)
         if not decision.allowed:
             raise SafetyViolation(decision)
         self.gate.consume(token, f"write:{region_name}")
@@ -624,34 +647,13 @@ class ProgrammingService:
                 "image failed validation: "
                 + "; ".join(f["detail"] for f in validation["fatal"])
             )
-        # validate_for intentionally reports missing hardware strings as a
-        # warning for inspection workflows.  A write is different: require a
-        # provenance identity captured with the image and compare hardware
-        # families.  The simulator's payload (and some legitimate dumps) do
-        # not embed the printable hardware string, so checking only bytes
-        # would reject a known-good read while still allowing an unlabelled
-        # file.
-        target_hw = (
-            str(self.diag.identity.fields.get("Hardware", "")).strip()
-            if self.diag.identity else ""
-        )
-        image_hw = str(image.identity.get("Hardware", "")).strip()
-        target_family = hardware_family(target_hw)
-        image_family = hardware_family(image_hw)
-        if not target_family:
-            raise IncompatibleImage(
-                "the ECU reported no usable hardware identity; writing is refused"
-            )
-        if not image_family:
-            raise IncompatibleImage(
-                "image has no captured hardware identity; compatibility with "
-                "the identified ECU cannot be confirmed, so writing is refused"
-            )
-        if target_family != image_family:
-            raise IncompatibleImage(
-                f"image provenance reports {image_hw}, but the ECU reports "
-                f"{target_hw}; hardware families differ"
-            )
+        # validate_for reports the byte-level hardware-string comparison
+        # (a missing embedded string is only a warning there, because
+        # inspection workflows must not be blocked by it).  The write is
+        # different: the gate above already required a captured provenance
+        # identity and a matching family, so a fatal hardware finding here
+        # is the second, independent net - for example an image whose
+        # embedded strings belong to another ECU than its sidecar claims.
 
         # 3. backup must exist and be verified
         if not self.gate.state.verified_backup:

@@ -20,12 +20,20 @@ from . import klinelog
 from . import logconvert
 from . import rpmsignal
 from . import tools
+from .basemap import BaseMapError
 from .catalog import CatalogError
 from .derived import CHANNELS as DERIVED_CHANNELS, Analyzer
 from .transports.simulator import FAULTS as SIM_FAULTS, FAULTS_BY_KEY as SIM_FAULTS_BY_KEY
 from .diagnostics import NotConnected
 from .firmware import FirmwareImage, FirmwareError
-from .maps import BUNDLED_XDF_DIR, XDF_DIR, XdfError, XdfFile, available_xdfs
+from .maps import (
+    BUNDLED_XDF_DIR,
+    XDF_DIR,
+    XdfError,
+    XdfFile,
+    available_xdfs,
+    group_xdfs,
+)
 from .programming import ProgrammingError, ProgrammingService
 from .safety import SafetyViolation, TokenError
 from .security import SecurityUnavailable, describe_all, load_plugins
@@ -513,6 +521,9 @@ class Api:
     def get_memory(self, query: dict) -> tuple[int, dict]:
         prog = self._programming()
         return 200, {
+            "base_map": prog.base_map_status(
+                (query.get("region") or ["flash"])[0]
+            ),
             "capabilities": prog.capabilities(),
             "job": self.jobs.status(),
             "checkpoints": {
@@ -535,6 +546,56 @@ class Api:
             return prog.backup(region, progress=report)
 
         return 202, self.jobs.start(f"backup:{region}", run)
+
+    # -- base maps (the guaranteed restore image) -------------------------
+    def get_basemap(self, query: dict) -> tuple[int, dict]:
+        prog = self._programming()
+        region = (query.get("region") or ["flash"])[0]
+        return 200, {
+            "base_map": prog.base_map_status(region),
+            "restore": prog.restore_plan(region),
+            "vault": prog.vault.all_entries(),
+            "directory": str(prog.vault.directory),
+        }
+
+    def post_basemap_save(self, body: dict) -> tuple[int, dict]:
+        """File an image that is already on disk as this ECU's base map."""
+        prog = self._programming()
+        region = body.get("region", "flash")
+        path = body.get("path") or self.ws.gate.state.backup_path
+        if not path:
+            return 400, {
+                "error": "a 'path' to a verified image is required (or take a "
+                         "verified backup first, which saves one automatically)"
+            }
+        if not body.get("verified", True):
+            return 400, {"error": "only a verified image can be a base map"}
+        try:
+            result = prog.save_base_map(
+                path, region, replace=bool(body.get("replace")),
+                note=body.get("note", ""),
+            )
+        except BaseMapError as exc:
+            return 400, {"error": str(exc)}
+        return 200, {"base_map": prog.base_map_status(region), "result": result}
+
+    def post_basemap_restore(self, body: dict) -> tuple[int, dict]:
+        """The plan for putting the base map back.
+
+        It deliberately does not flash anything by itself: restoring runs
+        through ``/api/memory/write`` like every other write, with the same
+        gate, acknowledgement and validation.
+        """
+        prog = self._programming()
+        region = body.get("region", "flash")
+        plan = prog.restore_plan(region)
+        if not plan.get("ready"):
+            return 400, {
+                "error": plan.get("reason")
+                or "no intact base map on file for this ECU",
+                "base_map": plan,
+            }
+        return 200, {"restore": plan}
 
     def post_memory_read(self, body: dict) -> tuple[int, dict]:
         prog = self._programming()
@@ -590,18 +651,49 @@ class Api:
     # -- maps (TunerPro XDF) -----------------------------------------------
     def get_maps(self, query: dict) -> tuple[int, dict]:
         xdfs = available_xdfs()
+        described = [x.describe() for x in xdfs]
+        # What the bike on the bench is, so the chooser can separate the
+        # definitions that belong to it from the ones that do not. A map
+        # from the wrong ECU family is not "a slightly wrong map": it is a
+        # different calibration layout at the same addresses.
+        vehicle = (self.ws.status() or {}).get("selection") or {}
+        ecu = vehicle.get("ecu") or {}
         return 200, {
             "directory": str(XDF_DIR),
             "bundled_directory": str(BUNDLED_XDF_DIR),
-            "xdfs": [x.describe() for x in xdfs],
+            "xdfs": described,
+            "groups": group_xdfs(described),
+            "vehicle": {
+                "make": vehicle.get("make", ""),
+                "model": vehicle.get("model", ""),
+                "ecu_id": ecu.get("id", ""),
+                "ecu_family": ecu.get("family", ""),
+            },
         }
 
     def _load_xdf(self, ref: str) -> XdfFile:
-        """An XDF from the plugin/bundled directories (by title or filename),
-        or a path."""
-        for xdf in available_xdfs():
-            if ref in (xdf.title, Path(xdf.path).name if xdf.path else None):
+        """An XDF from the plugin/bundled directories (by filename or title),
+        or a path.
+
+        Filenames are tried first and titles only afterwards, because XDF
+        titles are not unique - several unrelated files call themselves
+        "15M Marelli". An ambiguous title is refused rather than resolved
+        by accident: picking the wrong definition silently mislabels every
+        table in the dump.
+        """
+        catalogue = available_xdfs()
+        for xdf in catalogue:
+            if xdf.path and Path(xdf.path).name == ref:
                 return xdf
+        by_title = [x for x in catalogue if x.title and x.title == ref]
+        if len(by_title) == 1:
+            return by_title[0]
+        if len(by_title) > 1:
+            names = ", ".join(sorted(Path(x.path).name for x in by_title))
+            raise XdfError(
+                f"{ref!r} is the title of {len(by_title)} different "
+                f"definitions ({names}); select one by filename"
+            )
         if Path(ref).suffix.lower() == ".xdf":
             return XdfFile.from_file(ref)
         raise XdfError(
@@ -942,6 +1034,7 @@ ROUTES_GET = {
     "/api/maps": "get_maps",
     "/api/memory": "get_memory",
     "/api/memory/progress": "get_memory_progress",
+    "/api/memory/basemap": "get_basemap",
     "/api/security": "get_security",
     "/api/adapter": "get_adapter",
     "/api/tools/gearing": "get_gearing",
@@ -959,6 +1052,8 @@ ROUTES_POST = {
     "/api/routines/run": "post_routine_run",
     "/api/discover": "post_discover",
     "/api/memory/backup": "post_memory_backup",
+    "/api/memory/basemap": "post_basemap_save",
+    "/api/memory/basemap/restore": "post_basemap_restore",
     "/api/memory/read": "post_memory_read",
     "/api/memory/validate": "post_memory_validate",
     "/api/memory/write": "post_memory_write",

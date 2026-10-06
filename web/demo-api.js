@@ -439,6 +439,9 @@
       identified: false, ecu_confidence: 'unknown', ecu_hardware: '',
       engine_running: null,
       battery_v: null, verified_backup: false, backup_path: '',
+      /* An intact base map - the guaranteed way back to the calibration
+       * the bike arrived with - is on file for this exact ECU. */
+      base_map: false, base_map_path: '',
       checklist_accepted: false,
     };
     this._tokens = {};
@@ -539,6 +542,14 @@
       checks.push({
         name: 'verified-backup', passed: this.state.verified_backup,
         detail: 'take a full ECU backup and verify it by re-reading before writing',
+      });
+      /* A backup inside this session is not the same as having a way back
+       * afterwards. The base map is the original verified calibration,
+       * filed in its own vault and checked before every write. */
+      checks.push({
+        name: 'base-map', passed: this.state.base_map,
+        detail: 'save a base map for this ECU first: a verified backup '
+          + 'filed as the guaranteed restore image',
       });
       /* The hardware-family gate, ported with the rest of safety.py. It
        * runs only when a concrete candidate image is on the bench; the

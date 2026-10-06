@@ -117,6 +117,10 @@ class VehicleState:
     #: A verified ECU image exists for this exact ECU.
     verified_backup: bool = False
     backup_path: str = ""
+    #: An intact base map - the guaranteed way back to what the bike
+    #: arrived with - is on file for this exact ECU (see basemap.py).
+    base_map: bool = False
+    base_map_path: str = ""
     #: The user accepted the hardware checklist for this session.
     checklist_accepted: bool = False
 
@@ -129,6 +133,8 @@ class VehicleState:
             "battery_v": self.battery_v,
             "verified_backup": self.verified_backup,
             "backup_path": self.backup_path,
+            "base_map": self.base_map,
+            "base_map_path": self.base_map_path,
             "checklist_accepted": self.checklist_accepted,
         }
 
@@ -289,6 +295,19 @@ class SafetyGate:
                     "verified-backup",
                     self.state.verified_backup,
                     "take a full ECU backup and verify it by re-reading before writing",
+                )
+            )
+            # A backup inside this session is not the same as having a way
+            # back next week. The base map is a copy of the original,
+            # verified calibration kept in its own vault and re-hashed
+            # before every write; without one there is no guaranteed
+            # restore and the write does not happen.
+            checks.append(
+                Check(
+                    "base-map",
+                    self.state.base_map,
+                    "save a base map for this ECU first: a verified backup "
+                    "filed as the guaranteed restore image",
                 )
             )
             # The hardware-family gate.  It only runs when a concrete

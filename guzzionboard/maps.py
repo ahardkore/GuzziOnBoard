@@ -693,7 +693,164 @@ class XdfFile:
             "unsupported": len(self.unsupported),
             "region_size": self.region_size,
             "categories": sorted(self.categories.values()),
+            **fitment(self.path),
         }
+
+
+# --------------------------------------------------------------------------
+# Fitment: which motorcycles a definition actually belongs to
+# --------------------------------------------------------------------------
+#
+# An XDF title is whatever its author typed ("15M Marelli", sometimes
+# nothing at all), so it is useless for picking the right definition and
+# dangerous as the only label in a drop-down: two unrelated bikes can share
+# it. ``guzzionboard/xdfs/catalog.json`` carries the real provenance for
+# every bundled file - brand, ECU family and the list of motorcycles the
+# GuzziDiag archive publishes it for - and that is what the UI groups by.
+
+#: Catalog of the bundled library, see docs/XDF_LIBRARY.md.
+XDF_CATALOG_PATH = BUNDLED_XDF_DIR / "catalog.json"
+
+#: Display names for the brand folders/keys used in catalog.json.
+BRAND_LABELS = {
+    "aprilia": "Aprilia",
+    "bmw": "BMW",
+    "ducati": "Ducati",
+    "gasgas": "GasGas",
+    "gilera": "Gilera",
+    "husqvarna": "Husqvarna",
+    "malaguti": "Malaguti",
+    "morini": "Moto Morini",
+    "moto_guzzi": "Moto Guzzi",
+    "piaggio": "Piaggio",
+    "scomadi": "Scomadi",
+}
+
+#: ECU families that name themselves in an XDF filename prefix.
+_FAMILY_PREFIXES = (
+    "MIUG3", "MIU1", "MBC1", "15RC", "15M", "15P", "16M", "59M",
+    "5AM", "5SM", "5DM", "7SM", "11MP", "P7", "P8",
+)
+
+_catalog_cache: tuple[float, dict[str, dict]] | None = None
+
+
+def brand_label(brand: str) -> str:
+    key = (brand or "").strip().lower()
+    return BRAND_LABELS.get(key, key.replace("_", " ").title() or "Unknown")
+
+
+def load_xdf_catalog() -> dict[str, dict]:
+    """``catalog.json`` keyed by XDF filename (cached on file mtime).
+
+    A missing or broken catalog is not fatal: fitment then falls back to
+    what can be read off the filename.
+    """
+    global _catalog_cache
+    try:
+        stamp = XDF_CATALOG_PATH.stat().st_mtime
+    except OSError:
+        return {}
+    if _catalog_cache and _catalog_cache[0] == stamp:
+        return _catalog_cache[1]
+    import json
+
+    try:
+        entries = json.loads(XDF_CATALOG_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    by_name: dict[str, dict] = {}
+    for entry in entries if isinstance(entries, list) else []:
+        name = str(entry.get("xdf_filename") or "")
+        if name:
+            by_name[name.lower()] = entry
+    _catalog_cache = (stamp, by_name)
+    return by_name
+
+
+def family_from_filename(name: str) -> str:
+    stem = Path(name).name.upper()
+    for family in _FAMILY_PREFIXES:
+        if stem.startswith(family + "_") or stem == family + ".XDF":
+            return family
+    return ""
+
+
+def fitment(path: str | Path | None) -> dict:
+    """What motorcycles a definition file applies to.
+
+    Returns the catalog facts a chooser needs: ``filename`` (the stable
+    identifier to select by - titles collide), ``family`` (the ECU family,
+    the thing that must match the bike on the bench), ``label``, and
+    ``fits``: every brand/model the archive publishes this definition for.
+    """
+    name = Path(path).name if path else ""
+    entry = load_xdf_catalog().get(name.lower(), {})
+    brand = str(entry.get("brand") or "")
+    if not brand and path:
+        parent = Path(path).parent.name.lower()
+        if parent in BRAND_LABELS:
+            brand = parent
+    family = str(entry.get("family") or "") or family_from_filename(name)
+    label = str(entry.get("label") or "") or Path(name).stem.replace("_", " ")
+    used_by = entry.get("used_by") or ([{"brand": brand, "label": label}] if brand else [])
+    fits = [
+        {
+            "brand": str(u.get("brand") or ""),
+            "brand_label": brand_label(str(u.get("brand") or "")),
+            "label": str(u.get("label") or ""),
+        }
+        for u in used_by
+        if isinstance(u, dict)
+    ]
+    return {
+        "filename": name,
+        "brand": brand,
+        "brand_label": brand_label(brand) if brand else "Uncatalogued",
+        "family": family,
+        "label": label,
+        "fits": fits,
+        "fits_brands": sorted({f["brand_label"] for f in fits if f["brand_label"]}),
+        "catalogued": bool(entry),
+        "source_url": str(entry.get("source_url") or ""),
+    }
+
+
+def group_xdfs(described: list[dict]) -> list[dict]:
+    """Group described XDFs by the motorcycles they apply to.
+
+    One group per brand, each holding one sub-group per ECU family, so a
+    drop-down can be rendered as "Moto Guzzi / 5AM" -> the actual models
+    rather than as 94 interchangeable-looking titles. A definition that
+    the archive lists for several brands appears under each of them -
+    that is a fact about the file, not a duplicate.
+    """
+    groups: dict[str, dict] = {}
+    for entry in described:
+        brands = {
+            (f.get("brand") or "", f.get("brand_label") or "")
+            for f in entry.get("fits") or []
+        } or {(entry.get("brand", ""), entry.get("brand_label", "Uncatalogued"))}
+        for brand, label in sorted(brands):
+            group = groups.setdefault(
+                label, {"brand": brand, "brand_label": label, "families": {}}
+            )
+            family = entry.get("family") or "unknown"
+            group["families"].setdefault(family, []).append(entry["filename"])
+    out = []
+    for label in sorted(groups, key=str.lower):
+        group = groups[label]
+        out.append(
+            {
+                "brand": group["brand"],
+                "brand_label": label,
+                "families": [
+                    {"family": fam, "files": sorted(files)}
+                    for fam, files in sorted(group["families"].items())
+                ],
+            }
+        )
+    return out
 
 
 def load_xdfs(directory: str | Path = XDF_DIR, *, recursive: bool = False) -> list[XdfFile]:
@@ -725,13 +882,31 @@ def load_bundled_xdfs() -> list[XdfFile]:
 def available_xdfs(user_directory: str | Path = XDF_DIR) -> list[XdfFile]:
     """The bundled library plus any user-supplied override directory.
 
-    A user file whose ``title`` matches a bundled one replaces it (so an
+    A user file whose *filename* matches a bundled one replaces it (so an
     updated or corrected XDF can be dropped in without editing the repo);
-    everything else from both sources is included.
+    everything else from both sources is included. Filenames, not titles,
+    are the identity here: XDF titles collide ("15M Marelli" is on several
+    unrelated files) and are sometimes empty.
+
+    The result is ordered the way a chooser wants to show it: by brand,
+    then ECU family, then model label.
     """
     bundled = load_bundled_xdfs()
     user = load_xdfs(user_directory)
-    user_titles = {x.title for x in user}
-    merged = [x for x in bundled if x.title not in user_titles] + user
-    merged.sort(key=lambda x: (x.title, x.path))
+    user_names = {Path(x.path).name.lower() for x in user if x.path}
+    merged = [
+        x for x in bundled if Path(x.path).name.lower() not in user_names
+    ] + user
+
+    def order(x: XdfFile) -> tuple:
+        fit = fitment(x.path)
+        return (
+            not fit["catalogued"],          # catalogued first
+            fit["brand_label"].lower(),
+            fit["family"],
+            fit["label"].lower(),
+            x.path,
+        )
+
+    merged.sort(key=order)
     return merged

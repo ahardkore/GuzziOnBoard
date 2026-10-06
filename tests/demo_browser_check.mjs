@@ -322,6 +322,28 @@ check('the image carries both hashes',
 check('the image looks like firmware, not noise',
   describe.vector_table === true && describe.blank === false);
 
+/* The base map: a verified backup has to leave a guaranteed way back
+ * behind it, and the write gate has to depend on it. */
+const noBaseYet = memory.payload.base_map;
+check('memory reports the base map state up front',
+  !!noBaseYet && noBaseYet.intact === false && /no base map/.test(noBaseYet.reason || ''),
+  JSON.stringify(noBaseYet).slice(0, 160));
+
+const baseMap = await api('/api/memory/basemap');
+check('the verified backup became the base map',
+  baseMap.status === 200 && baseMap.payload.base_map.intact === true
+  && baseMap.payload.base_map.path === imagePath,
+  JSON.stringify(baseMap.payload.base_map).slice(0, 180));
+check('the restore plan names the file and the order',
+  baseMap.payload.restore.ready === true
+  && baseMap.payload.restore.steps.length >= 4
+  && baseMap.payload.restore.steps.join(' ').includes(imagePath));
+
+const secondSave = await post('/api/memory/basemap', { path: imagePath });
+check('a later image does not displace the original calibration',
+  secondSave.status === 200 && secondSave.payload.result.is_base_map === false
+  && secondSave.payload.base_map.path === imagePath);
+
 const validated = await post('/api/memory/validate', { path: imagePath });
 check('the backup validates', validated.status === 200
   && validated.payload.ok === true);
@@ -406,8 +428,35 @@ const mapList = await api('/api/maps');
 check('the bundled definitions are listed', mapList.payload.xdfs.length > 50);
 check('the definitions say what is real and what is not',
   mapList.payload.simulated === true && /synthesi/i.test(mapList.payload.demo_note));
-const xdfTitle = mapList.payload.xdfs.find((x) => x.tables > 20).title;
-const rendered = await post('/api/maps/render', { path: imagePath, xdf: xdfTitle });
+/* Every definition carries the fitment facts the chooser groups by, so a
+ * map for another motorcycle cannot be picked by accident. */
+const fitted = mapList.payload.xdfs.find((x) => x.tables > 20);
+check('definitions say which motorcycles they are for',
+  !!fitted.filename && !!fitted.family && Array.isArray(fitted.fits)
+  && fitted.fits.length > 0 && !!fitted.fits[0].brand_label,
+  JSON.stringify(fitted).slice(0, 160));
+check('the library is grouped by bike and names the bench ECU',
+  Array.isArray(mapList.payload.groups) && mapList.payload.groups.length > 3
+  && mapList.payload.groups[0].families.length > 0
+  && !!mapList.payload.vehicle.ecu_family,
+  JSON.stringify(mapList.payload.vehicle));
+
+/* Titles are not unique; selecting by one that is shared must be refused
+ * rather than resolved by luck. */
+const titleCounts = {};
+mapList.payload.xdfs.forEach((x) => {
+  if (x.title) titleCounts[x.title] = (titleCounts[x.title] || 0) + 1;
+});
+const sharedTitle = Object.keys(titleCounts).find((t) => titleCounts[t] > 1);
+if (sharedTitle) {
+  const ambiguous = await post('/api/maps/render', { path: imagePath, xdf: sharedTitle });
+  check('an ambiguous XDF title is refused, not guessed at',
+    ambiguous.status >= 400 && /different definitions/.test(
+      String(ambiguous.payload.error || '')),
+    String(ambiguous.payload.error || '').slice(0, 120));
+}
+
+const rendered = await post('/api/maps/render', { path: imagePath, xdf: fitted.filename });
 check('a definition renders against the image', rendered.status === 200
   && rendered.payload.tables.length > 20,
   JSON.stringify(rendered.payload).slice(0, 140));
@@ -421,7 +470,7 @@ check('the render is labelled simulated', rendered.payload.simulated === true);
  * two images to compare without inventing a second ECU. */
 const tunedPath = imagePath.replace(/-[0-9]{8}-[0-9]{6}\.bin$/, '-tuned-demo.bin');
 const diffed = await post('/api/maps/diff', {
-  path_a: imagePath, path_b: tunedPath, xdf: xdfTitle,
+  path_a: imagePath, path_b: tunedPath, xdf: fitted.filename,
 });
 check('two images can be diffed through a definition',
   diffed.status === 200 && Array.isArray(diffed.payload.tables),

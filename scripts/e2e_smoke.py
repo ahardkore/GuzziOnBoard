@@ -124,6 +124,13 @@ def main() -> int:
     xs = maps.get("xdfs", [])
     check("all 94 bundled XDFs visible to the app", st == 200 and len(xs) == 94,
           f"{len(xs)} XDFs")
+    groups = maps.get("groups", [])
+    fitting = [x for x in xs if x.get("family") == "5AM"]
+    check("definitions grouped by motorcycle, with the bench ECU named",
+          len(groups) > 3 and all(g.get("families") for g in groups)
+          and maps.get("vehicle", {}).get("ecu_family") == "IAW 5AM"
+          and len(fitting) > 10,
+          f"{len(groups)} brands, {len(fitting)} definitions for the 5AM")
 
     # -- the explicit key-risk switch -----------------------------------
     st, sec = api("GET", "/api/security")
@@ -143,6 +150,14 @@ def main() -> int:
           bj.get("state") == "done" and res.get("verified"),
           f"state={bj.get('state')} path={str(path)[:80]} "
           f"err={str(bj.get('error'))[:80]}")
+
+    # -- the guaranteed way back: the base map ---------------------------
+    st, bm = api("GET", "/api/memory/basemap")
+    base = bm.get("base_map", {})
+    check("verified backup filed as the base map (intact, re-hashed)",
+          st == 200 and base.get("intact") is True
+          and bm.get("restore", {}).get("ready") is True,
+          f"{base.get('path', '')[:80]} {base.get('reason', '')[:60]}")
 
     # -- TunerPro's job on real bytes ------------------------------------
     if path:

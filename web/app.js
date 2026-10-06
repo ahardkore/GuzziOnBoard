@@ -1821,7 +1821,7 @@ window.addEventListener('beforeunload', () => {
  * Reads take twenty minutes or more, so they run as a server-side job and
  * this view polls for progress rather than holding a request open. */
 
-const fw = { caps: null, job: null, timer: null, lastImage: null };
+const fw = { caps: null, job: null, timer: null, lastImage: null, baseMap: null };
 
 function renderMemoryCapabilities(data) {
   fw.caps = data;
@@ -1889,7 +1889,66 @@ function renderMemoryCapabilities(data) {
   $('#checkpointOut').innerHTML = pending.join('');
 
   $('#ackInput').placeholder = data.acknowledgement || '';
+  renderBaseMap(data.base_map, canRead);
   renderWriteGate();
+}
+
+/* The base map: the one file that makes a write reversible. The panel is
+ * deliberately loud when it is missing, because the moment to discover
+ * there is no way back is not after the flash. */
+function renderBaseMap(status, canRead) {
+  fw.baseMap = status || null;
+  const box = $('#baseMapOut');
+  const saveBtn = $('#baseMapSaveBtn');
+  const fileBtn = $('#baseMapFileBtn');
+  const restoreBtn = $('#baseMapRestoreBtn');
+  if (!box) return;
+  if (!status) {
+    box.innerHTML = '<p class="muted">Connect to an ECU first.</p>';
+    [saveBtn, fileBtn, restoreBtn].forEach((b) => { if (b) b.disabled = true; });
+    return;
+  }
+  if (saveBtn) {
+    saveBtn.disabled = !canRead;
+    saveBtn.textContent = status.intact
+      ? 'Take another verified backup' : 'Save base map now';
+  }
+  if (fileBtn) fileBtn.disabled = false;
+  if (restoreBtn) restoreBtn.disabled = !status.intact;
+
+  if (status.intact) {
+    const points = (status.restore_points || []).length;
+    box.innerHTML = `<div class="gate-card ok">
+      <h4>Base map on file for ${esc(status.ecu_family || status.ecu_id || 'this ECU')}</h4>
+      <p class="small">Saved ${esc(status.saved_at_text || '')} ·
+        ${(status.bytes || 0).toLocaleString()} bytes ·
+        sha256 ${esc(String(status.sha256 || '').slice(0, 32))}…</p>
+      <p class="small"><code>${esc(status.path || '')}</code></p>
+      <p class="small">${points
+        ? `${points} additional restore point(s) kept alongside it.`
+        : 'This is the only copy of the original calibration — keep a backup of the vault directory too.'}</p>
+    </div>`;
+  } else {
+    box.innerHTML = `<div class="gate-card bad">
+      <h4>No base map — writing is refused</h4>
+      <p class="small">${esc(status.reason || 'none saved for this ECU')}</p>
+      <p class="small">A verified backup saves one automatically: it reads the region twice,
+        compares both copies and files the result as this ECU's guaranteed restore image.</p>
+    </div>`;
+  }
+}
+
+async function refreshBaseMap() {
+  try {
+    const region = $('#memRegion').value || 'flash';
+    const data = await api(`/api/memory/basemap?region=${encodeURIComponent(region)}`);
+    renderBaseMap(data.base_map, !$('#backupBtn').disabled);
+    renderWriteGate();
+    return data;
+  } catch (err) {
+    toast(err.message, 'bad');
+    return null;
+  }
 }
 
 function renderMemoryProgress(job) {
@@ -2072,6 +2131,64 @@ $('#backupBtn').onclick = async () => {
   } catch (err) { toast(err.message, 'bad'); }
 };
 
+/* "Save base map now" is the same verified backup as above — one button,
+ * no separate concept to learn, because the easiest path has to be the
+ * safe one. */
+$('#baseMapSaveBtn').onclick = () => $('#backupBtn').click();
+
+$('#baseMapFileBtn').onclick = async () => {
+  const path = $('#baseMapPath').value.trim();
+  if (!path) return toast('Give the path of a verified image first.', 'bad');
+  const region = $('#memRegion').value || 'flash';
+  const existing = fw.baseMap && fw.baseMap.intact;
+  if (existing) {
+    const replace = await confirmDialog(
+      'Replace the base map?',
+      guideBody(
+        'This ECU already has a base map: the first verified image taken from it.',
+        [
+          'The current base map is kept as a restore point — nothing is deleted.',
+          'Only replace it if you are certain the new file is the original calibration.',
+          `Current: ${fw.baseMap.path}`,
+        ],
+        'If in doubt, cancel: the existing base map is already a guaranteed way back.',
+      ),
+      'Replace base map',
+      { tone: 'danger' },
+    );
+    if (!replace) return;
+  }
+  try {
+    await api('/api/memory/basemap', {
+      method: 'POST', body: { path, region, replace: !!existing },
+    });
+    $('#baseMapPath').value = '';
+    toast('Base map filed.', 'ok');
+    refreshBaseMap();
+  } catch (err) { toast(err.message, 'bad'); }
+};
+
+$('#baseMapRestoreBtn').onclick = async () => {
+  const region = $('#memRegion').value || 'flash';
+  try {
+    const data = await api('/api/memory/basemap/restore', {
+      method: 'POST', body: { region },
+    });
+    const plan = data.restore || {};
+    $('#baseMapRestoreOut').innerHTML = `<div class="gate-card warn">
+      <h4>Restoring the base map</h4>
+      <ol>${(plan.steps || []).map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
+      <p class="small">The image path has been put in the validate and write fields.
+        Restoring is an ordinary write: it goes through the same gate, the same
+        acknowledgement and the same validation as any other image.</p>
+    </div>`;
+    if (plan.path) {
+      $('#imagePath').value = plan.path;
+      renderWriteGate();
+    }
+  } catch (err) { toast(err.message, 'bad'); }
+};
+
 $('#readBtn').onclick = async () => {
   if (!(await prepareEngineState('off', 'Prepare for a single ECU memory read.'))) return;
   $('#memResult').innerHTML = '';
@@ -2179,23 +2296,142 @@ $$('.nav').forEach((b) => {
  * live in ~/.guzzionboard/xdfs — nothing ships with the app. This view is
  * strictly read-only: it renders and diffs, it never writes. */
 
-const maps = { xdfs: [], lastDoc: null };
+const maps = { xdfs: [], byFile: {}, vehicle: null, lastDoc: null };
 
 const fmtValue = (v) => (Number.isInteger(v) ? String(v) : String(+v.toPrecision(4)));
+
+/* The ECU family the bike on the bench actually has. A definition is only
+ * "for this bike" if its family matches: an XDF is a map of where the
+ * tables live, and the same addresses in another family's calibration are
+ * different tables entirely. */
+function benchFamilies() {
+  const family = (maps.vehicle?.ecu_family
+    || state.status?.vehicle?.ecu?.family || '').toUpperCase();
+  const tokens = family.match(/(MIUG3|MIU1|MBC1|5AM2|5AM|16M|15RC|15M|15P|59M|7SM|5SM|5DM|11MP|P7|P8)/g) || [];
+  // "IAW 5AM / 5AM2" and "MIU G3" both have to land on the catalog's ids.
+  return [...new Set(tokens.map((t) => (t === '5AM2' ? '5AM' : t)))];
+}
+
+function xdfFits(entry) {
+  const families = benchFamilies();
+  if (!families.length) return null;              // nothing identified yet
+  return families.includes(String(entry.family || '').toUpperCase());
+}
+
+function xdfOptionLabel(entry) {
+  const bits = [`${entry.family || '??'} · ${entry.label || entry.filename}`];
+  if (entry.tables) bits.push(`${entry.tables} tables`);
+  return bits.join(' — ');
+}
+
+/* Build the drop-down: the definitions that match the ECU on the bench
+ * first, then everything else grouped by the motorcycles it belongs to.
+ * Non-matching entries stay reachable (a workshop sometimes needs to look
+ * at another bike's file) but they are labelled, never silently mixed in. */
+function renderXdfOptions() {
+  const select = $('#xdfSelect');
+  const previous = select.value;
+  const brand = $('#xdfBrand') ? $('#xdfBrand').value : '';
+  const onlyFitting = $('#xdfOnlyFitting') ? $('#xdfOnlyFitting').checked : false;
+  const fitting = maps.xdfs.filter((x) => xdfFits(x) === true);
+  const others = maps.xdfs.filter((x) => xdfFits(x) !== true);
+
+  const inBrand = (entry) => !brand
+    || (entry.fits || []).some((f) => f.brand_label === brand)
+    || entry.brand_label === brand;
+
+  const option = (entry, warn) => `<option value="${esc(entry.filename)}">`
+    + `${warn ? '⚠ ' : ''}${esc(xdfOptionLabel(entry))}</option>`;
+
+  let html = '';
+  const chosen = fitting.filter(inBrand);
+  if (chosen.length) {
+    const family = benchFamilies().join('/') || 'this ECU';
+    html += `<optgroup label="Fits the ECU on the bench (${esc(family)})">`
+      + chosen.map((x) => option(x, false)).join('') + '</optgroup>';
+  }
+  if (!onlyFitting || !chosen.length) {
+    const groups = {};
+    others.filter(inBrand).forEach((entry) => {
+      const labels = (entry.fits || []).length
+        ? [...new Set(entry.fits.map((f) => f.brand_label))]
+        : [entry.brand_label || 'Uncatalogued'];
+      labels.forEach((label) => {
+        if (brand && label !== brand) return;
+        (groups[label] = groups[label] || []).push(entry);
+      });
+    });
+    Object.keys(groups).sort((a, b) => a.localeCompare(b)).forEach((label) => {
+      const suffix = benchFamilies().length ? ' — not this ECU' : '';
+      html += `<optgroup label="${esc(label)}${suffix}">`
+        + groups[label].sort((a, b) => xdfOptionLabel(a).localeCompare(xdfOptionLabel(b)))
+          .map((x) => option(x, benchFamilies().length > 0)).join('')
+        + '</optgroup>';
+    });
+  }
+  select.innerHTML = html || '<option value="">— none found —</option>';
+  if (previous && maps.byFile[previous]
+      && [...select.options].some((o) => o.value === previous)) {
+    select.value = previous;
+  } else {
+    suggestXdf();
+  }
+  renderXdfFitNote();
+}
+
+function renderXdfFitNote() {
+  const box = $('#xdfFitNote');
+  if (!box) return;
+  const entry = maps.byFile[$('#xdfSelect').value];
+  if (!entry) { box.innerHTML = ''; return; }
+  const fits = xdfFits(entry);
+  const bikes = (entry.fits || []).map((f) => f.label).filter(Boolean);
+  const tone = fits === false ? 'bad' : (fits === true ? 'ok' : 'warn');
+  const headline = fits === true
+    ? `Matches the ${benchFamilies().join('/')} on the bench`
+    : (fits === false
+      ? `Not for this motorcycle — this is a ${esc(entry.family || 'different')} `
+        + `definition and the bench ECU is ${esc(benchFamilies().join('/'))}`
+      : 'No ECU identified yet, so nothing can confirm this definition belongs to your bike');
+  box.innerHTML = `<div class="gate-card ${tone}">
+    <h4>${headline}</h4>
+    <p class="small">${esc(entry.label || entry.filename)} · file <code>${esc(entry.filename)}</code>${
+      entry.version ? ` · v${esc(entry.version)}` : ''}</p>
+    ${bikes.length ? `<p class="small">Published for: ${bikes.map(esc).join(' · ')}</p>` : ''}
+    ${fits === false ? '<p class="small">Rendering it is read-only and harmless, but the '
+      + 'table names and addresses will not describe your ECU. Do not tune from it.</p>' : ''}
+  </div>`;
+}
 
 async function loadXdfs() {
   try {
     const data = await api('/api/maps');
     maps.xdfs = data.xdfs || [];
+    maps.vehicle = data.vehicle || null;
+    maps.byFile = {};
+    maps.xdfs.forEach((x) => { maps.byFile[x.filename] = x; });
     $('#mapsXdfDir').textContent = maps.xdfs.length
       ? `${maps.xdfs.length} definition file(s) in ${data.directory}`
       : `none in ${data.directory} yet`;
-    $('#xdfSelect').innerHTML = maps.xdfs.length
-      ? maps.xdfs.map((x) => `<option value="${esc(x.title)}">`
-          + `${esc(x.title)} — ${x.tables} tables, ${x.constants} constants</option>`).join('')
-      : '<option value="">— none found —</option>';
-    $('#xdfSelect').onchange = () => Prefs.set('xdf', $('#xdfSelect').value);
-    suggestXdf();
+
+    const brands = [...new Set(maps.xdfs.flatMap((x) => (x.fits || [])
+      .map((f) => f.brand_label).concat([x.brand_label])).filter(Boolean))].sort();
+    const brandSelect = $('#xdfBrand');
+    if (brandSelect) {
+      const keep = brandSelect.value;
+      brandSelect.innerHTML = '<option value="">— all motorcycles —</option>'
+        + brands.map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+      if (brands.includes(keep)) brandSelect.value = keep;
+      brandSelect.onchange = renderXdfOptions;
+    }
+    const onlyChk = $('#xdfOnlyFitting');
+    if (onlyChk) onlyChk.onchange = renderXdfOptions;
+
+    $('#xdfSelect').onchange = () => {
+      Prefs.set('xdf', $('#xdfSelect').value);
+      renderXdfFitNote();
+    };
+    renderXdfOptions();
   } catch (err) {
     toast(`Could not list XDFs: ${err.message}`, 'bad');
   }
@@ -2209,14 +2445,12 @@ function suggestXdf() {
     select.value = last;
     return;
   }
-  // the selected ECU family usually names itself in the XDF title:
-  // "IAW 5AM / 5AM2" -> any definition whose title mentions 5AM
-  const family = (state.status?.vehicle?.ecu?.family || '').toUpperCase();
-  const tokens = family.match(/(5AM2|5AM|16M|15M|59M|7SM|5SM|5DM|11MP|MIU|P7|P8)/g) || [];
-  for (const token of tokens) {
-    const hit = [...select.options].find((o) => o.value.toUpperCase().includes(token));
-    if (hit) { select.value = hit.value; Prefs.set('xdf', hit.value); return; }
-  }
+  // Prefer a definition that actually belongs to the ECU on the bench,
+  // and among those the richest one (most tables).
+  const fitting = maps.xdfs.filter((x) => xdfFits(x) === true)
+    .sort((a, b) => (b.tables || 0) - (a.tables || 0));
+  const first = fitting.find((x) => [...select.options].some((o) => o.value === x.filename));
+  if (first) { select.value = first.filename; Prefs.set('xdf', first.filename); }
 }
 
 function mapsTableHtml(t) {
@@ -2335,6 +2569,25 @@ $('#mapsRenderBtn').onclick = async () => {
   const path = $('#mapsImagePath').value.trim() || $('#imagePath').value.trim();
   const xdf = $('#xdfSelect').value;
   if (!xdf) return toast('No XDF definitions found — drop .xdf files into ~/.guzzionboard/xdfs/.', 'bad');
+  const entry = maps.byFile[xdf];
+  if (entry && xdfFits(entry) === false) {
+    const go = await confirmDialog(
+      'That definition is for another motorcycle',
+      guideBody(
+        `${entry.label || entry.filename} is a ${entry.family} definition; the ECU `
+        + `on the bench is ${benchFamilies().join('/')}.`,
+        [
+          'Rendering is read-only, so nothing can be damaged by looking.',
+          'The table names, addresses and scaling will not describe your ECU.',
+          'Never copy values out of a mismatched definition into a tune.',
+        ],
+        'Pick a definition from the "Fits the ECU on the bench" group instead.',
+      ),
+      'Render anyway',
+      { tone: 'danger' },
+    );
+    if (!go) return;
+  }
   if (!path) return toast('Give the path of an image to render.', 'bad');
   if (!path.startsWith('/') && !path.startsWith('~')) {
     return toast('Give an absolute path, e.g. /home/you/.guzzionboard/images/5am-flash-read.bin', 'bad');

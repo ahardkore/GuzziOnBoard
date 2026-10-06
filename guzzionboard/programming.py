@@ -54,6 +54,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+from .basemap import DEFAULT_BASEMAP_DIR, BaseMapVault, ecu_key
 from .catalog import EcuProfile
 from .firmware import (
     FirmwareImage,
@@ -149,12 +150,21 @@ class ProgrammingService:
     reuses the same session, safety gate and session log.
     """
 
-    def __init__(self, diagnostics, *, image_dir: Path | str = DEFAULT_IMAGE_DIR):
+    def __init__(self, diagnostics, *, image_dir: Path | str = DEFAULT_IMAGE_DIR,
+                 vault: BaseMapVault | None = None):
         self.diag = diagnostics
         self.profile: EcuProfile = diagnostics.profile
         self.gate: SafetyGate = diagnostics.gate
         self.log = diagnostics.log
         self.image_dir = Path(image_dir)
+        #: The durable store of base maps. A write is refused unless this
+        #: ECU has an intact one on file, session or no session.
+        #: A redirected image directory (a portable setup, a test) keeps
+        #: its base maps with it rather than in the user's home.
+        self.vault = vault or BaseMapVault(
+            DEFAULT_BASEMAP_DIR if self.image_dir == DEFAULT_IMAGE_DIR
+            else self.image_dir / "basemaps"
+        )
         self.unlocked = False
         #: Explicit provider override; otherwise the registry is consulted.
         self.key_provider = None
@@ -506,6 +516,7 @@ class ProgrammingService:
     def backup(
         self, region_name: str = "flash", *, progress: ProgressFn | None = None,
         verify: bool = True, allow_unverified_key: bool = False,
+        save_base_map: bool = True,
     ) -> dict:
         """Read a region twice and only trust it if both reads agree.
 
@@ -546,6 +557,35 @@ class ProgrammingService:
         self.gate.state.verified_backup = bool(result["verified"])
         self.gate.state.backup_path = str(path)
 
+        # A verified backup is also the chance to secure the guaranteed way
+        # back. The first one taken from this ECU becomes its base map, kept
+        # outside the working image directory and re-hashed before every
+        # write; later ones are filed as extra restore points. This happens
+        # automatically because the moment it is easy to skip is the moment
+        # it gets skipped.
+        base_map = None
+        if result["verified"] and save_base_map:
+            try:
+                base_map = self.vault.store(
+                    ecu_id=self.profile.id,
+                    hardware=self._ecu_hardware(),
+                    region=region_name,
+                    source_path=path,
+                    verified=True,
+                    identity=dict(self.diag.identity.fields)
+                    if self.diag.identity else {},
+                    note="saved automatically from a verified backup",
+                )
+                self.log.action(
+                    "base_map_store",
+                    {"key": base_map.get("key"), "path": base_map.get("path"),
+                     "is_base_map": base_map.get("is_base_map", False)},
+                )
+            except Exception as exc:                    # never lose the backup
+                self.log.error("base_map_store", str(exc))
+                base_map = {"error": str(exc)}
+        self._refresh_base_map_state(region_name)
+
         self.log.action(
             "backup",
             {"region": region_name, "path": str(path), "sha256": first.sha256,
@@ -556,7 +596,77 @@ class ProgrammingService:
             "verified": result["verified"],
             "attempts": result["attempts"],
             "describe": first.describe(),
+            "base_map": base_map or self.base_map_status(region_name),
         }
+
+    # -- the base map (the guaranteed restore map) -------------------------
+    def _ecu_hardware(self) -> str:
+        if self.diag.identity:
+            return str(self.diag.identity.fields.get("Hardware", "")).strip()
+        return str(self.gate.state.ecu_hardware or "").strip()
+
+    def base_map_status(self, region_name: str = "flash") -> dict:
+        """What stands between this ECU and an unrecoverable write."""
+        status = self.vault.status(
+            self.profile.id, self._ecu_hardware(), region_name
+        )
+        status["ecu_family"] = self.profile.family
+        return status
+
+    def _refresh_base_map_state(self, region_name: str = "flash") -> dict:
+        status = self.base_map_status(region_name)
+        self.gate.state.base_map = bool(status.get("intact"))
+        self.gate.state.base_map_path = status.get("path", "") or ""
+        return status
+
+    def save_base_map(self, path: str | Path, region_name: str = "flash",
+                      *, verified: bool = True, replace: bool = False,
+                      note: str = "") -> dict:
+        """File an existing verified image as this ECU's base map.
+
+        For the case where the backup was taken earlier (or by GuzziDiag)
+        and the operator wants the vault to know about it. The file is
+        copied, hashed and indexed exactly like an automatic save.
+        """
+        store = self.vault.replace_base_map if replace else self.vault.store
+        result = store(
+            ecu_id=self.profile.id,
+            hardware=self._ecu_hardware(),
+            region=region_name,
+            source_path=path,
+            verified=verified,
+            identity=dict(self.diag.identity.fields) if self.diag.identity else {},
+            note=note or "filed by the operator",
+        )
+        self.log.action(
+            "base_map_save",
+            {"path": str(path), "region": region_name, "replace": replace},
+        )
+        self._refresh_base_map_state(region_name)
+        return result
+
+    def restore_plan(self, region_name: str = "flash") -> dict:
+        """Everything needed to put the base map back, in order.
+
+        Restoring is an ordinary write of a known-good image, so it runs
+        through the same gate as any other write - no hidden fast path.
+        """
+        status = self.base_map_status(region_name)
+        if not status.get("intact"):
+            return dict(status, steps=[], ready=False)
+        return dict(
+            status,
+            ready=True,
+            key=ecu_key(self.profile.id, self._ecu_hardware(), region_name),
+            steps=[
+                "Keep the ECU powered from a charger for the whole restore.",
+                "Enable programming and acknowledge the risk.",
+                f"Validate {status['path']} against this ECU.",
+                f"Write {status['path']} back to the {region_name} region.",
+                "Re-read and compare the SHA-256 with "
+                f"{status.get('sha256', '')[:16]}… before powering down.",
+            ],
+        )
 
     # -- validation -------------------------------------------------------
     def validate(self, image: FirmwareImage, region_name: str = "flash") -> dict:
@@ -582,6 +692,10 @@ class ProgrammingService:
             hardware = str(self.diag.identity.fields.get("Hardware", "")).strip()
             if hardware:
                 self.gate.state.ecu_hardware = hardware
+        # The vault is the authority on whether a way back exists; the
+        # gate only mirrors it, and it is re-checked (by re-hashing the
+        # file) every single time a write is considered.
+        self._refresh_base_map_state(region_name)
         image_hardware = None
         image_embedded = None
         if image is not None:
@@ -661,12 +775,25 @@ class ProgrammingService:
                 "before writing anything."
             )
 
+        # 3b. and a base map must be on file and still intact. The session
+        # backup proves this read worked; the base map is what is still
+        # there tomorrow, after the laptop has been closed and the temp
+        # directory swept, if the bike needs to go back to stock.
+        base_map = self._refresh_base_map_state(region_name)
+        if not base_map.get("intact"):
+            raise ProgrammingError(
+                "no intact base map on file for this ECU "
+                f"({base_map.get('reason') or 'none saved'}). Save one from a "
+                "verified backup first - it is the only guaranteed way back."
+            )
+
         checkpoint = self._checkpoint_path(region_name)
         self._write_checkpoint(
             checkpoint,
             {"phase": "starting", "region": region_name,
              "image_sha256": image.sha256,
              "backup": self.gate.state.backup_path,
+             "base_map": self.gate.state.base_map_path,
              "identity": dict(self.diag.identity.fields) if self.diag.identity else {}},
         )
 

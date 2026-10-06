@@ -1410,6 +1410,147 @@
     return out;
   }
 
+  /* ------------------------------------------------------------------
+   * Base maps: the guaranteed way back
+   * ------------------------------------------------------------------
+   * The local workstation keeps verified backups in ~/.guzzionboard/
+   * basemaps and re-hashes the file before every write. This tab has no
+   * disk, so the vault lives in memory for as long as the page does -
+   * the rules it enforces (first verified backup becomes the base map,
+   * later ones are extra restore points, no write without an intact one)
+   * are the same ones safety.py applies.
+   */
+  var BASEMAPS = {};
+
+  function baseMapKey(profile, region) {
+    var hardware = WS.identity && WS.identity.fields
+      ? String(WS.identity.fields.Hardware || '').replace(/\s+/g, '') : '';
+    return [profile.id, hardware.toUpperCase(), region || 'flash']
+      .filter(Boolean).join('/');
+  }
+
+  function baseMapStatus(region) {
+    var profile = currentProfile();
+    region = region || 'flash';
+    var key = baseMapKey(profile, region);
+    var entry = BASEMAPS[key];
+    if (!entry) {
+      return {
+        key: key, present: false, intact: false, region: region,
+        ecu_id: profile.id, ecu_family: profile.family, restore_points: [],
+        simulated: true,
+        reason: 'no base map saved for this ECU yet - save one before any '
+          + 'write is allowed',
+      };
+    }
+    var image = FS[entry.path];
+    var intact = !!image && sha256(image.bytes) === entry.sha256;
+    return {
+      key: key, present: !!image, intact: intact, region: region,
+      ecu_id: profile.id, ecu_family: profile.family,
+      path: entry.path, sha256: entry.sha256, bytes: entry.bytes,
+      saved_at: entry.saved_at, saved_at_text: entry.saved_at_text,
+      note: entry.note, restore_points: entry.restore_points,
+      directory: 'in this browser tab (the workstation uses '
+        + '~/.guzzionboard/basemaps)',
+      simulated: true,
+      reason: intact ? '' : 'the saved base map is no longer in this tab',
+    };
+  }
+
+  function storeBaseMap(region, image, note) {
+    var profile = currentProfile();
+    var key = baseMapKey(profile, region);
+    var record = {
+      path: image.path, sha256: sha256(image.bytes),
+      bytes: image.bytes.length, saved_at: epoch(),
+      saved_at_text: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      note: note || 'saved automatically from a verified backup',
+      restore_points: [],
+    };
+    var existing = BASEMAPS[key];
+    var isBase = !existing;
+    if (isBase) {
+      BASEMAPS[key] = record;
+    } else {
+      existing.restore_points = (existing.restore_points || []).concat([{
+        path: record.path, sha256: record.sha256, bytes: record.bytes,
+        saved_at: record.saved_at, saved_at_text: record.saved_at_text,
+        note: 'additional restore point',
+      }]).slice(-10);
+    }
+    syncBaseMapGate(region);
+    var status = baseMapStatus(region);
+    status.is_base_map = isBase;
+    status.stored = record;
+    return status;
+  }
+
+  function syncBaseMapGate(region) {
+    var status = baseMapStatus(region);
+    WS.gate.state.base_map = !!status.intact;
+    WS.gate.state.base_map_path = status.path || '';
+    return status;
+  }
+
+  function restorePlan(region) {
+    var status = baseMapStatus(region);
+    if (!status.intact) return Object.assign({}, status, { ready: false, steps: [] });
+    return Object.assign({}, status, {
+      ready: true,
+      steps: [
+        'Keep the ECU powered from a charger for the whole restore.',
+        'Enable programming and acknowledge the risk.',
+        'Validate ' + status.path + ' against this ECU.',
+        'Write ' + status.path + ' back to the ' + (region || 'flash') + ' region.',
+        'Re-read and compare the SHA-256 with '
+          + String(status.sha256).slice(0, 16) + '\u2026 before powering down.',
+      ],
+    });
+  }
+
+  D.register('GET', '/api/memory/basemap', function (query) {
+    var region = (query && query.region) || 'flash';
+    return [200, {
+      base_map: baseMapStatus(region),
+      restore: restorePlan(region),
+      vault: Object.keys(BASEMAPS).map(function (key) {
+        return Object.assign({ key: key }, BASEMAPS[key]);
+      }),
+      directory: 'in this browser tab (the workstation uses '
+        + '~/.guzzionboard/basemaps)',
+      simulated: true,
+    }];
+  });
+
+  D.register('POST', '/api/memory/basemap', function (body) {
+    var region = body.region || 'flash';
+    var path = body.path || WS.gate.state.backup_path;
+    if (!path) {
+      throw bad("a 'path' to a verified image is required (or take a verified "
+        + 'backup first, which saves one automatically)');
+    }
+    var image = imageAt(path);
+    var key = baseMapKey(currentProfile(), region);
+    if (body.replace && BASEMAPS[key]) {
+      var superseded = BASEMAPS[key];
+      delete BASEMAPS[key];
+      var replaced = storeBaseMap(region, image, 'operator-replaced base map');
+      BASEMAPS[key].restore_points = (BASEMAPS[key].restore_points || [])
+        .concat([Object.assign({}, superseded, { note: 'superseded base map',
+          restore_points: undefined })]);
+      return [200, { base_map: baseMapStatus(region), result: replaced }];
+    }
+    var result = storeBaseMap(region, image, body.note || 'filed by the operator');
+    return [200, { base_map: baseMapStatus(region), result: result }];
+  });
+
+  D.register('POST', '/api/memory/basemap/restore', function (body) {
+    var plan = restorePlan(body.region || 'flash');
+    if (!plan.ready) throw bad(plan.reason || 'no intact base map on file for this ECU');
+    return [200, { restore: plan }];
+  });
+
   D.register('GET', '/api/memory', function () {
     var profile = currentProfile();
     var regions = (profile.memory || {}).regions || {};
@@ -1418,6 +1559,7 @@
       checkpoints[name] = CHECKPOINTS[name] || null;
     });
     return [200, {
+      base_map: baseMapStatus('flash'),
       capabilities: memoryCapabilities(profile),
       job: jobStatus(),
       checkpoints: checkpoints,
@@ -1494,6 +1636,9 @@
             // deterministic, so the two passes agree — as they should.
             WS.gate.state.verified_backup = true;
             WS.gate.state.backup_path = image.path;
+            // The first verified backup also becomes the base map, so the
+            // way back exists before anyone reaches the write panel.
+            storeBaseMap(region, image);
             CHECKPOINTS[region] = {
               path: image.path, at: image.read_at, verified: true,
             };
@@ -1849,10 +1994,18 @@
     var found = null;
     xdfIndex().forEach(function (entry) {
       if (found) return;
-      if (entry.title === wanted || entry.path.split('/').pop() === wanted
-        || entry.path === wanted) found = entry;
+      // Filename first: XDF titles collide ("15M Marelli" is on several
+      // unrelated files), and resolving by a shared title would quietly
+      // render the dump against the wrong bike's definitions.
+      if (entry.path.split('/').pop() === wanted || entry.path === wanted) found = entry;
     });
     if (!found) {
+      var byTitle = xdfIndex().filter(function (e) { return e.title === wanted; });
+      if (byTitle.length === 1) return byTitle[0];
+      if (byTitle.length > 1) {
+        throw bad(JSON.stringify(wanted) + ' is the title of ' + byTitle.length
+          + ' different definitions; select one by filename');
+      }
       throw bad('no XDF named ' + JSON.stringify(wanted) + ' in the bundled '
         + 'library. The hosted demo can only use the ' + xdfIndex().length
         + ' definitions shipped with the project — the local workstation also '
@@ -1870,19 +2023,74 @@
     return value;
   }
 
+  /* The same grouping maps.group_xdfs() does on the workstation: one
+   * group per brand, each holding one sub-group per ECU family, so the
+   * chooser can keep a Ducati 1198 definition away from a V7. */
+  function groupXdfs(entries) {
+    var groups = {};
+    entries.forEach(function (entry) {
+      var fits = (entry.fits && entry.fits.length) ? entry.fits
+        : [{ brand: entry.brand || '', brand_label: entry.brand_label || 'Uncatalogued' }];
+      var seen = {};
+      fits.forEach(function (fit) {
+        var label = fit.brand_label || 'Uncatalogued';
+        if (seen[label]) return;
+        seen[label] = true;
+        var group = groups[label] || (groups[label] = {
+          brand: fit.brand || '', brand_label: label, families: {},
+        });
+        var family = entry.family || 'unknown';
+        (group.families[family] || (group.families[family] = []))
+          .push(entry.filename);
+      });
+    });
+    return Object.keys(groups).sort(function (a, b) {
+      return a.toLowerCase() < b.toLowerCase() ? -1 : 1;
+    }).map(function (label) {
+      var group = groups[label];
+      return {
+        brand: group.brand, brand_label: label,
+        families: Object.keys(group.families).sort().map(function (family) {
+          return { family: family, files: group.families[family].sort() };
+        }),
+      };
+    });
+  }
+
+  function mapsVehicle() {
+    var selection = WS.selection || {};
+    var profile = WS.sessionProfile || selection.profile;
+    return {
+      make: selection.make || '', model: selection.model || '',
+      ecu_id: profile ? profile.id : '',
+      ecu_family: profile ? profile.family : '',
+    };
+  }
+
   D.register('GET', '/api/maps', function () {
     return [200, {
       directory: 'guzzionboard/xdfs, bundled with the project and fetched '
         + 'from this site (the local workstation also reads ~/.guzzionboard/xdfs)',
       bundled_directory: 'guzzionboard/xdfs (fetched from this site)',
       xdfs: xdfIndex().map(function (entry) {
+        // The fitment facts (brand, ECU family, the motorcycles the
+        // archive publishes this file for) come from the project's
+        // catalog.json via demo-data.json, so the chooser can group the
+        // library by bike instead of by whatever the author typed in the
+        // title field.
         return {
           title: entry.title, path: entry.path, version: entry.version,
           tables: entry.tables, constants: entry.constants,
           unsupported: entry.unsupported, region_size: entry.region_size,
           categories: entry.categories,
+          filename: entry.filename, brand: entry.brand,
+          brand_label: entry.brand_label, family: entry.family,
+          label: entry.label, fits: entry.fits, fits_brands: entry.fits_brands,
+          catalogued: entry.catalogued, source_url: entry.source_url,
         };
       }),
+      groups: groupXdfs(xdfIndex()),
+      vehicle: mapsVehicle(),
       simulated: true,
       demo_note: 'The definitions are the real bundled XDFs. The dump they '
         + 'are rendered against is synthesised in your browser.',

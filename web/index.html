@@ -780,10 +780,8 @@
           <small class="muted" id="mapChecksumNote">No checksum algorithm is guessed or bundled. Local plugins run in isolated, resource-limited workers and must explicitly match every checksum declared by the XDF.</small>
         </label>
         <label class="inline"><input type="checkbox" id="mapNonBaseAccept"> I understand this source is not the protected base map (required only when shown above).</label>
-        <label class="field"><span>Liability acknowledgement &middot; type exactly</span>
-          <code id="mapAckText" class="ack-text">Load definitions to see the required text.</code>
-          <input type="text" id="mapAckInput" autocomplete="off" placeholder="type the acknowledgement shown above">
-        </label>
+        <label class="check acknowledgement-check"><input type="checkbox" id="mapAckCheck"> I have reviewed and accept the liability acknowledgement below.</label>
+        <p class="muted small ack-text" id="mapAckText">Load definitions to see the acknowledgement.</p>
         <div class="toolbar">
           <button class="btn danger" id="mapBuildBtn" disabled>Build modified map file</button>
         </div>
@@ -795,8 +793,8 @@
     <article class="panel danger-zone">
       <h2>4 &middot; Write</h2>
       <p class="muted small">Writing is an opt-in, not a hidden feature. It stays refused until every precondition below is green &mdash; including the hardware-family check on the named image: an HW1xx file never goes into an HW3xx ECU.</p>
-      <div class="toolbar">
-        <input type="text" id="ackInput" placeholder="type the acknowledgement" size="46">
+      <div class="toolbar acknowledgement-toolbar">
+        <label class="check"><input type="checkbox" id="ackCheck"> I have a verified backup and accept the programming risk.</label>
         <button class="btn" id="enableProgBtn">Enable programming</button>
         <button class="btn" id="disableProgBtn">Disable</button>
       </div>

@@ -2203,7 +2203,7 @@ $('#protocolRevertBtn')?.addEventListener('click', async () => {
  * Reads take twenty minutes or more, so they run as a server-side job and
  * this view polls for progress rather than holding a request open. */
 
-const fw = { caps: null, job: null, timer: null, lastImage: null, baseMap: null };
+const fw = { caps: null, job: null, timer: null, lastImage: null, baseMap: null, acknowledgement: '' };
 
 function renderMemoryCapabilities(data) {
   fw.caps = data;
@@ -2270,7 +2270,7 @@ function renderMemoryCapabilities(data) {
       </div>`);
   $('#checkpointOut').innerHTML = pending.join('');
 
-  $('#ackInput').placeholder = data.acknowledgement || '';
+  fw.acknowledgement = data.acknowledgement || '';
   renderBaseMap(data.base_map, canRead);
   renderWriteGate();
 }
@@ -2598,12 +2598,15 @@ $('#validateBtn').onclick = async () => {
 };
 
 $('#enableProgBtn').onclick = async () => {
+  if (!$('#ackCheck').checked) {
+    return toast('Review and accept the programming risk before enabling writes.', 'bad');
+  }
   try {
     const keyChk = $('#unverifiedKeysChk');
     await api('/api/programming/enable', {
       method: 'POST',
       body: {
-        acknowledgement: $('#ackInput').value,
+        acknowledgement: fw.acknowledgement,
         allow_unverified_keys: !!(keyChk && keyChk.checked),
       },
     });
@@ -3999,8 +4002,8 @@ $('#mapBuildBtn').onclick = async () => {
   const source = maps.render?.source;
   const changes = [...maps.changes.values()];
   if (!source || !changes.length) return toast('Load a map and stage at least one change.', 'bad');
-  if ($('#mapAckInput').value.trim() !== maps.build?.acknowledgement) {
-    return toast('Type the liability acknowledgement exactly as shown.', 'bad');
+  if (!$('#mapAckCheck').checked) {
+    return toast('Review and accept the liability acknowledgement before building.', 'bad');
   }
   if (!source.is_base_map && !$('#mapNonBaseAccept').checked) {
     return toast('A non-base source needs the additional source acknowledgement.', 'bad');
@@ -4027,7 +4030,7 @@ $('#mapBuildBtn').onclick = async () => {
     recommendation_package: activePackage ? maps.activePackage : null,
     changes,
     accept_non_base_source: $('#mapNonBaseAccept').checked,
-    acknowledgement: $('#mapAckInput').value,
+    acknowledgement: maps.build?.acknowledgement || '',
     recommendation: {
       title: $('#mapEvidenceTitle').value,
       url: $('#mapEvidenceUrl').value,

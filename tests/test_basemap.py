@@ -93,3 +93,54 @@ def test_a_base_map_for_another_hardware_variant_does_not_count(vault, tmp_path)
     vault.store(ecu_id="5am", hardware="IAW5AMHW103",
                 source_path=image(tmp_path), verified=True)
     assert not vault.status("5am", "IAW5AMHW610")["intact"]
+
+
+@pytest.mark.parametrize("verified", [False, True])
+def test_failed_replacement_preserves_original(vault, tmp_path, verified):
+    vault.store(ecu_id="5am", source_path=image(tmp_path), verified=True)
+    before = vault.index_path.read_bytes()
+    with pytest.raises(BaseMapError):
+        vault.replace_base_map(ecu_id="5am", source_path=tmp_path / "missing.bin",
+                               verified=verified)
+    assert vault.index_path.read_bytes() == before
+    assert vault.status("5am")["intact"]
+
+
+def test_corrupt_index_is_not_silently_replaced(vault, tmp_path):
+    vault.directory.mkdir()
+    vault.index_path.write_text("{broken")
+    with pytest.raises(BaseMapError, match="index"):
+        vault.store(ecu_id="5am", source_path=image(tmp_path), verified=True)
+    assert vault.index_path.read_text() == "{broken"
+
+
+def test_repeated_saves_have_distinct_artifacts(vault, tmp_path):
+    source = image(tmp_path)
+    paths = [vault.store(ecu_id="5am", source_path=source, verified=True)["stored"]["path"]
+             for _ in range(3)]
+    assert len(set(paths)) == 3
+
+
+def test_failed_index_publication_preserves_original(vault, tmp_path, monkeypatch):
+    vault.store(ecu_id="5am", source_path=image(tmp_path), verified=True)
+    before = vault.index_path.read_bytes()
+    def fail(*args):
+        raise OSError("disk full")
+    monkeypatch.setattr("guzzionboard.storage.os.replace", fail)
+    with pytest.raises(OSError, match="disk full"):
+        vault.replace_base_map(ecu_id="5am", source_path=image(tmp_path, "new.bin", b"new"),
+                               verified=True)
+    assert vault.index_path.read_bytes() == before
+    assert vault.status("5am")["intact"]
+    assert not list(vault.directory.glob(".index.json.*"))
+
+
+def test_concurrent_vault_instances_keep_every_entry(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    source = image(tmp_path)
+    def store(i):
+        BaseMapVault(tmp_path / "vault").store(
+            ecu_id=str(i), source_path=source, verified=True)
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(store, range(16)))
+    assert len(BaseMapVault(tmp_path / "vault").all_entries()) == 16

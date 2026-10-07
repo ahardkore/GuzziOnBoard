@@ -314,10 +314,7 @@ def build_tune(
     while output.exists():
         output = directory / f"{stem}-tune-{stamp}-{tuned_hash[:8]}-{suffix}.bin"
         suffix += 1
-    tuned.save(output)
     manifest["output_path"] = str(output)
-    # save() serialised the manifest before output_path was known. Rewrite the
-    # sidecar once so the artifact is self-describing when moved on its own.
     tuned.meta["tuning_build"] = manifest
     tuned.save(output)
 

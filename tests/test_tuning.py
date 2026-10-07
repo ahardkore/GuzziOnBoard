@@ -270,3 +270,16 @@ class TestTuningApi:
         })
         assert status == 400
         assert "mismatched definitions" in payload["error"]
+
+
+def test_overlapping_items_cannot_silently_overwrite_edits(xdf, source):
+    # A constant can alias a table (including just one byte of a wider value).
+    xdf.constants[0].embedded.address = 0x20
+    with pytest.raises(XdfError, match="overlapping"):
+        xdf.apply_changes(source, [
+            {"kind": "table", "id": "fuel-main", "row": 0, "col": 1,
+             "expected_raw": 20, "value": 3.0},
+            {"kind": "constant", "id": "rev-limit", "expected_raw": 0x0a14,
+             "value": 0x0a15 * 25},
+        ])
+    assert source.data[0x20:0x22] == bytes([10, 20])

@@ -155,6 +155,48 @@
       </table></div>
       <p class="muted small">Confidence drives what the workstation will let you do. <b>verified-capture</b> means the bytes came off a real bus; <b>documented</b> means a primary manual or mature open implementation; <b>inferred</b> never enables controls, and families without a validated physical protocol are blocked before the adapter opens.</p>
     </article>
+
+    <article class="panel" id="protocolPanel">
+      <h2>Protocol evidence — field confirmations &amp; updates</h2>
+      <p class="muted">The catalog is data, so a capability somebody confirms on a real motorcycle is a data update: two independent sessions, reviewed against one catalog revision, signed, and applied against a key you pinned in advance. Everything this app will do to an ECU follows from what is written here — never from a silent fetch.</p>
+      <div id="protocolOut">Loading…</div>
+      <div class="toolbar">
+        <input type="text" id="protocolUrl" class="grow"
+               placeholder="Pack URL or local path — leave blank for the published release asset"
+               aria-label="Protocol update pack URL">
+        <button class="btn" id="protocolCheckBtn">Check for a signed update…</button>
+        <button class="btn" id="protocolRefreshBtn">Refresh</button>
+        <div class="spacer"></div>
+        <button class="btn" id="protocolRevertBtn" disabled>Revert to the shipped catalog</button>
+      </div>
+      <details class="channel-picker" id="protocolKeysDetails">
+        <summary>Trusted keys</summary>
+        <p class="muted small">A pack is only worth anything against a key you chose in
+        advance. Paste a public key that reached you out of band (the repository, a
+        workshop's own release notes, the maintainer signing it in front of you) — never
+        one taken from the pack you are about to install, which would be trusting the
+        thing being checked. Keys pinned here live in
+        <code>~/.guzzionboard/protocol/keys.json</code> and are not overwritten by
+        application updates.</p>
+        <div id="protocolKeysOut" class="muted small">Loading…</div>
+        <div class="toolbar">
+          <input type="text" id="protocolKeyId" placeholder="key name (e.g. release)"
+                 aria-label="Name for the trusted key">
+          <input type="text" id="protocolKeyHex" class="grow"
+                 placeholder="public key — 64 hex characters"
+                 aria-label="Trusted public key, 64 hex characters">
+          <button class="btn" id="protocolPinBtn">Pin key</button>
+        </div>
+      </details>
+      <div class="toolbar">
+        <button class="btn primary" id="confirmationBuildBtn" disabled>Freeze this session as a confirmation</button>
+        <label class="inline">
+          <input type="checkbox" id="confirmationNoteChk"> include the model/year I selected
+        </label>
+      </div>
+      <p class="muted small">A confirmation stays on this machine as two files: the bundle and its frozen JSONL capture. Nothing is uploaded by GuzziOnBoard — the button opens a pre-filled issue and <em>you</em> attach them. Reviewers recompute every claim digest from that capture, so an edited bundle buys nothing. A simulated session cannot confirm anything about hardware, and writing is never claimable.</p>
+      <div id="protocolActionOut"></div>
+    </article>
   </section>
 
   <!-- ===================================================== OVERVIEW -->

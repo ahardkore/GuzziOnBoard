@@ -902,6 +902,7 @@ async function connect() {
     await loadParameters();
     await api('/api/identify').then(renderIdentity).catch(() => {});
     await refreshStatus();
+    await loadProtocol();
     show('overview');
     if (physical) {
       await infoDialog(
@@ -965,6 +966,7 @@ async function disconnect() {
   if (physical) closeModal();
   state.history.clear();
   await refreshStatus();
+  await loadProtocol();
   if (physical) {
     await infoDialog(
       'Safe to power down',
@@ -1920,11 +1922,281 @@ window.addEventListener('beforeunload', () => {
     $('#tempUnit').value = Temp.unit();
     await loadCatalog();
     await refreshStatus();
+    await loadProtocol();
     setInterval(() => { if (!state.polling) refreshStatus().catch(() => {}); }, 5000);
   } catch (err) {
     toast(`Could not reach the local server: ${err.message}`, 'bad');
   }
 })();
+
+
+/* ------------------------------------------------- protocol evidence
+ * The catalog is data, and a confirmed capability is a data update. Two
+ * things are shown here, and they are deliberately separate:
+ *
+ *   * what this install is running - the shipped catalog, or a signed pack
+ *     somebody applied against a pinned key, with its provenance;
+ *   * what this session could contribute - a frozen confirmation the operator
+ *     attaches to an issue themselves. Nothing is uploaded from here.
+ *
+ * The UI never fetches a pack on its own: "Check" is the one network action
+ * and it is a click, not a background poll.
+ */
+
+const protocol = { state: null, preview: null, envelope: null, bundle: null, busy: false };
+
+async function loadProtocol() {
+  const out = $('#protocolOut');
+  if (!out) return;
+  try {
+    const data = await api('/api/protocol-updates');
+    protocol.state = data;
+    const status = data.status || {};
+    const applied = status.applied_status || { state: 'none' };
+    const pack = (applied.pack || {});
+    const keys = Object.keys(status.trusted_keys || {});
+    const stateText = status.applied
+      ? `<b>Applied:</b> pack <code>${esc(pack.id || '')}</code> `
+        + `(sequence ${esc(pack.sequence ?? '')}), signed by ${esc(pack.key_id || '')}, `
+        + `verified ${esc(status.applied_status?.applied_at || '')}`
+      : (applied.state === 'refused'
+        ? `<b class="bad">An applied pack was refused:</b> ${esc(applied.reason || '')}`
+        : '<b>Shipped catalog:</b> no protocol update is applied on this machine.');
+
+    const promotions = Object.entries(applied.promotions || {});
+    const selection = data.selection;
+    const promoted = selection && selection.field_confirmation
+      && Object.keys(selection.field_confirmation).length
+      ? `<div class="gate-card ok"><h4>${esc(selection.family)} is promoted</h4>`
+        + `<p class="small">Read-level operations confirmed by `
+        + `<b>${esc(selection.field_confirmation.independent_sessions || 0)}</b> independent `
+        + `field session(s) on real hardware; family confidence stays `
+        + `<b>${esc(selection.confidence)}</b>, so control actions are unchanged.</p></div>`
+      : '';
+
+    const confirmations = (data.confirmations || []);
+    const session = data.session;
+    const canBuild = Boolean(session && session.hardware);
+
+    out.innerHTML = `
+      <div class="gate-card ${status.applied ? 'ok' : ''}">
+        <h4>What this install is running</h4>
+        <p class="small">${stateText}</p>
+        ${promotions.length ? `<p class="small">Promotions in force: ${promotions.map(([ecu, effects]) =>
+          `<code>${esc(ecu)}</code> (${effects.map(esc).join(', ')})`).join(' · ')}</p>` : ''}
+        <p class="small">Trusted keys: ${keys.length ? keys.map((k) => `<code>${esc(k)}</code>`).join(', ')
+          : '<b>none pinned</b> — so no pack can be applied at all'}. `
+        + `Source: <code>${esc(status.source_url || '')}</code></p>
+      </div>
+      ${promoted}
+      <div class="gate-card ${canBuild ? '' : 'warn'}">
+        <h4>This session</h4>
+        <p class="small">${session
+          ? (canBuild
+            ? `Recording hardware frames to <code>${esc(session.path)}</code>: ${esc(JSON.stringify(session.counts))}. Freeze it to build a confirmation.`
+            : 'This session runs against the simulator. The simulator is this project\'s reference implementation, not evidence about a motorcycle, so it cannot confirm anything about hardware.')
+          : 'Not recording a session yet. Connect, reproduce the behaviour you are confirming, then freeze the session.'}</p>
+      </div>
+      <div class="gate-card">
+        <h4>Confirmations on this machine (${confirmations.length})</h4>
+        ${confirmations.length ? confirmations.map((c) => `
+          <p class="small"><code>${esc(c.id)}</code> · ${esc(c.ecu || '')} ·
+          ${c.claims.map(esc).join(', ')} ·
+          <button class="link-btn" data-verify="${esc(c.id)}">recompute</button>
+          <button class="link-btn" data-submit="${esc(c.id)}">submit link</button></p>`).join('')
+        : '<p class="small">None yet. A confirmation is local until you attach it to an issue.</p>'}
+      </div>`;
+
+    $$('[data-verify]', out).forEach((btn) => {
+      btn.onclick = async () => {
+        try {
+          const report = await api('/api/confirmations/verify', {
+            method: 'POST', body: { bundle_path: confirmations
+              .find((c) => c.id === btn.dataset.verify).path },
+          });
+          toast(`Recomputed ${report.report.claims.length} claim(s) from the capture: intact.`, 'ok');
+          $('#protocolActionOut').innerHTML =
+            `<p class="muted small">${esc(report.bundle_path)}: ${report.report.claims.map(esc).join(', ')} · `
+            + `${report.report.frames} frame(s), ${report.report.events} event(s) recomputed.</p>`;
+        } catch (err) { toast(err.message, 'bad'); }
+      };
+    });
+    $$('[data-submit]', out).forEach((btn) => {
+      btn.onclick = () => {
+        const entry = confirmations.find((c) => c.id === btn.dataset.submit);
+        window.open(`${data.submission.url}?template=${encodeURIComponent(data.submission.template)}`
+          + `&title=${encodeURIComponent('Protocol confirmation: ' + entry.id)}`, '_blank');
+        toast('Attach the .json bundle and its .session.jsonl capture to that issue.', 'info');
+      };
+    });
+
+    const keysOut = $('#protocolKeysOut');
+    if (keysOut) {
+      const names = Object.keys(status.trusted_keys || {});
+      keysOut.innerHTML = names.length
+        ? names.map((name) => `<p><code>${esc(name)}</code> · `
+          + `${esc(status.trusted_keys[name])} `
+          + `<button class="link-btn" data-unpin="${esc(name)}">forget</button></p>`).join('')
+        : '<p>No key is pinned, so no pack can be applied on this machine. '
+          + 'That is the shipped default, and it is not a bug.</p>';
+      $$('[data-unpin]', keysOut).forEach((btn) => {
+        btn.onclick = async () => {
+          try {
+            await api('/api/protocol-updates/unpin-key',
+              { method: 'POST', body: { key_id: btn.dataset.unpin } });
+            toast(`Forgot ${btn.dataset.unpin}. Packs signed by it are refused.`, 'info');
+            await loadProtocol();
+          } catch (err) { toast(err.message, 'bad'); }
+        };
+      });
+    }
+
+    const revert = $('#protocolRevertBtn');
+    if (revert) revert.disabled = !status.applied;
+    const build = $('#confirmationBuildBtn');
+    if (build) build.disabled = !canBuild || protocol.busy;
+  } catch (err) {
+    out.innerHTML = `<p class="muted">${esc(err.message)}</p>`;
+  }
+}
+
+async function protocolCheck() {
+  if (!protocol.preview) {
+    const url = ($('#protocolUrl')?.value || '').trim();
+    try {
+      const result = await api('/api/protocol-updates/check',
+        { method: 'POST', body: { url: url || undefined } });
+      protocol.preview = result.preview;
+      protocol.envelope = result.envelope;      // apply exactly what was shown
+      $('#protocolActionOut').innerHTML = protocolPreviewHtml(result);
+      if (!result.preview.already_applied) {
+        const apply = $('#protocolApplyBtn');
+        if (apply) apply.disabled = false;
+      }
+      toast('Pack verified against a pinned key. Read what it changes, then apply.', 'ok');
+    } catch (err) {
+      protocol.preview = null;
+      protocol.envelope = null;
+      $('#protocolActionOut').innerHTML = `<p class="muted">${esc(err.message)}</p>`;
+      toast(err.message, 'bad');
+    }
+    return;
+  }
+  try {
+    const result = await api('/api/protocol-updates/apply', {
+      method: 'POST',
+      body: { expected_sha256: protocol.preview.sha256, envelope: protocol.envelope },
+    });
+    toast(`Applied ${result.pack.id}: ${result.changes.length} promotion(s).`, 'ok');
+    protocol.preview = null;
+    protocol.envelope = null;
+    $('#protocolActionOut').innerHTML = '';
+    await loadCatalog();
+    await refreshStatus();
+    await loadProtocol();
+  } catch (err) {
+    toast(err.message, 'bad');
+    protocol.preview = null;
+    protocol.envelope = null;
+    $('#protocolActionOut').innerHTML = `<p class="muted">${esc(err.message)}</p>`;
+  }
+}
+
+function protocolPreviewHtml(result) {
+  const preview = result.preview;
+  if (preview.already_applied) {
+    return `<div class="gate-card ok"><h4>Already applied</h4>
+      <p class="small">Pack <code>${esc(preview.pack.id)}</code> is what this install is running.</p></div>`;
+  }
+  return `<div class="gate-card ok">
+    <h4>Reviewed pack ${esc(preview.pack.id)} — not applied yet</h4>
+    <p class="small">Signed by <code>${esc(preview.key_id)}</code>, reviewer
+    <b>${esc(preview.pack.reviewer || '(unnamed)')}</b>, valid until
+    ${esc(preview.pack.expires_at)}, payload <code>${esc(preview.sha256.slice(0, 16))}…</code></p>
+    <p class="small">${esc(preview.message)}</p>
+    <ul class="small">${preview.changes.map((change) =>
+      `<li><code>${esc(change.ecu)}</code> ${esc(change.claim)} from
+      ${esc(change.confirmations)} confirmation(s): ${change.effects.map(esc).join(', ')}</li>`).join('')}</ul>
+    <button class="btn primary" id="protocolApplyBtn" ${preview.already_applied ? 'disabled' : ''}>
+      Apply exactly this pack (${esc(preview.sha256.slice(0, 12))}…)</button>
+  </div>`;
+}
+
+async function buildConfirmation() {
+  protocol.busy = true;
+  $('#confirmationBuildBtn').disabled = true;
+  try {
+    const result = await api('/api/confirmations/build', {
+      method: 'POST',
+      body: { include_fitment: Boolean($('#confirmationNoteChk')?.checked) },
+    });
+    const claims = Object.keys(result.bundle.claims);
+    $('#protocolActionOut').innerHTML = `<div class="gate-card ok">
+      <h4>Confirmation ${esc(result.bundle.id)} frozen</h4>
+      <p class="small">Claims: ${claims.map((c) => `<code>${esc(c)}</code>`).join(', ') || 'none'} ·
+      ${esc(result.bundle.session.frames)} frame(s) · capture
+      <code>${esc(result.bundle.session.capture_sha256.slice(0, 16))}…</code></p>
+      <p class="small">${esc(result.stored.bundle_path)}<br>${esc(result.stored.capture_path)}</p>
+      <p class="small">${esc(result.note)}</p>
+      <p><a href="${esc(result.submission.url)}" target="_blank" rel="noopener">Open the pre-filled submission issue</a></p>
+      </div>`;
+    toast('Confirmation written to disk. Attach both files to the issue.', 'ok');
+    await loadProtocol();
+  } catch (err) {
+    $('#protocolActionOut').innerHTML = `<p class="muted">${esc(err.message)}</p>`;
+    toast(err.message, 'bad');
+    protocol.busy = false;
+    $('#confirmationBuildBtn').disabled = false;
+    return;
+  }
+  protocol.busy = false;
+}
+
+async function pinProtocolKey() {
+  const id = ($('#protocolKeyId')?.value || '').trim();
+  const hex = ($('#protocolKeyHex')?.value || '').trim().toLowerCase();
+  const out = $('#protocolActionOut');
+  if (!id) return toast('Give the key a name you will recognise (e.g. release).', 'bad');
+  if (!/^[0-9a-f]{64}$/.test(hex)) {
+    return toast('A public key is 64 hexadecimal characters, pasted from a source you trust.', 'bad');
+  }
+  const already = Object.keys(protocol.state?.status?.trusted_keys || {}).includes(id);
+  if (already) {
+    return toast(`${id} is already pinned. Forget it first if you mean to replace it, `
+      + 'so the change is two visible steps rather than one silent overwrite.', 'bad');
+  }
+  try {
+    const result = await api('/api/protocol-updates/pin-key',
+      { method: 'POST', body: { key_id: id, public_key: hex } });
+    out.innerHTML = `<div class="gate-card ok"><h4>Pinned <code>${esc(result.pinned)}</code></h4>
+      <p class="small">A pack signed by this key can now be checked and applied. Nothing is
+      applied yet, and nothing is fetched automatically: a pin is a file you can read and a
+      key you can forget again.</p></div>`;
+    if ($('#protocolKeyHex')) $('#protocolKeyHex').value = '';
+    toast('Key pinned. Check a pack to preview exactly what it would change.', 'ok');
+    await loadProtocol();
+  } catch (err) {
+    out.innerHTML = `<p class="muted">${esc(err.message)}</p>`;
+    toast(err.message, 'bad');
+  }
+}
+
+$('#protocolRefreshBtn')?.addEventListener('click', () => loadProtocol());
+$('#protocolPinBtn')?.addEventListener('click', () => pinProtocolKey());
+$('#protocolCheckBtn')?.addEventListener('click', () => protocolCheck());
+$('#confirmationBuildBtn')?.addEventListener('click', () => buildConfirmation());
+$('#protocolRevertBtn')?.addEventListener('click', async () => {
+  try {
+    const result = await api('/api/protocol-updates/revert', { method: 'POST', body: {} });
+    toast(result.reverted ? 'Back to the shipped catalog.' : result.reason, 'ok');
+    protocol.preview = null;
+    protocol.envelope = null;
+    $('#protocolActionOut').innerHTML = '';
+    await loadCatalog();
+    await refreshStatus();
+    await loadProtocol();
+  } catch (err) { toast(err.message, 'bad'); }
+});
 
 /* --------------------------------------------------------------- firmware */
 /* ECU memory: adapter pre-flight, backup, validation and the write opt-in.

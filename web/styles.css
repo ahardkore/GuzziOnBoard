@@ -145,6 +145,13 @@ main { padding: 22px 26px 60px; min-width: 0; }
 .btn.danger { background: #3a1f1a; border-color: #653227; color: #ffb3a4; }
 .btn.danger:hover:not(:disabled) { background: #4d2721; }
 .btn.block { width: 100%; }
+.toolbar input[type="text"] {
+  background: var(--bg); color: var(--text); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; font: inherit; font-size: .86rem;
+  min-width: 190px; font-family: var(--mono);
+}
+.toolbar input[type="text"]:focus { outline: 2px solid var(--accent-dim); outline-offset: -1px; }
+.toolbar input.grow { flex: 1; }
 
 .field { display: block; margin-bottom: 12px; }
 .field > span { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 5px; }

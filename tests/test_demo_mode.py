@@ -51,7 +51,7 @@ def test_demo_data_is_in_sync_with_the_catalog():
 
 def test_demo_data_covers_every_ecu_and_vehicle():
     data = json.loads(DEMO_DATA.read_text(encoding="utf-8"))
-    catalog = load_catalog()
+    catalog = load_catalog(overlays=False)
     assert len(data["catalog"]["ecus"]) == len(catalog.ecus)
     assert len(data["vehicle_entries"]) == len(catalog.vehicles)
     assert set(data["profiles"]) == set(catalog.ecus)
@@ -71,9 +71,18 @@ def test_demo_data_carries_the_scaling_the_browser_needs():
 def test_demo_data_confidence_is_never_promoted():
     """The demo must not look more trustworthy than the catalog it came from."""
     data = json.loads(DEMO_DATA.read_text(encoding="utf-8"))
-    catalog = load_catalog()
+    catalog = load_catalog(overlays=False)
     for ecu in data["catalog"]["ecus"]:
         assert ecu["confidence"] == catalog.ecus[ecu["id"]].confidence
+
+
+def test_the_hosted_demo_never_shows_a_locally_applied_protocol_update():
+    """A promotion is per-install evidence; the published snapshot is not one."""
+    data = json.loads(DEMO_DATA.read_text(encoding="utf-8"))
+    assert data["catalog"]["summary"]["protocol_updates"]["applied"] is False
+    for ecu in data["catalog"]["ecus"]:
+        assert ecu.get("field_confirmation", {}) == {}
+        assert ecu.get("capability_confidence", {}) == {}
 
 
 # -- page wiring ----------------------------------------------------------
@@ -116,6 +125,46 @@ def test_workstation_has_accessible_guided_state_prompts():
     ):
         assert instruction.lower() in source.lower()
     assert "window.confirm" not in source
+
+
+def test_the_protocol_evidence_panel_is_wired_and_honest():
+    """The field-confirmation UI: every control exists, and no promise it cannot keep."""
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    source = (WEB / "app.js").read_text(encoding="utf-8")
+    for ident in (
+        "protocolPanel", "protocolOut", "protocolUrl", "protocolRefreshBtn",
+        "protocolCheckBtn", "protocolRevertBtn", "protocolKeysDetails",
+        "protocolKeysOut", "protocolKeyId", "protocolKeyHex", "protocolPinBtn",
+        "confirmationBuildBtn", "confirmationNoteChk", "protocolActionOut",
+    ):
+        assert f'id="{ident}"' in html, ident
+    # ... and the controls the script drives are ones the page actually has.
+    for ident in (
+        "protocolOut", "protocolUrl", "protocolRefreshBtn", "protocolCheckBtn",
+        "protocolRevertBtn", "protocolKeysOut", "protocolKeyId", "protocolKeyHex",
+        "protocolPinBtn", "confirmationBuildBtn", "confirmationNoteChk",
+        "protocolActionOut",
+    ):
+        assert ident in source, ident
+    # Pinning must be a paste, never a click that trusts whatever arrived.
+    prose = " ".join(html.split())
+    assert "never one taken from the pack you are about to install" in prose
+    assert "'/api/protocol-updates/pin-key'" in source
+    assert "Forget it first" in source
+    assert "window.prompt" not in source and "window.confirm" not in source
+    for endpoint in (
+        "'/api/protocol-updates'",
+        "'/api/protocol-updates/check'",
+        "'/api/protocol-updates/apply'",
+        "'/api/protocol-updates/revert'",
+        "'/api/confirmations/build'",
+    ):
+        assert endpoint in source, endpoint
+    # Applying quotes the digest from the preview, so consent cannot be reused.
+    assert "expected_sha256" in source
+    assert "two independent sessions" in html.lower()
+    assert "Nothing is uploaded by GuzziOnBoard" in html
+    assert "A simulated session cannot confirm anything about hardware" in html
 
 
 def test_map_builder_exposes_professional_editing_without_weakening_the_gate():

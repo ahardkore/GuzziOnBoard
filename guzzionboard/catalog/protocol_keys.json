@@ -1,0 +1,5 @@
+{
+  "schema": "guzzionboard.keyring/v1",
+  "note": "Trusted PUBLIC keys for signed protocol updates (see docs/PROTOCOL_UPDATES.md). Nothing is trusted until a key is added here, and an empty keyring refuses every pack — there is no trust-on-first-use. The maintainer generates the release key with 'python3 scripts/build_protocol_update.py --generate-key', keeps the seed offline, and commits only the public half under a stable name such as 'release'. An operator can add their own key to ~/.guzzionboard/protocol/keys.json instead, which is not overwritten by application updates.",
+  "keys": {}
+}

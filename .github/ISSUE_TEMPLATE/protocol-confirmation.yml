@@ -1,0 +1,91 @@
+name: Protocol confirmation
+description: Attach a session you ran against a real ECU, so a capability somebody else inferred can be reviewed against evidence.
+title: "Protocol confirmation: <family> (<ecu id>)"
+labels: ["protocol-evidence"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for running this. A confirmation is only useful if it can be
+        checked, and only the session log you already have makes that possible.
+
+        **Attach both files.** The button in the workstation writes two files to
+        `~/.guzzionboard/confirmations/`:
+
+        - `conf-<id>.json` — the bundle (claim digests, catalog fingerprint)
+        - `conf-<id>.session.jsonl` — the frozen capture those digests were
+          computed from
+
+        GuzziOnBoard does not upload anything. This issue is the upload.
+        A reviewer recomputes every claim from the attached capture, so the
+        bundle alone proves nothing.
+
+        **A simulator session cannot be submitted here.** `simulator` and
+        `cansim` captures are refused by the software and by review; they prove
+        the application, not a motorcycle.
+
+        **Do not attach anything that identifies you or the bike** unless you
+        want it public: VINs, plates, dealer stamps, images with GPS data.
+        Photos are welcome if they are scrubbed, but the log is what is
+        reviewed.
+
+  - type: input
+    id: ecu
+    attributes:
+      label: ECU family and id
+      description: As shown by the workstation, e.g. `IAW 7SM` (`7sm`).
+    validations:
+      required: true
+
+  - type: input
+    id: confidence
+    attributes:
+      label: Declared catalog confidence at the time of the session
+      description: The bundle records this; copy it from the pre-filled issue body.
+    validations:
+      required: true
+
+  - type: textarea
+    id: claims
+    attributes:
+      label: What the session confirms
+      description: The claims in the bundle, e.g. `handshake, identify, live`.
+      placeholder: handshake, identify, live
+    validations:
+      required: true
+
+  - type: textarea
+    id: setup
+    attributes:
+      label: Setup
+      description: |
+        Motorcycle model/year, ECU hardware and software from the identification
+        read, adapter/cable, how the session was powered, and application
+        version. Redact anything you do not want public.
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: What you saw, and what you did not
+      description: |
+        Anything surprising, anything you tried that failed, and anything the
+        session could *not* conclude. Negative results are genuinely useful: a
+        dispute blocks a promotion.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Before submitting
+      options:
+        - label: I attached both files (the `.json` bundle and its `.session.jsonl` capture).
+          required: true
+        - label: This session ran against a real ECU on a real motorcycle or a bench harness, not the simulator.
+          required: true
+        - label: I understand the capture is published here, and I have removed anything personal I do not want public.
+          required: true
+        - label: I understand that confirmations become catalog data reviewed under `docs/PROTOCOL_UPDATES.md`, and that one session alone is not a quorum.
+          required: true

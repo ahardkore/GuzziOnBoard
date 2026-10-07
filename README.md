@@ -248,6 +248,12 @@ Run the tests with:
 ```bash
 pip install -e '.[dev]' && pytest
 
+# maintainer side: generate a release key, review confirmations, sign a pack
+python3 scripts/build_protocol_update.py --generate-key release --key-dir ~/.guzzionboard/keys
+python3 scripts/build_protocol_update.py --confirmations ~/.guzzionboard/confirmations \
+    --reviewer "who reviewed it" --seed-file ~/.guzzionboard/keys/release.seed \
+    --out protocol-update.json --print-catalog-fragment
+
 # Real-browser map-editor suite
 npm install
 npm run test:browser
@@ -385,6 +391,13 @@ web/                     UI (no framework, no build step)
               └── transports/       simulator.py, kline.py, can.py
 ```
 
+Two modules sit beside that stack rather than inside it:
+`confirmations.py` freezes a real session into evidence, and
+`protocol_updates.py` turns a quorum of independent evidence into a signed,
+read-level-only catalog promotion — the same promotion the catalog route below
+commits to source. `signing.py` is the stdlib-only Ed25519 verifier those packs
+are checked against.
+
 The simulator is a *transport*, not a mock of the application layer: it accepts
 encoded frames, validates checksums, answers the catalog's identifiers, returns
 real negative response codes, and can inject dropped frames, corrupted
@@ -397,7 +410,18 @@ the same red capability check the catalogue declares.
 ## Protocol evidence policy
 
 Protocol confirmation is a project responsibility, not a setup step delegated
-to a customer. Discovery is exposed only on a family where the request service
+to a customer — but evidence for the families nobody has captured yet has to
+come from the field, and the app does not accept "it works" as evidence. A
+session can be frozen into a confirmation bundle (the capture, claim digests
+and a catalog fingerprint, nothing uploaded), a claim needs a quorum of
+independent confirmations from distinct machines, and the result is either a
+signed pack an install applies against a key it pinned in advance or a
+committed catalog change in the next release. Both routes carry identical
+promotions, and neither can raise a family's overall confidence, enable
+writing, or widen what the safety gate allows. See
+[`docs/PROTOCOL_UPDATES.md`](docs/PROTOCOL_UPDATES.md).
+
+Discovery is exposed only on a family where the request service
 and scanned range are already established as non-mutating. Unknown ECUs are not
 probed. New support requires a primary definition, licensed open-source
 implementation, OEM technical document, or existing raw capture that fixes the
@@ -416,6 +440,10 @@ capability is enabled.
   which one closes each open gap (key algorithm, CAN IDs, per-family
   identifiers, transport validation).
 - `docs/USER_WORKFLOWS.md` — guided connect, live-data, TPS and actuator flows.
+- `docs/PROTOCOL_UPDATES.md` — how a capability one operator confirms on a
+  real motorcycle becomes every user's install: confirmation bundles,
+  quorum, signing keys, the two publication routes, and the exact list of
+  things a signed update may never do.
 - `docs/7SM_WORKFLOW.md` — ride-by-wire identification and learning workflow.
 
 ## Credits and disclaimer

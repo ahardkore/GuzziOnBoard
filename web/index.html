@@ -18,19 +18,31 @@
     </div>
   </div>
 
-  <nav>
-    <button class="nav active" data-view="garage"><i>▣</i> Garage</button>
-    <button class="nav" data-view="overview"><i>◉</i> Overview</button>
-    <button class="nav" data-view="live"><i>∿</i> Live data</button>
-    <button class="nav" data-view="faults"><i>⚠</i> Fault codes <b id="faultBadge" class="badge hidden">0</b></button>
-    <button class="nav" data-view="service"><i>⚙</i> Service actions</button>
-    <button class="nav" data-view="procedures"><i>✓</i> Guided tests</button>
-    <button class="nav" data-view="firmware"><i>▥</i> ECU memory</button>
-    <button class="nav" data-view="tools"><i>🧰</i> Tools</button>
-    <button class="nav" data-view="discovery"><i>🔍</i> Discovery</button>
-    <button class="nav" data-view="simulator"><i>🧪</i> Simulated bike</button>
-    <button class="nav" data-view="sessions"><i>▤</i> Sessions</button>
-    <button class="nav" data-view="report"><i>⎙</i> Report</button>
+  <nav aria-label="Workstation sections">
+    <div class="nav-group">
+      <span class="nav-label">Start here</span>
+      <button class="nav active" data-view="garage"><i>▣</i> Garage</button>
+      <button class="nav" data-view="overview"><i>◉</i> Overview</button>
+    </div>
+    <div class="nav-group">
+      <span class="nav-label">Observe &amp; diagnose</span>
+      <button class="nav" data-view="live"><i>∿</i> Live data</button>
+      <button class="nav" data-view="faults"><i>⚠</i> Fault codes <b id="faultBadge" class="badge hidden">0</b></button>
+      <button class="nav" data-view="procedures"><i>✓</i> Guided tests</button>
+      <button class="nav" data-view="service"><i>⚙</i> Service actions</button>
+    </div>
+    <div class="nav-group">
+      <span class="nav-label">Advanced</span>
+      <button class="nav" data-view="firmware"><i>▥</i> ECU memory</button>
+      <button class="nav" data-view="tools"><i>🧰</i> Tools</button>
+      <button class="nav" data-view="discovery"><i>🔍</i> Discovery</button>
+    </div>
+    <div class="nav-group">
+      <span class="nav-label">Review</span>
+      <button class="nav" data-view="sessions"><i>▤</i> Sessions</button>
+      <button class="nav" data-view="report"><i>⎙</i> Report</button>
+      <button class="nav" data-view="simulator"><i>🧪</i> Simulated bike</button>
+    </div>
   </nav>
 
   <div class="sidebar-foot">
@@ -72,6 +84,10 @@
 
   <!-- ======================================================= GARAGE -->
   <section class="view" id="garage">
+    <div class="flow-intro">
+      <span class="flow-step">01 · Set up</span>
+      <span>Choose a motorcycle, confirm the connection, then connect. The remaining sections unlock the work you can safely do.</span>
+    </div>
     <div class="grid-2">
       <article class="panel">
         <h2>1 · Motorcycle</h2>
@@ -146,6 +162,7 @@
       </article>
     </div>
 
+    <div class="flow-divider"><span class="flow-step">02 · Verify</span><span>Review what the catalog knows before you use the workstation.</span></div>
     <article class="panel">
       <h2>Coverage</h2>
       <p class="muted" id="coverageLine">Loading the capability catalog…</p>
@@ -156,7 +173,8 @@
       <p class="muted small">Confidence drives what the workstation will let you do. <b>verified-capture</b> means the bytes came off a real bus; <b>documented</b> means a primary manual or mature open implementation; <b>inferred</b> never enables controls, and families without a validated physical protocol are blocked before the adapter opens.</p>
     </article>
 
-    <article class="panel" id="protocolPanel">
+    <div class="flow-divider"><span class="flow-step">03 · Contribute</span><span>Optional: review evidence and confirm a real-world protocol update.</span></div>
+    <article class="panel secondary-panel" id="protocolPanel">
       <h2>Protocol evidence — field confirmations &amp; updates</h2>
       <p class="muted">The catalog is data, so a capability somebody confirms on a real motorcycle is a data update: two independent sessions, reviewed against one catalog revision, signed, and applied against a key you pinned in advance. Everything this app will do to an ECU follows from what is written here — never from a silent fetch.</p>
       <div id="protocolOut">Loading…</div>
@@ -762,10 +780,8 @@
           <small class="muted" id="mapChecksumNote">No checksum algorithm is guessed or bundled. Local plugins run in isolated, resource-limited workers and must explicitly match every checksum declared by the XDF.</small>
         </label>
         <label class="inline"><input type="checkbox" id="mapNonBaseAccept"> I understand this source is not the protected base map (required only when shown above).</label>
-        <label class="field"><span>Liability acknowledgement &middot; type exactly</span>
-          <code id="mapAckText" class="ack-text">Load definitions to see the required text.</code>
-          <input type="text" id="mapAckInput" autocomplete="off" placeholder="type the acknowledgement shown above">
-        </label>
+        <label class="check acknowledgement-check"><input type="checkbox" id="mapAckCheck"> I have reviewed and accept the liability acknowledgement below.</label>
+        <p class="muted small ack-text" id="mapAckText">Load definitions to see the acknowledgement.</p>
         <div class="toolbar">
           <button class="btn danger" id="mapBuildBtn" disabled>Build modified map file</button>
         </div>
@@ -777,8 +793,8 @@
     <article class="panel danger-zone">
       <h2>4 &middot; Write</h2>
       <p class="muted small">Writing is an opt-in, not a hidden feature. It stays refused until every precondition below is green &mdash; including the hardware-family check on the named image: an HW1xx file never goes into an HW3xx ECU.</p>
-      <div class="toolbar">
-        <input type="text" id="ackInput" placeholder="type the acknowledgement" size="46">
+      <div class="toolbar acknowledgement-toolbar">
+        <label class="check"><input type="checkbox" id="ackCheck"> I have a verified backup and accept the programming risk.</label>
         <button class="btn" id="enableProgBtn">Enable programming</button>
         <button class="btn" id="disableProgBtn">Disable</button>
       </div>

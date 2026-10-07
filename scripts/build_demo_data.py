@@ -85,7 +85,11 @@ def _procedures() -> list[dict]:
 
 
 def build() -> dict:
-    catalog = load_catalog()
+    # The definitions *as shipped*. A protocol update applied on the machine
+    # that regenerates this file is a promotion for that install, not for the
+    # published demo: `tests/test_demo_mode.py` would otherwise turn one
+    # maintainer's local overlay into a claim every visitor sees.
+    catalog = load_catalog(overlays=False)
     shared_dtc = json.loads(
         (CATALOG_DIR / "dtc_sae.json").read_text(encoding="utf-8")
     )["codes"]

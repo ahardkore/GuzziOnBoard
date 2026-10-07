@@ -46,6 +46,8 @@ from .checksums import (
 )
 from .map_analysis import LogAnalysisError, analyze_fuel_log
 from .programming import ProgrammingError, ProgrammingService
+from . import confirmations as confirmations_mod
+from . import protocol_updates as protocol_updates_mod
 from .physical_validation import (
     VALIDATION_DIR as PHYSICAL_VALIDATION_DIR,
     PhysicalValidationError,
@@ -1269,6 +1271,212 @@ class Api:
             ),
         }
 
+
+    # -- protocol updates and field confirmations --------------------------
+    #: The catalog is data, so a confirmed capability is a data update. A
+    #: promotion only ever arrives as a *signed* pack from a key pinned in
+    #: advance, is checked against the exact catalog revision it was reviewed
+    #: on, and can only grant read-level operations. Everything about that is
+    #: visible here rather than implied.
+    def get_protocol_updates(self, query: dict) -> tuple[int, dict]:
+        status = protocol_updates_mod.status()
+        profile = self.ws.selection.profile
+        selection = None
+        if profile is not None:
+            selection = {
+                "ecu": profile.id,
+                "family": profile.family,
+                "confidence": profile.confidence,
+                "capabilities": list(profile.capabilities),
+                "effective_capabilities": [
+                    c for c in profile.capabilities if profile.supports(c)
+                ],
+                "physical_supported": bool(
+                    profile.session.get("physical_supported")
+                ),
+                "field_confirmation": dict(profile.field_confirmation or {}),
+            }
+        active = self.ws.log
+        session = None
+        if active is not None and active.enabled:
+            session = {
+                "path": str(active.path),
+                "hardware": self.ws.selection.transport_kind
+                not in confirmations_mod.SIM_TRANSPORTS,
+                "counts": active.counts,
+            }
+        return 200, {
+            "status": status,
+            "selection": selection,
+            "session": session,
+            "confirmations": confirmations_mod.list_confirmations(),
+            "confirmation_dir": str(confirmations_mod.DEFAULT_DIR),
+            "install_marker": confirmations_mod.install_marker(
+                confirmations_mod.install_id()
+            ),
+            "submission": {
+                "url": confirmations_mod.SUBMIT_URL,
+                "template": confirmations_mod.SUBMIT_TEMPLATE,
+            },
+            "claimable": list(confirmations_mod.BASE_CLAIMS),
+            "not_claimable": list(confirmations_mod.NOT_CLAIMABLE),
+            "note": (
+                "A confirmation is built from the session log on this machine "
+                "and never uploaded. Applying a pack is a separate, explicit "
+                "step that quotes the digest you were shown."
+            ),
+        }
+
+    def post_protocol_updates_check(self, body: dict) -> tuple[int, dict]:
+        """Fetch a pack and describe exactly what applying it would change.
+
+        Fetching is the only step here that touches the network, so it only
+        happens when the operator asks for it.
+        """
+        url = body.get("url") or None
+        fetch_url = url or protocol_updates_mod.DEFAULT_PACK_URL
+        envelope = protocol_updates_mod.fetch_pack(url)
+        preview = protocol_updates_mod.check_envelope(envelope)
+        return 200, {
+            "ok": True,
+            "url": fetch_url,
+            "preview": preview,
+            "envelope": envelope,
+            "note": (
+                "Nothing is applied yet. Applying requires the digest above, "
+                "so a stale preview cannot be used for a different pack."
+            ),
+        }
+
+    def post_protocol_updates_apply(self, body: dict) -> tuple[int, dict]:
+        """Apply the exact bytes the caller previewed.
+
+        The envelope comes back with the check response, so the UI hands back
+        what it showed the operator rather than fetching whatever is at the URL
+        now. A URL is only fetched when the caller explicitly names one, and
+        even then the digest has to match it.
+        """
+        expected = str(body.get("expected_sha256") or "")
+        envelope = body.get("envelope")
+        if not isinstance(envelope, dict):
+            url = str(body.get("url") or "").strip()
+            if not url:
+                raise ValueError(
+                    "apply what you previewed: pass the 'envelope' from the "
+                    "check response (or an explicit 'url'). Nothing is fetched "
+                    "behind your back to satisfy an apply."
+                )
+            envelope = protocol_updates_mod.fetch_pack(url)
+        result = protocol_updates_mod.apply_pack(envelope, expected_sha256=expected)
+        result["catalog"] = self.ws.reload_catalog()
+        return 200, result
+
+    def post_protocol_updates_revert(self, body: dict) -> tuple[int, dict]:
+        result = protocol_updates_mod.revert()
+        result["catalog"] = self.ws.reload_catalog()
+        return 200, result
+
+    def post_protocol_updates_pin_key(self, body: dict) -> tuple[int, dict]:
+        return 200, protocol_updates_mod.pin_key(
+            str(body.get("key_id") or ""), str(body.get("public_key") or "")
+        )
+
+    def post_protocol_updates_unpin_key(self, body: dict) -> tuple[int, dict]:
+        return 200, protocol_updates_mod.unpin_key(str(body.get("key_id") or ""))
+
+    def _session_capture(self) -> bytes:
+        """The frozen bytes of the current session log.
+
+        A live session keeps appending, so the capture is cut back to the last
+        complete line: a bundle never claims a half-written event.
+        """
+        log = self.ws.log
+        if log is None or not log.enabled:
+            return b""
+        path = log.path
+        if not path.is_file():
+            return b""
+        data = path.read_bytes()
+        if data and not data.endswith(b"\n"):
+            cut = data.rfind(b"\n")
+            data = data[: cut + 1] if cut >= 0 else b""
+        return data
+
+    def post_confirmations_build(self, body: dict) -> tuple[int, dict]:
+        """Freeze this session into a bundle the operator can submit."""
+        profile = self.ws.selection.profile
+        if profile is None:
+            raise ValueError("select a motorcycle before building a confirmation")
+        transport = self.ws.selection.transport_kind
+        if transport in confirmations_mod.SIM_TRANSPORTS:
+            raise ValueError(
+                "this session runs against the simulator, which cannot confirm "
+                "anything about hardware. Connect to the real ECU first."
+            )
+        capture = self._session_capture()
+        if not capture:
+            raise ValueError(
+                "there is no recorded session to freeze yet; connect, reproduce "
+                "the behaviour you are confirming, then build the bundle"
+            )
+        bundle = confirmations_mod.build_confirmation(
+            profile=profile,
+            capture=capture,
+            transport=transport,
+            mode=self.ws.gate.mode.value,
+            device_kind=("serial" if transport == "kline" else "can"),
+            operator_note=str(body.get("note") or ""),
+            disputes=[str(d) for d in (body.get("disputes") or [])],
+            include_fitment=bool(body.get("include_fitment")),
+        )
+        stored = confirmations_mod.save_confirmation(bundle, capture)
+        if self.ws.log is not None:
+            self.ws.log.action(
+                "confirmation",
+                {
+                    "id": bundle["id"],
+                    "claims": sorted(bundle["claims"]),
+                    "capture_sha256": bundle["session"]["capture_sha256"],
+                    "note": "frozen for submission; not uploaded by the app",
+                },
+            )
+        return 200, {
+            "bundle": bundle,
+            "stored": stored,
+            "submission": confirmations_mod.submission(bundle),
+            "note": (
+                "Two files are now on this machine: the bundle and its frozen "
+                "capture. Attach both to the issue the link opens - nothing is "
+                "uploaded by GuzziOnBoard."
+            ),
+        }
+
+    def post_confirmations_verify(self, body: dict) -> tuple[int, dict]:
+        """Recompute a bundle's claims from the capture it names."""
+        path = str(body.get("bundle_path") or "").strip()
+        if not path:
+            latest = confirmations_mod.list_confirmations()
+            if not latest:
+                raise ValueError("no confirmation bundles are stored on this machine")
+            path = latest[0]["path"]
+        bundle = confirmations_mod.load_bundle(path)
+        directory = Path(path).expanduser().parent
+        if body.get("capture_path"):
+            capture = Path(str(body["capture_path"])).expanduser().read_bytes()
+        else:
+            capture = confirmations_mod.capture_for(bundle, directory)
+        return 200, {
+            "ok": True,
+            "bundle_path": path,
+            "report": confirmations_mod.verify_confirmation(bundle, capture),
+        }
+
+    def post_confirmations_validate(self, body: dict) -> tuple[int, dict]:
+        bundle = body.get("bundle")
+        if not isinstance(bundle, dict):
+            raise ValueError("a 'bundle' object is required")
+        return 200, {"ok": True, "bundle": confirmations_mod.validate_bundle(bundle)}
+
     # -- adapter and tools ------------------------------------------------
     def get_adapter(self, query: dict) -> tuple[int, dict]:
         port = (query.get("port") or [""])[0]
@@ -1514,6 +1722,7 @@ ROUTES_GET = {
     "/api/checksum-providers": "get_checksum_providers",
     "/api/recommendations": "get_recommendation_packages",
     "/api/physical-validation": "get_physical_validation",
+    "/api/protocol-updates": "get_protocol_updates",
     "/api/memory": "get_memory",
     "/api/memory/progress": "get_memory_progress",
     "/api/memory/basemap": "get_basemap",
@@ -1548,6 +1757,14 @@ ROUTES_POST = {
     "/api/maps/build": "post_maps_build",
     "/api/recommendations/validate": "post_recommendation_validate",
     "/api/physical-validation/validate": "post_physical_validation_validate",
+    "/api/protocol-updates/check": "post_protocol_updates_check",
+    "/api/protocol-updates/apply": "post_protocol_updates_apply",
+    "/api/protocol-updates/revert": "post_protocol_updates_revert",
+    "/api/protocol-updates/pin-key": "post_protocol_updates_pin_key",
+    "/api/protocol-updates/unpin-key": "post_protocol_updates_unpin_key",
+    "/api/confirmations/build": "post_confirmations_build",
+    "/api/confirmations/verify": "post_confirmations_verify",
+    "/api/confirmations/validate": "post_confirmations_validate",
     "/api/programming/enable": "post_programming_enable",
     "/api/programming/disable": "post_programming_disable",
     "/api/security/unverified": "post_security_unverified",

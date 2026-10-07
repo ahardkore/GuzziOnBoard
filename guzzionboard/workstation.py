@@ -83,6 +83,29 @@ def _parse_id(value: str | int, what: str) -> int:
     return ident
 
 
+def _field_confirmation_notice(profile: EcuProfile) -> dict | None:
+    """Say, in the operator's face, why a family is more capable than shipped.
+
+    A promotion is a real change to what this software will do to somebody's
+    motorcycle, so it is announced wherever the selection is announced - never
+    quietly absorbed into the capability list.
+    """
+    promotion = profile.field_confirmation or {}
+    if not promotion:
+        return None
+    sessions = promotion.get("independent_sessions") or 0
+    return {
+        "level": "info",
+        "text": (
+            f"{profile.family}: {profile.confidence} as shipped, with read-level "
+            f"operations promoted by verified protocol update "
+            f"{promotion.get('pack') or 'unknown'} from {sessions} independent "
+            "field session(s) on real hardware. Writing and control actions are "
+            "unchanged by an update."
+        ),
+    }
+
+
 def _effective_profile(entry: VehicleEntry | None, profile: EcuProfile) -> EcuProfile:
     """The profile with the vehicle's own honesty applied.
 
@@ -210,6 +233,9 @@ class Workstation:
             )
         if entry and entry.notes:
             notices.append({"level": "info", "text": entry.notes})
+        promotion = _field_confirmation_notice(profile)
+        if promotion:
+            notices.append(promotion)
         if transport not in ("simulator", "cansim"):
             if profile.session.get("physical_supported") is False:
                 detail = profile.session.get(
@@ -389,6 +415,38 @@ class Workstation:
         return found
 
     # -- lifecycle --------------------------------------------------------
+    def reload_catalog(self) -> dict:
+        """Re-read the catalog after a protocol update was applied or reverted.
+
+        A live session keeps the profile it connected with - changing the rules
+        under a conversation with an ECU is exactly the kind of surprise this
+        project does not do. The new definition is in force for the next
+        connection.
+        """
+        with self._lock:
+            load_catalog.cache_clear()
+            self.catalog = load_catalog()
+            selected = self.selection.profile
+            if selected is not None and selected.id in self.catalog.ecus:
+                refreshed = self.catalog.ecu(selected.id)
+                self.selection.profile = _effective_profile(
+                    self.selection.entry, refreshed
+                )
+                self.notices = self._selection_notices(
+                    self.selection.entry,
+                    self.selection.profile,
+                    self.selection.transport_kind,
+                )
+            return {
+                "catalog_reloaded": True,
+                "field_updates": self.catalog.field_updates,
+                "session_unchanged": bool(self.service and self.service.connected),
+                "note": (
+                    "A connected session keeps the definition it started with; "
+                    "the update applies to the next connection."
+                ),
+            }
+
     def connect(self, *, mode: str = "simulator", init_method: str | None = None) -> dict:
         with self._lock:
             if self.selection.profile is None:
@@ -474,6 +532,7 @@ class Workstation:
     def status(self) -> dict:
         base = {
             "version": __version__,
+            "field_updates": self.catalog.field_updates,
             "selection": self.describe_selection(),
             "mode": self.gate.mode.value,
             "connected": bool(self.service and self.service.connected),

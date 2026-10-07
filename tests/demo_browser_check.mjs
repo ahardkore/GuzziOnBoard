@@ -767,5 +767,42 @@ check('research-only discovery is refused even in the simulator',
   unsupportedDiscovery.status === 400 && unsupportedDiscovery.payload.code === 'protocol_error');
 await post('/api/disconnect', {});
 
+/* Protocol updates: the hosted demo shows the shipped posture and refuses
+ * everything that needs a real install - the same rules the app enforces. */
+await post('/api/select', { ecu: '7sm', transport: 'simulator' });
+const protocol = await api('/api/protocol-updates');
+check('the demo shows the shipped catalog, with no pack applied',
+  protocol.status === 200 && protocol.payload.status.applied === false
+  && protocol.payload.simulated === true
+  && protocol.payload.confirmations.length === 0);
+check('the demo never claims a promoted family',
+  Object.keys(protocol.payload.selection.field_confirmation).length === 0);
+const refusedCheck = await post('/api/protocol-updates/check', {});
+check('the demo refuses to fetch a pack it cannot verify',
+  refusedCheck.status === 400 && refusedCheck.payload.simulated === true);
+const refusedBuild = await post('/api/confirmations/build', {});
+check('a simulator session cannot build a confirmation, even in the demo',
+  refusedBuild.status === 400 && /simulator/.test(refusedBuild.payload.error));
+const refusedApply = await post('/api/protocol-updates/apply', { expected_sha256: '0'.repeat(64) });
+check('the demo refuses to apply a pack', refusedApply.status === 400);
+const structural = await post('/api/confirmations/validate', { bundle: {
+  schema: 'guzzionboard.protocol-confirmation/v1', id: 'conf-abcdef123456',
+  ecus: 'x',
+  ecu: { id: '7sm', family: 'IAW 7SM', catalog_fingerprint: 'a'.repeat(64) },
+  session: { transport: 'kline', capture_sha256: 'b'.repeat(64) },
+  claims: { handshake: { events: 3, frames: 2, digest: 'c'.repeat(64) } },
+} });
+check('the demo can validate a bundle structure, labelled as structural',
+  structural.status === 200 && structural.payload.ok === true
+  && structural.payload.simulated_validation === true);
+const rejectedSimulated = await post('/api/confirmations/validate', { bundle: {
+  schema: 'guzzionboard.protocol-confirmation/v1', id: 'conf-abcdef123456',
+  ecu: { id: '7sm', catalog_fingerprint: 'a'.repeat(64) },
+  session: { transport: 'simulator', capture_sha256: 'b'.repeat(64) },
+  claims: { handshake: { events: 3, frames: 2, digest: 'c'.repeat(64) } },
+} });
+check('the demo applies the "a simulator confirms nothing" rule to bundles',
+  rejectedSimulated.status === 400 && /simulated session/.test(rejectedSimulated.payload.error));
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed');
 process.exit(failures ? 1 : 0);

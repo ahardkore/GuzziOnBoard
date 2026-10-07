@@ -118,6 +118,35 @@ Every definition carries a confidence level. `EcuProfile.supports()` returns
 degrades to identification, DTCs and the read-only discovery sweep. This is
 asserted in `tests/test_catalog.py`, not merely documented.
 
+### Field evidence and updates
+
+**Rule: evidence may only ever widen a catalog, never the safety gate.**
+
+`confirmations.py` freezes a real session (raw frames, decoded samples, safety
+decisions) into a bundle with claim digests, a catalog fingerprint and an
+anonymous install marker; `protocol_updates.py` turns a quorum of independent
+bundles into a signed promotion that either an install applies against a pinned
+key or a maintainer commits to `catalog/ecus/*.json` for the next release. Both
+routes carry identical promotions.
+
+The layer boundaries are enforced, not documented:
+
+* a promotion may open a physical session, grant a read-level capability, mark
+  observed parameters `verified-bench` and attach provenance — the effect
+  allowlist in `protocol_updates.EFFECT_TARGETS` is the whole vocabulary, and
+  the words for writing, erasing, programming, actuators and routines are
+  rejected anywhere in an effect;
+* a family's overall `confidence` is never touched, so `safety.py`'s gate and
+  the confidence rules above cannot be widened by an update;
+* a promotion the definitions cannot carry out (a live parameter the family
+  does not declare) is refused at sign time and at apply time rather than
+  silently doing nothing;
+* simulated sessions never become evidence, and writing is never a claimable
+  operation.
+
+See [`PROTOCOL_UPDATES.md`](PROTOCOL_UPDATES.md) for the lifecycle, the review
+checklist and the threat model.
+
 ---
 
 ## Safety

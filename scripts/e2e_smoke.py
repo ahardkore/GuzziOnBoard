@@ -283,6 +283,28 @@ def main() -> int:
     check("Mana CVT TCU cataloged (identification + discovery only)",
           "mana_tcu" in ids, "engine side resolves via Mana 850 -> 5am")
 
+    # -- protocol evidence: confirmations and signed updates --------------
+    # A fresh install pins no key, so the whole update path is closed until a
+    # human chooses one. That is the shipped posture, over the wire.
+    st, pu = api("GET", "/api/protocol-updates")
+    check("protocol updates: shipped catalog, no key pinned, nothing applied",
+          st == 200 and pu.get("status", {}).get("applied") is False
+          and pu.get("status", {}).get("trusted_keys") == {}
+          and pu.get("confirmations") == [],
+          {"note": pu.get("note", "")[:60]} if st == 200 else str(pu)[:60])
+    st, refused = api("POST", "/api/protocol-updates/check", {"url": "https://127.0.0.1:9/x.json"})
+    check("protocol updates: a pack that cannot be fetched is a readable 400",
+          st == 400 and "could not fetch" in str(refused.get("error", "")),
+          str(refused.get("error", ""))[:80])
+    st, need = api("POST", "/api/protocol-updates/apply", {"expected_sha256": "0" * 64})
+    check("protocol updates: applying without the previewed pack is refused",
+          st == 400 and "apply what you previewed" in str(need.get("error", "")),
+          str(need.get("error", ""))[:80])
+    st, built = api("POST", "/api/confirmations/build", {})
+    check("a simulator session cannot become a confirmation",
+          st == 400 and "simulator" in str(built.get("error", "")).lower(),
+          str(built.get("error", ""))[:80])
+
     # -- wrap-up ---------------------------------------------------------
     st, rep = api("GET", "/api/report")
     check("session report export", st == 200,

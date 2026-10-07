@@ -11,6 +11,10 @@
  ],
  "catalog": {
   "summary": {
+   "protocol_updates": {
+    "applied": false,
+    "status": {}
+   },
    "ecu_count": 11,
    "vehicle_count": 118,
    "model_count": 110,
@@ -53,7 +57,9 @@
       "physical_blocked_reason": "ISO-TP transport, CAN identifiers, addressing, and diagnostic application payloads remain unvalidated."
      },
      "actuators": [],
-     "routines": []
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
     },
     {
      "id": "15m",
@@ -85,7 +91,9 @@
       "physical_blocked_reason": "Available compatibility records and closed binaries do not disclose a trustworthy family-specific diagnostic initialization or request definition."
      },
      "actuators": [],
-     "routines": []
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
     },
     {
      "id": "15rc",
@@ -117,7 +125,9 @@
       "physical_blocked_reason": "Available compatibility records and closed binaries do not disclose a trustworthy family-specific diagnostic initialization or request definition."
      },
      "actuators": [],
-     "routines": []
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
     },
     {
      "id": "16m",
@@ -180,7 +190,9 @@
       "physical_evidence_note": "Marelli 3.00600/16F family definition plus the published 1.6M implementation define the key-on initialization and byte-query transport."
      },
      "actuators": [],
-     "routines": []
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
     },
     {
      "id": "59m",
@@ -213,7 +225,9 @@
       "physical_blocked_reason": "Compatibility evidence confirms tooling exists, but no family-specific initialization transcript or primary wire definition was recovered."
      },
      "actuators": [],
-     "routines": []
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
     },
     {
      "id": "5am",
@@ -643,7 +657,9 @@
        "confidence": "verified-capture",
        "warning": ""
       }
-     ]
+     ],
+     "capability_confidence": {},
+     "field_confirmation": {}
     },
     {
      "id": "7sm",
@@ -692,7 +708,9 @@
       "physical_evidence_note": "A published 7SM diagnostic session log establishes the K-Line session, identification exchange, and baud switch."
      },
      "actuators": [],
-     "routines": []
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
     },
     {
      "id": "mana_tcu",
@@ -728,7 +746,9 @@
       "note": "Captured KWP routine frames do not establish initialization, session selection, or security sequencing."
      },
      "actuators": [],
-     "routines": []
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
     },
     {
      "id": "miug3",
@@ -776,7 +796,9 @@
        "confidence": "documented",
        "warning": "Recorded from the OEM RELI table, but disabled until the enclosing K-Line/session definition is independently validated."
       }
-     ]
+     ],
+     "capability_confidence": {},
+     "field_confirmation": {}
     },
     {
      "id": "miug4",
@@ -812,7 +834,9 @@
       "physical_blocked_reason": "ISO-TP transport, CAN identifiers, addressing, and diagnostic application payloads remain unvalidated."
      },
      "actuators": [],
-     "routines": []
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
     },
     {
      "id": "p8",
@@ -851,7 +875,9 @@
       "physical_blocked_reason": "Automotive IAW-04K evidence defines the legacy direct protocol, but no Moto Guzzi P8 primary definition or capture was recovered."
      },
      "actuators": [],
-     "routines": []
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
     }
    ]
   },
@@ -3810,6 +3836,8 @@
     },
     "actuators": [],
     "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
     "parameters": []
    },
    {
@@ -3843,6 +3871,8 @@
     },
     "actuators": [],
     "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
     "parameters": []
    },
    {
@@ -3876,6 +3906,8 @@
     },
     "actuators": [],
     "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
     "parameters": []
    },
    {
@@ -3940,6 +3972,8 @@
     },
     "actuators": [],
     "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
     "parameters": [
      {
       "key": "rpm",
@@ -4107,6 +4141,8 @@
     },
     "actuators": [],
     "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
     "parameters": []
    },
    {
@@ -4538,6 +4574,8 @@
       "warning": ""
      }
     ],
+    "capability_confidence": {},
+    "field_confirmation": {},
     "parameters": [
      {
       "key": "rpm",
@@ -5178,6 +5216,8 @@
     },
     "actuators": [],
     "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
     "parameters": []
    },
    {
@@ -5215,6 +5255,8 @@
     },
     "actuators": [],
     "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
     "parameters": []
    },
    {
@@ -5264,6 +5306,8 @@
       "warning": "Recorded from the OEM RELI table, but disabled until the enclosing K-Line/session definition is independently validated."
      }
     ],
+    "capability_confidence": {},
+    "field_confirmation": {},
     "parameters": [
      {
       "key": "manifold_pressure_raw",
@@ -5554,6 +5598,8 @@
     },
     "actuators": [],
     "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
     "parameters": []
    },
    {
@@ -5594,6 +5640,8 @@
     },
     "actuators": [],
     "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
     "parameters": []
    }
   ]

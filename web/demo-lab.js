@@ -2270,6 +2270,138 @@
     };
   }
 
+  /* ---------------------------------------------- protocol updates
+   * The catalog is data, so a confirmed capability is a data update: a signed
+   * pack, verified against a key pinned in advance, reviewed against an exact
+   * catalog revision. A hosted page has no files, no network and no signature
+   * verification, so it can show the shipped posture and validate a bundle's
+   * structure - and must refuse everything that needs the real install. The
+   * refusals below are the product's own rules, not a demo limitation:
+   * a simulator session confirms nothing about hardware, and a promotion is
+   * never applied without a signature check. */
+  D.register('GET', '/api/protocol-updates', function () {
+    var selection = D.helpers.describeSelection();
+    var profile = selection.ecu;
+    return [200, {
+      status: {
+        directory: '~/.guzzionboard/protocol',
+        source_url: 'https://github.com/ahardkore/GuzziOnBoard/releases/latest/download/protocol-update.json',
+        trusted_keys: {}, bundled_keyring: 'guzzionboard/catalog/protocol_keys.json',
+        local_keyring: '~/.guzzionboard/protocol/keys.json',
+        applied: false, pack_source: 'shipped-catalog',
+        applied_status: {
+          state: 'none',
+          detail: 'Hosted demo: the shipped catalog, exactly as published.',
+        },
+        note: 'Protocol updates carry read-level promotions only. Writing, control '
+          + 'actions and a family\'s overall confidence are never changed by an update.',
+        how: 'The installed application builds a confirmation from its own session log, '
+          + 'verifies a signed pack against a pinned key, and applies it here.',
+      },
+      selection: profile ? {
+        ecu: profile.id, family: profile.family, confidence: profile.confidence,
+        capabilities: profile.capabilities,
+        effective_capabilities: profile.effective_capabilities,
+        physical_supported: !!(profile.session && profile.session.physical_supported),
+        field_confirmation: profile.field_confirmation || {},
+      } : null,
+      session: null,
+      confirmations: [],
+      confirmation_dir: '~/.guzzionboard/confirmations',
+      install_marker: 'demo0000000000000',
+      submission: {
+        url: 'https://github.com/ahardkore/GuzziOnBoard/issues/new',
+        template: 'protocol-confirmation.yml',
+      },
+      claimable: ['handshake', 'identify', 'live', 'dtc_read', 'dtc_clear', 'actuators',
+        'routine', 'memory_read', 'memory_backup', 'discover'],
+      not_claimable: ['write', 'write_session', 'programming_session', 'image_validate', 'erase'],
+      simulated: true,
+      note: 'Hosted demo: nothing here can fetch a pack, pin a key or freeze a session. '
+        + 'The shipped catalog is shown as published.',
+    }];
+  });
+
+  D.register('POST', '/api/protocol-updates/check', function () {
+    throw bad('The hosted demo cannot check for protocol updates: it has no local '
+      + 'keyring and no network, and a pack that is not verified against a key you '
+      + 'pinned in advance is not trustworthy. Use the installed application. '
+      + '(simulated demo: no fetch was attempted)', { simulated: true });
+  });
+
+  D.register('POST', '/api/protocol-updates/apply', function () {
+    throw bad('The hosted demo cannot apply a protocol update. Applying requires a '
+      + 'signature check, a catalog-revision check and a local overlay - none of '
+      + 'which a web page has. (simulated demo: nothing was applied)',
+      { simulated: true });
+  });
+
+  D.register('POST', '/api/protocol-updates/revert', function () {
+    throw bad('The hosted demo has no applied protocol update to revert: it always '
+      + 'runs the shipped catalog. (simulated demo: nothing was changed)',
+      { simulated: true });
+  });
+
+  D.register('POST', '/api/protocol-updates/pin-key', function () {
+    throw bad('The hosted demo cannot pin a trusted key, because it could not verify '
+      + 'a pack with one. Key pinning is a local, inspectable file operation in the '
+      + 'installed application. (simulated demo: no key was stored)',
+      { simulated: true });
+  });
+
+  D.register('POST', '/api/protocol-updates/unpin-key', function () {
+    throw bad('The hosted demo has no local keyring to change. (simulated demo: '
+      + 'no key was removed)', { simulated: true });
+  });
+
+  D.register('POST', '/api/confirmations/build', function () {
+    throw bad('This demo *is* the simulator, and a simulated session confirms nothing '
+      + 'about hardware - that is the same rule the installed application enforces. '
+      + 'Run a session against the real ECU, then build the bundle there. '
+      + '(simulated demo: no bundle was created)', { simulated: true });
+  });
+
+  D.register('POST', '/api/confirmations/verify', function () {
+    throw bad('The hosted demo cannot recompute a confirmation: verification needs the '
+      + 'frozen JSONL capture that travels with the bundle, and this page has no '
+      + 'files. Use the installed application. (simulated demo: no capture was read)',
+      { simulated: true });
+  });
+
+  D.register('POST', '/api/confirmations/validate', function (body) {
+    /* The structural half is a pure function, so the demo can do it honestly:
+     * it mirrors guzzionboard/confirmations.py:validate_bundle() and labels the
+     * result as a browser-side check, not an endorsement. */
+    var value = body.bundle;
+    if (!value || value.schema !== 'guzzionboard.protocol-confirmation/v1'
+        || !value.id || !/^conf-[0-9a-f]{6,32}$/.test(String(value.id))
+        || !value.ecu || !/^[0-9a-f]{64}$/.test(String(value.ecu.catalog_fingerprint || ''))
+        || !value.session || !/^[0-9a-f]{64}$/.test(String(value.session.capture_sha256 || ''))
+        || !value.claims || !Object.keys(value.claims).length) {
+      throw bad('bundle does not satisfy the protocol-confirmation/v1 structure');
+    }
+    if (['simulator', 'cansim'].indexOf(String(value.session.transport)) >= 0) {
+      throw bad('a simulated session cannot be submitted as a field confirmation');
+    }
+    var claims = Object.keys(value.claims);
+    var readable = ['handshake', 'identify', 'live', 'dtc_read', 'dtc_clear', 'actuators',
+      'routine', 'memory_read', 'memory_backup', 'discover'];
+    var unknown = claims.filter(function (name) {
+      return readable.indexOf(name.split(':')[0]) < 0;
+    });
+    if (unknown.length) throw bad('unknown claim ' + unknown[0]);
+    var findings = claims.indexOf('handshake') < 0
+      ? ['no handshake claim: the bundle establishes nothing about this family\'s transport']
+      : [];
+    return [200, {
+      ok: true,
+      bundle: Object.assign({}, value, { findings: findings }),
+      simulated_validation: true,
+      note: 'Structure only: the hosted demo cannot recompute the claim digests from '
+        + 'the capture. That check runs in the installed application.',
+    }];
+  });
+
   D.register('GET', '/api/physical-validation', function () {
     return [200, {
       directory: '~/.guzzionboard/validation', records: [], errors: [],

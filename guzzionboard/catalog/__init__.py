@@ -219,6 +219,14 @@ class EcuProfile:
     dtc_descriptions: dict = field(default_factory=dict)
     capabilities: tuple[str, ...] = ()
     sources: tuple[str, ...] = ()
+    #: Per-capability confidence, set only by a verified protocol update.
+    #: An entry here overrides ``confidence`` for that one capability, which
+    #: is how a field-confirmed read surface can be enabled without claiming
+    #: that the whole definition was bench-tested.
+    capability_confidence: dict = field(default_factory=dict)
+    #: Set when a verified protocol update promoted this family, carrying the
+    #: pack id, the independent confirmations behind it and the pack digest.
+    field_confirmation: dict = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, raw: dict) -> "EcuProfile":
@@ -240,6 +248,11 @@ class EcuProfile:
             dtc_descriptions=raw.get("dtc_descriptions", {}),
             capabilities=tuple(raw.get("capabilities", [])),
             sources=tuple(raw.get("sources", [])),
+            capability_confidence={
+                str(k): str(v)
+                for k, v in (raw.get("capability_confidence") or {}).items()
+            },
+            field_confirmation=dict(raw.get("field_confirmation") or {}),
         )
 
     # -- lookups ----------------------------------------------------------
@@ -269,13 +282,17 @@ class EcuProfile:
     def default_parameters(self) -> tuple[Parameter, ...]:
         return tuple(p for p in self.live_parameters if p.default)
 
+    def capability_level(self, capability: str) -> str:
+        """The confidence level that governs one capability."""
+        return self.capability_confidence.get(capability, self.confidence)
+
     def supports(self, capability: str) -> bool:
         """A capability counts only if the definition is trustworthy enough."""
         if capability not in self.capabilities:
             return False
         if capability in ("identify", "live", "dtc_read"):
             return True
-        return meets(self.confidence)
+        return meets(self.capability_level(capability))
 
     def as_dict(self, *, include_parameters: bool = True) -> dict:
         data = {
@@ -291,6 +308,8 @@ class EcuProfile:
             "session": self.session,
             "actuators": [a.as_dict() for a in self.actuators],
             "routines": [r.as_dict() for r in self.routines],
+            "capability_confidence": dict(self.capability_confidence),
+            "field_confirmation": dict(self.field_confirmation),
         }
         if include_parameters:
             data["parameters"] = [p.as_dict() for p in self.live_parameters]
@@ -334,9 +353,17 @@ class VehicleEntry:
 class Catalog:
     """Loaded view of the whole catalog."""
 
-    def __init__(self, ecus: dict[str, EcuProfile], vehicles: list[VehicleEntry]):
+    def __init__(
+        self,
+        ecus: dict[str, EcuProfile],
+        vehicles: list[VehicleEntry],
+        field_updates: dict | None = None,
+    ):
         self.ecus = ecus
         self.vehicles = vehicles
+        #: What a verified protocol update changed, if one is applied. Empty
+        #: for a stock install; never silently populated.
+        self.field_updates = field_updates or {"applied": False}
 
     # -- access -----------------------------------------------------------
     def ecu(self, ecu_id: str) -> EcuProfile:
@@ -389,6 +416,7 @@ class Catalog:
 
     def summary(self) -> dict:
         return {
+            "protocol_updates": self.field_updates,
             "ecu_count": len(self.ecus),
             "vehicle_count": len(self.vehicles),
             "model_count": len(self.models()),
@@ -407,9 +435,111 @@ def _load_json(path: Path) -> dict:
         raise CatalogError(f"{path.name}: {exc}") from exc
 
 
-@lru_cache(maxsize=1)
-def load_catalog() -> Catalog:
-    """Load and validate the catalog from disk (cached)."""
+def source_path(ecu_id: str) -> Path:
+    """The definition file a family was loaded from."""
+    return ECU_DIR / f"{ecu_id}.json"
+
+
+def source_fingerprint(ecu_id: str) -> str:
+    """SHA-256 of a family definition as shipped on disk.
+
+    A protocol update names the exact definition revision it was reviewed
+    against, so a promotion can never be applied to a definition that has
+    changed underneath it.
+    """
+    import hashlib
+
+    path = source_path(ecu_id)
+    if not path.is_file():
+        raise CatalogError(f"unknown ECU {ecu_id!r}")
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def apply_promotion(profile: EcuProfile, promotion: dict) -> EcuProfile:
+    """Apply one reviewed promotion to a loaded profile.
+
+    Only the fields a protocol update is allowed to touch are considered:
+    confidence levels, the physical-session flag, read-level capabilities and
+    provenance. Scalings, identifiers, actuators and routines are immutable
+    here - a promotion that could rewrite those would be a way to smuggle a
+    guessed byte through review.
+    """
+    from dataclasses import replace
+
+    capabilities = list(profile.capabilities)
+    for name in promotion.get("capabilities_add", ()):
+        if name not in capabilities:
+            capabilities.append(str(name))
+
+    capability_confidence = dict(profile.capability_confidence)
+    for name, level in (promotion.get("capability_confidence") or {}).items():
+        capability_confidence[str(name)] = str(level)
+
+    parameter_confidence = promotion.get("parameter_confidence") or {}
+    parameters = profile.parameters
+    if parameter_confidence:
+        parameters = tuple(
+            replace(param, confidence=str(parameter_confidence[param.key]))
+            if param.key in parameter_confidence
+            else param
+            for param in parameters
+        )
+
+    session = dict(profile.session)
+    if promotion.get("physical_supported"):
+        session["physical_evidence_note"] = promotion.get("evidence_note", "")
+        session["physical_supported"] = True
+    memory = dict(profile.memory)
+    if promotion.get("memory_read_supported"):
+        memory["read_supported"] = True
+
+    sources = tuple(profile.sources) + tuple(promotion.get("sources_add", ()))
+    return replace(
+        profile,
+        capabilities=tuple(capabilities),
+        capability_confidence=capability_confidence,
+        parameters=parameters,
+        session=session,
+        memory=memory,
+        sources=sources,
+        field_confirmation=dict(promotion.get("field_confirmation") or {}),
+    )
+
+
+def _apply_field_updates(ecus: dict[str, EcuProfile]) -> dict:
+    """Apply the locally stored, signature-verified protocol update."""
+    from ..protocol_updates import load_applied_overlay
+
+    overlay, status = load_applied_overlay()
+    report = {"applied": bool(overlay), "status": status, "promotions": {}}
+    if not overlay:
+        return report
+    for ecu_id, promotion in (overlay.get("promotions") or {}).items():
+        profile = ecus.get(ecu_id)
+        if profile is None:
+            report["promotions"][ecu_id] = {
+                "applied": False,
+                "reason": "the promotion names an ECU this catalog does not have",
+            }
+            continue
+        ecus[ecu_id] = apply_promotion(profile, promotion)
+        report["promotions"][ecu_id] = {
+            "applied": True,
+            "pack": overlay.get("pack", {}).get("id", ""),
+            "confirmations": len(promotion.get("references", [])),
+            "effects": sorted(promotion.get("effects", {})),
+        }
+    return report
+
+
+@lru_cache(maxsize=4)
+def load_catalog(*, overlays: bool = True) -> Catalog:
+    """Load and validate the catalog from disk (cached).
+
+    ``overlays=False`` loads the definitions exactly as shipped, which is what
+    the demo snapshot and the catalog conformance tests use: a promotion that
+    exists only on the maintainer's machine must never leak into either.
+    """
     shared_dtc = _load_json(CATALOG_DIR / "dtc_sae.json")["codes"]
 
     ecus: dict[str, EcuProfile] = {}
@@ -429,4 +559,7 @@ def load_catalog() -> Catalog:
     if unknown:
         raise CatalogError(f"vehicles.json references unknown ECUs: {sorted(unknown)}")
 
-    return Catalog(ecus, vehicles)
+    field_updates = (
+        _apply_field_updates(ecus) if overlays else {"applied": False, "status": {}}
+    )
+    return Catalog(ecus, vehicles, field_updates=field_updates)

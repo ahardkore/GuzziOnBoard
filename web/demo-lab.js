@@ -568,11 +568,18 @@
       embedded.rows = 1;
       embedded.cols = count;
     }
+    // <embedinfo type="3" linkobjid="0x7FDD" />: this axis' labels are the
+    // values of another item (a legend table holding the breakpoints).
+    var infoNode = kid(node, 'embedinfo');
+    var linkId = infoNode && infoNode.attrs.linkobjid
+      ? String(infoNode.attrs.linkobjid).trim() : '';
     return {
       ident: node.attrs.id || '?',
       units: (kidText(node, 'units') || '').trim(),
       labels: labels,
       count: count,
+      link_id: linkId,
+      target: null,
       embedded: embedded,
       math: mathOf(node),
     };
@@ -623,11 +630,84 @@
     return out;
   }
 
-  function axisDict(axis, bytes, offset, littleEndian) {
+  /* An object reference as a compare-able key: "0x7FDD" == "0x07fdd". */
+  function normaliseId(value) {
+    var text = String(value === null || value === undefined ? '' : value)
+      .trim().toLowerCase();
+    var digits = text.indexOf('0x') === 0 ? text.slice(2) : '';
+    if (digits && /^[0-9a-f]+$/.test(digits)) {
+      return '0x' + (digits.replace(/^0+/, '') || '0');
+    }
+    return text;
+  }
+
+  function resolveAxisLinks(xdf) {
+    var byId = {};
+    xdf.tables.forEach(function (table) {
+      if (!table.uniqueid) return;
+      var key = normaliseId(table.uniqueid);
+      if (!(key in byId)) byId[key] = table;
+    });
+    xdf.tables.forEach(function (table) {
+      [table.x, table.y].forEach(function (axis) {
+        if (axis.link_id) axis.target = byId[normaliseId(axis.link_id)] || null;
+      });
+    });
+  }
+
+  function legendLabels(xdf, axis, bytes, addressBase, littleEndian) {
+    var info = { id: axis.link_id, title: '', count: 0, applied: 0, reason: '' };
+    var target = axis.target;
+    if (!target) {
+      info.reason = 'no table in this definition has id ' + axis.link_id;
+      return { labels: [], info: info };
+    }
+    info.title = target.title;
+    if (target.uniqueid) info.id = target.uniqueid;
+    if (!target.embedded) {
+      info.reason = target.title + ' carries no embedded data to label from';
+      return { labels: [], info: info };
+    }
+    var offset = fileOffset(xdf, target.embedded.address) - addressBase;
+    var raw;
+    try {
+      raw = readEmbedded(target.embedded, bytes, offset, littleEndian);
+    } catch (exc) {
+      info.reason = target.title + ' could not be read: ' + (exc.message || exc);
+      return { labels: [], info: info };
+    }
+    var fn = compileMath(target.math);
+    var labels = raw.map(function (value) {
+      var engineered = fn(value);
+      if (target.decimalpl) engineered = round(engineered, target.decimalpl);
+      return formatNumber(engineered);
+    });
+    info.count = labels.length;
+    return { labels: labels, info: info };
+  }
+
+  function axisLabels(xdf, axis, bytes, offset, addressBase, littleEndian) {
+    var labels = axisHeader(axis, bytes, offset, littleEndian);
+    if (!axis.link_id || axis.embedded) return { labels: labels, legend: null };
+    var resolved = legendLabels(xdf, axis, bytes, addressBase, littleEndian);
+    resolved.labels.slice(0, labels.length).forEach(function (value, index) {
+      labels[index] = value;
+    });
+    resolved.info.applied = Math.min(resolved.labels.length, labels.length);
+    if (!resolved.info.reason && resolved.info.applied < labels.length) {
+      resolved.info.reason = (resolved.info.title || resolved.info.id)
+        + ' defines ' + resolved.info.count + ' labels for a '
+        + labels.length + '-entry axis';
+    }
+    return { labels: labels, legend: resolved.info };
+  }
+
+  function axisDict(axis, bytes, offset, littleEndian, resolved) {
     return {
       id: axis.ident,
       units: axis.units,
-      values: axisHeader(axis, bytes, offset, littleEndian),
+      values: resolved ? resolved.labels
+        : axisHeader(axis, bytes, offset, littleEndian),
       raw_values: axis.embedded
         ? readEmbedded(axis.embedded, bytes, offset, littleEndian) : [],
       equation: axis.math,
@@ -636,6 +716,7 @@
       size_bits: axis.embedded ? axis.embedded.size_bits : 0,
       signed: axis.embedded ? axis.embedded.signed : false,
       editable: !!axis.embedded,
+      legend: resolved ? resolved.legend : null,
     };
   }
 
@@ -713,8 +794,14 @@
           description: (kidText(node, 'description') || '').trim(),
           category: categoryOf(node),
           units: (z.units || kidText(node, 'units') || '').trim(),
-          x: axes.x || { ident: 'x', units: '', labels: [], count: 1, embedded: null, math: 'X' },
-          y: axes.y || { ident: 'y', units: '', labels: [], count: 1, embedded: null, math: 'X' },
+          x: axes.x || {
+            ident: 'x', units: '', labels: [], count: 1, embedded: null,
+            math: 'X', link_id: '', target: null,
+          },
+          y: axes.y || {
+            ident: 'y', units: '', labels: [], count: 1, embedded: null,
+            math: 'X', link_id: '', target: null,
+          },
           embedded: z.embedded,
           math: checkMath(zNode, title),
           decimalpl: decimals ? (intOf(decimals, 0) || null) : null,
@@ -731,6 +818,8 @@
         xdf.unsupported.push({ title: title, kind: 'table', reason: String(exc.message || exc) });
       }
     });
+    // The reference is an id and the target may be declared after its user.
+    resolveAxisLinks(xdf);
 
     kids(root, 'XDFCONSTANT').forEach(function (node) {
       var title = (kidText(node, 'title') || '').trim() || '(untitled constant)';
@@ -838,6 +927,10 @@
           rawRows.push(tableRaw.slice(
             rr * table.embedded.cols, (rr + 1) * table.embedded.cols));
         }
+        var xLabels = axisLabels(xdf, table.x, bytes,
+          axisOffset(table.x, offset), addressBase, xdf.little_endian);
+        var yLabels = axisLabels(xdf, table.y, bytes,
+          axisOffset(table.y, offset), addressBase, xdf.little_endian);
         tables.push({
           id: table.uniqueid || ('address:0x'
             + table.embedded.address.toString(16).toUpperCase()),
@@ -848,13 +941,15 @@
           address: '0x' + table.embedded.address.toString(16).toUpperCase(),
           rows: table.y.count,
           cols: table.x.count,
-          x: axisHeader(table.x, bytes, axisOffset(table.x, offset), xdf.little_endian),
-          y: axisHeader(table.y, bytes, axisOffset(table.y, offset), xdf.little_endian),
+          x: xLabels.labels,
+          y: yLabels.labels,
           x_units: table.x.units,
           y_units: table.y.units,
           axes: {
-            x: axisDict(table.x, bytes, axisOffset(table.x, offset), xdf.little_endian),
-            y: axisDict(table.y, bytes, axisOffset(table.y, offset), xdf.little_endian),
+            x: axisDict(table.x, bytes, axisOffset(table.x, offset),
+              xdf.little_endian, xLabels),
+            y: axisDict(table.y, bytes, axisOffset(table.y, offset),
+              xdf.little_endian, yLabels),
           },
           values: tableValues(table, bytes, offset, xdf.little_endian),
           raw_values: rawRows,
@@ -1075,18 +1170,18 @@
       try {
         beforeRows = tableValues(table, a, offset, xdf.little_endian);
         afterRows = tableValues(table, b, offset, xdf.little_endian);
-        x = axisHeader(table.x, a, table.x.embedded
-          ? fileOffset(xdf, table.x.embedded.address) - addressBase : offset,
-        xdf.little_endian);
-        y = axisHeader(table.y, a, table.y.embedded
-          ? fileOffset(xdf, table.y.embedded.address) - addressBase : offset,
-        xdf.little_endian);
-        xAfter = axisHeader(table.x, b, table.x.embedded
-          ? fileOffset(xdf, table.x.embedded.address) - addressBase : offset,
-        xdf.little_endian);
-        yAfter = axisHeader(table.y, b, table.y.embedded
-          ? fileOffset(xdf, table.y.embedded.address) - addressBase : offset,
-        xdf.little_endian);
+        var xOffset = table.x.embedded
+          ? fileOffset(xdf, table.x.embedded.address) - addressBase : offset;
+        var yOffset = table.y.embedded
+          ? fileOffset(xdf, table.y.embedded.address) - addressBase : offset;
+        x = axisLabels(xdf, table.x, a, xOffset, addressBase,
+          xdf.little_endian).labels;
+        y = axisLabels(xdf, table.y, a, yOffset, addressBase,
+          xdf.little_endian).labels;
+        xAfter = axisLabels(xdf, table.x, b, xOffset, addressBase,
+          xdf.little_endian).labels;
+        yAfter = axisLabels(xdf, table.y, b, yOffset, addressBase,
+          xdf.little_endian).labels;
       } catch (exc) {
         tables.push({ title: table.title, error: String(exc.message || exc) });
         return;
@@ -1323,6 +1418,30 @@
     writeEmbedded(axis.embedded, bytes, offset, xdf.little_endian, raws);
   }
 
+  /* A legend is not a map: its data is the *list* of breakpoints that other
+   * tables' axes are labelled with (engine temperature, RPM, TPS...). Sweep
+   * it along its element order, so a synthesised image makes those linked
+   * axis labels read like the engineering values they are. */
+  function paintLegend(xdf, legend, bytes, addressBase) {
+    if (!legend.embedded) return;
+    var offset = fileOffset(xdf, legend.embedded.address) - addressBase;
+    var span = Math.ceil(spanBits(legend.embedded) / 8);
+    if (offset < 0 || offset + span > bytes.length) return;
+    var limits = rawLimits(legend.embedded);
+    var count = legend.embedded.rows * legend.embedded.cols;
+    var surface = surfaceFor(legend.title, legend.units);
+    var invert = invertMath(legend.math);
+    var raws = [];
+    for (var i = 0; i < count; i++) {
+      var fx = count > 1 ? i / (count - 1) : 0;
+      var raw = surface
+        ? invert(surface(fx, fx), limits.lo, limits.hi)
+        : limits.lo + (limits.hi - limits.lo) * (0.05 + 0.9 * fx);
+      raws.push(clamp(Math.round(raw), limits.lo, limits.hi));
+    }
+    writeEmbedded(legend.embedded, bytes, offset, xdf.little_endian, raws);
+  }
+
   function fillerBytes(size, seed) {
     /* Firmware is not noise: it is mostly a small alphabet of opcodes and
      * near-zero operands, which is why a real dump sits around 5-6 bits of
@@ -1400,10 +1519,20 @@
     return loadXdf(entry).then(function (xdf) {
       var base = suggestAddressBase(xdf, bytes.length);
       var painted = 0;
+      var legends = [];
       xdf.tables.forEach(function (table) {
         paintAxis(xdf, table.x, bytes, base);
         paintAxis(xdf, table.y, bytes, base);
+        [table.x, table.y].forEach(function (axis) {
+          if (axis.target && legends.indexOf(axis.target) < 0) {
+            legends.push(axis.target);
+          }
+        });
         if (paintTable(xdf, table, bytes, base)) painted++;
+      });
+      // Legends are painted after the table pass so their breakpoints win.
+      legends.forEach(function (legend) {
+        paintLegend(xdf, legend, bytes, base);
       });
       return { bytes: bytes, painted: painted, xdf: xdf, entry: entry, address_base: base };
     }).catch(function () {

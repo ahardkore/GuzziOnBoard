@@ -662,6 +662,8 @@ b.bad { color: #ef8d78; }
   border-color: var(--warn);
   color: #ffd87b;
 }
+/* A header whose labels come from a linked legend rather than this axis. */
+.map-axis-legend { border-bottom: 1px dotted currentColor; cursor: help; }
 .map-viz-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

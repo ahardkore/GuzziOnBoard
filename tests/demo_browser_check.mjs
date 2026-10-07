@@ -465,6 +465,15 @@ check('rendered tables carry a grid of values',
   Array.isArray(table.values) && table.values.length === table.rows
   && !!table.title);
 check('the render is labelled simulated', rendered.payload.simulated === true);
+const linkedTable = rendered.payload.tables.find((candidate) => {
+  const legend = candidate.axes?.y?.legend;
+  return legend && legend.applied > 4;
+});
+check('an axis linked to a legend carries the legend\'s labels, not indexes',
+  !!linkedTable && linkedTable.y.length === linkedTable.rows
+  && linkedTable.axes.y.editable === false
+  && linkedTable.y.some((label, index) => label !== String(index)),
+  linkedTable ? JSON.stringify(linkedTable.axes.y.legend) : 'no legend-linked table rendered');
 
 const overlayTable = rendered.payload.tables.find((candidate) =>
   candidate.x.every((value) => Number.isFinite(Number(value)))

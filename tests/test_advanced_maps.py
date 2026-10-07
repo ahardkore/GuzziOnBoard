@@ -32,7 +32,7 @@ def test_render_exposes_structured_embedded_and_static_axes():
     assert table["axes"]["x"] == {
         "id": "x", "units": "RPM", "values": ["800", "1600", "2400"],
         "raw_values": [8, 16, 24], "equation": "X*100", "address": "0x8300",
-        "size_bits": 16, "signed": False, "editable": True,
+        "size_bits": 16, "signed": False, "editable": True, "legend": None,
     }
     assert table["axes"]["y"]["editable"] is False
     assert table["axes"]["y"]["raw_values"] == []

@@ -178,7 +178,12 @@ navigation, set/add/percentage transforms, row/column interpolation, weighted
 surface smoothing, bilinear blending, TSV copy/paste, 50-level undo/redo, and
 portable `.tune.json` projects. Every table has dynamically refreshed SVG 2D
 row profiles and a projected 3D surface. Image-backed embedded axes are editable
-with the same raw-value lock; static XDF labels are not. Live tracing never
+with the same raw-value lock; static XDF labels are not. Axes that link to a
+legend table (`<embedinfo linkobjid>`, as the 5AM engine-temperature rows do)
+are labelled with that legend's engineering values, read through the legend's
+own equation — so those rows read `0…105`, not `0…15` — and a legend that
+defines fewer labels than its axis is reported above the table instead of
+padded with invented values. Live tracing never
 infers a channel from an axis name or unit: each table stores explicit X/Y
 channel keys plus scale and offset (`axis = channel × scale + offset`) in browser
 preferences and portable projects. A nearest cell is highlighted read-only only

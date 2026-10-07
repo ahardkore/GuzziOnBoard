@@ -101,6 +101,53 @@ it reads a different calibration layout at the same addresses.
 Definitions are selected **by filename**. An ambiguous title is refused
 rather than resolved by luck.
 
+## Linked legends: where axis labels actually come from
+
+A table in these files usually stores its breakpoints in the dump, on the
+axis itself (`EMBEDDEDDATA` with an address), and those are what the editor
+shows and writes. But many axes have no data of their own; they carry an
+`<embedinfo type="3" linkobjid="0x7FDD" />` instead, which means *"my labels
+are that other item's values"*. The target is always a **legend** table — a
+name like `4C E 68 Legend EngineTemp` whose own `z` data is the list of
+breakpoints — so this is the difference between a row header that reads
+`13` and one that reads `82` (°C):
+
+```
+<XDFTABLE uniqueid="0x7FDD">            <!-- the legend, data at 0x4CE68 -->
+  <title>4C E 68 Legend EngineTemp</title>
+  <XDFAXIS id="z"><EMBEDDEDDATA mmedaddress="0x4CE68" mmedelementsizebits="16" … />
+    <MATH equation="X-40">…</MATH></XDFAXIS>
+</XDFTABLE>
+
+<XDFTABLE uniqueid="0x2F84">            <!-- the user of that legend -->
+  <title>49 4 A0 Ignition Engine Temp correction Idle_1</title>
+  <XDFAXIS id="y"><units>&#176;C</units><indexcount>16</indexcount>
+    <embedinfo type="3" linkobjid="0x7FDD" />   <!-- labels from the legend -->
+  </XDFAXIS>
+```
+
+`XdfFile.render()` reads the linked legend through **the legend's own**
+address, element size and `MATH` equation — that is what makes the labels
+engineering values rather than indexes — and reports the provenance on the
+axis as `axes.y.legend` (`id`, `title`, `count`, `applied`, `reason`).
+Rules it follows, because these are third-party files:
+
+- An axis that **does** have its own address keeps its own values. Those are
+  the bytes the map reads and edits; the link is not consulted.
+- A legend **longer** than the axis labels the entries the axis has (the
+  common case: a 20-value TPS legend on a 10-row table).
+- A legend **shorter** than the axis labels only the entries it defines; the
+  rest keep their plain indexes and `legend.reason` says so. Nothing is
+  padded or read past the end of the legend's declared data — an RSV4
+  definition that links a nine-value legend to 24-row tables is reported that
+  way rather than given fifteen invented °C values.
+- A dangling `linkobjid` is not a parse error: the axis keeps its own labels
+  and the unresolved link is reported when the axis is rendered.
+
+In the workstation editor the column/row headers keep a tooltip naming the
+legend they came from, and a legend that could not label the whole axis puts
+a line above the table saying so.
+
 ## Filling in the rest of the catalog
 
 Only the files that have actually been fetched and parse-checked are

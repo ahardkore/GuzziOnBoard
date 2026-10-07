@@ -314,6 +314,199 @@ def test_per_cell_math_is_reported_unsupported_never_guessed():
         ["Lambda target", "Speedo correction"]
 
 
+# -- linked legends ---------------------------------------------------------
+#
+# TunerPro writes ``<embedinfo type="3" linkobjid="0x7FDD" />`` on an axis
+# that has no data of its own: its labels are another item's values. In this
+# library that item is always a *legend* table holding the breakpoints, and
+# resolving it is what turns a row header from "13" into "82" (°C).
+
+
+def legend_definition(*, link: str = "0x4ce6", legend_rows: int = 4) -> str:
+    """A legend table plus a table whose y axis is its four-row legend."""
+    legend_labels = "".join(
+        f'\n      <LABEL index="{i}" value="{i + 1}" />' for i in range(legend_rows)
+    )
+    return f"""
+  <XDFTABLE uniqueid="0x4CE6" flags="0x30">
+    <title>Legend EngineTemp</title>
+    <XDFAXIS id="x" uniqueid="0x0">
+      <EMBEDDEDDATA mmedelementsizebits="16" mmedmajorstridebits="-32" mmedminorstridebits="0" />
+      <indexcount>1</indexcount>
+      <LABEL index="0" value="0" />
+      <MATH equation="X"><VAR id="X" /></MATH>
+    </XDFAXIS>
+    <XDFAXIS id="y" uniqueid="0x0">
+      <EMBEDDEDDATA mmedelementsizebits="16" mmedmajorstridebits="-32" mmedminorstridebits="0" />
+      <indexcount>{legend_rows}</indexcount>{legend_labels}
+      <MATH equation="X"><VAR id="X" /></MATH>
+    </XDFAXIS>
+    <XDFAXIS id="z" uniqueid="0x0">
+      <EMBEDDEDDATA mmedaddress="0x8600" mmedelementsizebits="16" mmedrowcount="{legend_rows}" mmedmajorstridebits="0" mmedminorstridebits="0" />
+      <decimalpl>1</decimalpl>
+      <MATH equation="X-40"><VAR id="X" /></MATH>
+    </XDFAXIS>
+  </XDFTABLE>
+  <XDFTABLE uniqueid="0x2F84" flags="0x30">
+    <title>Ignition engine temperature correction</title>
+    <XDFAXIS id="x" uniqueid="0x0">
+      <EMBEDDEDDATA mmedelementsizebits="16" mmedmajorstridebits="-32" mmedminorstridebits="0" />
+      <indexcount>1</indexcount>
+      <LABEL index="0" value="0" />
+      <MATH equation="X"><VAR id="X" /></MATH>
+    </XDFAXIS>
+    <XDFAXIS id="y" uniqueid="0x0">
+      <EMBEDDEDDATA mmedelementsizebits="16" mmedmajorstridebits="-32" mmedminorstridebits="0" />
+      <units>&#176;C</units>
+      <indexcount>4</indexcount>
+      <embedinfo type="3" linkobjid="{link}" />
+      <MATH equation="X"><VAR id="X" /></MATH>
+    </XDFAXIS>
+    <XDFAXIS id="z" uniqueid="0x0">
+      <EMBEDDEDDATA mmedaddress="0x8700" mmedelementsizebits="16" mmedrowcount="4" mmedmajorstridebits="0" mmedminorstridebits="0" />
+      <decimalpl>1</decimalpl>
+      <MATH equation="X/10"><VAR id="X" /></MATH>
+    </XDFAXIS>
+  </XDFTABLE>
+"""
+
+
+def linked_render_tables(**kwargs) -> tuple[XdfFile, bytearray, dict]:
+    """The fixture plus known legend and table data, and its render payload."""
+    xdf = XdfFile.from_string(
+        build_xdf().replace("</XDFFORMAT>", legend_definition(**kwargs) + "</XDFFORMAT>")
+    )
+    legend = next(t for t in xdf.tables if t.uniqueid == "0x4CE6")
+    table = next(t for t in xdf.tables if t.uniqueid == "0x2F84")
+    image = bytearray(DEVICE_SIZE)
+    for index, raw in enumerate((40, 60, 80, 100)[:legend.embedded.count]):
+        legend.embedded.write_one(
+            image, xdf.file_offset(legend.embedded.address), index, raw,
+            little_endian=xdf.little_endian,
+        )
+    for index, raw in enumerate((100, 200, 300, 400)):
+        table.embedded.write_one(
+            image, xdf.file_offset(table.embedded.address), index, raw,
+            little_endian=xdf.little_endian,
+        )
+    render = xdf.render(bytes(image))
+    entry = next(t for t in render["tables"] if t["title"] == table.title)
+    return xdf, image, entry
+
+
+def test_a_linked_axis_takes_its_labels_from_the_legend_it_names():
+    _, _, table = linked_render_tables()
+    # 40, 60, 80, 100 through the legend's own "X-40", not 0..3
+    assert table["y"] == ["0", "20", "40", "60"]
+    assert table["y_units"] == "°C"
+    assert table["axes"]["y"]["legend"] == {
+        "id": "0x4CE6", "title": "Legend EngineTemp",
+        "count": 4, "applied": 4, "reason": "",
+    }
+    # it is still a definition, not image data: nothing to edit or write
+    assert table["axes"]["y"]["editable"] is False
+    assert table["axes"]["y"]["address"] == ""
+    assert table["axes"]["y"]["raw_values"] == []
+    # and the cell values keep coming from the z data
+    assert table["values"] == [[10.0], [20.0], [30.0], [40.0]]
+
+
+def test_a_dangling_link_falls_back_to_indexes_and_says_so():
+    _, _, table = linked_render_tables(link="0x9999")
+    assert table["y"] == ["0", "1", "2", "3"]
+    assert table["axes"]["y"]["legend"] == {
+        "id": "0x9999", "title": "", "count": 0, "applied": 0,
+        "reason": "no table in this definition has id 0x9999",
+    }
+
+
+def test_a_legend_shorter_than_its_axis_labels_the_part_it_defines():
+    _, _, table = linked_render_tables(legend_rows=2)
+    assert table["y"] == ["0", "20", "2", "3"]      # the tail keeps indexes
+    legend = table["axes"]["y"]["legend"]
+    assert legend["count"] == 2 and legend["applied"] == 2
+    assert legend["reason"] == (
+        "Legend EngineTemp defines 2 labels for a 4-entry axis"
+    )
+
+
+def test_an_axis_with_its_own_data_keeps_its_own_labels():
+    # the definition also names a legend, but this axis stores its breakpoints
+    # itself - those are what the map actually reads and edits
+    xdf = XdfFile.from_string(build_xdf().replace(
+        "</XDFFORMAT>",
+        legend_definition().replace(
+            '<EMBEDDEDDATA mmedelementsizebits="16" mmedmajorstridebits="-32" '
+            'mmedminorstridebits="0" />\n      <units>&#176;C</units>',
+            '<EMBEDDEDDATA mmedaddress="0x8800" mmedelementsizebits="16" '
+            'mmedmajorstridebits="0" mmedminorstridebits="0" />\n'
+            '      <units>&#176;C</units>',
+        ) + "</XDFFORMAT>",
+    ))
+    image = bytearray(DEVICE_SIZE)
+    image[0x8800:0x8808] = b"".join(
+        value.to_bytes(2, "big") for value in (7, 8, 9, 10)
+    )
+    render = xdf.render(bytes(image))
+    table = next(t for t in render["tables"]
+                 if t["title"] == "Ignition engine temperature correction")
+    assert table["y"] == ["7", "8", "9", "10"]
+    assert table["axes"]["y"]["legend"] is None
+
+
+def test_diff_names_rows_with_the_linked_legend():
+    xdf, image, _ = linked_render_tables()
+    modified = bytearray(image)
+    modified[0x8702:0x8704] = (250).to_bytes(2, "big")     # row 1 -> 25.0
+    diff = xdf.diff(bytes(image), bytes(modified))
+    table = next(t for t in diff["tables"]
+                 if t["title"] == "Ignition engine temperature correction")
+    assert table["cells"][0]["row"] == 1
+    assert table["cells"][0]["y"] == "20"                  # not "1"
+
+
+def test_the_bundled_5am_definitions_resolve_their_engine_temp_legend():
+    """The file the bug report names: `linkobjid="0x7FDD"` on the °C rows."""
+    xdf = XdfFile.from_file(
+        BUNDLED_XDF_DIR / "aprilia" / "5AM_Aprilia_GP850_V1.00.xdf"
+    )
+    legend = next(t for t in xdf.tables if t.uniqueid.upper() == "0X7FDD")
+    assert legend.title == "4C E 68 Legend EngineTemp"
+    image = bytearray(DEVICE_SIZE)
+    raws = (40, 60, 80, 100, 120, 140, 160, 180,
+            200, 220, 240, 250, 260, 270, 280, 290)
+    for index, raw in enumerate(raws):
+        legend.embedded.write_one(
+            image, xdf.file_offset(legend.embedded.address), index, raw,
+            little_endian=xdf.little_endian,
+        )
+    render = xdf.render(bytes(image))
+    table = next(t for t in render["tables"]
+                 if t["title"] == "49 4 A0 Ignition Engine Temp correction Idle_1")
+    assert table["y"] == [str(raw - 40) for raw in raws]
+    assert table["axes"]["y"]["legend"] == {
+        "id": "0x7FDD", "title": "4C E 68 Legend EngineTemp",
+        "count": 16, "applied": 16, "reason": "",
+    }
+
+
+def test_a_legend_that_is_shorter_than_the_axis_is_reported_not_padded():
+    """7SM RSV4 1037 links a nine-value legend to 24-row tables. Only the nine
+    labels it defines are used; inventing fifteen more would mislabel rows."""
+    xdf = XdfFile.from_file(
+        BUNDLED_XDF_DIR / "aprilia" / "7SM_RSV4_1037AH01_V1.03.xdf"
+    )
+    render = xdf.render(bytes(xdf.data_end() + 16))
+    table = next(t for t in render["tables"] if t["title"] == "90 A AA Fuel Main Left 1")
+    legend = table["axes"]["y"]["legend"]
+    assert legend["id"] == "0x2056" and legend["count"] == 9
+    assert legend["applied"] == 9 and table["rows"] == 24
+    assert legend["reason"] == (
+        "92 F DE RPM 9B Legend defines 9 labels for a 24-entry axis"
+    )
+    assert table["y"][9:] == [str(index) for index in range(9, 24)]
+
+
 # -- addressing ------------------------------------------------------------
 
 

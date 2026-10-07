@@ -12,7 +12,10 @@ This module turns those definitions into data:
   ``<XDFFORMAT version="1.60">``; the structure was read off a real file,
   see ``docs/PRIOR_ART.md`` 3);
 * :meth:`XdfFile.render` maps a dump onto the definitions and returns every
-  table with its axis labels and engineering values;
+  table with its axis labels and engineering values; an axis that TunerPro
+  links to a *legend* table (``<embedinfo type="3" linkobjid="0x7FDD" />``)
+  is labelled with that legend's own engineering values, so a row header
+  reads "82" (its engine temperature) instead of "13" (its index);
 * :meth:`XdfFile.diff` compares two dumps and reports *named* changes -
   "Spark High-Octane Table, row 1200 RPM, col 0.84 g/cyl: 28.1 -> 30.0"
   instead of "run at 0xF1BE, 2 bytes".
@@ -220,6 +223,15 @@ def _int(text: str | None, default: int = 0) -> int:
     return int(str(text).strip(), 0)
 
 
+def _normalise_id(value: str | None) -> str:
+    """An object reference as a compare-able key: ``0x7FDD`` == ``0x07fdd``."""
+    text = (value or "").strip().lower()
+    digits = text[2:] if text.startswith("0x") else ""
+    if digits and all(char in "0123456789abcdef" for char in digits):
+        return "0x" + (digits.lstrip("0") or "0")
+    return text
+
+
 @dataclass
 class Embedded:
     """An EMBEDDEDDATA block: where data lives and how it is packed."""
@@ -327,7 +339,14 @@ class Embedded:
 
 @dataclass
 class Axis:
-    """One axis of a table: static LABELs or values embedded in the dump."""
+    """One axis of a table: static LABELs or values embedded in the dump.
+
+    An axis may instead *link* to another item - TunerPro writes
+    ``<embedinfo type="3" linkobjid="0x7FDD" />`` - whose data is then the
+    axis' labels.  In this library that target is always a legend table
+    holding the breakpoints (engine temperature, RPM, TPS...).  The link is
+    stored as written and resolved by :meth:`XdfFile.resolve_links`.
+    """
 
     ident: str                    # "x" | "y"
     units: str = ""
@@ -335,6 +354,8 @@ class Axis:
     count: int = 1
     embedded: Embedded | None = None
     math: str = "X"
+    link_id: str = ""             # <embedinfo linkobjid>, "" when there is none
+    target: "XdfTable | None" = field(default=None, repr=False, compare=False)
 
     @classmethod
     def parse(cls, node: ET.Element, *, signed_default: bool) -> "Axis":
@@ -351,6 +372,9 @@ class Axis:
             embedded = Embedded.parse(data_node, signed_default=signed_default)
             embedded.rows, embedded.cols = 1, count
 
+        info = node.find("embedinfo")
+        link_id = (info.get("linkobjid") or "").strip() if info is not None else ""
+
         return cls(
             ident=node.get("id") or "?",
             units=units,
@@ -358,6 +382,7 @@ class Axis:
             count=count,
             embedded=embedded,
             math=math,
+            link_id=link_id,
         )
 
     def header(self, image: bytes, offset: int, *, little_endian: bool) -> list[str]:
@@ -387,6 +412,7 @@ class Axis:
             "size_bits": self.embedded.size_bits if self.embedded is not None else 0,
             "signed": self.embedded.signed if self.embedded is not None else False,
             "editable": self.embedded is not None,
+            "legend": None,
         }
 
 
@@ -626,11 +652,30 @@ class XdfFile:
             if title:
                 xdf.checksums.append(title)
 
+        xdf.resolve_links()
+
         if not xdf.tables and not xdf.constants:
             raise XdfError(
                 f"no readable tables or constants (root tag {root.tag!r})"
             )
         return xdf
+
+    def resolve_links(self) -> None:
+        """Point every ``<embedinfo linkobjid>`` axis at the table it names.
+
+        The reference is an id and the target may be declared after its user,
+        so this runs once the whole file has been parsed.  A dangling id is
+        not a parse error: the axis keeps its own labels and rendering
+        reports the link it could not follow.
+        """
+        by_id: dict[str, XdfTable] = {}
+        for table in self.tables:
+            if table.uniqueid:
+                by_id.setdefault(_normalise_id(table.uniqueid), table)
+        for table in self.tables:
+            for axis in (table.x, table.y):
+                if axis.link_id:
+                    axis.target = by_id.get(_normalise_id(axis.link_id))
 
     @staticmethod
     def _check_math(node: ET.Element, what: str) -> str:
@@ -775,6 +820,76 @@ class XdfFile:
             return bytes(data)
         raise XdfError("image must be bytes or a FirmwareImage")
 
+    def _legend_labels(self, axis: Axis, image: bytes,
+                       *, address_base: int) -> tuple[list[str], dict]:
+        """Engineering labels from the legend an axis links to, plus provenance.
+
+        A linked axis names another item instead of holding its own data, and
+        the referenced legend's values *are* the breakpoints - reading them
+        through the legend's own MATH is what turns row 13 into "82 °C".  Only
+        labels the legend actually defines are used: an axis longer than its
+        legend keeps its own fallback for the tail, and the shortfall is
+        reported rather than padded out with invented values.
+        """
+        info = {
+            "id": axis.link_id,
+            "title": "",
+            "count": 0,
+            "applied": 0,
+            "reason": "",
+        }
+        target = axis.target
+        if target is None:
+            info["reason"] = f"no table in this definition has id {axis.link_id}"
+            return [], info
+        info["title"] = target.title
+        if target.uniqueid:
+            info["id"] = target.uniqueid
+        if target.embedded is None:
+            info["reason"] = (
+                f"{target.title} carries no embedded data to label from"
+            )
+            return [], info
+        offset = self.file_offset(target.embedded.address) - address_base
+        try:
+            raw = target.embedded.read(
+                image, offset, little_endian=self.little_endian
+            )
+        except XdfError as exc:
+            info["reason"] = f"{target.title} could not be read: {exc}"
+            return [], info
+        labels = []
+        for value in raw:
+            value = eval_math(target.math, value)
+            if target.decimalpl:
+                value = round(value, target.decimalpl)
+            labels.append(_format_number(value))
+        info["count"] = len(labels)
+        return labels, info
+
+    def axis_labels(self, axis: Axis, image: bytes, offset: int, *,
+                    address_base: int) -> tuple[list[str], dict | None]:
+        """One axis' labels: its own data or LABELs, with a linked legend on top.
+
+        An axis that carries its own embedded values keeps them: those are the
+        breakpoints the map stores (and edits), so they are the truer label
+        even where the definition also names a legend.  The returned dict is
+        the legend provenance, or ``None`` for an axis that links to nothing.
+        """
+        labels = axis.header(image, offset, little_endian=self.little_endian)
+        if not axis.link_id or axis.embedded is not None:
+            return labels, None
+        legend, info = self._legend_labels(axis, image, address_base=address_base)
+        for index, value in enumerate(legend[:len(labels)]):
+            labels[index] = value
+        info["applied"] = min(len(legend), len(labels))
+        if not info["reason"] and info["applied"] < len(labels):
+            info["reason"] = (
+                f"{info['title'] or info['id']} defines {info['count']} labels "
+                f"for a {len(labels)}-entry axis"
+            )
+        return labels, info
+
     def render(self, image, *, address_base: int | None = None) -> dict:
         """Every table and constant with its engineering values."""
         data = self._bytes(image)
@@ -797,16 +912,21 @@ class XdfFile:
         errors: list[dict] = []
         for table in self.tables:
             data_offset = self.file_offset(table.embedded.address) - address_base
+            offsets = {
+                "data": data_offset,
+                "x": axis_offset(table.x, data_offset),
+                "y": axis_offset(table.y, data_offset),
+            }
             try:
                 entry = table.as_dict(
-                    data,
-                    {
-                        "data": data_offset,
-                        "x": axis_offset(table.x, data_offset),
-                        "y": axis_offset(table.y, data_offset),
-                    },
-                    little_endian=self.little_endian,
+                    data, offsets, little_endian=self.little_endian
                 )
+                for name, axis in (("x", table.x), ("y", table.y)):
+                    labels, legend = self.axis_labels(
+                        axis, data, offsets[name], address_base=address_base
+                    )
+                    entry[name] = labels
+                    entry["axes"][name].update(values=labels, legend=legend)
             except XdfError as exc:
                 errors.append({
                     "title": table.title, "kind": "table",
@@ -1052,17 +1172,17 @@ class XdfFile:
                     self.file_offset(table.y.embedded.address) - address_base
                     if table.y.embedded is not None else offset
                 )
-                x = table.x.header(
-                    a, x_offset, little_endian=self.little_endian,
+                x, _ = self.axis_labels(
+                    table.x, a, x_offset, address_base=address_base
                 )
-                y = table.y.header(
-                    a, y_offset, little_endian=self.little_endian,
+                y, _ = self.axis_labels(
+                    table.y, a, y_offset, address_base=address_base
                 )
-                x_after = table.x.header(
-                    b, x_offset, little_endian=self.little_endian,
+                x_after, _ = self.axis_labels(
+                    table.x, b, x_offset, address_base=address_base
                 )
-                y_after = table.y.header(
-                    b, y_offset, little_endian=self.little_endian,
+                y_after, _ = self.axis_labels(
+                    table.y, b, y_offset, address_base=address_base
                 )
             except XdfError as exc:
                 tables.append({"title": table.title, "error": str(exc)})

@@ -2920,9 +2920,22 @@ function mapChangeKey(kind, id, row = 0, col = 0, axis = '') {
   return `${kind}:${id}:${axis}:${row}:${col}`;
 }
 
+function axisLegendTitle(axis) {
+  const legend = axis?.legend;
+  if (!legend) return '';
+  if (legend.reason) return `Axis labels: ${legend.reason}`;
+  const source = legend.title ? `${legend.title} (${legend.id})` : legend.id;
+  return `Axis labels come from the linked legend ${source}`;
+}
+
 function mapAxisValueHtml(t, axisName, index, label) {
   const axis = t.axes?.[axisName];
-  if (!axis?.editable) return esc(label);
+  if (!axis?.editable) {
+    const legend = axisLegendTitle(axis);
+    return legend
+      ? `<span class="map-axis-legend" title="${esc(legend)}">${esc(label)}</span>`
+      : esc(label);
+  }
   const key = mapChangeKey('axis', t.id, index, 0, axisName);
   const staged = maps.changes.get(key);
   const value = staged ? staged.value : Number(label);
@@ -2931,6 +2944,16 @@ function mapAxisValueHtml(t, axisName, index, label) {
     data-map-axis="${axisName}" data-map-row="${index}" data-map-col="0"
     data-map-raw="${esc(axis.raw_values[index])}" data-map-value="${esc(value)}"
     title="Editable ${axisName.toUpperCase()} axis · ${esc(axis.units)}">${esc(fmtValue(value))}</button>`;
+}
+
+function mapLegendNotesHtml(t) {
+  // A legend that cannot label the whole axis: say so, instead of letting the
+  // unresolved tail look like it was resolved from the definition.
+  return ['x', 'y'].map((axisName) => {
+    const legend = t.axes?.[axisName]?.legend;
+    if (!legend?.reason) return '';
+    return `<p class="muted small">${axisName.toUpperCase()} axis: ${esc(legend.reason)}</p>`;
+  }).join('');
 }
 
 function traceChannelOptions(selected = '') {
@@ -2985,6 +3008,7 @@ function mapsTableHtml(t) {
         ${esc(fmtValue(shown))}</button></td>`;
     }).join('') + '</tr>').join('');
   return `${mapTraceMappingHtml(t)}
+    ${mapLegendNotesHtml(t)}
     <div class="table-wrap"><table class="data map-grid"><thead>${head}</thead><tbody>${body}</tbody></table></div>
     ${mapVisualizationHtml(t, matrix, low, high)}`;
 }

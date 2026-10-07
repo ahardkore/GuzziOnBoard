@@ -741,6 +741,16 @@ b.bad { color: #ef8d78; }
 }
 
 /* Helper callouts — inline guidance next to the tools it explains. */
+.map-tips {
+  border: 1px solid #365448; border-left: 3px solid var(--accent);
+  background: #10231b; border-radius: 8px; padding: 12px 15px; margin: 12px 0;
+}
+.map-tips h4 { margin: 0 0 3px; }
+.map-tips p { margin-bottom: 7px; }
+.map-tips ul { margin: 0; padding-left: 20px; color: var(--muted); font-size: .84rem; }
+.map-tips li { margin: 5px 0; }
+.map-tips b { color: var(--text); }
+
 .tip {
   border-left: 3px solid var(--accent-dim);
   background: var(--bg-2);

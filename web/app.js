@@ -3882,6 +3882,21 @@ function drawMapLogOverlay(report) {
   });
 }
 
+function tuningTipsHtml(render) {
+  const family = String(render.xdf?.title || '').match(/\\b(15M|15P|15RC|16M|5AM|59M|7SM|MIUG3|11MP|MBC1)\\b/i)?.[1]?.toUpperCase() || 'this ECU';
+  const names = (render.tables || []).map((t) => `${t.title} ${t.category || ''}`.toLowerCase());
+  const has = (...words) => names.some((name) => words.some((word) => name.includes(word)));
+  const tips = [];
+  if (has('fuel', 'injection', 'lambda', 'afr')) tips.push('<b>Fuel tables:</b> change only after confirming the table axes and units. Use a measured wideband log, let the engine reach operating temperature, and make small, reversible changes. Closed-loop areas may be corrected by the ECU rather than following the table directly.');
+  if (has('ignition', 'spark', 'advance')) tips.push('<b>Ignition tables:</b> treat these as high-risk. Do not add advance without load/RPM data and knock control evidence; verify hot and cold behavior separately. Never use a spark table from another ECU family just because the dimensions match.');
+  if (has('idle', 'target', 'stepper', 'throttle')) tips.push('<b>Idle and throttle:</b> solve air leaks, throttle-stop position, synchronization, and sensor calibration before editing targets. An idle target is not a substitute for mechanical setup.');
+  if (has('limiter', 'rev')) tips.push('<b>Limiters:</b> leave the factory ceiling in place unless the engine build, valve train, oiling, and instrumentation support a documented change. A higher RPM limit increases mechanical risk, not just performance.');
+  if (has('lambda', 'o2', 'closed')) tips.push('<b>Lambda control:</b> distinguish open-loop enrichment from closed-loop correction. A commanded value and measured AFR are different signals; log both before proposing a correction.');
+  if (!tips.length) tips.push(`<b>${esc(family)} definition:</b> start with identification, units, axes, and a protected backup. This definition exposes locations; it does not prove that a generic tuning value is safe for every motorcycle using this ECU.`);
+  tips.push('<b>For every change:</b> preserve the original image, document hardware and fuel, review the exact diff, and validate checksum handling. No value is recommended here without configuration-specific evidence.');
+  return `<div class="map-tips"><h4>Helpful tuning tips</h4><p class="muted small">Context from the loaded definition and established calibration practice. These are guardrails, not canned values.</p><ul>${tips.map((tip) => `<li>${tip}</li>`).join('')}</ul></div>`;
+}
+
 function renderMapsResult(render) {
   const meta = render.xdf || {};
   maps.render = render;
@@ -3928,6 +3943,7 @@ function renderMapsResult(render) {
         · image ${(render.image_size / 1024).toFixed(0)} KiB</p>
     </div>`
     + mapsNotices(render)
+    + tuningTipsHtml(render)
     + render.tables.map((t, i) => `
       <details ${i === 0 ? 'open' : ''}>
         <summary>${esc(t.title)}

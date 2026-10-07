@@ -25,6 +25,11 @@ import hashlib
 import json
 import shutil
 import time
+import threading
+import uuid
+from functools import wraps
+
+from .storage import atomic_write
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -62,6 +67,18 @@ def ecu_key(ecu_id: str, hardware: str = "", region: str = "flash") -> str:
     return "/".join(parts)
 
 
+# All vault instances in the threaded workstation share the transaction lock.
+_VAULT_LOCK = threading.RLock()
+
+
+def _serialized(method):
+    @wraps(method)
+    def wrapped(*args, **kwargs):
+        with _VAULT_LOCK:
+            return method(*args, **kwargs)
+    return wrapped
+
+
 @dataclass
 class BaseMapVault:
     """The on-disk store of base maps and extra restore points."""
@@ -79,17 +96,20 @@ class BaseMapVault:
     def _read_index(self) -> dict:
         try:
             data = json.loads(self.index_path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        except FileNotFoundError:
             return {}
-        return data if isinstance(data, dict) else {}
+        except (OSError, ValueError) as exc:
+            raise BaseMapError(f"cannot read base map index: {exc}") from exc
+        if not isinstance(data, dict) or any(not isinstance(v, dict) for v in data.values()):
+            raise BaseMapError("invalid base map index; refusing to overwrite it")
+        return data
 
     def _write_index(self, index: dict) -> None:
         self.directory.mkdir(parents=True, exist_ok=True)
-        tmp = self.index_path.with_suffix(".json.tmp")
-        tmp.write_text(json.dumps(index, indent=2, sort_keys=True), encoding="utf-8")
-        tmp.replace(self.index_path)
+        atomic_write(self.index_path, json.dumps(index, indent=2, sort_keys=True).encode("utf-8"))
 
     # -- storing -----------------------------------------------------------
+    @_serialized
     def store(
         self,
         *,
@@ -100,6 +120,7 @@ class BaseMapVault:
         verified: bool = False,
         identity: dict | None = None,
         note: str = "",
+        _replace: bool = False,
     ) -> dict:
         """Copy a verified image into the vault.
 
@@ -125,19 +146,21 @@ class BaseMapVault:
         folder = self.directory / key.replace("/", "_")
         folder.mkdir(parents=True, exist_ok=True)
 
-        is_base = entry is None
-        # The digest is part of the filename so two saves in the same
-        # second - or the same image filed twice - can never overwrite an
-        # existing restore image.
+        is_base = entry is None or _replace
+        # A unique suffix keeps repeated saves of identical bytes separate,
+        # including their potentially different provenance sidecars.
         name = (
             f"{'basemap' if is_base else 'restorepoint'}-{stamp}-"
-            f"{digest[:12]}.bin"
+            f"{digest[:12]}-{uuid.uuid4().hex}.bin"
         )
         target = folder / name
         shutil.copy2(source, target)
         sidecar = source.with_suffix(source.suffix + ".json")
         if sidecar.is_file():
             shutil.copy2(sidecar, target.with_suffix(target.suffix + ".json"))
+
+        if sha256_file(target) != digest:
+            raise BaseMapError("source changed while copying; base map was not published")
 
         record = {
             "path": str(target),
@@ -153,7 +176,11 @@ class BaseMapVault:
             "origin": str(source),
         }
         if is_base:
-            index[key] = dict(record, restore_points=[])
+            points = list(entry.get("restore_points") or []) if entry else []
+            if entry:
+                previous = {k: v for k, v in entry.items() if k != "restore_points"}
+                points.append(dict(previous, note="superseded base map"))
+            index[key] = dict(record, restore_points=points[-10:])
         else:
             points = list(entry.get("restore_points") or [])
             points.append(record)
@@ -173,26 +200,11 @@ class BaseMapVault:
         The previous base map is kept as a restore point - nothing in this
         vault is ever deleted by the application.
         """
-        key = ecu_key(ecu_id, hardware, region)
-        index = self._read_index()
-        previous = index.pop(key, None)
-        self._write_index(index)
-        result = self.store(
+        return self.store(
             ecu_id=ecu_id, hardware=hardware, region=region,
             source_path=source_path, verified=verified, identity=identity,
-            note=note or "operator-replaced base map",
+            note=note or "operator-replaced base map", _replace=True,
         )
-        if previous:
-            index = self._read_index()
-            entry = index.get(key, {})
-            points = list(entry.get("restore_points") or [])
-            previous.pop("restore_points", None)
-            points.append(dict(previous, note="superseded base map"))
-            entry["restore_points"] = points[-10:]
-            index[key] = entry
-            self._write_index(index)
-            result = self.status(ecu_id, hardware, region)
-        return result
 
     # -- reading -----------------------------------------------------------
     def status(self, ecu_id: str, hardware: str = "",

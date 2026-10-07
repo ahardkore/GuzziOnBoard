@@ -1859,14 +1859,41 @@ def make_handler(workstation: Workstation):
         def do_POST(self):
             parsed = urlparse(self.path)
             if parsed.path not in ROUTES_POST:
+                self.close_connection = True
                 self._json(404, {"error": f"no route {parsed.path}"})
                 return
-            length = int(self.headers.get("Content-Length") or 0)
-            raw = self.rfile.read(length) if length else b"{}"
+            # Close rejected requests: unread bytes must not become a second
+            # request on this HTTP/1.1 connection.
+            def reject(status, message):
+                self.close_connection = True
+                self._json(status, {"error": message, "code": "bad_request"})
+
+            if self.headers.get("Transfer-Encoding"):
+                reject(400, "Transfer-Encoding is not supported")
+                return
+            lengths = self.headers.get_all("Content-Length", [])
+            if len(lengths) > 1 or (lengths and not re.fullmatch(r"[0-9]+", lengths[0])):
+                reject(400, "invalid Content-Length")
+                return
             try:
-                body = json.loads(raw or b"{}")
-            except json.JSONDecodeError as exc:
-                self._json(400, {"error": f"bad JSON body: {exc}"})
+                length = int(lengths[0]) if lengths else 0
+            except ValueError:
+                reject(400, "invalid Content-Length")
+                return
+            if length > 16 * 1024 * 1024:
+                reject(413, "JSON body exceeds 16 MiB")
+                return
+            raw = self.rfile.read(length) if length else b"{}"
+            def reject_constant(value):
+                raise ValueError(f"non-finite JSON number: {value}")
+
+            try:
+                body = json.loads(raw, parse_constant=reject_constant)
+            except (ValueError, UnicodeError) as exc:
+                reject(400, f"bad JSON body: {exc}")
+                return
+            if not isinstance(body, dict):
+                reject(400, "JSON body must be an object")
                 return
             self._dispatch(ROUTES_POST, parsed.path, body)
 

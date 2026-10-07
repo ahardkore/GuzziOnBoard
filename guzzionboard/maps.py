@@ -1005,6 +1005,7 @@ class XdfFile:
         output = bytearray(source)
         applied: list[dict] = []
         touched: set[tuple[str, str, int]] = set()
+        touched_bytes: set[int] = set()
         for number, change in enumerate(changes, 1):
             if not isinstance(change, dict):
                 raise XdfError(f"change {number} is not an object")
@@ -1114,6 +1115,11 @@ class XdfFile:
                 raise XdfError(
                     f"{title}: requested value leaves ({row}, {col}) unchanged"
                 )
+            pos, size = embedded.positions(offset)[index]
+            byte_range = set(range(pos, pos + size))
+            if touched_bytes & byte_range:
+                raise XdfError(f"{title}: overlapping byte writes in this change set")
+            touched_bytes.update(byte_range)
             pos, before_bytes, after_bytes = embedded.write_one(
                 output, offset, index, new_raw,
                 little_endian=self.little_endian,

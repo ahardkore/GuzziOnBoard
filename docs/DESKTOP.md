@@ -243,9 +243,19 @@ didn't, the app still runs: it opens in your browser and says why.
 
 `dist/GuzziOnBoard/` contains the app plus `install.sh` and
 `guzzionboard.desktop.in`; `install.sh` copies a `.desktop` entry and an icon
-into `~/.local/share` and links `~/.local/bin/guzzionboard`. GTK + WebKitGTK
-(`gir1.2-webkit2-4.1`) provide the window; without them the app falls back to
-your browser.
+into `~/.local/share` and links `~/.local/bin/guzzionboard` — the check in
+`packaging/installer/linux-install-check.sh` runs that script and then starts
+what it installed, through the symlink.
+
+**The Linux artifact carries no window engine, so it opens your browser.** The
+window needs pywebview *and* PyGObject with the WebKitGTK typelibs, and
+freezing those into a folder build is its own piece of work — PyInstaller
+collects Gtk but has no WebKit2 typelib hook, so a half-done bundle would fail
+at the moment the window is created. What the artifact does instead is honest
+and tested: it serves the same workstation and opens it in your usual browser,
+which is the same code path the app takes anywhere else the window cannot
+start. From a *source* install (`pip install -e '.[desktop]'` on a machine
+with `python3-gi` and `gir1.2-webkit2-4.1`), the window is used.
 
 ### macOS
 
@@ -300,6 +310,10 @@ uninstaller says so); delete that folder yourself if you want them gone.
 * **macOS and Linux get archives, not installers.** There is no `.dmg`, no
   `.deb`, no Flatpak. The Linux `install.sh` is a per-user script, not a
   package manager.
+* **The Linux build has no window engine** (above): it serves the workstation
+  and opens your browser. The native window on Linux works from a source
+  install with PyGObject + WebKitGTK; bundling them for a frozen build is not
+  done yet.
 * **No auto-update.** New versions are downloaded from the releases page and
   installed over the old one; the installer keeps the same `AppId`, so it is an
   upgrade rather than a second copy.

@@ -460,6 +460,24 @@ echo "would open a window"
     assert "answered its own ping" in result.stdout
 
 
+def test_the_documented_window_engine_matches_the_build():
+    """Windows and macOS bundle pywebview. Linux does not, and the docs say so.
+
+    Freezing a Linux window needs PyGObject and the WebKitGTK typelibs
+    collected - PyInstaller has a Gtk hook but no WebKit2 typelib hook - so a
+    one-line `pip install pywebview` would produce an app whose window fails
+    when it is created. If somebody does that work, this test and
+    docs/DESKTOP.md should change together.
+    """
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    linux_job = workflow.partition("\n  linux:")[2].partition("\n  macos:")[0]
+    assert linux_job, "the linux job should be in the workflow"
+    assert "pywebview" not in linux_job
+    assert "pip install pyinstaller pywebview" in workflow     # windows and macOS
+    docs = (ROOT / "docs" / "DESKTOP.md").read_text(encoding="utf-8")
+    assert "carries no window engine" in docs
+
+
 def test_the_workflow_runs_the_install_checks():
     src = WORKFLOW.read_text(encoding="utf-8")
     assert "linux-install-check.sh" in src

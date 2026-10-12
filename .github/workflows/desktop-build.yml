@@ -73,7 +73,15 @@ jobs:
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
       - name: Build the application and the installer
-        run: python packaging/build.py --installer --portable-zip
+        shell: bash
+        run: python packaging/build.py --installer --portable-zip 2>&1 | tee build.log
+      - name: Explain a failed build
+        if: failure()
+        shell: bash
+        run: |
+          {
+            echo "::error title=Desktop build failed::$(tail -c 1800 build.log 2>/dev/null | tr '\n' '|' | tr -d '\r')"
+          }
       - name: Show what was built
         shell: pwsh
         run: Get-ChildItem dist | Format-Table Name, Length
@@ -148,7 +156,12 @@ jobs:
           npm ci
           npx playwright test --config playwright.config.mjs
       - name: Build
-        run: python packaging/build.py --portable-zip
+        run: python packaging/build.py --portable-zip 2>&1 | tee build.log
+      - name: Explain a failed build
+        if: failure()
+        run: |
+          echo "::error title=Linux build failed::$(tail -c 1800 build.log 2>/dev/null | tr '\n' '|' | tr -d '\r')"
+
       - uses: actions/upload-artifact@v4
         with:
           name: guzzionboard-linux
@@ -176,7 +189,12 @@ jobs:
           cache: pip
       - run: pip install pyinstaller pywebview
       - name: Build the .app bundle and archive it
-        run: python packaging/build.py --portable-zip
+        run: python packaging/build.py --portable-zip 2>&1 | tee build.log
+      - name: Explain a failed build
+        if: failure()
+        run: |
+          echo "::error title=macOS build failed::$(tail -c 1800 build.log 2>/dev/null | tr '\n' '|' | tr -d '\r')"
+
       - uses: actions/upload-artifact@v4
         with:
           name: guzzionboard-macos

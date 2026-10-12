@@ -150,7 +150,7 @@ skips the question entirely.
 
 | Path | What |
 |---|---|
-| `<install folder>` | The program: two executables, `web/`, `guzzionboard/catalog`, `guzzionboard/xdfs`, `vendor/` |
+| `<install folder>` | The program: two executables (`GuzziOnBoard.exe`, `GuzziOnBoard-worker.exe`) and `_internal/`, which holds `web/`, `guzzionboard/catalog`, `guzzionboard/xdfs`, `vendor/` |
 | `~/.guzzionboard/sessions/` | Recorded sessions (raw frames + decoded samples) |
 | `~/.guzzionboard/images/`, `basemaps/` | ECU reads and the protected base maps |
 | `~/.guzzionboard/xdfs/`, `checksums/`, `keys/` | Your additions: XDFs, checksum plugins, key providers |
@@ -175,7 +175,9 @@ python packaging/build.py --skip-selftest # trust me (don't)
 The build refuses to finish unless the artifact passes its own `--selftest`,
 which is the check that catches a data file that never made it into the bundle
 — `PyInstaller` will happily produce an executable that starts and then has no
-XDF library.
+XDF library. On macOS it runs that check twice: once on the folder and once on
+`GuzziOnBoard.app/Contents/MacOS/GuzziOnBoard`, because a `.app` is a different
+arrangement of the same files and only running it proves the arrangement works.
 
 | Piece | Purpose |
 |---|---|
@@ -194,6 +196,15 @@ is stdlib-only: it exists because a windowed process has no console to run the
 isolated checksum-plugin worker in, and because that worker must stay cheap to
 start (it has a 4-second timeout). From a source checkout the worker is just
 `sys.executable`, so the two paths are tested as one (`tests/test_desktop.py`).
+
+**`_internal/` is deliberate, not sloppiness.** PyInstaller 6 hides the data
+next to the executable by default, and this build keeps that default: on macOS
+— a case-insensitive filesystem — a flat folder would put the executable
+`GuzziOnBoard` and the data directory `guzzionboard` in the same directory,
+which is one name, and the build fails with `NotADirectoryError`. The app
+resolves its files from `sys._MEIPASS` (`guzzionboard/resources.py`), which
+points at `_internal/`, so the layout is invisible from the inside. The macOS
+`.app` is unaffected either way: `BUNDLE` rearranges it into `Contents/`.
 
 One folder rather than one file: a one-file build unpacks the whole ~30 MB
 bundle into a temporary directory on every launch, and the app starts a

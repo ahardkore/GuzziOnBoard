@@ -161,7 +161,6 @@ exe_app = EXE(
     strip=False,
     upx=False,
     console=False,              # a windowed application: no console window
-    contents_directory=".",     # data beside the executable, as the repository is
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
@@ -179,12 +178,17 @@ exe_worker = EXE(
     name=f"{DIST_NAME}-worker",
     debug=False,
     console=True,               # a filter: stdin/stdout is the protocol
-    contents_directory=".",     # same folder as the app that starts it
     strip=False,
     upx=False,
     icon=str(ICON) if ICON.is_file() else None,
 )
 
+# The default contents directory (_internal/) is kept deliberately. Laying the
+# data out beside the executable looks tidier and works on Windows and Linux,
+# but on macOS - a case-insensitive filesystem by default - the folder build
+# then collides: the executable `GuzziOnBoard` and the data directory
+# `guzzionboard` are the same name. The app itself does not care: it resolves
+# everything from sys._MEIPASS (see guzzionboard/resources.py).
 collect = COLLECT(
     exe_app,
     exe_worker,

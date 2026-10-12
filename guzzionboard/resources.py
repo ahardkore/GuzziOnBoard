@@ -5,7 +5,9 @@ the vendored driver bundle) or writes for the user (logs, export files, the
 single-instance record) is resolved here, so exactly one module knows the
 difference between ``git clone`` and the folder an installer produced.
 
-The frozen layout is deliberately the *same shape* as the source tree:
+The frozen layout is deliberately the *same shape* as the source tree, with
+``<bundle>`` being the folder PyInstaller unpacked into (``_internal/`` in a
+folder build, ``Contents/Frameworks`` in a macOS ``.app``):
 
     <bundle>/web/...                       web/index.html, web/app.js
     <bundle>/guzzionboard/catalog/...      ECU + vehicle definitions

@@ -102,18 +102,13 @@ def check_artifact(folder: Path, *, expect_worker: bool = True) -> None:
         raise SystemExit(f"missing application executable: {app}")
     if expect_worker and not executable(folder, f"{DIST_NAME}-worker").is_file():
         raise SystemExit("missing the isolated checksum worker executable")
-    if (folder / "_internal" / "web").is_dir():
-        # PyInstaller's default layout hides the data away; the app reads it
-        # beside its own executable (see guzzionboard/resources.py), so this
-        # would build a folder that cannot start. Say so, and say why.
-        raise SystemExit(
-            "application data landed in _internal/ instead of beside the "
-            "executable; the spec must pass contents_directory='.' to both EXE()s"
-        )
+    # PyInstaller's default contents directory; the frozen app resolves its
+    # data from sys._MEIPASS, which is this directory inside such a build.
+    root = folder / "_internal" if (folder / "_internal").is_dir() else folder
     for relative in ("web/index.html", "web/desktop-bridge.js",
                      "guzzionboard/catalog/ecus/5am.json",
                      "guzzionboard/xdfs/catalog.json"):
-        if not (folder / relative).exists():
+        if not (root / relative).exists():
             raise SystemExit(f"missing application data: {relative}")
 
 

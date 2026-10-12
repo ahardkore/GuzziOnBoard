@@ -101,26 +101,46 @@ def test_the_spec_builds_the_workstation_and_the_worker():
     assert "BUNDLE(" in src               # macOS gets a real .app
 
 
-def test_the_frozen_folder_keeps_the_data_beside_the_executable():
-    """The app finds its data relative to itself, so _internal/ would break it."""
+def test_the_frozen_folder_keeps_pyinstallers_contents_directory():
+    """The default keeps the executable and the data directory from colliding."""
     src = SPEC.read_text(encoding="utf-8")
-    # One EXE per executable in the folder, and both must opt out of the
-    # default hidden contents directory.
-    assert src.count("contents_directory=\".\"") == 2
-    assert "_internal" not in src
+    # `GuzziOnBoard` (the executable) and `guzzionboard` (the data) cannot both
+    # sit in the root of the same folder on a case-insensitive filesystem, and
+    # macOS is one. The app reads from sys._MEIPASS, so it does not care.
+    assert "contents_directory=" not in src
+    assert "_internal (see guzzionboard/resources.py)" in src or "_internal/" in src
 
 
-def test_a_misplaced_data_folder_is_reported_plainly(tmp_path):
+def test_the_artifact_check_follows_the_data_wherever_it_lands(tmp_path):
+    """`_internal/` is the default and the flat layout is legal: both pass."""
+    import sys as _sys
+
     build = _load_build_module()
-    folder = tmp_path / "GuzziOnBoard"
-    (folder / "_internal" / "web").mkdir(parents=True)
-    (folder / "_internal" / "web" / "index.html").write_text("x")
-    suffix = ".exe" if __import__("sys").platform == "win32" else ""
-    (folder / f"GuzziOnBoard{suffix}").write_text("")
-    (folder / f"GuzziOnBoard-worker{suffix}").write_text("")
-    with pytest.raises(SystemExit) as caught:
+    suffix = ".exe" if _sys.platform == "win32" else ""
+    needed = {
+        "web/index.html": "x",
+        "web/desktop-bridge.js": "x",
+        "guzzionboard/catalog/ecus/5am.json": "{}",
+        "guzzionboard/xdfs/catalog.json": "{}",
+    }
+    for root_name in ("_internal", ""):
+        folder = tmp_path / f"GuzziOnBoard{root_name or '-flat'}"
+        root = folder / root_name if root_name else folder
+        for relative, body in needed.items():
+            path = root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(body)
+        (folder / f"GuzziOnBoard{suffix}").write_text("")
+        (folder / f"GuzziOnBoard-worker{suffix}").write_text("")
         build.check_artifact(folder)
-    assert "contents_directory" in str(caught.value)
+
+    empty = tmp_path / "GuzziOnBoard-empty"
+    empty.mkdir()
+    (empty / f"GuzziOnBoard{suffix}").write_text("")
+    (empty / f"GuzziOnBoard-worker{suffix}").write_text("")
+    with pytest.raises(SystemExit) as caught:
+        build.check_artifact(empty)
+    assert "missing application data" in str(caught.value)
 
 
 def test_the_worker_entry_is_isolated_from_the_application():

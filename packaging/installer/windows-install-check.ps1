@@ -26,6 +26,15 @@ machine, and this one installs things.
 .PARAMETER Dist
 Directory holding the setup, relative to the current directory. Default: dist.
 
+.PARAMETER InstallTimeoutSeconds
+A silent installer that never returns is worse than one that fails, and much
+harder to read afterwards: it looks like the job is busy. How long to give it
+before stopping it and saying so. Default: 300.
+
+.PARAMETER StartupTimeoutSeconds
+How long to wait for the application to write down what it is doing and start
+serving. Default: 60.
+
 .PARAMETER UninstallTimeoutSeconds
 Inno's uninstaller relaunches itself from a temporary copy, so waiting for the
 process is not the same as waiting for the work. How long to keep looking.
@@ -37,10 +46,25 @@ pwsh -File packaging/installer/windows-install-check.ps1
 [CmdletBinding()]
 param(
     [string] $Dist = 'dist',
+    [int] $InstallTimeoutSeconds = 300,
+    [int] $StartupTimeoutSeconds = 60,
     [int] $UninstallTimeoutSeconds = 90
 )
 
 $ErrorActionPreference = 'Stop'
+
+function Show-Log {
+    param([string] $Path, [int] $Tail = 30)
+    if (Test-Path $Path) { Get-Content $Path -Tail $Tail | Write-Host }
+}
+
+function LogTail {
+    <# The last thing a log said, on one line, for a check annotation: a hang
+       is only diagnosable if the reason travels with the complaint. #>
+    param([string] $Path, [int] $Tail = 10)
+    if (-not (Test-Path $Path)) { return '(no log)' }
+    return (((Get-Content $Path -Tail $Tail) -join ' | ') -replace '\s+', ' ')
+}
 
 function Fail {
     param([string] $Title, [string] $Message)
@@ -75,13 +99,19 @@ if (-not $setup) { Fail 'No installer to test' "$Dist has no GuzziOnBoard-*-setu
 
 $installLog = Join-Path $env:RUNNER_TEMP 'install.log'
 Write-Host "installing $($setup.Name) - $([math]::Round($setup.Length / 1MB, 1)) MB, silently"
-$setupRun = Start-Process -FilePath $setup.FullName -Wait -PassThru -ArgumentList @(
+$setupRun = Start-Process -FilePath $setup.FullName -PassThru -ArgumentList @(
     '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=$installLog"
 )
+if (-not $setupRun.WaitForExit($InstallTimeoutSeconds * 1000)) {
+    Stop-Process -Id $setupRun.Id -Force -ErrorAction SilentlyContinue
+    Show-Log $installLog 60
+    Fail 'The installer did not finish' "still running after $InstallTimeoutSeconds seconds. Last log lines: $(LogTail $installLog 12)"
+}
 if ($setupRun.ExitCode -ne 0) {
-    Get-Content $installLog -Tail 40 | Write-Host
+    Show-Log $installLog 40
     Fail 'The installer failed' "exit code $($setupRun.ExitCode); the install log is in the artifacts"
 }
+Show-Log $installLog 5
 
 $entry = Find-UninstallEntry | Select-Object -First 1
 if (-not $entry) {
@@ -152,19 +182,20 @@ Remove-Item $instanceFile -ErrorAction SilentlyContinue
 Write-Host "starting $app --no-window"
 $running = Start-Process -FilePath $app -PassThru -ArgumentList '--no-window'
 try {
-    $deadline = (Get-Date).AddSeconds(60)
+    $log = Join-Path $data 'logs\desktop.log'
+    $deadline = (Get-Date).AddSeconds($StartupTimeoutSeconds)
     while (-not (Test-Path $instanceFile) -and (Get-Date) -lt $deadline -and -not $running.HasExited) {
         Start-Sleep -Milliseconds 500
     }
-    $log = Join-Path $data 'logs\desktop.log'
     if ($running.HasExited) {
-        if (Test-Path $log) { Get-Content $log -Tail 30 | Write-Host }
+        Show-Log $log 40
         Fail 'The application exited instead of running' "exit code $($running.ExitCode); see $log"
     }
     if (-not (Test-Path $instanceFile)) {
-        if (Test-Path $log) { Get-Content $log -Tail 30 | Write-Host }
-        Fail 'The application recorded nothing' "$instanceFile did not appear within 60 seconds"
+        Show-Log $log 40
+        Fail 'The application recorded nothing' "$instanceFile did not appear within $StartupTimeoutSeconds seconds. Last log lines: $(LogTail $log)"
     }
+    Write-Host "it recorded itself as pid $($instance.pid) on port $($instance.port)"
 
     # The record it wrote about itself: the same one a second launch uses to
     # find the window that is already open.
@@ -178,14 +209,24 @@ try {
     $url = "http://127.0.0.1:$($instance.port)/"
     Write-Host "it is serving $url"
 
-    $page = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 30
+    try {
+        $page = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 30
+    } catch {
+        Show-Log $log 40
+        Fail 'The application did not serve its UI' "$url could not be fetched: $($_.Exception.Message)"
+    }
     if ($page.StatusCode -ne 200) { Fail 'The application did not serve its UI' "$url answered HTTP $($page.StatusCode)" }
     if ($page.Content -notmatch 'GuzziOnBoard') { Fail 'The served page is not the workstation UI' "$url answered 200 but nothing in it names the application" }
 
     # Its own authenticated ping - the check a second copy of the app makes
     # before it decides an instance is really running.
-    $ping = Invoke-RestMethod -Uri "$url/api/desktop/ping" -TimeoutSec 30 `
-                              -Headers @{ 'X-GuzziOnBoard-Token' = $instance.token }
+    try {
+        $ping = Invoke-RestMethod -Uri "$url/api/desktop/ping" -TimeoutSec 30 `
+                                  -Headers @{ 'X-GuzziOnBoard-Token' = $instance.token }
+    } catch {
+        Show-Log $log 40
+        Fail 'The application did not answer its own ping' "$url/api/desktop/ping: $($_.Exception.Message)"
+    }
     if (-not $ping.ok -or $ping.app -ne 'GuzziOnBoard' -or -not $ping.desktop) {
         Fail 'The application did not answer its own ping' "got: $($ping | ConvertTo-Json -Compress)"
     }
@@ -210,9 +251,13 @@ Write-Host "$data holds $kept file(s) after running the application"
 $uninstaller = Get-ChildItem $dir -Filter 'unins*.exe' | Select-Object -First 1
 if (-not $uninstaller) { Fail 'No uninstaller was installed' "expected unins*.exe in $dir" }
 Write-Host "uninstalling with $($uninstaller.Name)"
-$null = Start-Process -FilePath $uninstaller.FullName -Wait -PassThru -ArgumentList @(
+$uninstalling = Start-Process -FilePath $uninstaller.FullName -PassThru -ArgumentList @(
     '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'
 )
+if (-not $uninstalling.WaitForExit($UninstallTimeoutSeconds * 1000)) {
+    Stop-Process -Id $uninstalling.Id -Force -ErrorAction SilentlyContinue
+    Fail 'The uninstaller did not finish' "still running after $UninstallTimeoutSeconds seconds"
+}
 $deadline = (Get-Date).AddSeconds($UninstallTimeoutSeconds)
 while ((Test-Path $app) -and ((Get-Date) -lt $deadline)) { Start-Sleep -Seconds 2 }
 if (Test-Path $app) {

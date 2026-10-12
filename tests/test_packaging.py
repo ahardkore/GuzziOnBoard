@@ -347,8 +347,11 @@ def test_a_real_install_is_checked_somewhere():
         "/VERYSILENT",                       # install without a wizard
         "Find-UninstallEntry",               # ask Windows where it went
         "--selftest",                        # run the *installed* application
+        "--no-window",                       # ... and start it for real
+        "/api/desktop/ping",                 # talking to its own API
         "GuzziOnBoard-worker.exe",           # the second executable shipped
         "All \\d+ checks passed",            # and read what it said
+        "Stop-Process",                      # stop it again, cleanly
         "unins*.exe",                        # then uninstall it
         ".guzzionboard",                     # and check the data survived
         "::error title=",                    # failures are readable from the PR
@@ -367,9 +370,11 @@ def test_a_real_install_is_checked_somewhere():
 def test_the_linux_install_script_installs_something_that_runs(tmp_path):
     """The Linux installer is install.sh, so it gets executed here.
 
-    A stand-in executable answers `--selftest` the way the frozen application
-    does; everything else - the generated script, the .desktop entry, the icon
-    path, the launcher symlink - is the real thing.
+    A stand-in executable does what the frozen application does when it is
+    started: records itself in the user's data folder, serves the UI, and
+    answers its own token-checked ping. Everything else - the generated
+    script, the .desktop entry, the icon path, the launcher symlink, and the
+    checks themselves - is the real thing.
     """
     import os
 
@@ -380,18 +385,57 @@ def test_the_linux_install_script_installs_something_that_runs(tmp_path):
     icons.joinpath("guzzionboard.png").write_bytes(
         (ROOT / "packaging" / "icons" / "guzzionboard.png").read_bytes()
     )
+
+    stand_in = """#!/bin/sh
+if [ "$1" = "--selftest" ]; then
+  echo 'All 30 checks passed. This copy is usable.' > "$GOB_SELFTEST_LOG"
+  exit 0
+fi
+if [ "$1" = "--no-window" ]; then
+  exec python3 - <<'PYTHON'
+import json, os
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+TOKEN = "test-token"
+home = os.path.join(os.environ["HOME"], ".guzzionboard")
+os.makedirs(os.path.join(home, "logs"), exist_ok=True)
+with open(os.path.join(home, "logs", "desktop.log"), "w") as handle:
+    print("the stand-in application started", file=handle)
+
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path.startswith("/api/desktop/ping"):
+            if self.headers.get("X-GuzziOnBoard-Token") != TOKEN:
+                self.send_response(403)
+                self.end_headers()
+                return
+            body = b'{"ok": true, "app": "GuzziOnBoard", "version": "9.9.9", "desktop": true}'
+        else:
+            body = b"<html><head><title>GuzziOnBoard</title></head><body></body></html>"
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        pass
+
+
+server = HTTPServer(("127.0.0.1", 0), Handler)
+port = server.server_address[1]
+with open(os.path.join(home, "desktop-instance.json"), "w") as handle:
+    json.dump({"pid": os.getpid(), "port": port, "token": TOKEN, "backend": "stand-in",
+               "url": "http://127.0.0.1:%d/" % port, "version": "9.9.9",
+               "started": 0.0, "data_root": home}, handle, indent=2)
+server.serve_forever()
+PYTHON
+fi
+echo "would open a window"
+"""
     app = folder / "GuzziOnBoard"
-    app.write_text(
-        "#!/bin/sh\n"
-        "if [ \"$1\" = \"--selftest\" ]; then\n"
-        "  mkdir -p \"$HOME/.guzzionboard/logs\"\n"
-        "  echo report > \"$HOME/.guzzionboard/logs/selftest.txt\"\n"
-        "  echo 'All 30 checks passed. This copy is usable.' > \"$GOB_SELFTEST_LOG\"\n"
-        "  exit 0\n"
-        "fi\n"
-        "echo 'would open a window'\n",
-        encoding="utf-8",
-    )
+    app.write_text(stand_in, encoding="utf-8")
     app.chmod(0o755)
     build.wrap_linux(folder, "9.9.9")
 
@@ -401,7 +445,7 @@ def test_the_linux_install_script_installs_something_that_runs(tmp_path):
     home.mkdir()
     result = subprocess.run(
         ["sh", str(check), str(folder)],
-        capture_output=True, text=True, timeout=120,
+        capture_output=True, text=True, timeout=300,
         env={**os.environ, "HOME": str(home)},
     )
     assert result.returncode == 0, result.stdout + result.stderr
@@ -411,6 +455,9 @@ def test_the_linux_install_script_installs_something_that_runs(tmp_path):
     assert f"Exec={app}\n" in menu.read_text(encoding="utf-8")
     assert (home / ".local" / "share" / "icons" / "hicolor" / "256x256" /
             "apps" / "guzzionboard.png").is_file()
+    # It ran, wrote where it should, and the check stopped it again.
+    assert (home / ".guzzionboard" / "logs" / "desktop.log").is_file()
+    assert "answered its own ping" in result.stdout
 
 
 def test_the_workflow_runs_the_install_checks():

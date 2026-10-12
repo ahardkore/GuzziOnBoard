@@ -143,12 +143,67 @@ if ($report -notmatch 'All \d+ checks passed') {
          'the transcript does not say all checks passed'
 }
 
+# --selftest verifies the installation in a temporary directory on purpose:
+# it must not write anything into someone's data folder just to check itself.
+# So the launch - and the proof that the thing installed is a program, not a
+# pile of files - comes from starting it and talking to it.
+$instanceFile = Join-Path $data 'desktop-instance.json'
+Remove-Item $instanceFile -ErrorAction SilentlyContinue
+Write-Host "starting $app --no-window"
+$running = Start-Process -FilePath $app -PassThru -ArgumentList '--no-window'
+try {
+    $deadline = (Get-Date).AddSeconds(60)
+    while (-not (Test-Path $instanceFile) -and (Get-Date) -lt $deadline -and -not $running.HasExited) {
+        Start-Sleep -Milliseconds 500
+    }
+    $log = Join-Path $data 'logs\desktop.log'
+    if ($running.HasExited) {
+        if (Test-Path $log) { Get-Content $log -Tail 30 | Write-Host }
+        Fail 'The application exited instead of running' "exit code $($running.ExitCode); see $log"
+    }
+    if (-not (Test-Path $instanceFile)) {
+        if (Test-Path $log) { Get-Content $log -Tail 30 | Write-Host }
+        Fail 'The application recorded nothing' "$instanceFile did not appear within 60 seconds"
+    }
+
+    # The record it wrote about itself: the same one a second launch uses to
+    # find the window that is already open.
+    $instance = Get-Content $instanceFile -Raw | ConvertFrom-Json
+    if (-not $instance.port -or -not $instance.token) {
+        Fail 'The instance record is unusable' (Get-Content $instanceFile -Raw)
+    }
+    if ($instance.version -ne $entry.DisplayVersion) {
+        Fail 'The running application is a different version' "it reported $($instance.version), the installer says $($entry.DisplayVersion)"
+    }
+    $url = "http://127.0.0.1:$($instance.port)/"
+    Write-Host "it is serving $url"
+
+    $page = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 30
+    if ($page.StatusCode -ne 200) { Fail 'The application did not serve its UI' "$url answered HTTP $($page.StatusCode)" }
+    if ($page.Content -notmatch 'GuzziOnBoard') { Fail 'The served page is not the workstation UI' "$url answered 200 but nothing in it names the application" }
+
+    # Its own authenticated ping - the check a second copy of the app makes
+    # before it decides an instance is really running.
+    $ping = Invoke-RestMethod -Uri "$url/api/desktop/ping" -TimeoutSec 30 `
+                              -Headers @{ 'X-GuzziOnBoard-Token' = $instance.token }
+    if (-not $ping.ok -or $ping.app -ne 'GuzziOnBoard' -or -not $ping.desktop) {
+        Fail 'The application did not answer its own ping' "got: $($ping | ConvertTo-Json -Compress)"
+    }
+    Write-Host "answered its own ping as $($ping.app) $($ping.version), desktop=$($ping.desktop)"
+} finally {
+    if (-not $running.HasExited) {
+        Stop-Process -Id $running.Id -Force -ErrorAction SilentlyContinue
+        $running.WaitForExit(15000) | Out-Null
+    }
+}
+if (-not $running.HasExited) { Fail 'The application would not stop' "pid $($running.Id) is still running" }
+
 if (-not (Test-Path $data)) {
-    Fail 'The application wrote no user data' "$data does not exist after running --selftest"
+    Fail 'The application wrote no user data' "$data does not exist after running"
 }
 $kept = @(Get-ChildItem $data -Recurse -File).Count
 if ($kept -eq 0) { Fail 'The application wrote no user data' "$data is empty" }
-Write-Host "$data holds $kept file(s) after the self-test"
+Write-Host "$data holds $kept file(s) after running the application"
 
 # -------------------------------------------------------------- uninstall
 
@@ -189,6 +244,7 @@ if ($env:GITHUB_STEP_SUMMARY) {
         "| Installed | ``$($entry.DisplayName) $($entry.DisplayVersion)`` into ``$dir`` |"
         "| Start menu | $($shortcuts.Count) shortcut(s) |"
         "| Installed application ``--selftest`` | passed, exit 0 |"
+        "| Installed application launched | served ``$url``, answered its own ping |"
         "| User data written | $kept file(s) under ``$data`` |"
         "| Uninstaller | removed the application, kept those $survived file(s) |"
     ) -join "`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

@@ -227,8 +227,8 @@ rather than the user.
 | Linux | `GuzziOnBoard-<version>-linux-<arch>-portable.zip` (+ `install.sh`, `.desktop`) | The frozen folder app runs `--selftest` |
 | macOS | `GuzziOnBoard-<version>-macos-<arch>.zip` (the `.app`) and a portable `.zip` | Both the folder app *and* `GuzziOnBoard.app/Contents/MacOS/GuzziOnBoard` run `--selftest` — a `.app` is a different arrangement of the same files |
 | All three | `SHA256SUMS-<platform>.txt` and the transcript | `if-no-files-found: error`: an artifact-less build goes red |
-| Windows, again | `windows-install-report` (install log + transcript) | A separate job **installs the setup silently**, runs the installed application's `--selftest`, checks the Start-menu shortcut and the payload, then **uninstalls it** and checks `%USERPROFILE%\.guzzionboard` came through untouched (`packaging/installer/windows-install-check.ps1`) |
-| Linux, again | `dist/linux-install-selftest.log` | The same script the README tells you to run is run for real, then its launcher is executed (`packaging/installer/linux-install-check.sh`) |
+| Windows, again | `windows-install-report` (install log + transcript) | A separate job **installs the setup silently**, checks the payload and the Start-menu shortcut, runs the installed application's `--selftest`, **starts the installed application** and talks to it (the UI answers, and its own token-checked `/api/desktop/ping` does), then **uninstalls it** and checks `%USERPROFILE%\.guzzionboard` came through untouched (`packaging/installer/windows-install-check.ps1`) |
+| Linux, again | `dist/linux-install-selftest.log` | The same script the README tells you to run is run for real, then its launcher is executed through the symlink the script installed — `--selftest`, and then for real, answering HTTP and its own ping (`packaging/installer/linux-install-check.sh`) |
 
 ### Windows
 
@@ -291,10 +291,12 @@ uninstaller says so); delete that folder yourself if you want them gone.
   the whole safety model are still waiting for a bench confirmation. See
   `docs/PHYSICAL_VALIDATION.md`.
 * **The installer has not been run on a Windows machine by a human.** CI now
-  installs it silently on a clean runner, launches the installed application's
-  own self-test, uninstalls it, and checks that `~/.guzzionboard` was left
-  alone — but a robot clicking *Next* is not a person reading the pages, and
-  that is why the self-test shortcut exists.
+  installs it silently on a clean runner, starts the installed application,
+  talks to it, uninstalls it, and checks that `~/.guzzionboard` was left alone
+  — but a robot clicking *Next* is not a person reading the pages, and that is
+  why the self-test shortcut exists. Nothing has verified the wizard's
+  appearance, the license page, or what happens on a machine with an older
+  Windows.
 * **macOS and Linux get archives, not installers.** There is no `.dmg`, no
   `.deb`, no Flatpak. The Linux `install.sh` is a per-user script, not a
   package manager.

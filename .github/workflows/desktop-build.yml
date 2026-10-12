@@ -5,6 +5,17 @@ name: Desktop application
 # release; a pull request builds them all the same way but only uploads them
 # as workflow artifacts, so the build is proven before a release exists.
 #
+# A tag build that could not publish - a failed Release step, a permissions
+# mistake - is repaired without moving the tag: dispatch this workflow from a
+# branch that carries the fix, name the tag, and it checks that tag out, builds
+# it, and attaches the artifacts to its release.
+#
+#   gh workflow run desktop-build.yml --ref <branch> -f release=true -f tag=v0.4.0
+#
+# The three release jobs escalate `contents: write` for exactly that reason:
+# the workflow is `contents: read` everywhere else, and writing a release needs
+# more than reading one.
+#
 # Every job runs `--selftest` against the artifact it just produced. A
 # PyInstaller build that is missing a catalog file, an XDF, a web asset or the
 # checksum worker still "succeeds" - the self-test is what refuses it.
@@ -27,6 +38,10 @@ on:
         description: 'Attach the artifacts to the tag release (tag builds do this anyway)'
         type: boolean
         default: false
+      tag:
+        description: 'The existing tag to publish with `release` (e.g. v0.4.0); empty means the dispatched ref'
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -44,6 +59,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}   # a publish dispatch names its tag
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -55,8 +72,12 @@ jobs:
   windows:
     name: Windows installer
     runs-on: windows-latest
+    permissions:
+      contents: write          # the Release step creates the release
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}   # a publish dispatch names its tag
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -94,22 +115,38 @@ jobs:
             dist/*setup*.exe
             dist/*portable.zip
             dist/SHA256SUMS-*.txt
+            dist/windows-*-selftest.log
           if-no-files-found: error
       - name: Release
-        if: startsWith(github.ref, 'refs/tags/v') || inputs.release
+        if: startsWith(github.ref, 'refs/tags/v') || (inputs.release && inputs.tag != '')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: |
             dist/*setup*.exe
             dist/*portable.zip
+            dist/SHA256SUMS-*.txt
+            dist/windows-*-selftest.log
           body: |
-            GuzziOnBoard ${{ github.ref_name }} — desktop application.
+            GuzziOnBoard ${{ inputs.tag || github.ref_name }} — desktop application.
 
             Download the `setup.exe` to install it (per-user, no administrator
-            prompt). The portable zip runs from any folder without installing.
+            prompt), or the portable zip to run it from any folder. macOS ships
+            the `.app` inside its zip; Linux ships a folder build with
+            `install.sh` and, for now, no window engine - there it serves the
+            workstation and opens your browser.
 
-            Nothing has been validated on a real motorcycle; read the README
-            before connecting anything to a bike.
+            Everything here is unsigned, so SmartScreen and Gatekeeper will
+            have something to say, and there is no `.dmg`, no `.deb` and no
+            auto-update. Each platform's `SHA256SUMS-*.txt`, and the transcript
+            of the self-test that artifact passed, sit next to it.
+
+            CI checks the Windows setup the blunt way - silent install, launch
+            the installed application, uninstall, and the user's own files left
+            where they were - but no human has clicked through the installer
+            wizard. Nothing has been validated on a real motorcycle: read the
+            README before connecting anything to a bike, and `docs/DESKTOP.md`
+            for what is and is not proven.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -127,6 +164,8 @@ jobs:
     timeout-minutes: 25                  # a hung installer must not look busy
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}   # a publish dispatch names its tag
       - uses: actions/download-artifact@v4
         with:
           name: guzzionboard-windows-installer
@@ -163,6 +202,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}   # a publish dispatch names its tag
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -182,8 +223,12 @@ jobs:
   linux:
     name: Linux build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write          # the Release step creates the release
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}   # a publish dispatch names its tag
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -230,18 +275,46 @@ jobs:
             dist/linux-install-selftest.log
           if-no-files-found: error
       - name: Release
-        if: startsWith(github.ref, 'refs/tags/v') || inputs.release
+        if: startsWith(github.ref, 'refs/tags/v') || (inputs.release && inputs.tag != '')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*portable.zip
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          files: |
+            dist/*portable.zip
+            dist/SHA256SUMS-*.txt
+            dist/linux-*-selftest.log
+          body: |
+            GuzziOnBoard ${{ inputs.tag || github.ref_name }} — desktop application.
+
+            Download the `setup.exe` to install it (per-user, no administrator
+            prompt), or the portable zip to run it from any folder. macOS ships
+            the `.app` inside its zip; Linux ships a folder build with
+            `install.sh` and, for now, no window engine - there it serves the
+            workstation and opens your browser.
+
+            Everything here is unsigned, so SmartScreen and Gatekeeper will
+            have something to say, and there is no `.dmg`, no `.deb` and no
+            auto-update. Each platform's `SHA256SUMS-*.txt`, and the transcript
+            of the self-test that artifact passed, sit next to it.
+
+            CI checks the Windows setup the blunt way - silent install, launch
+            the installed application, uninstall, and the user's own files left
+            where they were - but no human has clicked through the installer
+            wizard. Nothing has been validated on a real motorcycle: read the
+            README before connecting anything to a bike, and `docs/DESKTOP.md`
+            for what is and is not proven.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   macos:
     name: macOS build
     runs-on: macos-latest
+    permissions:
+      contents: write          # the Release step creates the release
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}   # a publish dispatch names its tag
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -265,9 +338,33 @@ jobs:
             dist/macos-*-selftest.log
           if-no-files-found: error
       - name: Release
-        if: startsWith(github.ref, 'refs/tags/v') || inputs.release
+        if: startsWith(github.ref, 'refs/tags/v') || (inputs.release && inputs.tag != '')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.zip
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          files: |
+            dist/*.zip
+            dist/SHA256SUMS-*.txt
+            dist/macos-*-selftest.log
+          body: |
+            GuzziOnBoard ${{ inputs.tag || github.ref_name }} — desktop application.
+
+            Download the `setup.exe` to install it (per-user, no administrator
+            prompt), or the portable zip to run it from any folder. macOS ships
+            the `.app` inside its zip; Linux ships a folder build with
+            `install.sh` and, for now, no window engine - there it serves the
+            workstation and opens your browser.
+
+            Everything here is unsigned, so SmartScreen and Gatekeeper will
+            have something to say, and there is no `.dmg`, no `.deb` and no
+            auto-update. Each platform's `SHA256SUMS-*.txt`, and the transcript
+            of the self-test that artifact passed, sit next to it.
+
+            CI checks the Windows setup the blunt way - silent install, launch
+            the installed application, uninstall, and the user's own files left
+            where they were - but no human has clicked through the installer
+            wizard. Nothing has been validated on a real motorcycle: read the
+            README before connecting anything to a bike, and `docs/DESKTOP.md`
+            for what is and is not proven.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

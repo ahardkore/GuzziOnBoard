@@ -289,9 +289,45 @@ def test_the_release_workflow_builds_and_verifies_every_platform():
     assert "windows-latest" in src and "ubuntu-latest" in src and "macos-latest" in src
     assert src.count("packaging/build.py") == 3          # one per platform
     assert "tags: ['v*']" in src                         # a tag is what releases
-    assert "permissions:\n  contents: read" in src       # the release job asks for more
     assert "innosetup" in src
     assert "action-gh-release" in src
+    # Read-only everywhere, and the three publishing jobs ask for the one
+    # permission publishing needs. Without it the build succeeds, the artifact
+    # is uploaded, and the release step dies on "Resource not accessible by
+    # integration" - a tag that builds three platforms and publishes no release.
+    assert "permissions:\n  contents: read" in src
+    assert src.count("permissions:\n      contents: write") == 3   # windows, linux, macos
+
+
+def test_a_release_that_failed_to_publish_can_be_published_without_moving_the_tag():
+    """Publishing is not only the tag push: a run that built and self-tested
+    everything but could not write the release is repaired by dispatching this
+    workflow at a branch carrying the fix and naming the tag. The tag stays
+    where it is, and the build is the tag's own tree."""
+    src = WORKFLOW.read_text(encoding="utf-8")
+    assert "gh workflow run desktop-build.yml" in src              # documented where it is read
+    assert "tag:" in src.split("workflow_dispatch:")[1]            # the input that names it
+    assert src.count("ref: ${{ inputs.tag || github.ref }}") == 6   # every job builds that tag
+    assert src.count("tag_name: ${{ inputs.tag || github.ref_name }}") == 3
+    # A branch ref has no tag, so `release` alone must not be enough to publish:
+    # softprops/action-gh-release would look for a release of the branch.
+    assert src.count("inputs.release && inputs.tag != ''") == 3
+
+
+def test_the_release_page_carries_the_checksums_and_the_transcripts():
+    """What the workflow proves has to be readable next to the download: the
+    installers and archives alone leave a user no way to check what they got."""
+    src = WORKFLOW.read_text(encoding="utf-8")
+    # three artifacts uploaded, three attached to the release
+    assert src.count("dist/SHA256SUMS-*.txt") == 6
+    assert src.count("dist/windows-*-selftest.log") == 2   # kept, and published
+    assert src.count("dist/macos-*-selftest.log") == 2
+    # Linux keeps its two transcripts by name (the build's, the install check's)
+    # and publishes both through the glob.
+    assert src.count("dist/linux-install-selftest.log") == 1
+    assert src.count("dist/linux-*-selftest.log") == 1
+    # Whichever publishing job creates the release first, the notes are on it.
+    assert src.count("body: |") == 3
 
 
 def test_a_macos_bundle_must_pass_its_own_self_test(tmp_path, monkeypatch, capsys):

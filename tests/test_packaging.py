@@ -328,6 +328,37 @@ def test_the_workflow_keeps_the_self_test_transcripts():
     assert "if-no-files-found: error" in src
 
 
+def test_a_real_install_is_checked_somewhere():
+    """CI installs the setup, runs the installed app, and uninstalls it.
+
+    The installer is the deliverable for Windows, so it cannot be the one
+    thing nobody ever executes. The steps live in a script next to the .iss
+    rather than in the workflow, which is why this test reads both.
+    """
+    script = ROOT / "packaging" / "installer" / "windows-install-check.ps1"
+    assert script.is_file()
+    body = script.read_text(encoding="utf-8")
+    # Each of these is a claim the job makes; if one disappears, the job is
+    # testing less than it says it is.
+    for required in (
+        "/VERYSILENT",                       # install without a wizard
+        "Find-UninstallEntry",               # ask Windows where it went
+        "--selftest",                        # run the *installed* application
+        "GuzziOnBoard-worker.exe",           # the second executable shipped
+        "All \\d+ checks passed",            # and read what it said
+        "unins*.exe",                        # then uninstall it
+        ".guzzionboard",                     # and check the data survived
+        "::error title=",                    # failures are readable from the PR
+    ):
+        assert required in body, required
+    # The uninstaller must not be assumed to finish when its process does.
+    assert "UninstallTimeoutSeconds" in body
+
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    assert "windows-install-check.ps1" in workflow
+    assert "needs: windows" in workflow       # it tests the built installer
+
+
 def _load_build_module():
     """Import packaging/build.py (it is a script, not part of the package)."""
     spec = importlib.util.spec_from_file_location("gob_build", BUILD)

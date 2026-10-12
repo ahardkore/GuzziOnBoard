@@ -185,6 +185,7 @@ arrangement of the same files and only running it proves the arrangement works.
 | `packaging/entry_app.py` | The frozen entry point |
 | `packaging/build.py` | Build, wrap per platform, verify, checksum |
 | `packaging/installer/guzzionboard.iss` | The Windows installer (Inno Setup 6) |
+| `packaging/installer/windows-install-check.ps1` | Installs the setup on a machine, runs the installed app, uninstalls it, checks the user's data survived — the Windows job runs it |
 | `packaging/make_icons.py` | Regenerates the icon set from `icons/source.png` |
 | `.github/workflows/desktop-build.yml` | Builds (and on a `v*` tag, releases) all three platforms |
 | `playwright.desktop.config.mjs` + `tests/browser/desktop-host.spec.mjs` | The UI in a real Chromium, talking to a real `guzzionboard-desktop --no-window`: the injected bridge, the token on every call, saves landing in the export folder, printing as a snapshot. `npm run test:browser:desktop` |
@@ -225,6 +226,7 @@ rather than the user.
 | Linux | `GuzziOnBoard-<version>-linux-<arch>-portable.zip` (+ `install.sh`, `.desktop`) | The frozen folder app runs `--selftest` |
 | macOS | `GuzziOnBoard-<version>-macos-<arch>.zip` (the `.app`) and a portable `.zip` | Both the folder app *and* `GuzziOnBoard.app/Contents/MacOS/GuzziOnBoard` run `--selftest` — a `.app` is a different arrangement of the same files |
 | All three | `SHA256SUMS-<platform>.txt` and the transcript | `if-no-files-found: error`: an artifact-less build goes red |
+| Windows, again | `windows-install-report` (install log + transcript) | A separate job **installs the setup silently**, runs the installed application's `--selftest`, checks the Start-menu shortcut and the payload, then **uninstalls it** and checks `%USERPROFILE%\.guzzionboard` came through untouched (`packaging/installer/windows-install-check.ps1`) |
 
 ### Windows
 
@@ -286,10 +288,11 @@ uninstaller says so); delete that folder yourself if you want them gone.
 * **No hardware has been validated**, window or browser — the transports and
   the whole safety model are still waiting for a bench confirmation. See
   `docs/PHYSICAL_VALIDATION.md`.
-* **The installer has not been run on a Windows machine by a human.** CI builds
-  it and self-tests the artifact it installs; that is not the same as a
-  successful install on your laptop, and it is why the self-test shortcut
-  exists.
+* **The installer has not been run on a Windows machine by a human.** CI now
+  installs it silently on a clean runner, launches the installed application's
+  own self-test, uninstalls it, and checks that `~/.guzzionboard` was left
+  alone — but a robot clicking *Next* is not a person reading the pages, and
+  that is why the self-test shortcut exists.
 * **macOS and Linux get archives, not installers.** There is no `.dmg`, no
   `.deb`, no Flatpak. The Linux `install.sh` is a per-user script, not a
   package manager.

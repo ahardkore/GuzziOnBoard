@@ -113,6 +113,50 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # The installer is what a Windows user actually runs, and no human has
+  # clicked through it yet. This job does the next best thing on a clean
+  # runner: install it silently, launch the *installed* application's own
+  # self-test, then uninstall it and check that the user's own files - session
+  # logs, backups, base maps - were left where they were. The steps live in
+  # packaging/installer/windows-install-check.ps1 so they can be read, and run,
+  # without a workflow in the way.
+  windows-install:
+    name: Windows install and uninstall
+    needs: windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: guzzionboard-windows-installer
+          path: dist
+
+      - name: Check the install check parses
+        shell: pwsh
+        run: |
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            'packaging/installer/windows-install-check.ps1', [ref]$null, [ref]$errors)
+          if ($errors.Count) {
+            Write-Host "::error title=The install check has a syntax error::$($errors[0].Message)"
+            exit 1
+          }
+          Write-Host 'the install check parses'
+
+      - name: Install, launch, uninstall
+        shell: pwsh
+        run: pwsh -File packaging/installer/windows-install-check.ps1 -Dist dist
+
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-install-report
+          path: |
+            ${{ runner.temp }}/install.log
+            ${{ runner.temp }}/installed-selftest.log
+          if-no-files-found: ignore
+
   desktop-ui:
     name: UI in the desktop shell (Chromium)
     runs-on: ubuntu-latest

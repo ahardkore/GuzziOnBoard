@@ -370,6 +370,17 @@ possible layer — it can open no port, and it implements no ECU-facing action.
 | `web/desktop-bridge.js` | Injected only when this process serves the page: installs the token, re-routes downloads and printing |
 | `resources.py` | The only module that knows a bundle from a checkout |
 
+**How a build gets there.** `packaging/` is the only place that knows about
+PyInstaller and installers. The spec lays the frozen folder out so that the
+bundle root mirrors this repository (`web/`, `guzzionboard/catalog`,
+`guzzionboard/xdfs`, `vendor/`), which is what lets `resources.py` resolve
+paths the same way installed or not; `build.py` refuses to finish unless the
+artifact passes the same `--selftest` a user can run; and
+`.github/workflows/desktop-build.yml` runs that on each platform's own runner,
+then installs what it built — the Windows setup, silently, and the Linux
+`install.sh` — and starts the installed application. None of it is part of the
+runtime: there is one code path, and it does not know which one it is in.
+
 The window is optional: no engine, no display, or a failure to create one
 leaves the server and the page, and says why. `tests/test_desktop.py` covers
 the guard, the routes, the record, the export desk and the bridge script;

@@ -95,9 +95,14 @@ def vendor_root() -> Path:
     return root or (bundle_root() / "vendor")
 
 
+def driver_bundle_path() -> Path:
+    """Where the WHQL FTDI CDM bundle lives, whether or not it is there."""
+    return vendor_root() / "guzzidiag" / "tools" / "CDM-v2.12.36.20-WHQL-Certified.zip"
+
+
 def driver_bundle_zip() -> Path | None:
     """The WHQL FTDI CDM bundle, if this build ships it."""
-    path = vendor_root() / "guzzidiag" / "tools" / "CDM-v2.12.36.20-WHQL-Certified.zip"
+    path = driver_bundle_path()
     return path if path.is_file() else None
 
 

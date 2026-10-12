@@ -163,10 +163,11 @@ def _run_checks(result: Result, exports: Path, host: str) -> None:
 
     from .adapter import DRIVER_BUNDLE_ZIP
 
+    bundle = Path(DRIVER_BUNDLE_ZIP)
     result.record(
         True,
         "FTDI driver bundle",
-        str(DRIVER_BUNDLE_ZIP) if Path(DRIVER_BUNDLE_ZIP).is_file()
+        str(bundle) if bundle.is_file()
         else "not shipped in this build (the pre-flight will point at ftdichip.com)",
     )
 

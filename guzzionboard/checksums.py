@@ -65,6 +65,14 @@ def _run_worker(path: Path, request: dict) -> dict:
         "PYTHONIOENCODING": "utf-8",
         "PATH": os.defpath,
     }
+    if os.name == "nt":
+        # A Windows process without these cannot reliably load its own
+        # libraries or find a temporary directory. The worker executable is
+        # frozen, so these come from the system rather than from a shell.
+        for name in ("SYSTEMROOT", "WINDIR", "TEMP", "TMP", "COMSPEC"):
+            value = os.environ.get(name)
+            if value:
+                environment[name] = value
     command = worker_command()
     if command is None:
         raise ChecksumUnavailable(

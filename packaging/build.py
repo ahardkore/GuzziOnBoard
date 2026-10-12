@@ -102,6 +102,14 @@ def check_artifact(folder: Path, *, expect_worker: bool = True) -> None:
         raise SystemExit(f"missing application executable: {app}")
     if expect_worker and not executable(folder, f"{DIST_NAME}-worker").is_file():
         raise SystemExit("missing the isolated checksum worker executable")
+    if (folder / "_internal" / "web").is_dir():
+        # PyInstaller's default layout hides the data away; the app reads it
+        # beside its own executable (see guzzionboard/resources.py), so this
+        # would build a folder that cannot start. Say so, and say why.
+        raise SystemExit(
+            "application data landed in _internal/ instead of beside the "
+            "executable; the spec must pass contents_directory='.' to both EXE()s"
+        )
     for relative in ("web/index.html", "web/desktop-bridge.js",
                      "guzzionboard/catalog/ecus/5am.json",
                      "guzzionboard/xdfs/catalog.json"):
@@ -142,13 +150,37 @@ def work_dir_for_run(folder: Path) -> Path:
 
 # ------------------------------------------------------------------ wrapping
 
-def wrap_macos(folder: Path, version: str) -> None:
-    """PyInstaller's BUNDLE already made the .app; just report it."""
+def wrap_macos(folder: Path, version: str, *, selftest_bundle: bool = False) -> None:
+    """PyInstaller's BUNDLE already made the .app; report it, and check it.
+
+    The bundle is not the same folder as the one PyInstaller wrote: BUNDLE
+    rearranges everything into ``Contents/`` and cross-links it back together,
+    so a folder build that passes proves nothing about the .app. Running the
+    bundle's own binary with ``--selftest`` is the only cheap way to know the
+    .app can actually find its data.
+    """
     app = folder.parent / f"{DIST_NAME}.app"
-    if app.exists():
-        print(f"  macOS application bundle: {app}")
-    else:
+    if not app.exists():
         print("  note: no .app bundle was produced (was BUNDLE in the spec skipped?)")
+        return
+    print(f"  macOS application bundle: {app}")
+    if not selftest_bundle:
+        return
+    binary = app / "Contents" / "MacOS" / DIST_NAME
+    env = dict(os.environ)
+    transcript = folder.parent / f"{platform_tag()}-app-selftest.log"
+    env["GOB_SELFTEST_LOG"] = str(transcript)
+    env["GUZZIONBOARD_HOME"] = str(Path(work_dir_for_run(folder)) / "selftest-data")
+    print(f"+ {binary} --selftest", flush=True)
+    code = subprocess.call([str(binary), "--selftest"], env=env)
+    text = transcript.read_text(encoding="utf-8", errors="replace") if transcript.is_file() else ""
+    if text:
+        print(text.rstrip())
+    if code != 0:
+        raise SystemExit(
+            f"the .app bundle failed its self-test (exit {code}); do not ship it"
+        )
+    print("  .app bundle self-test: passed")
 
 
 def wrap_linux(folder: Path, version: str) -> Path:
@@ -324,7 +356,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  application folder: {folder}")
 
     if platform.system() == "Darwin":
-        wrap_macos(folder, version)
+        wrap_macos(folder, version, selftest_bundle=not args.skip_selftest)
     elif platform.system() == "Linux":
         wrap_linux(folder, version)
 

@@ -101,6 +101,28 @@ def test_the_spec_builds_the_workstation_and_the_worker():
     assert "BUNDLE(" in src               # macOS gets a real .app
 
 
+def test_the_frozen_folder_keeps_the_data_beside_the_executable():
+    """The app finds its data relative to itself, so _internal/ would break it."""
+    src = SPEC.read_text(encoding="utf-8")
+    # One EXE per executable in the folder, and both must opt out of the
+    # default hidden contents directory.
+    assert src.count("contents_directory=\".\"") == 2
+    assert "_internal" not in src
+
+
+def test_a_misplaced_data_folder_is_reported_plainly(tmp_path):
+    build = _load_build_module()
+    folder = tmp_path / "GuzziOnBoard"
+    (folder / "_internal" / "web").mkdir(parents=True)
+    (folder / "_internal" / "web" / "index.html").write_text("x")
+    suffix = ".exe" if __import__("sys").platform == "win32" else ""
+    (folder / f"GuzziOnBoard{suffix}").write_text("")
+    (folder / f"GuzziOnBoard-worker{suffix}").write_text("")
+    with pytest.raises(SystemExit) as caught:
+        build.check_artifact(folder)
+    assert "contents_directory" in str(caught.value)
+
+
 def test_the_worker_entry_is_isolated_from_the_application():
     """A worker that dragged the workstation in would be a second app, not a filter."""
     import re
@@ -201,6 +223,43 @@ def test_the_release_workflow_builds_and_verifies_every_platform():
     assert "permissions:\n  contents: read" in src       # the release job asks for more
     assert "innosetup" in src
     assert "action-gh-release" in src
+
+
+def test_a_macos_bundle_must_pass_its_own_self_test(tmp_path, monkeypatch, capsys):
+    """The .app rearranges the folder, so only running it proves it works."""
+    build = _load_build_module()
+    app = tmp_path / "GuzziOnBoard.app"
+    binary = app / "Contents" / "MacOS" / build.DIST_NAME
+    binary.parent.mkdir(parents=True)
+    binary.write_text("")
+    folder = tmp_path / build.DIST_NAME
+    folder.mkdir()
+    ran = []
+
+    def fake_call(command, env=None, **_):
+        ran.append(command)
+        transcript = Path(env["GOB_SELFTEST_LOG"])
+        transcript.write_text("30 checks\n")
+        return 0
+
+    monkeypatch.setattr(build.subprocess, "call", fake_call)
+    build.wrap_macos(folder, "9.9.9", selftest_bundle=True)
+    assert ran == [[str(binary), "--selftest"]]
+    assert "self-test: passed" in capsys.readouterr().out
+
+    monkeypatch.setattr(build.subprocess, "call", lambda *a, **k: 1)
+    with pytest.raises(SystemExit) as caught:
+        build.wrap_macos(folder, "9.9.9", selftest_bundle=True)
+    assert "do not ship it" in str(caught.value)
+
+
+def test_the_workflow_keeps_the_self_test_transcripts():
+    src = WORKFLOW.read_text(encoding="utf-8")
+    # A macOS runner is the only place the .app can be run at all, so whatever
+    # it says has to survive the job: the upload glob covers both the folder's
+    # transcript and the bundle's (`macos-<arch>-app-selftest.log`).
+    assert "dist/macos-*-selftest.log" in src
+    assert "if-no-files-found: error" in src
 
 
 def _load_build_module():

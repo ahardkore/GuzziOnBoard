@@ -246,6 +246,89 @@ $kept = @(Get-ChildItem $data -Recurse -File).Count
 if ($kept -eq 0) { Fail 'The application wrote no user data' "$data is empty" }
 Write-Host "$data holds $kept file(s) after running the application"
 
+# ------------------------------------------------------------- the window
+#
+# --selftest and --no-window prove everything except the one thing a
+# double-click actually gets: a window on a desktop. The window is created
+# by pywebview on a private GUI thread, and a failure there is a silent
+# process death - no exception, no log line, nothing on screen - which is
+# exactly how 0.4.0 shipped to the first real user. This phase launches the
+# installed application the way a person does and holds it to one of two
+# honest outcomes: a window appears, or the app says why not and stays up
+# serving. A silent death is the only unacceptable result.
+
+Remove-Item $instanceFile -ErrorAction SilentlyContinue
+$windowLog = Join-Path $data 'logs\desktop.log'
+Remove-Item $windowLog -ErrorAction SilentlyContinue
+Write-Host "starting $app (windowed, the way a double-click launches it)"
+$gui = Start-Process -FilePath $app -PassThru
+$windowHandle = [IntPtr]::Zero
+try {
+    $deadline = (Get-Date).AddSeconds(90)
+    while ((Get-Date) -lt $deadline -and -not $gui.HasExited) {
+        $gui.Refresh()
+        if ($gui.MainWindowHandle -ne 0) { $windowHandle = $gui.MainWindowHandle; break }
+        Start-Sleep -Milliseconds 500
+    }
+    if ($gui.HasExited) {
+        Show-Log $windowLog 60
+        Fail 'The windowed application died' `
+             "exit code $($gui.ExitCode) instead of showing a window. This is the 0.4.0 failure: the GUI thread died and took the process with it. Last log lines: $(LogTail $windowLog 14)"
+    }
+    if ($windowHandle -ne [IntPtr]::Zero) {
+        Write-Host "a window appeared (handle $windowHandle)"
+    } else {
+        # No window - only acceptable if the application *said so* and is
+        # still alive to serve the workstation in its browser fallback.
+        $explained = (Test-Path $windowLog) -and (
+            (Get-Content $windowLog -Raw) -match 'could not start|did not appear|WebView2'
+        )
+        if (-not $explained) {
+            Show-Log $windowLog 60
+            Fail 'The window never appeared and never said why' `
+                 "no window handle within 90 seconds and no fallback message in the log. Last log lines: $(LogTail $windowLog 14)"
+        }
+        Write-Host "::warning title=No window on this runner::the application fell back to the browser and explained itself; this runner may have no interactive desktop for a window"
+    }
+
+    # Whatever is on screen, the workstation behind it must be the real one:
+    # the record it wrote plus its own authenticated ping, the same evidence
+    # a second launch would demand.
+    if (-not (Test-Path $instanceFile)) {
+        Show-Log $windowLog 40
+        Fail 'The windowed application recorded nothing' "$instanceFile did not appear"
+    }
+    $instance = Get-Content $instanceFile -Raw | ConvertFrom-Json
+    $windowUrl = "http://127.0.0.1:$($instance.port)/"
+    try {
+        $ping = Invoke-RestMethod -Uri "$windowUrl/api/desktop/ping" -TimeoutSec 30 `
+                                  -Headers @{ 'X-GuzziOnBoard-Token' = $instance.token }
+    } catch {
+        Show-Log $windowLog 40
+        Fail 'The windowed application did not answer its own ping' "$windowUrl/api/desktop/ping: $($_.Exception.Message)"
+    }
+    if (-not $ping.ok -or $ping.app -ne 'GuzziOnBoard') {
+        Fail 'The windowed application did not answer its own ping' "got: $($ping | ConvertTo-Json -Compress)"
+    }
+    Write-Host "behind the window it is serving $windowUrl and answering its own ping"
+
+    # Close it the way a person would and expect an orderly exit.
+    if ($windowHandle -ne [IntPtr]::Zero) {
+        [void]$gui.CloseMainWindow()
+        if (-not $gui.WaitForExit(30000)) {
+            Show-Log $windowLog 40
+            Fail 'The window would not close' "CloseMainWindow was ignored for 30 seconds"
+        }
+        Write-Host 'the window closed and the process left with it'
+    }
+} finally {
+    Copy-Item $windowLog (Join-Path $env:RUNNER_TEMP 'windowed-desktop.log') -ErrorAction SilentlyContinue
+    if (-not $gui.HasExited) {
+        Stop-Process -Id $gui.Id -Force -ErrorAction SilentlyContinue
+        $gui.WaitForExit(15000) | Out-Null
+    }
+}
+
 # -------------------------------------------------------------- uninstall
 
 $uninstaller = Get-ChildItem $dir -Filter 'unins*.exe' | Select-Object -First 1

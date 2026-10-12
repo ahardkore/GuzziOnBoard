@@ -25,18 +25,22 @@ import subprocess
 import sys
 import threading
 import time
+import types
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
 
+import guzzionboard.desktop
 from guzzionboard import resources
 from guzzionboard.checksums import load_providers
 from guzzionboard.desktop import (
     DesktopApp,
+    DesktopError,
     ExportDesk,
     Instance,
     InstanceDirectory,
+    _hook_dotnet_unhandled,
     _open_location,
     build_parser,
     choose_backend,
@@ -946,3 +950,180 @@ def test_the_bridge_installs_the_token_and_reroutes_saves():
     beacon = [c for c in payload["calls"] if c[0] == "beacon"]
     assert beacon and "token=tok" in beacon[0][1]
     assert {"saveText", "printView", "openFolder", "quit", "openExternal"} <= set(payload["api"])
+
+
+# ------------------------------------------- the window preflight and watchdog
+#
+# pywebview starts the window on a private GUI thread, and a failure there
+# kills the process with no Python exception - which is how 0.4.0 shipped:
+# the first real launch installed fine, printed "mode: window", and then
+# nothing. These tests pin the two pieces that make that failure impossible
+# to miss instead: everything checkable is checked on the main thread first
+# (and turns into an explained browser fallback), and a watchdog opens the
+# browser if the window never appears.
+
+
+class FakeGuiLib:
+    """Stands in for ``webview.guilib`` so no window stack is needed."""
+
+    def __init__(self, renderer: str = "edgechromium") -> None:
+        self.renderer = renderer
+
+    def initialize(self, gui):
+        return FakeGuiLib(self.renderer)
+
+
+@pytest.fixture
+def window_app(home):
+    """A DesktopApp with a fake pywebview, as if the window stack imports."""
+    app = DesktopApp()
+    app.webview = types.SimpleNamespace(__version__="6.2.1")
+    app.mode = "window"
+    return app
+
+
+def test_preflight_refuses_a_missing_webview2(window_app, monkeypatch, capsys):
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "win32")
+    monkeypatch.setattr(guzzionboard.desktop, "_webview2_build", lambda: None)
+    with pytest.raises(DesktopError, match="WebView2 runtime is not installed"):
+        window_app._preflight_window()
+    assert "did not open a window" not in capsys.readouterr().out
+
+
+def test_preflight_refuses_an_ancient_webview2(window_app, monkeypatch):
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "win32")
+    monkeypatch.setattr(guzzionboard.desktop, "_webview2_build", lambda: "79.0.309.0")
+    with pytest.raises(DesktopError, match=r"older than 86\.0\.622\.0"):
+        window_app._preflight_window()
+
+
+def test_preflight_accepts_a_current_webview2_and_names_the_renderer(
+    window_app, monkeypatch, capsys
+):
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "win32")
+    monkeypatch.setattr(guzzionboard.desktop, "_webview2_build", lambda: "120.0.2210.61")
+    monkeypatch.setitem(
+        sys.modules, "webview.guilib", FakeGuiLib(renderer="edgechromium")
+    )
+    window_app._preflight_window()
+    out = capsys.readouterr().out
+    assert "pywebview 6.2.1" in out and "edgechromium renderer" in out
+
+
+def test_preflight_refuses_a_broken_window_engine(window_app, monkeypatch):
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "win32")
+    monkeypatch.setattr(guzzionboard.desktop, "_webview2_build", lambda: "120.0.2210.61")
+
+    class Broken:
+        def initialize(self, gui):
+            raise RuntimeError("cannot load pythonnet")
+
+    monkeypatch.setitem(sys.modules, "webview.guilib", Broken())
+    with pytest.raises(DesktopError, match="window engine could not be loaded"):
+        window_app._preflight_window()
+
+
+def test_preflight_skips_the_webview2_check_when_mshtml_is_forced(
+    window_app, monkeypatch
+):
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "win32")
+    window_app.gui = "mshtml"
+    monkeypatch.setattr(guzzionboard.desktop, "_webview2_build", lambda: None)
+    monkeypatch.setitem(sys.modules, "webview.guilib", FakeGuiLib(renderer="mshtml"))
+    window_app._preflight_window()          # must not raise: mshtml needs no WebView2
+
+
+def test_the_watchdog_opens_the_browser_when_the_window_never_shows(
+    window_app, monkeypatch, capsys
+):
+    opened = []
+    monkeypatch.setattr(guzzionboard.desktop, "open_url", lambda url: opened.append(url) or True)
+    window_app.window_watchdog_timeout = 0.05
+    window = types.SimpleNamespace(
+        events=types.SimpleNamespace(shown=threading.Event())
+    )
+    window_app._start_window_watchdog(window)
+    time.sleep(0.3)
+    assert window_app.window_watchdog_fired is True
+    assert opened == [window_app.url]
+    out = capsys.readouterr().out
+    assert "did not appear" in out and "browser" in out
+
+
+def test_the_watchdog_stays_quiet_when_the_window_shows(window_app, monkeypatch):
+    opened = []
+    monkeypatch.setattr(guzzionboard.desktop, "open_url", lambda url: opened.append(url) or True)
+    window_app.window_watchdog_timeout = 0.05
+    window = types.SimpleNamespace(
+        events=types.SimpleNamespace(shown=threading.Event())
+    )
+    window.events.shown.set()
+    window_app._start_window_watchdog(window)
+    time.sleep(0.2)
+    assert window_app.window_watchdog_fired is False
+    assert opened == []
+
+
+def test_the_watchdog_stays_quiet_after_a_fallback(window_app, monkeypatch):
+    """A window that already fell back to the browser needs no rescuing."""
+    opened = []
+    monkeypatch.setattr(guzzionboard.desktop, "open_url", lambda url: opened.append(url) or True)
+    window_app.window_watchdog_timeout = 0.05
+    window_app.mode = "browser-fallback"
+    window = types.SimpleNamespace(
+        events=types.SimpleNamespace(shown=threading.Event())
+    )
+    window_app._start_window_watchdog(window)
+    time.sleep(0.2)
+    assert window_app.window_watchdog_fired is False
+    assert opened == []
+
+
+def test_a_failed_window_start_falls_back_to_the_browser(window_app, monkeypatch, capsys):
+    def no_window():
+        raise DesktopError("the Microsoft WebView2 runtime is not installed")
+
+    ran = []
+    window_app._start_window = no_window
+    window_app._run_browser = lambda: ran.append("browser")
+    window_app._run_window()
+    assert ran == ["browser"]
+    assert window_app.mode == "browser-fallback"
+    assert "WebView2 runtime is not installed" in capsys.readouterr().out
+
+
+def test_the_window_icon_is_the_ico_on_windows_and_the_png_elsewhere(
+    bundle, monkeypatch
+):
+    """0.4.0's silent launch death: the Windows backend loads the icon with
+    System.Drawing.Icon, which only accepts .ico files - handing it the .png
+    killed the process from the GUI thread (0xE0434352) before a window
+    existed. The order here is the fix."""
+    icons = bundle / "packaging" / "icons"
+    icons.mkdir(parents=True)
+    (icons / "guzzionboard.png").write_bytes(b"not really a png")
+    (icons / "guzzionboard.ico").write_bytes(b"not really an ico")
+
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "win32")
+    assert DesktopApp._icon_path().name == "guzzionboard.ico"
+
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "linux")
+    assert DesktopApp._icon_path().name == "guzzionboard.png"
+
+
+def test_the_icon_survives_a_bundle_with_only_one_kind(bundle, monkeypatch):
+    icons = bundle / "packaging" / "icons"
+    icons.mkdir(parents=True)
+    (icons / "guzzionboard.ico").write_bytes(b"ico")
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "win32")
+    assert DesktopApp._icon_path().name == "guzzionboard.ico"
+    (icons / "guzzionboard.ico").unlink()
+    assert DesktopApp._icon_path() is None
+
+
+def test_the_dotnet_hook_is_a_noop_without_the_clr(window_app, monkeypatch):
+    """Off Windows, or without a CLR to hook, launching must not care."""
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "linux")
+    assert _hook_dotnet_unhandled() is None      # off Windows: instant return
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "win32")
+    assert _hook_dotnet_unhandled() is None      # no clr here: swallowed, not raised

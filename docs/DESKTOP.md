@@ -189,6 +189,7 @@ arrangement of the same files and only running it proves the arrangement works.
 | `.github/workflows/desktop-build.yml` | Builds (and on a `v*` tag, releases) all three platforms |
 | `playwright.desktop.config.mjs` + `tests/browser/desktop-host.spec.mjs` | The UI in a real Chromium, talking to a real `guzzionboard-desktop --no-window`: the injected bridge, the token on every call, saves landing in the export folder, printing as a snapshot. `npm run test:browser:desktop` |
 
+
 **Two executables, one folder.** `GuzziOnBoard.exe` is windowed (no console
 window) and carries the application. `GuzziOnBoard-worker.exe` is a small
 *console* binary built straight from `guzzionboard/checksum_worker.py`, which
@@ -209,6 +210,21 @@ points at `_internal/`, so the layout is invisible from the inside. The macOS
 One folder rather than one file: a one-file build unpacks the whole ~30 MB
 bundle into a temporary directory on every launch, and the app starts a
 subprocess. A folder install is one directory, and the uninstaller removes it.
+
+### What the workflow proves, on the platform it is proving it
+
+The three platform jobs are not "does it compile" jobs. Each one runs
+`packaging/build.py`, which builds the frozen application, checks the files it
+must contain, and then **runs the artifact's own `--selftest`** on the machine
+that built it. A build whose app cannot find its XDF library fails the job
+rather than the user.
+
+| Job | Artifact | Checked by |
+|---|---|---|
+| Windows | `GuzziOnBoard-<version>-setup.exe` (Inno Setup) and a portable `.zip` | The frozen folder app runs `--selftest`; the installer is compiled from that same folder |
+| Linux | `GuzziOnBoard-<version>-linux-<arch>-portable.zip` (+ `install.sh`, `.desktop`) | The frozen folder app runs `--selftest` |
+| macOS | `GuzziOnBoard-<version>-macos-<arch>.zip` (the `.app`) and a portable `.zip` | Both the folder app *and* `GuzziOnBoard.app/Contents/MacOS/GuzziOnBoard` run `--selftest` — a `.app` is a different arrangement of the same files |
+| All three | `SHA256SUMS-<platform>.txt` and the transcript | `if-no-files-found: error`: an artifact-less build goes red |
 
 ### Windows
 

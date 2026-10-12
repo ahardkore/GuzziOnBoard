@@ -167,7 +167,10 @@ def test_installer_script_describes_a_real_installation():
         "UninstallDisplayIcon",
         "SetupIconFile",
         "AppDir}\\*",                    # the packaged folder is the payload
-        "guzzionboard.ico",
+        # Shortcut icons come from the executable, which carries the icon and
+        # is always at the root of the install; a path into the payload would
+        # point at _internal/ and quietly give the shortcuts a blank icon.
+        'IconFilename: "{app}\\{#AppExe}"',
     ):
         assert required in src, required
     assert "--selftest" in src           # a shortcut that checks the install
@@ -357,6 +360,63 @@ def test_a_real_install_is_checked_somewhere():
     workflow = WORKFLOW.read_text(encoding="utf-8")
     assert "windows-install-check.ps1" in workflow
     assert "needs: windows" in workflow       # it tests the built installer
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"),
+                    reason="install.sh is the Linux launcher, and the check uses readlink -f")
+def test_the_linux_install_script_installs_something_that_runs(tmp_path):
+    """The Linux installer is install.sh, so it gets executed here.
+
+    A stand-in executable answers `--selftest` the way the frozen application
+    does; everything else - the generated script, the .desktop entry, the icon
+    path, the launcher symlink - is the real thing.
+    """
+    import os
+
+    build = _load_build_module()
+    folder = tmp_path / "dist" / "GuzziOnBoard"
+    icons = folder / "_internal" / "packaging" / "icons"
+    icons.mkdir(parents=True)
+    icons.joinpath("guzzionboard.png").write_bytes(
+        (ROOT / "packaging" / "icons" / "guzzionboard.png").read_bytes()
+    )
+    app = folder / "GuzziOnBoard"
+    app.write_text(
+        "#!/bin/sh\n"
+        "if [ \"$1\" = \"--selftest\" ]; then\n"
+        "  mkdir -p \"$HOME/.guzzionboard/logs\"\n"
+        "  echo report > \"$HOME/.guzzionboard/logs/selftest.txt\"\n"
+        "  echo 'All 30 checks passed. This copy is usable.' > \"$GOB_SELFTEST_LOG\"\n"
+        "  exit 0\n"
+        "fi\n"
+        "echo 'would open a window'\n",
+        encoding="utf-8",
+    )
+    app.chmod(0o755)
+    build.wrap_linux(folder, "9.9.9")
+
+    check = ROOT / "packaging" / "installer" / "linux-install-check.sh"
+    assert check.is_file()
+    home = tmp_path / "home"
+    home.mkdir()
+    result = subprocess.run(
+        ["sh", str(check), str(folder)],
+        capture_output=True, text=True, timeout=120,
+        env={**os.environ, "HOME": str(home)},
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    launcher = home / ".local" / "bin" / "guzzionboard"
+    assert launcher.is_symlink() and os.path.realpath(launcher) == str(app)
+    menu = home / ".local" / "share" / "applications" / "guzzionboard.desktop"
+    assert f"Exec={app}\n" in menu.read_text(encoding="utf-8")
+    assert (home / ".local" / "share" / "icons" / "hicolor" / "256x256" /
+            "apps" / "guzzionboard.png").is_file()
+
+
+def test_the_workflow_runs_the_install_checks():
+    src = WORKFLOW.read_text(encoding="utf-8")
+    assert "linux-install-check.sh" in src
+    assert "windows-install-check.ps1" in src, "the Windows job installs the setup"
 
 
 def _load_build_module():

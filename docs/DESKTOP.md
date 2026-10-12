@@ -186,6 +186,7 @@ arrangement of the same files and only running it proves the arrangement works.
 | `packaging/build.py` | Build, wrap per platform, verify, checksum |
 | `packaging/installer/guzzionboard.iss` | The Windows installer (Inno Setup 6) |
 | `packaging/installer/windows-install-check.ps1` | Installs the setup on a machine, runs the installed app, uninstalls it, checks the user's data survived — the Windows job runs it |
+| `packaging/installer/linux-install-check.sh` | Runs `install.sh` on a machine, then checks the launcher, the menu entry, the icon and the installed app's self-test — the Linux job runs it |
 | `packaging/make_icons.py` | Regenerates the icon set from `icons/source.png` |
 | `.github/workflows/desktop-build.yml` | Builds (and on a `v*` tag, releases) all three platforms |
 | `playwright.desktop.config.mjs` + `tests/browser/desktop-host.spec.mjs` | The UI in a real Chromium, talking to a real `guzzionboard-desktop --no-window`: the injected bridge, the token on every call, saves landing in the export folder, printing as a snapshot. `npm run test:browser:desktop` |
@@ -227,6 +228,7 @@ rather than the user.
 | macOS | `GuzziOnBoard-<version>-macos-<arch>.zip` (the `.app`) and a portable `.zip` | Both the folder app *and* `GuzziOnBoard.app/Contents/MacOS/GuzziOnBoard` run `--selftest` — a `.app` is a different arrangement of the same files |
 | All three | `SHA256SUMS-<platform>.txt` and the transcript | `if-no-files-found: error`: an artifact-less build goes red |
 | Windows, again | `windows-install-report` (install log + transcript) | A separate job **installs the setup silently**, runs the installed application's `--selftest`, checks the Start-menu shortcut and the payload, then **uninstalls it** and checks `%USERPROFILE%\.guzzionboard` came through untouched (`packaging/installer/windows-install-check.ps1`) |
+| Linux, again | `dist/linux-install-selftest.log` | The same script the README tells you to run is run for real, then its launcher is executed (`packaging/installer/linux-install-check.sh`) |
 
 ### Windows
 

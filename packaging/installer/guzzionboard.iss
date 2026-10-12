@@ -14,6 +14,11 @@
 ;   in %USERPROFILE%\.guzzionboard and is NOT removed by the uninstaller.
 ;   Those files are evidence and backups; an uninstaller that eats backups is
 ;   a bug, so the uninstaller says where they are instead.
+; * Shortcut icons are taken from the application executable rather than from
+;   a file in the payload: the executable carries the icon (PyInstaller writes
+;   it as a resource) and it is always at the root of the install, while the
+;   rest of the payload lives under _internal/ - which is PyInstaller's
+;   business, not the installer's.
 ; * WebView2: Windows 10/11 ship it. If the machine somehow lacks it, the
 ;   installer runs Microsoft's bootstrapper when the build shipped one
 ;   (see packaging/README.md), and the app itself falls back to the browser
@@ -94,12 +99,12 @@ Source: "{#AppDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs cre
 Source: "{#SourceRoot}\packaging\resources\MicrosoftEdgeWebView2Setup.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall skipifsourcedoesntexist; Check: WebView2Needed
 
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"; IconFilename: "{app}\packaging\icons\guzzionboard.ico"; Comment: "Diagnostic workstation for Moto Guzzi motorcycles"
+Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"; IconFilename: "{app}\{#AppExe}"; Comment: "Diagnostic workstation for Moto Guzzi motorcycles"
 Name: "{group}\{#AppName} (browser mode)"; Filename: "{app}\{#AppExe}"; Parameters: "--browser"; Comment: "Open the workstation in your usual browser instead of a window"
 Name: "{group}\{#AppName} self-test"; Filename: "{app}\{#AppExe}"; Parameters: "--selftest"; Comment: "Check that this installation is complete"
 Name: "{group}\Exports and session logs"; Filename: "{app}\{#AppExe}"; Parameters: "--open-data"; Comment: "Open the folder holding exports and recorded sessions"
 Name: "{group}\Uninstall {#AppName}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon; IconFilename: "{app}\packaging\icons\guzzionboard.ico"
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon; IconFilename: "{app}\{#AppExe}"
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent

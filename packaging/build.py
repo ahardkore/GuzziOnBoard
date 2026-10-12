@@ -187,15 +187,19 @@ def wrap_linux(folder: Path, version: str) -> Path:
 set -e
 HERE=$(cd "$(dirname "$0")" && pwd)
 PREFIX="${{HOME}}/.local"
+# PyInstaller puts the data beside the executable inside _internal/; look there
+# first so the icon is found whichever layout the build used.
+DATA="$HERE"
+[ -d "$HERE/_internal" ] && DATA="$HERE/_internal"
 mkdir -p "$PREFIX/bin" "$PREFIX/share/applications" "$PREFIX/share/icons/hicolor/256x256/apps"
 ln -sf "$HERE/{DIST_NAME}" "$PREFIX/bin/guzzionboard"
-cp -f "$HERE/packaging/icons/guzzionboard.png" \\
+cp -f "$DATA/packaging/icons/guzzionboard.png" \\
       "$PREFIX/share/icons/hicolor/256x256/apps/guzzionboard.png"
 sed "s|@APPDIR@|$HERE|g" "$HERE/guzzionboard.desktop.in" > \\
       "$PREFIX/share/applications/guzzionboard.desktop"
 update-desktop-database "$PREFIX/share/applications" 2>/dev/null || true
 echo "Installed. Start 'guzzionboard' from your menu or a terminal."
-echo "Remove with: rm -f ~/.local/bin/guzzionboard \\\\"
+echo "Remove with: rm -f ~/.local/bin/guzzionboard"
 echo "  ~/.local/share/applications/guzzionboard.desktop"
 """,
         encoding="utf-8",

@@ -110,15 +110,14 @@ $root = if (Test-Path (Join-Path $dir '_internal')) { Join-Path $dir '_internal'
 foreach ($relative in @('web\index.html',
                         'web\desktop-bridge.js',
                         'guzzionboard\catalog\ecus\5am.json',
-                        'guzzionboard\xdfs\catalog.json')) {
+                        'guzzionboard\xdfs\catalog.json',
+                        'packaging\icons\guzzionboard.ico')) {
     if (-not (Test-Path (Join-Path $root $relative))) {
         Fail 'The installed application is incomplete' "$relative is missing from $root"
     }
 }
-foreach ($needed in @('GuzziOnBoard-worker.exe', 'packaging\icons\guzzionboard.ico')) {
-    if (-not (Test-Path (Join-Path $dir $needed))) {
-        Fail 'The installed application is incomplete' "$needed is missing from $dir"
-    }
+if (-not (Test-Path (Join-Path $dir 'GuzziOnBoard-worker.exe'))) {
+    Fail 'The installed application is incomplete' "GuzziOnBoard-worker.exe is missing from $dir"
 }
 
 $shortcuts = @(Get-ChildItem $menu -Filter *.lnk -ErrorAction SilentlyContinue)

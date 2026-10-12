@@ -88,7 +88,10 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; The packaged application folder, exactly as PyInstaller produced it.
 Source: "{#AppDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; WebView2 bootstrapper, when the build shipped one (optional; see [Code]).
-Source: "{#SourceRoot}\packaging\resources\MicrosoftEdgeWebView2Setup.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall dontcopy skipifsilent skipifsourcedoesntexist; Check: WebView2Needed
+; Copied into {tmp} only when the runtime is missing, run from [Code] below
+; and removed again when Setup finishes. skipifsourcedoesntexist is what makes
+; the bootstrapper optional: builds that did not download it still compile.
+Source: "{#SourceRoot}\packaging\resources\MicrosoftEdgeWebView2Setup.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall skipifsourcedoesntexist; Check: WebView2Needed
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"; IconFilename: "{app}\packaging\icons\guzzionboard.ico"; Comment: "Diagnostic workstation for Moto Guzzi motorcycles"
@@ -129,7 +132,6 @@ begin
   begin
     if FileExists(ExpandConstant('{tmp}\MicrosoftEdgeWebView2Setup.exe')) then
     begin
-      ExtractTemporaryFile('MicrosoftEdgeWebView2Setup.exe');
       if Exec(ExpandConstant('{tmp}\MicrosoftEdgeWebView2Setup.exe'), '/silent /install', '',
               SW_SHOW, ewWaitUntilTerminated, code) then
         Log(Format('WebView2 bootstrapper exit code %d', [code]))

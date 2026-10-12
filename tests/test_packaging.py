@@ -163,6 +163,52 @@ def test_installer_script_describes_a_real_installation():
     assert "were kept" in code
 
 
+#: The [Files] flags Inno Setup 6 knows. An invented flag is a compile error
+#: on the runner ("Parameter \"Flags\" includes an unknown flag"), which is a
+#: slow way to find out - so the script is checked here first. Order is not
+#: meaningful; this is the documented set, not every flag Inno 7 added.
+INNO_FILE_FLAGS = {
+    "32bit", "64bit", "allowunsafefiles", "comparetimestamp",
+    "comparetimestampalways", "confirmoverwrite", "createallsubdirs",
+    "deleteafterinstall", "dontcopy", "dontverifychecksum", "external",
+    "fontisnttruetype", "ignoreversion", "nocliptargetpath", "nocompression",
+    "noencryption", "onlyifdestfileexists", "onlyifdoesntexist",
+    "overwritereadonly", "promptifolder", "readonly", "recursesubdirs",
+    "replacesameversion", "restartreplace", "setntfscompression", "sharedfile",
+    "skipifsourcedoesntexist", "solidbreak", "sortfilesbydate",
+    "sortfilesbyname", "touch", "uninsalwaysuninstall", "uninsneveruninstall",
+    "uninsremovereadonly",
+}
+
+
+def test_the_installer_only_uses_flags_the_compiler_has():
+    """`skipifsilent` is a [Run] flag; in [Files] it aborted a real build."""
+    import re
+
+    body = INSTALLER.read_text(encoding="utf-8").partition("[Files]")[2]
+    body = body.partition("\n[")[0]                       # the section only
+    used = set()
+    for line in body.splitlines():
+        if line.lstrip().startswith(";"):
+            continue
+        for flags in re.findall(r"Flags:\s*([^;]+)", line):
+            used.update(flags.split())
+    assert used, "the [Files] section should declare flags"
+    assert used <= INNO_FILE_FLAGS, f"unknown Inno Setup flags: {sorted(used - INNO_FILE_FLAGS)}"
+
+
+def test_the_optional_bootstrapper_is_optional():
+    src = INSTALLER.read_text(encoding="utf-8")
+    assert "Flags: deleteafterinstall skipifsourcedoesntexist" in src
+    # [Code] runs it from {tmp}; nothing may try to extract a dontcopy entry.
+    assert "ExtractTemporaryFile" not in src
+    # skipifsilent is a [Run] flag and belongs on the two [Run] lines, nowhere
+    # near [Files]: that mistake is what aborted the first Windows build.
+    files = src.partition("[Files]")[2].partition("\n[")[0]
+    assert "skipifsilent" not in files
+    assert src.count("skipifsilent") == 2
+
+
 def test_build_checks_the_artifact_it_produced(tmp_path, monkeypatch):
     build = _load_build_module()
     folder = tmp_path / "GuzziOnBoard"

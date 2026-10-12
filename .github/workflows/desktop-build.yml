@@ -74,7 +74,9 @@ jobs:
         run: choco install innosetup --no-progress -y
       - name: Build the application and the installer
         shell: bash
-        run: python packaging/build.py --installer --portable-zip 2>&1 | tee build.log
+        run: |
+          set -o pipefail
+          python packaging/build.py --installer --portable-zip 2>&1 | tee build.log
       - name: Explain a failed build
         if: failure()
         shell: bash
@@ -156,7 +158,9 @@ jobs:
           npm ci
           npx playwright test --config playwright.config.mjs
       - name: Build
-        run: python packaging/build.py --portable-zip 2>&1 | tee build.log
+        run: |
+          set -o pipefail
+          python packaging/build.py --portable-zip 2>&1 | tee build.log
       - name: Explain a failed build
         if: failure()
         run: |
@@ -189,7 +193,9 @@ jobs:
           cache: pip
       - run: pip install pyinstaller pywebview
       - name: Build the .app bundle and archive it
-        run: python packaging/build.py --portable-zip 2>&1 | tee build.log
+        run: |
+          set -o pipefail
+          python packaging/build.py --portable-zip 2>&1 | tee build.log
       - name: Explain a failed build
         if: failure()
         run: |

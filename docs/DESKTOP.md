@@ -230,6 +230,28 @@ rather than the user.
 | Windows, again | `windows-install-report` (install log + transcript) | A separate job **installs the setup silently**, checks the payload and the Start-menu shortcut, runs the installed application's `--selftest`, **starts the installed application** and talks to it (the UI answers, and its own token-checked `/api/desktop/ping` does), then **uninstalls it** and checks `%USERPROFILE%\.guzzionboard` came through untouched (`packaging/installer/windows-install-check.ps1`) |
 | Linux, again | `dist/linux-install-selftest.log` | The same script the README tells you to run is run for real, then its launcher is executed through the symlink the script installed — `--selftest`, and then for real, answering HTTP and its own ping (`packaging/installer/linux-install-check.sh`) |
 
+### Publishing, and republishing
+
+A `v*` tag publishes: the three release jobs attach the installer and the
+archives, each platform's `SHA256SUMS-*.txt`, and the transcript of the
+self-test that artifact passed, to that tag's release. They do it under their
+own `permissions: contents: write`, while the rest of the workflow stays
+`contents: read` — a tag that builds and self-tests three platforms is still
+not a release until something is allowed to write one.
+
+A tag build that fails at that last step is republished **without moving the
+tag**: dispatch the workflow from any branch that carries the fix, and name the
+tag it should publish.
+
+```bash
+gh workflow run desktop-build.yml --ref <branch-with-the-fix> -f release=true -f tag=v0.4.0
+```
+
+The run checks `v0.4.0` out, builds that tree on all three platforms, runs every
+artifact's own self-test again, and attaches the results to the release of the
+tag that already exists. Nothing is re-tagged, and nothing is published from a
+branch that is not the tag.
+
 ### Windows
 
 Inno Setup 6 compiles `packaging/installer/guzzionboard.iss`. The installer is

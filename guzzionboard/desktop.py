@@ -111,6 +111,37 @@ def _version_tuple(text: str) -> tuple[int, ...]:
     return tuple(int(part) for part in str(text).split(".") if part.isdigit())
 
 
+def _hook_dotnet_unhandled() -> None:
+    """Log .NET exceptions that would otherwise kill the process silently.
+
+    pywebview runs the window on a .NET thread; an exception there (0.4.0:
+    a PNG handed to ``System.Drawing.Icon``) tears the process down with
+    exit code 0xE0434352 and no Python traceback, because no Python frame is
+    on that thread. ``AppDomain.UnhandledException`` runs before the
+    teardown, so the exception at least reaches desktop.log - the difference
+    between a bug report and a shrug.
+    """
+    if sys.platform != "win32":              # pragma: no cover - win32 only
+        return
+    try:
+        import clr                           # noqa: F401,PLC0415 - present if the engine loaded
+        import System
+
+        def on_unhandled(sender, args) -> None:
+            try:
+                print(
+                    f".NET unhandled exception on the window thread: "
+                    f"{args.ExceptionObject}",
+                    file=sys.stderr,
+                )
+            except Exception:                # pragma: no cover - last words only
+                pass
+
+        System.AppDomain.CurrentDomain.UnhandledException += on_unhandled
+    except Exception:                        # pragma: no cover - diagnostic only
+        pass
+
+
 class DesktopError(RuntimeError):
     """The shell cannot start (bad options, port taken, broken install)."""
 
@@ -807,6 +838,7 @@ class DesktopApp:
                 "the usual fix."
             ) from exc
         print(f"  window:    pywebview {version}, {renderer or 'unknown'} renderer")
+        _hook_dotnet_unhandled()
 
     def _start_window_watchdog(self, window) -> None:
         """If the window never appears, open the browser instead.
@@ -972,7 +1004,22 @@ class DesktopApp:
     # -- helpers ----------------------------------------------------------
     @staticmethod
     def _icon_path() -> Path | None:
-        for name in ("guzzionboard.png", "guzzionboard.ico"):
+        """The window icon, in the form the platform's loader survives.
+
+        pywebview's Windows backend loads the icon with
+        ``System.Drawing.Icon(path)`` - an API that accepts ``.ico`` files
+        and throws an ArgumentException for anything else, on the GUI
+        thread, where the exception kills the process with no Python error.
+        That is exactly how 0.4.0 shipped: every Windows launch died
+        silently (exit code 0xE0434352) because this method offered the
+        ``.png`` first. macOS and GTK take the ``.png`` happily.
+        """
+        order = (
+            ("guzzionboard.ico", "guzzionboard.png")
+            if sys.platform == "win32"
+            else ("guzzionboard.png", "guzzionboard.ico")
+        )
+        for name in order:
             candidate = resources.bundle_root() / "packaging" / "icons" / name
             if candidate.is_file():
                 return candidate

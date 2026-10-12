@@ -292,8 +292,13 @@ Apple Developer certificate, which this project does not have.
 **"The installer worked, but nothing opened."** That was 0.4.0's bug, and it
 is worth understanding. The window is created by pywebview on its own GUI
 thread; a failure there kills the process with no error, no dialog and no
-log line — the log simply ends at `mode: window`. The launch now defends
-against it in two places:
+log line — the log simply ends at `mode: window`. (0.4.0's specific cause:
+the window was handed the `.png` icon on Windows, whose backend loads it
+with `System.Drawing.Icon` — an `.ico`-only API — so the GUI thread died
+before a window existed, with exit code `0xE0434352`. The launch now checks
+everything checkable first, and a .NET-side hook prints any exception that
+still manages to die on that thread.) The launch now defends against the
+whole class in two places:
 
 * *Before* the window starts, everything checkable is checked on the main
   thread: the WebView2 runtime's presence and version (Windows), and the

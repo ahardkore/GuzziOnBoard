@@ -40,6 +40,7 @@ from guzzionboard.desktop import (
     ExportDesk,
     Instance,
     InstanceDirectory,
+    _hook_dotnet_unhandled,
     _open_location,
     build_parser,
     choose_backend,
@@ -1089,3 +1090,40 @@ def test_a_failed_window_start_falls_back_to_the_browser(window_app, monkeypatch
     assert ran == ["browser"]
     assert window_app.mode == "browser-fallback"
     assert "WebView2 runtime is not installed" in capsys.readouterr().out
+
+
+def test_the_window_icon_is_the_ico_on_windows_and_the_png_elsewhere(
+    bundle, monkeypatch
+):
+    """0.4.0's silent launch death: the Windows backend loads the icon with
+    System.Drawing.Icon, which only accepts .ico files - handing it the .png
+    killed the process from the GUI thread (0xE0434352) before a window
+    existed. The order here is the fix."""
+    icons = bundle / "packaging" / "icons"
+    icons.mkdir(parents=True)
+    (icons / "guzzionboard.png").write_bytes(b"not really a png")
+    (icons / "guzzionboard.ico").write_bytes(b"not really an ico")
+
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "win32")
+    assert DesktopApp._icon_path().name == "guzzionboard.ico"
+
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "linux")
+    assert DesktopApp._icon_path().name == "guzzionboard.png"
+
+
+def test_the_icon_survives_a_bundle_with_only_one_kind(bundle, monkeypatch):
+    icons = bundle / "packaging" / "icons"
+    icons.mkdir(parents=True)
+    (icons / "guzzionboard.ico").write_bytes(b"ico")
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "win32")
+    assert DesktopApp._icon_path().name == "guzzionboard.ico"
+    (icons / "guzzionboard.ico").unlink()
+    assert DesktopApp._icon_path() is None
+
+
+def test_the_dotnet_hook_is_a_noop_without_the_clr(window_app, monkeypatch):
+    """Off Windows, or without a CLR to hook, launching must not care."""
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "linux")
+    assert _hook_dotnet_unhandled() is None      # off Windows: instant return
+    monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "win32")
+    assert _hook_dotnet_unhandled() is None      # no clr here: swallowed, not raised

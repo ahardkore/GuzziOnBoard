@@ -55,6 +55,13 @@ jobs:
   windows:
     name: Windows installer
     runs-on: windows-latest
+    # Publishing needs contents: write. The workflow defaults to read, and a
+    # read-only token makes softprops/action-gh-release fail with "Resource
+    # not accessible by integration" - the build succeeds, the release does
+    # not, and the artifacts end up nowhere a user can download them. Only the
+    # three jobs that actually publish are granted it.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -98,18 +105,36 @@ jobs:
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v') || inputs.release
         uses: softprops/action-gh-release@v2
+        # Only this job writes the notes. The other two publish without a
+        # body, and softprops keeps an existing body when none is supplied,
+        # so the text below survives whichever job happens to create the
+        # release first.
         with:
           files: |
             dist/*setup*.exe
             dist/*portable.zip
+            dist/SHA256SUMS-*.txt
+            dist/*selftest*.log
           body: |
-            GuzziOnBoard ${{ github.ref_name }} — desktop application.
+            GuzziOnBoard ${{ github.ref_name }} — the workstation as an application you install and launch.
 
-            Download the `setup.exe` to install it (per-user, no administrator
-            prompt). The portable zip runs from any folder without installing.
+            ## Install
 
-            Nothing has been validated on a real motorcycle; read the README
-            before connecting anything to a bike.
+            * **Windows** — `GuzziOnBoard-<version>-setup.exe`: per-user, no administrator prompt, Start-menu entry, uninstaller. The portable `.zip` runs from any folder without installing.
+            * **macOS (arm64)** — `GuzziOnBoard-<version>-macos-arm64.zip`: unzip, drag `GuzziOnBoard.app` to Applications.
+            * **Linux (x64)** — `GuzziOnBoard-<version>-linux-x64-portable.zip`: unzip and run `install.sh` (a per-user script, no root), or run the folder as it is.
+
+            Check what you downloaded: each platform's `SHA256SUMS-*.txt` and the `--selftest` transcripts CI produced are attached next to the binaries.
+
+            ## Honest limits
+
+            * **Unsigned.** Windows SmartScreen will say *Windows protected your PC* (*More info* → *Run anyway*); macOS Gatekeeper wants a right-click → *Open* the first time. Signing needs certificates this project does not have.
+            * **Not a package.** No `.dmg`, no `.deb`, no Flatpak, and **no auto-update**. New versions are downloaded from this page and installed over the old one.
+            * **No human has clicked through the installer wizard.** CI installs it silently on a clean runner, runs the installed application's own `--selftest`, then uninstalls it and checks your files were left alone. A robot pressing *Next* is not a person reading the pages, and nothing has verified the wizard's appearance, the licence page, or an older Windows.
+            * **The Linux artifact has no window engine** — it serves the workstation and opens your browser. The native window works from a source install with PyGObject + WebKitGTK; bundling those into a frozen build is not done yet.
+            * **No hardware has been validated.** Nothing here has been run against a real motorcycle. It starts in simulator mode and opens no serial port until you ask.
+
+            Read `README.md` and `docs/DESKTOP.md` before connecting anything to a bike.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -182,6 +207,8 @@ jobs:
   linux:
     name: Linux build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write          # publishes to the release; see the windows job
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -232,14 +259,21 @@ jobs:
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v') || inputs.release
         uses: softprops/action-gh-release@v2
+        # No body here: the windows job owns the release notes, and an unset
+        # body leaves them in place.
         with:
-          files: dist/*portable.zip
+          files: |
+            dist/*portable.zip
+            dist/SHA256SUMS-*.txt
+            dist/*selftest*.log
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   macos:
     name: macOS build
     runs-on: macos-latest
+    permissions:
+      contents: write          # publishes to the release; see the windows job
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -267,7 +301,12 @@ jobs:
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v') || inputs.release
         uses: softprops/action-gh-release@v2
+        # No body here: the windows job owns the release notes, and an unset
+        # body leaves them in place.
         with:
-          files: dist/*.zip
+          files: |
+            dist/*.zip
+            dist/SHA256SUMS-*.txt
+            dist/*selftest*.log
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

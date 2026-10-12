@@ -23,3 +23,4 @@ blob-report/
 /build/pyinstaller/
 packaging/resources/*.exe
 packaging/windows_version_info.txt
+.desktop-test-data/

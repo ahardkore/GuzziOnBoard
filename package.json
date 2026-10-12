@@ -5,7 +5,8 @@
   "description": "Browser-level tests for the GuzziOnBoard workstation editor",
   "scripts": {
     "test:browser": "playwright test",
-    "test:browser:headed": "playwright test --headed"
+    "test:browser:headed": "playwright test --headed",
+    "test:browser:desktop": "playwright test --config playwright.desktop.config.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.1",

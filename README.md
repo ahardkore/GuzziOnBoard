@@ -59,7 +59,9 @@ opened.
 More than 500 tests cover framing, checksums, scaling, DTC decoding, handshake negotiation, the safety gate,
 image validation, XDF parsing/render/diff, the full read/backup/write/verify
 round trip (including the hardware-family brick gate, in the app and in the
-browser demo), fault injection, session comparison, the packaging entry point,
+browser demo), fault injection, session comparison, the packaging entry points,
+the desktop shell (its request policy, host routes, export folder, single-
+instance record and installation self-test),
 the reference-tool inclusions (log conversion, bench signal, driver bundle,
 Mana TCU) and complete simulated sessions — plus `scripts/e2e_smoke.py`, a
 30-check full-capability sweep over the live HTTP API and Playwright tests that

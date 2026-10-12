@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Turn ``packaging/icons/source.png`` into the icon files each platform needs.
+"""Turn ``packaging/icons/guzzionboard-source.png`` into the icon files each
+platform needs.
 
 Run once (the outputs are committed, so nobody needs Pillow to build the app):
 
@@ -30,7 +31,7 @@ except ImportError:                       # pragma: no cover - build-time only
 
 HERE = Path(__file__).resolve().parent
 ICONS = HERE / "icons"
-SOURCE = ICONS / "source.png"
+SOURCE = ICONS / "guzzionboard-source.png"
 
 ICO_SIZES = (16, 24, 32, 48, 64, 128, 256)
 ICNS_SIZES = {          # chunk type: pixels
@@ -76,7 +77,12 @@ def write_icns(icon: Image.Image, path: Path) -> None:
         import io
 
         buffer = io.BytesIO()
-        icon.resize((size, size), Image.LANCZOS).save(buffer, format="PNG")
+        scaled = icon.resize((size, size), Image.LANCZOS)
+        # Flat colours: paletting the small sizes keeps the bundle small
+        # without a visible difference at icon scale.
+        if size <= 256:
+            scaled = scaled.quantize(colors=64, method=Image.FASTOCTREE)
+        scaled.save(buffer, format="PNG", optimize=True)
         payload = buffer.getvalue()
         chunks += kind.encode("ascii") + struct.pack(">I", len(payload) + 8) + payload
     path.write_bytes(b"icns" + struct.pack(">I", len(chunks) + 8) + chunks)
@@ -84,14 +90,17 @@ def write_icns(icon: Image.Image, path: Path) -> None:
 
 def main() -> int:
     if not SOURCE.is_file():
-        raise SystemExit(f"no source image at {SOURCE}")
+        raise SystemExit(
+            f"no master image at {SOURCE} (a square PNG, 512px or larger)"
+        )
     icon = badge(Image.open(SOURCE))
     base = icon.resize((1024, 1024), Image.LANCZOS)
 
     ico = ICONS / "guzzionboard.ico"
     base.save(ico, sizes=[(size, size) for size in ICO_SIZES])
-    base.resize((256, 256), Image.LANCZOS).save(ICONS / "guzzionboard.png")
-    base.resize((512, 512), Image.LANCZOS).save(ICONS / "guzzionboard-512.png")
+    base.resize((256, 256), Image.LANCZOS).save(ICONS / "guzzionboard.png", optimize=True)
+    base.resize((512, 512), Image.LANCZOS).save(
+        ICONS / "guzzionboard-512.png", optimize=True)
     write_icns(base, ICONS / "guzzionboard.icns")
 
     for path in sorted(ICONS.glob("guzzionboard*")):

@@ -103,6 +103,27 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  desktop-ui:
+    name: UI in the desktop shell (Chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: pip install -e .
+      - run: npm ci
+      - name: Run the workstation behind the desktop shell
+        # The other browser gate runs the page on a static host (the demo
+        # path). This one runs it behind `guzzionboard-desktop --no-window`:
+        # real API, injected bridge, exports written to a real folder.
+        run: npm run test:browser:desktop
+
   linux:
     name: Linux build
     runs-on: ubuntu-latest
@@ -118,6 +139,14 @@ jobs:
           sudo apt-get install -y python3-gi gir1.2-webkit2-4.1 libgtk-3-0 libwebkit2gtk-4.1-0 \
                                   libgl1 libxkbcommon0 libegl1
           pip install pyinstaller
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Browser gate (the UI on a static host, as the demo serves it)
+        run: |
+          npm ci
+          npx playwright test --config playwright.config.mjs
       - name: Build
         run: python packaging/build.py --portable-zip
       - uses: actions/upload-artifact@v4

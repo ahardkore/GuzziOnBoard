@@ -185,6 +185,7 @@ XDF library.
 | `packaging/installer/guzzionboard.iss` | The Windows installer (Inno Setup 6) |
 | `packaging/make_icons.py` | Regenerates the icon set from `icons/source.png` |
 | `.github/workflows/desktop-build.yml` | Builds (and on a `v*` tag, releases) all three platforms |
+| `playwright.desktop.config.mjs` + `tests/browser/desktop-host.spec.mjs` | The UI in a real Chromium, talking to a real `guzzionboard-desktop --no-window`: the injected bridge, the token on every call, saves landing in the export folder, printing as a snapshot. `npm run test:browser:desktop` |
 
 **Two executables, one folder.** `GuzziOnBoard.exe` is windowed (no console
 window) and carries the application. `GuzziOnBoard-worker.exe` is a small

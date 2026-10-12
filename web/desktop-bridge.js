@@ -50,6 +50,23 @@
     return realFetch(input, options);
   };
 
+  // fetch is what the UI uses, but a future caller (or a downloaded demo
+  // script) reaching for XMLHttpRequest must not be left unauthenticated.
+  if (typeof XMLHttpRequest === 'function') {
+    const realOpen = XMLHttpRequest.prototype.open;
+    const realSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function (method, url, ...rest) {
+      this.__gobSameOrigin = sameOrigin(url);
+      return realOpen.call(this, method, url, ...rest);
+    };
+    XMLHttpRequest.prototype.send = function (...args) {
+      if (this.__gobSameOrigin) {
+        try { this.setRequestHeader('X-GuzziOnBoard-Token', token); } catch (_) { /* already sent */ }
+      }
+      return realSend.apply(this, args);
+    };
+  }
+
   const realBeacon = navigator.sendBeacon && navigator.sendBeacon.bind(navigator);
   if (realBeacon) {
     navigator.sendBeacon = function (url, data) {

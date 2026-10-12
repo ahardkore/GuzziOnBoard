@@ -291,7 +291,13 @@ class ExportDesk:
     """Where the files a browser would have downloaded end up."""
 
     def __init__(self, directory: Path | str | None = None) -> None:
-        self.directory = Path(directory) if directory else resources.default_export_dir()
+        # Absolute, always: a window launched from a shortcut has a working
+        # directory nobody chose, so a relative path would put the user's
+        # reports somewhere unexpected.
+        self.directory = (
+            Path(directory).expanduser().absolute() if directory
+            else resources.default_export_dir()
+        )
 
     def write_text(self, name: str, text: str) -> dict:
         path = resources.unique_path(self.directory, name)

@@ -12,6 +12,8 @@ behavior; it is not claimed to be a kernel-grade sandbox.
 """
 from __future__ import annotations
 
+from . import resources
+
 import base64
 from dataclasses import dataclass
 import hashlib
@@ -24,7 +26,7 @@ import sys
 import tempfile
 from typing import Callable
 
-PLUGIN_DIR = Path.home() / ".guzzionboard" / "checksums"
+PLUGIN_DIR = resources.data_root() / "checksums"
 WORKER = Path(__file__).with_name("checksum_worker.py")
 WORKER_TIMEOUT_SECONDS = 4
 MAX_WORKER_RESPONSE = 16 * 1024 * 1024
@@ -32,6 +34,22 @@ MAX_WORKER_RESPONSE = 16 * 1024 * 1024
 
 class ChecksumUnavailable(ValueError):
     """A requested checksum provider is absent, incompatible, or invalid."""
+
+
+def worker_command() -> list[str] | None:
+    """How to start the isolated plugin worker on this installation.
+
+    From source: the interpreter that is running this code, with the worker
+    script. From an installed build there is no second interpreter to borrow,
+    so the installer ships a small console executable that *is* the worker
+    (``GuzziOnBoard-worker``, see ``packaging/guzzionboard.spec``). If that
+    helper is missing the feature stays unavailable with a reason, rather than
+    running a plugin somewhere weaker and saying it was isolated.
+    """
+    if not resources.frozen():
+        return [sys.executable, "-I", "-S", "-B", str(WORKER)]
+    helper = resources.worker_executable()
+    return [str(helper)] if helper is not None else None
 
 
 def _run_worker(path: Path, request: dict) -> dict:
@@ -47,10 +65,17 @@ def _run_worker(path: Path, request: dict) -> dict:
         "PYTHONIOENCODING": "utf-8",
         "PATH": os.defpath,
     }
+    command = worker_command()
+    if command is None:
+        raise ChecksumUnavailable(
+            "this build has no isolated checksum worker; checksum plugins are "
+            "unavailable in it (install from source, or use a build that ships "
+            "the GuzziOnBoard-worker helper)"
+        )
     try:
         with tempfile.TemporaryDirectory(prefix="guzzionboard-checksum-") as work:
             result = subprocess.run(
-                [sys.executable, "-I", "-S", "-B", str(WORKER)],
+                command,
                 input=encoded,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,

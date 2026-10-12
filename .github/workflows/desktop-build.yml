@@ -1,0 +1,165 @@
+name: Desktop application
+
+# Builds the installable desktop application and puts it where a user can
+# download it. Pushing a tag like v0.4.0 attaches the artifacts to that
+# release; a pull request builds them all the same way but only uploads them
+# as workflow artifacts, so the build is proven before a release exists.
+#
+# Every job runs `--selftest` against the artifact it just produced. A
+# PyInstaller build that is missing a catalog file, an XDF, a web asset or the
+# checksum worker still "succeeds" - the self-test is what refuses it.
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - 'guzzionboard/**'
+      - 'web/**'
+      - 'packaging/**'
+      - 'vendor/**'
+      - 'pyproject.toml'
+      - 'tests/**'
+      - '.github/workflows/desktop-build.yml'
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Attach the artifacts to the tag release (tag builds do this anyway)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUTF8: '1'
+
+jobs:
+  python-tests:
+    name: Python test suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -e '.[dev]'
+      - name: Run the test suite
+        run: pytest -q
+
+  windows:
+    name: Windows installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install build dependencies
+        run: pip install pyinstaller pywebview
+      - name: Download the WebView2 bootstrapper (optional, for old machines)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path packaging/resources | Out-Null
+          Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' `
+            -OutFile packaging/resources/MicrosoftEdgeWebView2Setup.exe
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Build the application and the installer
+        run: python packaging/build.py --installer --portable-zip
+      - name: Show what was built
+        shell: pwsh
+        run: Get-ChildItem dist | Format-Table Name, Length
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guzzionboard-windows-installer
+          path: |
+            dist/*setup*.exe
+            dist/*portable.zip
+            dist/SHA256SUMS-*.txt
+          if-no-files-found: error
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*setup*.exe
+            dist/*portable.zip
+          body: |
+            GuzziOnBoard ${{ github.ref_name }} — desktop application.
+
+            Download the `setup.exe` to install it (per-user, no administrator
+            prompt). The portable zip runs from any folder without installing.
+
+            Nothing has been validated on a real motorcycle; read the README
+            before connecting anything to a bike.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  linux:
+    name: Linux build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install build dependencies and a webview engine
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-gi gir1.2-webkit2-4.1 libgtk-3-0 libwebkit2gtk-4.1-0 \
+                                  libgl1 libxkbcommon0 libegl1
+          pip install pyinstaller
+      - name: Build
+        run: python packaging/build.py --portable-zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guzzionboard-linux
+          path: |
+            dist/*portable.zip
+            dist/SHA256SUMS-*.txt
+            dist/linux-x64-selftest.log
+          if-no-files-found: error
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*portable.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  macos:
+    name: macOS build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install pyinstaller pywebview
+      - name: Build the .app bundle and archive it
+        run: python packaging/build.py --portable-zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guzzionboard-macos
+          path: |
+            dist/*.zip
+            dist/SHA256SUMS-*.txt
+            dist/macos-*-selftest.log
+          if-no-files-found: error
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

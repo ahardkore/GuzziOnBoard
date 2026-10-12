@@ -1,7 +1,7 @@
 {
  "_generated_by": "scripts/build_demo_data.py",
  "_note": "Catalog snapshot for the hosted browser demo. Generated from the same definitions the Python workstation loads; do not hand-edit.",
- "version": "0.3.0",
+ "version": "0.4.0",
  "checklist": [
   "The motorcycle is on a stand, in neutral, and cannot roll or fall.",
   "The battery is healthy or on a charger - an ECU brown-out mid-operation is how ECUs die.",

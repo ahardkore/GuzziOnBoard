@@ -1709,10 +1709,62 @@ function renderScan() {
 }
 
 function download(filename, text, type = 'text/plain') {
+  // Inside the desktop app the host writes the file (to your exports folder,
+  // never overwriting one that is already there) instead of hoping the
+  // webview honours a blob download. In a browser tab: the browser's own
+  // download, unchanged.
+  const host = window.gobDesktop;
+  if (host && host.available) {
+    host.saveText(filename, text, type)
+      .then((saved) => toast(`Saved ${saved.name} to ${saved.dir}`, 'ok'))
+      .catch((err) => toast(`Could not save ${filename}: ${err.message}`, 'bad'));
+    return;
+  }
   const url = URL.createObjectURL(new Blob([text], { type }));
   const a = document.createElement('a');
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
+}
+
+function printView() {
+  // Webviews do not implement window.print() usefully, so the desktop host
+  // writes a standalone snapshot and opens it where printing works.
+  const host = window.gobDesktop;
+  if (host && host.available) {
+    host.printView()
+      .then((saved) => toast(String(saved.note || `Printable copy: ${saved.path}`), 'ok'))
+      .catch((err) => toast(`Could not prepare a printable copy: ${err.message}`, 'bad'));
+    return;
+  }
+  window.print();
+}
+
+/* The desktop app gets a small host row in the sidebar: where its files are,
+ * and a way out. None of it exists in a browser tab. */
+function setupDesktopRow() {
+  const host = window.gobDesktop;
+  const foot = document.querySelector('.sidebar-foot');
+  if (!host || !host.available || !foot) return;
+  const row = document.createElement('div');
+  row.className = 'desktop-row';
+  row.innerHTML = `
+    <div class="muted small">Desktop app &middot; files in <code>${esc(host.exports)}</code></div>
+    <div class="toolbar">
+      <button class="btn small" id="deskExportsBtn">Open exports</button>
+      <button class="btn small" id="deskDataBtn">Data folder</button>
+      <button class="btn small" id="deskQuitBtn">Quit</button>
+    </div>`;
+  const disclaimer = foot.querySelector('.disclaimer');
+  foot.insertBefore(row, disclaimer || null);
+  row.querySelector('#deskExportsBtn').onclick = () => host.openFolder('exports')
+    .then((r) => toast(r.note || `Opened ${r.path}`, r.ok ? 'ok' : 'warn'))
+    .catch((err) => toast(err.message, 'bad'));
+  row.querySelector('#deskDataBtn').onclick = () => host.openFolder('data')
+    .then((r) => toast(r.note || `Opened ${r.path}`, r.ok ? 'ok' : 'warn'))
+    .catch((err) => toast(err.message, 'bad'));
+  row.querySelector('#deskQuitBtn').onclick = () => host.quit()
+    .then((r) => toast(r.note || 'Closing the app.', 'ok'))
+    .catch((err) => toast(err.message, 'bad'));
 }
 
 /* ------------------------------------------------------------- sessions */
@@ -1873,7 +1925,7 @@ async function buildReport() {
 /* ----------------------------------------------------------------- wire */
 
 $('#yearSelect').onchange = resolveVehicle;
-$('#printBtn').onclick = () => window.print();
+$('#printBtn').onclick = () => printView();
 $('#tempUnit').onchange = (e) => {
   Temp.setUnit(e.target.value);
   if (state.lastSamples.length) renderLive(state.lastSamples);
@@ -1919,6 +1971,7 @@ window.addEventListener('beforeunload', () => {
 
 (async function boot() {
   try {
+    setupDesktopRow();
     $('#tempUnit').value = Temp.unit();
     await loadCatalog();
     await refreshStatus();
@@ -3135,7 +3188,7 @@ function wireMapsToolbar() {
     };
   });
   document.querySelectorAll('[data-act="print"]').forEach((btn) => {
-    btn.onclick = () => window.print();
+    btn.onclick = () => printView();
   });
 }
 

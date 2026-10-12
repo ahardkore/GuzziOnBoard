@@ -15,3 +15,11 @@ node_modules/
 test-results/
 playwright-report/
 blob-report/
+
+# Packaged desktop application (see packaging/README.md). These are build
+# outputs: an installer and a 30 MB application folder belong in a release, not
+# in git.
+/dist/
+/build/pyinstaller/
+packaging/resources/*.exe
+packaging/windows_version_info.txt

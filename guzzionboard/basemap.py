@@ -21,6 +21,8 @@ that has been truncated, moved or edited is not a restore map.
 """
 from __future__ import annotations
 
+from . import resources
+
 import hashlib
 import json
 import shutil
@@ -34,7 +36,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 #: Where base maps live. Deliberately not the working image directory.
-DEFAULT_BASEMAP_DIR = Path.home() / ".guzzionboard" / "basemaps"
+DEFAULT_BASEMAP_DIR = resources.data_root() / "basemaps"
 
 INDEX_NAME = "index.json"
 

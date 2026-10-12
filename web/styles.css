@@ -97,6 +97,16 @@ nav { display: flex; flex-direction: column; gap: 13px; }
 .conn-dot.on { background: var(--ok); box-shadow: 0 0 0 3px rgba(56, 184, 124, .18); }
 .disclaimer { color: #6c7a86; font-size: .7rem; line-height: 1.45; margin: 0; }
 
+/* The desktop app's host row: only ever built by the bridge page script, so
+ * it is absent in a browser tab and in the hosted demo. */
+.desktop-row {
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 10px 12px;
+}
+.desktop-row code { font-size: .68rem; word-break: break-all; color: #8fa0ad; }
+.desktop-row .toolbar { gap: 6px; }
+
 /* --------------------------------------------------------------- main */
 
 main { padding: 22px 26px 60px; min-width: 0; }

@@ -60,6 +60,56 @@ LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
 DEFAULT_WINDOW = (1360, 900)
 MINIMUM_WINDOW = (1024, 700)
 
+#: How long a launch waits for the window to say it is on screen before it
+#: opens the workstation in the browser instead. pywebview starts the window
+#: on a private GUI thread; if that thread dies or stalls, no Python code of
+#: ours is running any more and nothing else would ever happen. The watchdog
+#: that uses this is the operator's way out of exactly that.
+WINDOW_SHOWN_TIMEOUT = 25.0
+
+#: The oldest WebView2 runtime pywebview accepts for the Edge Chromium
+#: renderer (``webview/platforms/winforms.py`` enforces the same floor).
+#: Older than this and it silently falls back to the MSHTML/IE engine,
+#: which cannot run the workstation's UI at all.
+MINIMUM_WEBVIEW2 = "86.0.622.0"
+
+
+def _webview2_build() -> str | None:
+    """The installed WebView2 runtime's version string, or ``None``.
+
+    The same registry value the installer and pywebview look at. Checked
+    from the main thread, before any window exists, because a missing
+    runtime found later kills the process from a thread whose exceptions
+    cannot be caught.
+    """
+    if sys.platform != "win32":              # pragma: no cover - win32 only
+        return None
+    try:
+        import winreg                        # noqa: PLC0415 - win32 only
+    except ImportError:                      # pragma: no cover - defensive
+        return None
+    clients = (
+        r"SOFTWARE\Microsoft\EdgeUpdate\Clients"
+        r"\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
+    )
+    for hive, view in (
+        (winreg.HKEY_CURRENT_USER, 0),
+        (winreg.HKEY_LOCAL_MACHINE, winreg.KEY_WOW64_32KEY),
+        (winreg.HKEY_LOCAL_MACHINE, winreg.KEY_WOW64_64KEY),
+    ):
+        try:
+            with winreg.OpenKey(hive, clients, 0, winreg.KEY_READ | view) as key:
+                build, _ = winreg.QueryValueEx(key, "pv")
+            if build:
+                return str(build)
+        except OSError:
+            continue
+    return None
+
+
+def _version_tuple(text: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in str(text).split(".") if part.isdigit())
+
 
 class DesktopError(RuntimeError):
     """The shell cannot start (bad options, port taken, broken install)."""
@@ -544,6 +594,11 @@ class DesktopApp:
         self._stopped = False
         self._closing_anyway = False
         self._log_handle = None
+        #: Set by the window watchdog when the window never appeared; a
+        #: support question can be answered from the log alone.
+        self.window_watchdog_fired = False
+        #: Overridable so tests do not have to wait the real timeout.
+        self.window_watchdog_timeout = WINDOW_SHOWN_TIMEOUT
 
     # -- properties ------------------------------------------------------
     @property
@@ -683,6 +738,7 @@ class DesktopApp:
 
     def _start_window(self) -> None:
         webview = self.webview
+        self._preflight_window()
         icon = self._icon_path()
         self.window = webview.create_window(
             f"{resources.APP_NAME} — diagnostic workstation",
@@ -696,6 +752,7 @@ class DesktopApp:
         self.window.events.closing += self._on_window_closing
         self.window.events.closed += self._on_window_closed
         _enable_downloads(webview)
+        self._start_window_watchdog(self.window)
         webview.start(
             gui=self.gui,
             debug=self.debug,
@@ -703,6 +760,85 @@ class DesktopApp:
             storage_path=str(resources.storage_dir()),
             icon=str(icon) if icon else None,
         )
+
+    def _preflight_window(self) -> None:
+        """Check everything the window needs *before* it starts.
+
+        pywebview creates the window on a private GUI thread. A failure on
+        that thread - a missing WebView2 runtime, a broken .NET install, an
+        interop DLL that did not survive freezing - tears the whole process
+        down with no Python exception, so the fallback in :meth:`_run_window`
+        never runs and the operator sees nothing at all: no window, no
+        message, no log line. Everything that can be checked from the main
+        thread is checked here, where a failure is still an ordinary
+        exception the fallback can catch, explain and recover from.
+
+        This is why the first user launch of 0.4.0 "installed fine but never
+        opened": the log ended at ``mode: window`` and the process was gone.
+        """
+        webview = self.webview
+        version = getattr(webview, "__version__", "unknown")
+        if sys.platform == "win32" and self.gui in (None, "edgechromium"):
+            build = _webview2_build()
+            if build is None or _version_tuple(build) < _version_tuple(MINIMUM_WEBVIEW2):
+                found = (
+                    f"version {build} is older than {MINIMUM_WEBVIEW2}"
+                    if build
+                    else "is not installed"
+                )
+                raise DesktopError(
+                    f"the Microsoft WebView2 runtime {found}, and the window cannot "
+                    "open without it. Install it from "
+                    "https://developer.microsoft.com/microsoft-edge/webview2/ "
+                    "and launch GuzziOnBoard again."
+                )
+        try:
+            from webview.guilib import initialize
+        except ImportError:                  # pragma: no cover - pywebview's own shape moved
+            print("  window:    (pywebview internals not probeable; starting anyway)")
+            return
+        try:
+            guilib = initialize(self.gui)
+            renderer = getattr(guilib, "renderer", "") or ""
+        except Exception as exc:
+            raise DesktopError(
+                f"the window engine could not be loaded ({type(exc).__name__}: {exc}). "
+                "This installation may be damaged; reinstalling GuzziOnBoard is "
+                "the usual fix."
+            ) from exc
+        print(f"  window:    pywebview {version}, {renderer or 'unknown'} renderer")
+
+    def _start_window_watchdog(self, window) -> None:
+        """If the window never appears, open the browser instead.
+
+        The converse of the preflight: this covers what cannot be checked in
+        advance - the GUI thread stalling or dying inside webview.start(),
+        which blocks the main thread and would otherwise leave the operator
+        with a process that does nothing. The workstation's server is on its
+        own thread and still healthy, so the browser gets a fully working
+        copy; this process stays up and keeps serving it.
+        """
+        def watch() -> None:
+            shown = getattr(getattr(window, "events", None), "shown", None)
+            if shown is None:               # pragma: no cover - defensive
+                return
+            if shown.wait(self.window_watchdog_timeout):
+                return
+            if self._stopping.is_set() or self.mode != "window":
+                return
+            self.window_watchdog_fired = True
+            print(
+                f"the desktop window did not appear within "
+                f"{self.window_watchdog_timeout:.0f} seconds. The workstation is "
+                "running; opening it in your browser instead. This is a bug "
+                "worth reporting, with this log attached."
+            )
+            if not open_url(self.url):
+                print(f"  open {self.url} in your browser")
+
+        threading.Thread(
+            target=watch, name="guzzionboard-window-watchdog", daemon=True
+        ).start()
 
     def _run_browser(self) -> None:
         if self.backend.detail:

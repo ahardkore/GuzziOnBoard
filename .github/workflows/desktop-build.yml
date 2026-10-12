@@ -154,9 +154,12 @@ jobs:
   # clicked through it yet. This job does the next best thing on a clean
   # runner: install it silently, launch the *installed* application's own
   # self-test, then uninstall it and check that the user's own files - session
-  # logs, backups, base maps - were left where they were. The steps live in
-  # packaging/installer/windows-install-check.ps1 so they can be read, and run,
-  # without a workflow in the way.
+  # logs, backups, base maps - were left where they were. It also launches
+  # the installed app the way a double-click does and demands a window - or
+  # an explained fallback - because the window is created on a GUI thread
+  # whose failures are otherwise silent (that is how 0.4.0 shipped). The
+  # steps live in packaging/installer/windows-install-check.ps1 so they can
+  # be read, and run, without a workflow in the way.
   windows-install:
     name: Windows install and uninstall
     needs: windows
@@ -195,6 +198,7 @@ jobs:
           path: |
             ${{ runner.temp }}/install.log
             ${{ runner.temp }}/installed-selftest.log
+            ${{ runner.temp }}/windowed-desktop.log
           if-no-files-found: ignore
 
   desktop-ui:

@@ -22,9 +22,10 @@ the same safety gate behind it.
 > is exercised by the test suite (`tests/test_desktop.py`,
 > `tests/test_packaging.py`) and by the self-test that CI runs against each
 > built artifact — against the *simulator*, and against a Python-level stand-in
-> for a frozen build. Nobody has yet installed this on a Windows machine next
-> to a motorcycle. When you do, `GuzziOnBoard.exe --selftest` is the first
-> thing to run.
+> for a frozen build. CI also launches the installed application on a runner
+> and expects a window (or an explained fallback). Nobody has yet installed
+> this on a Windows machine next to a motorcycle. When you do,
+> `GuzziOnBoard.exe --selftest` is the first thing to run.
 
 ---
 
@@ -227,7 +228,7 @@ rather than the user.
 | Linux | `GuzziOnBoard-<version>-linux-<arch>-portable.zip` (+ `install.sh`, `.desktop`) | The frozen folder app runs `--selftest` |
 | macOS | `GuzziOnBoard-<version>-macos-<arch>.zip` (the `.app`) and a portable `.zip` | Both the folder app *and* `GuzziOnBoard.app/Contents/MacOS/GuzziOnBoard` run `--selftest` — a `.app` is a different arrangement of the same files |
 | All three | `SHA256SUMS-<platform>.txt` and the transcript | `if-no-files-found: error`: an artifact-less build goes red |
-| Windows, again | `windows-install-report` (install log + transcript) | A separate job **installs the setup silently**, checks the payload and the Start-menu shortcut, runs the installed application's `--selftest`, **starts the installed application** and talks to it (the UI answers, and its own token-checked `/api/desktop/ping` does), then **uninstalls it** and checks `%USERPROFILE%\.guzzionboard` came through untouched (`packaging/installer/windows-install-check.ps1`) |
+| Windows, again | `windows-install-report` (install log + transcript + `windowed-desktop.log`) | A separate job **installs the setup silently**, checks the payload and the Start-menu shortcut, runs the installed application's `--selftest`, **starts the installed application** and talks to it (the UI answers, and its own token-checked `/api/desktop/ping` does), then **launches it windowed, the way a double-click does, and demands a window** — or an explained fallback, never a silent death (`packaging/installer/windows-install-check.ps1`), then **uninstalls it** and checks `%USERPROFILE%\.guzzionboard` came through untouched |
 | Linux, again | `dist/linux-install-selftest.log` | The same script the README tells you to run is run for real, then its launcher is executed through the symlink the script installed — `--selftest`, and then for real, answering HTTP and its own ping (`packaging/installer/linux-install-check.sh`) |
 
 ### Publishing, and republishing
@@ -287,6 +288,25 @@ Gatekeeper will want a right-click → *Open* the first time. Signing needs an
 Apple Developer certificate, which this project does not have.
 
 ## Troubleshooting
+
+**"The installer worked, but nothing opened."** That was 0.4.0's bug, and it
+is worth understanding. The window is created by pywebview on its own GUI
+thread; a failure there kills the process with no error, no dialog and no
+log line — the log simply ends at `mode: window`. The launch now defends
+against it in two places:
+
+* *Before* the window starts, everything checkable is checked on the main
+  thread: the WebView2 runtime's presence and version (Windows), and the
+  window engine itself. A failure there is an ordinary, explained error and
+  the workstation opens in your browser instead, with the reason in
+  `~/.guzzionboard/logs/desktop.log`.
+* If the window is created but never appears within 25 seconds, a watchdog
+  opens the workstation in your browser and says so in the log.
+
+If you see *neither*, the process died before Python could say anything, and
+the crash record is in Windows' Event Viewer (Windows Logs → Application,
+Event ID 1000, "Application Error" — the *faulting module* line names the
+culprit). That is the one file a bug report wants.
 
 **"The window did not appear."** The shell prints why and opens the workstation
 in your browser instead. The reason is also in `~/.guzzionboard/logs/desktop.log`.

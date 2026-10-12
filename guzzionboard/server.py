@@ -1,7 +1,10 @@
 """Dependency-free local HTTP API and static file server.
 
-This is the seam a desktop shell would replace. It binds locally, speaks JSON,
-and holds exactly one :class:`~guzzionboard.workstation.Workstation`.
+This is the seam the desktop shell sits on: it binds loopback, speaks JSON,
+holds exactly one :class:`~guzzionboard.workstation.Workstation`, and does not
+care whether the page in front of it is a browser tab
+(:mod:`guzzionboard.__main__`) or a native window
+(:mod:`guzzionboard.desktop`).
 """
 from __future__ import annotations
 
@@ -10,12 +13,15 @@ import json
 import math
 import mimetypes
 import re
+import secrets
 import threading
 import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlsplit, urlparse
+
+from . import resources
 
 from . import adapter as adapter_mod
 from . import canlog
@@ -75,7 +81,14 @@ from .sessionlog import SessionLog
 from .transports.base import TransportError, TransportUnavailable
 from .workstation import Workstation
 
-WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
+#: The UI directory. Resolved through :mod:`guzzionboard.resources` so an
+#: installed build finds the copy an installer shipped and a source checkout
+#: finds the repository one. A broken install is reported when a page is
+#: requested rather than at import time.
+try:
+    WEB_ROOT = resources.web_root()
+except resources.BundleIncomplete:  # pragma: no cover - exercised via resources
+    WEB_ROOT = resources.bundle_root() / "web"
 
 CONTENT_TYPES = {
     ".html": "text/html; charset=utf-8",
@@ -85,6 +98,125 @@ CONTENT_TYPES = {
     ".svg": "image/svg+xml",
 }
 
+#: Host names the workstation answers to. Anything else is refused: the API
+#: can energise actuators, so it must not be reachable through a name that a
+#: remote page could make resolve here (DNS rebinding).
+LOOPBACK_HOST_NAMES = {"127.0.0.1", "localhost", "::1"}
+
+#: Header the desktop window's bridge uses to prove it was handed this
+#: launch's token (the name lives in :mod:`guzzionboard.resources` because the
+#: shell has to send it too). A query parameter is accepted as well, for the
+#: one API call a page cannot attach headers to (``navigator.sendBeacon`` on
+#: unload).
+TOKEN_HEADER = resources.TOKEN_HEADER
+TOKEN_QUERY = "token"
+
+
+class RequestGuard:
+    """The loopback request policy of a locally running workstation.
+
+    Three checks, in order: the ``Host`` header must name loopback (a browser
+    talking to a rebound DNS name sends the attacker's name, not ours), any
+    ``Origin`` must be this same workstation (browsers send one on every
+    cross-origin request, so this is what stops another page you have open
+    from talking to a connected motorcycle), and - inside the desktop shell -
+    every ``/api/`` call must carry the token that launch generated.
+
+    Requests with no ``Origin`` at all (curl, the app's own test suite, the
+    Python client in ``--selftest``) are allowed: this policy exists to stop
+    browsers, not to lock the operator out of their own tool.
+    """
+
+    def __init__(self, *, token: str | None = None,
+                 hosts=LOOPBACK_HOST_NAMES) -> None:
+        self.token = token or None
+        #: ``None`` means "any name this server is reached by", which is only
+        #: right when the operator explicitly bound a non-loopback address.
+        self.hosts = None if hosts is None else {h.lower() for h in hosts}
+
+    # -- pieces ----------------------------------------------------------
+    @staticmethod
+    def host_name(host: str | None) -> str | None:
+        if not host:
+            return None
+        try:
+            name = urlsplit(f"//{host}").hostname
+        except ValueError:
+            return None
+        return name.lower() if name else None
+
+    def origin_allowed(self, origin: str, host: str | None) -> bool:
+        if origin.lower() == "null":       # file://, sandboxed frames
+            return False
+        try:
+            parts = urlsplit(origin)
+        except ValueError:
+            return False
+        if parts.scheme not in ("http", "https") or not parts.netloc:
+            return False
+        if parts.netloc.lower() == (host or "").lower():
+            return True
+        # `localhost:8080` posting to a window opened as `127.0.0.1:8080` is
+        # the same workstation; a different port is a different origin.
+        return (
+            (parts.hostname or "").lower() in (self.hosts or set())
+            and self._port(parts) == self._port(urlsplit(f"//{host or ''}"))
+        )
+
+    @staticmethod
+    def _port(parts) -> int:
+        if parts.port:
+            return parts.port
+        return 443 if parts.scheme == "https" else 80
+
+    def check(self, *, command: str, path: str, host: str | None, origin: str | None,
+              header_token: str | None = None, query_token: str | None = None):
+        """``None`` when the request may proceed, else ``(status, message)``."""
+        name = self.host_name(host)
+        if name is None:
+            return 403, "missing Host header"
+        if self.hosts is not None and name not in self.hosts:
+            return 403, (
+                f"this workstation answers loopback names only; {name!r} is not "
+                "one of them (open http://127.0.0.1/... instead)"
+            )
+        if origin and not self.origin_allowed(origin, host):
+            return 403, (
+                f"refused a request from origin {origin!r}: this API drives "
+                "hardware and only answers the window it serves"
+            )
+        if self.token and path.startswith("/api/"):
+            supplied = header_token or query_token or ""
+            if not secrets.compare_digest(str(supplied), self.token):
+                return 403, (
+                    "this launch's session token is missing or wrong; reload the "
+                    "window it opened"
+                )
+        return None
+
+
+def loopback_guard(*, token: str | None = None) -> RequestGuard:
+    """The guard used by both the console server and the desktop shell."""
+    return RequestGuard(token=token)
+
+
+def _binds_loopback(host: str) -> bool:
+    return RequestGuard.host_name(host) in LOOPBACK_HOST_NAMES
+
+
+def guard_for_bind(host: str, *, token: str | None = None) -> RequestGuard:
+    """A guard that matches the address the operator asked us to bind.
+
+    Loopback binds get the strict host list. An explicit non-loopback bind is
+    a decision the operator already made (a workshop laptop on the LAN), so
+    the host check is relaxed there - but a request from *another web origin*
+    is still refused, because that is the check that keeps a random page in a
+    browser from pulsing relays on a connected motorcycle.
+    """
+    if _binds_loopback(host):
+        return RequestGuard(token=token)
+    return RequestGuard(token=token, hosts=None)
+
 
 #: The workstation page ships with ``web/demo-api.js``, an in-browser stand-in
 #: for this server used when the page is hosted statically (GitHub Pages).
@@ -93,12 +225,29 @@ CONTENT_TYPES = {
 #: hostnames or ports.
 LIVE_BACKEND_MARKER = b'<body data-backend="live">'
 
+#: Loaded into the page only when the desktop shell is serving it. It must be
+#: in place before ``app.js`` runs: it installs the launch token on every API
+#: call and reroutes "save this file" from a browser download to the host.
+DESKTOP_BRIDGE_PATH = "/desktop-bridge.js"
+DESKTOP_BRIDGE_TAG = b'<script src="/desktop-bridge.js"></script>'
+DESKTOP_BODY_TAG = b'<body data-backend="live" data-desktop="1">'
+
 
 def mark_live_backend(body: bytes) -> bytes:
     """Tag the served workstation page as backed by this process."""
     if LIVE_BACKEND_MARKER in body:
         return body
     return body.replace(b"<body>", LIVE_BACKEND_MARKER, 1)
+
+
+def mark_desktop(body: bytes) -> bytes:
+    """Tag the page as desktop-hosted and load the bridge ahead of the app."""
+    if b'data-desktop="1"' in body:
+        return body
+    body = mark_live_backend(body)
+    body = body.replace(LIVE_BACKEND_MARKER, DESKTOP_BODY_TAG, 1)
+    return body.replace(DESKTOP_BODY_TAG, DESKTOP_BODY_TAG + b"\n" + DESKTOP_BRIDGE_TAG, 1)
+
 
 
 class JobRunner:
@@ -151,10 +300,17 @@ class JobRunner:
 
 
 class Api:
-    """Route table. Each handler returns ``(status, payload)``."""
+    """Route table. Each handler returns ``(status, payload)``.
 
-    def __init__(self, workstation: Workstation):
+    ``desktop`` is the shell's bridge object (:class:`guzzionboard.desktop.
+    DesktopBridge`) when this process owns a native window, and ``None`` when
+    the page was opened in a browser. The desktop routes answer honestly
+    either way instead of pretending: a browser session has no host to ask.
+    """
+
+    def __init__(self, workstation: Workstation, *, desktop=None):
         self.ws = workstation
+        self.desktop = desktop
         self._prog: ProgrammingService | None = None
         #: Derived channels and plausibility checks keep a short rolling
         #: window, so the analyzer outlives a single request but is thrown
@@ -235,6 +391,74 @@ class Api:
 
     def post_checklist(self, body: dict) -> tuple[int, dict]:
         return 200, self.ws.accept_checklist(bool(body.get("accepted")))
+
+    # -- the desktop shell ------------------------------------------------
+    #
+    # A window cannot do everything a browser does: `a.download` is off by
+    # default, `window.print()` is not implemented by every engine, and a
+    # second launch of the installed app should not start a second
+    # workstation. These routes are that difference, and only that.
+
+    def get_desktop(self, query: dict) -> tuple[int, dict]:
+        if self.desktop is None:
+            return 200, {
+                "available": False,
+                "reason": (
+                    "This page was opened in a browser, so there is no host "
+                    "shell to ask. Downloads use the browser's own folder."
+                ),
+            }
+        return 200, self.desktop.info()
+
+    def get_desktop_ping(self, query: dict) -> tuple[int, dict]:
+        """Cheap liveness probe, used to recognise our own earlier launch."""
+        from . import __version__
+
+        return 200, {
+            "ok": True,
+            "app": resources.APP_NAME,
+            "version": __version__,
+            "desktop": self.desktop is not None,
+        }
+
+    def _require_desktop(self, what: str):
+        if self.desktop is None:
+            raise ValueError(f"{what} needs the desktop app; this page is in a browser")
+        return self.desktop
+
+    def post_desktop_raise(self, body: dict) -> tuple[int, dict]:
+        if self.desktop is None:
+            return 200, {"ok": False, "reason": "no window to raise (browser session)"}
+        return 200, self.desktop.raise_window()
+
+    def post_desktop_save(self, body: dict) -> tuple[int, dict]:
+        desktop = self._require_desktop("saving a file next to the app")
+        name = body.get("name")
+        content = body.get("content")
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("'name' is required")
+        if not isinstance(content, str):
+            raise ValueError("'content' must be a string")
+        return 200, desktop.save_text(name, content)
+
+    def post_desktop_print(self, body: dict) -> tuple[int, dict]:
+        desktop = self._require_desktop("printing")
+        html = body.get("html")
+        if not isinstance(html, str) or not html.strip():
+            raise ValueError("'html' is required")
+        return 200, desktop.print_view(html)
+
+    def post_desktop_open_external(self, body: dict) -> tuple[int, dict]:
+        desktop = self._require_desktop("opening a link in your browser")
+        return 200, desktop.open_external(str(body.get("url") or ""))
+
+    def post_desktop_open_folder(self, body: dict) -> tuple[int, dict]:
+        desktop = self._require_desktop("opening a folder")
+        return 200, desktop.open_folder(str(body.get("which") or "exports"))
+
+    def post_desktop_quit(self, body: dict) -> tuple[int, dict]:
+        desktop = self._require_desktop("closing the app")
+        return 200, desktop.quit()
 
     # -- diagnostics ------------------------------------------------------
     def get_identify(self, query: dict) -> tuple[int, dict]:
@@ -1730,6 +1954,8 @@ ROUTES_GET = {
     "/api/adapter": "get_adapter",
     "/api/tools/gearing": "get_gearing",
     "/api/sessions/export": "get_export",
+    "/api/desktop": "get_desktop",
+    "/api/desktop/ping": "get_desktop_ping",
 }
 
 ROUTES_POST = {
@@ -1780,11 +2006,24 @@ ROUTES_POST = {
     "/api/procedures/start": "post_procedure_start",
     "/api/procedures/advance": "post_procedure_advance",
     "/api/procedures/abort": "post_procedure_abort",
+    "/api/desktop/raise": "post_desktop_raise",
+    "/api/desktop/save": "post_desktop_save",
+    "/api/desktop/print": "post_desktop_print",
+    "/api/desktop/open-external": "post_desktop_open_external",
+    "/api/desktop/open-folder": "post_desktop_open_folder",
+    "/api/desktop/quit": "post_desktop_quit",
 }
 
 
-def make_handler(workstation: Workstation):
-    api = Api(workstation)
+def make_handler(workstation: Workstation, *, guard: RequestGuard | None = None, desktop=None):
+    """Build the request handler for one workstation.
+
+    ``guard`` is the loopback policy from :class:`RequestGuard` (the console
+    server and the desktop shell both install one); ``desktop`` is the shell's
+    bridge object, which also switches on the page marker and the bridge
+    script. Both default to off, which is what the test suite wants.
+    """
+    api = Api(workstation, desktop=desktop)
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "GuzziOnBoard"
@@ -1794,6 +2033,26 @@ def make_handler(workstation: Workstation):
             pass
 
         # -- helpers ------------------------------------------------------
+        def _guard_rejects(self, path: str) -> bool:
+            """Apply the loopback policy; answer and return True when refused."""
+            if guard is None:
+                return False
+            query = parse_qs(urlparse(self.path).query)
+            decision = guard.check(
+                command=self.command,
+                path=path,
+                host=self.headers.get("Host"),
+                origin=self.headers.get("Origin"),
+                header_token=self.headers.get(TOKEN_HEADER),
+                query_token=(query.get(TOKEN_QUERY) or [None])[0],
+            )
+            if decision is None:
+                return False
+            status, message = decision
+            self.close_connection = True
+            self._json(status, {"error": message, "code": "guard"})
+            return True
+
         def _send(self, status: int, body: bytes, content_type: str) -> None:
             self.send_response(status)
             self.send_header("Content-Type", content_type)
@@ -1845,6 +2104,11 @@ def make_handler(workstation: Workstation):
         # -- verbs --------------------------------------------------------
         def do_GET(self):
             parsed = urlparse(self.path)
+            if self._guard_rejects(parsed.path):
+                return
+            if parsed.path == DESKTOP_BRIDGE_PATH:
+                self._serve_desktop_bridge()
+                return
             if parsed.path in ROUTES_GET:
                 self._dispatch(ROUTES_GET, parsed.path, parse_qs(parsed.query))
                 return
@@ -1858,6 +2122,8 @@ def make_handler(workstation: Workstation):
 
         def do_POST(self):
             parsed = urlparse(self.path)
+            if self._guard_rejects(parsed.path):
+                return
             if parsed.path not in ROUTES_POST:
                 self.close_connection = True
                 self._json(404, {"error": f"no route {parsed.path}"})
@@ -1916,12 +2182,41 @@ def make_handler(workstation: Workstation):
             body = target.read_bytes()
             if target.name == "index.html":
                 body = mark_live_backend(body)
+                if desktop is not None:
+                    body = mark_desktop(body)
             self._send(200, body, content_type)
 
+        def _serve_desktop_bridge(self) -> None:
+            """The page's host bridge, generated per launch.
+
+            The token is baked in here rather than put in the URL, so it never
+            reaches the address bar, the browser history or a referrer.
+            """
+            if desktop is None:
+                self._send(404, b"not found", "text/plain")
+                return
+            try:
+                body = desktop.bridge_script()
+            except Exception as exc:  # a broken install, reported as such
+                traceback.print_exc()
+                self._send(
+                    500,
+                    f"the desktop bridge is unavailable: {exc}\n".encode("utf-8"),
+                    "text/plain; charset=utf-8",
+                )
+                return
+            self._send(200, body, "text/javascript; charset=utf-8")
+
+    #: The route table, reachable from the outside so the desktop shell can
+    #: watch job state (a flash read in flight, before closing the window)
+    #: without a second instance of either.
+    Handler.api = api
+    Handler.workstation = workstation
     return Handler
 
 
-def serve(host: str = "0.0.0.0", port: int = 8000, *, record: bool = True) -> None:
+def serve(host: str = "0.0.0.0", port: int = 8000, *, record: bool = True,
+          guard: RequestGuard | None = None) -> None:
     workstation = Workstation(record=record)
     summary = workstation.catalog.summary()
     print(f"GuzziOnBoard {workstation.status()['version']}")
@@ -1932,7 +2227,18 @@ def serve(host: str = "0.0.0.0", port: int = 8000, *, record: bool = True) -> No
     )
     print(f"  listening on http://{host}:{port}")
     print("  simulator mode is the default; no serial port is opened until you ask.")
-    server = ThreadingHTTPServer((host, port), make_handler(workstation))
+    # The console server is still the thing an operator points a browser at,
+    # so it gets the same policy the desktop shell uses: a page on another
+    # origin cannot reach the motorcycle through it.
+    guard = guard_for_bind(host) if guard is None else guard
+    if _binds_loopback(host):
+        print("  answering loopback names only (127.0.0.1 / localhost); other Host headers are refused.")
+    else:
+        print(
+            f"  note: bound to {host} - other machines can reach this page, and "
+            "requests from other web origins are still refused."
+        )
+    server = ThreadingHTTPServer((host, port), make_handler(workstation, guard=guard))
     try:
         server.serve_forever()
     except KeyboardInterrupt:

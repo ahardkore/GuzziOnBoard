@@ -21,22 +21,24 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import resources
+
 #: Recommended FTDI latency in milliseconds.
 RECOMMENDED_LATENCY_MS = 1
 
 #: sysfs location of the per-port latency timer on Linux.
 SYSFS_USB_SERIAL = Path("/sys/bus/usb-serial/devices")
 
+#: In a source checkout this is the repository; in an installed build it is
+#: the unpacked bundle (which mirrors the repository's layout).
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 #: The WHQL-certified FTDI CDM driver bundle mirrored unmodified with the
 #: rest of the GuzziDiag toolset (see vendor/guzzidiag/MANIFEST.json). This
 #: is exactly the installer the reference AdapterTest points users at; the
-#: pre-flight surfaces it instead of hunting the FTDI site.
-DRIVER_BUNDLE_ZIP = (
-    REPO_ROOT / "vendor" / "guzzidiag" / "tools"
-    / "CDM-v2.12.36.20-WHQL-Certified.zip"
-)
+#: pre-flight surfaces it instead of hunting the FTDI site. Resolved through
+#: :mod:`guzzionboard.resources` so an installed build finds its own copy.
+DRIVER_BUNDLE_ZIP = resources.driver_bundle_path()
 
 
 def driver_bundle_info() -> dict:

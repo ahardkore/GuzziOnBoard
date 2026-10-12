@@ -36,6 +36,8 @@ That base is auto-detected from the image size and always reported back.
 """
 from __future__ import annotations
 
+from . import resources
+
 import math
 import re
 import xml.etree.ElementTree as ET
@@ -43,7 +45,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 #: Where user-supplied XDFs are looked for, mirroring the key plugin dir.
-XDF_DIR = Path.home() / ".guzzionboard" / "xdfs"
+XDF_DIR = resources.data_root() / "xdfs"
 
 #: XDFs vendored into the project itself, see docs/XDF_LIBRARY.md.
 BUNDLED_XDF_DIR = Path(__file__).resolve().parent / "xdfs"

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "guzzionboard"
-version = "0.3.0"
+version = "0.4.0"
 description = "A safety-first diagnostic workstation for Moto Guzzi motorcycles"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,11 +12,19 @@ license = { text = "MIT" }
 dependencies = []
 
 [project.optional-dependencies]
+# The desktop application's window. Everything else it needs is stdlib, and
+# the app falls back to the system browser when this is absent (or when the
+# platform's webview engine is missing), so it stays optional.
+desktop = ["pywebview>=5.0"]
 hardware = ["pyserial>=3.5", "python-can>=4.2"]
 dev = ["pytest>=7.4"]
+# What packaging/build.py needs; pip install -e '.[desktop]' is the shortest
+# route to running the workstation in a window from a checkout.
+build = ["pyinstaller>=6.0"]
 
 [project.scripts]
 guzzionboard = "guzzionboard.__main__:main"
+guzzionboard-desktop = "guzzionboard.desktop:main"
 
 [tool.setuptools]
 packages = ["guzzionboard", "guzzionboard.protocol", "guzzionboard.transports", "guzzionboard.catalog"]

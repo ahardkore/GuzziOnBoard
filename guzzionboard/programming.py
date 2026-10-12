@@ -48,6 +48,8 @@ Two wire protocols are supported, selected per ECU family by the catalog:
 """
 from __future__ import annotations
 
+from . import resources
+
 import json
 import time
 from dataclasses import dataclass, field
@@ -69,7 +71,7 @@ from .safety import Decision, Risk, SafetyGate, SafetyViolation
 from .security import SecurityUnavailable, best_provider
 
 #: Where backups and checkpoints live.
-DEFAULT_IMAGE_DIR = Path.home() / ".guzzionboard" / "images"
+DEFAULT_IMAGE_DIR = resources.data_root() / "images"
 
 
 class ProgrammingError(Exception):

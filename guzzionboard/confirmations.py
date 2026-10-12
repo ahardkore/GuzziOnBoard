@@ -39,6 +39,8 @@ the operator chooses to attach it to a GitHub issue or PR.
 """
 from __future__ import annotations
 
+from . import resources
+
 import hashlib
 import json
 import re
@@ -49,8 +51,8 @@ from pathlib import Path
 from . import __version__
 
 SCHEMA = "guzzionboard.protocol-confirmation/v1"
-DEFAULT_DIR = Path.home() / ".guzzionboard" / "confirmations"
-INSTALL_FILE = Path.home() / ".guzzionboard" / "install.json"
+DEFAULT_DIR = resources.data_root() / "confirmations"
+INSTALL_FILE = resources.data_root() / "install.json"
 SIM_TRANSPORTS = ("simulator", "cansim")
 
 #: Every claim name a bundle may carry. The promotion table in

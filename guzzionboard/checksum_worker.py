@@ -35,6 +35,18 @@ def _install_audit_guard(plugin: Path) -> None:
         value = sysconfig.get_path(key)
         if value:
             roots.add(Path(value).resolve())
+    # A frozen worker reads its own interpreter, library and stdlib out of the
+    # bundle PyInstaller unpacked (sys._MEIPASS): without these roots the guard
+    # would deny the plugin's own imports and every module load would fail.
+    bundle = getattr(sys, "_MEIPASS", None)
+    if bundle:
+        roots.add(Path(bundle).resolve())
+    for value in (sys.base_prefix, sys.prefix, getattr(sys, "executable", None)):
+        if value and Path(os.fspath(value)).exists():
+            try:
+                roots.add(Path(os.fspath(value)).resolve())
+            except OSError:      # pragma: no cover - odd install layouts
+                pass
 
     def readable(path_value) -> bool:
         if isinstance(path_value, int):

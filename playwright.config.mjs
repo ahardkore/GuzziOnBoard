@@ -20,6 +20,10 @@ if (process.platform === 'linux') {
 
 export default defineConfig({
   testDir: './tests/browser',
+  // The desktop-host spec needs `guzzionboard-desktop` behind the page, not
+  // the static server this config starts: it has its own config
+  // (playwright.desktop.config.mjs, `npm run test:browser:desktop`).
+  testIgnore: /desktop-host\.spec\.mjs/,
   timeout: 120_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,

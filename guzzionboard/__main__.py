@@ -26,6 +26,8 @@ def build_parser() -> argparse.ArgumentParser:
             "quick start:\n"
             "  guzzionboard                 start the workstation (simulator mode needs no hardware)\n"
             "  guzzionboard --port 8080     same, on another port\n"
+            "  guzzionboard --desktop       same, in a native window (pywebview)\n"
+            "  guzzionboard --selftest      check this installation and exit\n"
             "\n"
             "then open http://127.0.0.1:8000, pick a motorcycle in the Garage\n"
             "and connect. For a real bike:\n"
@@ -48,6 +50,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="do not write session logs to ~/.guzzionboard/sessions",
     )
     parser.add_argument(
+        "--desktop", action="store_true",
+        help="open the workstation in a native desktop window instead of a browser "
+             "(see guzzionboard-desktop for window options)",
+    )
+    parser.add_argument(
+        "--selftest", action="store_true",
+        help="check this installation (catalog, UI, API, worker) and exit",
+    )
+    parser.add_argument(
         "--version", action="version",
         version=f"%(prog)s {__version__}",
     )
@@ -56,6 +67,19 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.desktop or args.selftest:
+        # Both live in the desktop module, which owns the window, the export
+        # folder and the installation checks. Imported here so the browser
+        # entry point stays free of them.
+        from .desktop import main as desktop_main
+
+        forwarded = [f"--host={args.host}", f"--port={args.port}"]
+        if args.no_record:
+            forwarded.append("--no-record")
+        if args.selftest:
+            forwarded = ["--selftest", f"--host={args.host}"]
+        return desktop_main(forwarded)
+
     from .server import serve
 
     serve(host=args.host, port=args.port, record=not args.no_record)

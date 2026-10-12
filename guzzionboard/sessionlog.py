@@ -12,6 +12,8 @@ decoded samples, safety decisions and operator actions. Two reasons:
 """
 from __future__ import annotations
 
+from . import resources
+
 import json
 import time
 import uuid
@@ -19,7 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
 
-DEFAULT_DIR = Path.home() / ".guzzionboard" / "sessions"
+DEFAULT_DIR = resources.data_root() / "sessions"
 
 
 @dataclass

@@ -205,8 +205,12 @@ Session files are gitignored. They can contain a VIN-adjacent ECU serial.
 - **Automatic ECU detection by probing.** Guessing a protocol by writing to an
   unknown bus is how things go wrong; the operator picks, and the catalog warns
   when a model/year is ambiguous.
-- **A desktop shell.** The HTTP API is the seam a Tauri shell would sit on, but
-  shipping a browser-based tool first keeps the dependency surface at zero.
+- **A second implementation of anything.** The desktop application
+  (:mod:`guzzionboard.desktop`) is a window, a loopback server, a place to put
+  saved files and a single-instance record. It cannot open a serial port, and
+  every diagnostic action still goes through the same gate, catalog and frame
+  guard as the browser version. What it replaces is *launching a server and
+  remembering a URL*, nothing else. See `docs/DESKTOP.md`.
 
 
 ## The memory and programming layer
@@ -295,6 +299,7 @@ two implementations:
 
 | | `guzzionboard/server.py` | `web/demo-api.js` + `web/demo-lab.js` |
 |---|---|---|
+| Served by | `python -m guzzionboard` (browser) or the installed app's window | GitHub Pages, a static file host |
 | Runs in | a local Python process | the browser tab |
 | Speaks | the real KWP2000/ISO-TP stack through a transport | the catalog, the engine model and the safety gate, ported |
 | Raw bytes | encoded, checksummed, sent, received | reconstructed from the catalog scaling (labelled as a demo) |
@@ -304,6 +309,7 @@ two implementations:
 | Guided tests | real observation windows | the same steps and verdicts, windows compressed ~8x against the engine model |
 | Tools | read and write files | the same arithmetic over pasted text and browser downloads |
 | Connector / adapter setup | physical serial and CAN hardware | labelled in-tab connector and adapter fixtures; no real-bike transport option or browser hardware permission |
+| Saved files | browser download, or the export folder when the desktop app is the host | browser download |
 
 Why a second implementation exists: GitHub Pages has no process to run, and a
 diagnostic tool nobody can try is a diagnostic tool nobody adopts. Why it is
@@ -346,6 +352,40 @@ spoiling the simulated wire → virtual connector and adapter pre-flight), and
 `tests/demo_xdf_parity.mjs` renders a definition the browser's way so the
 Python side can compare. `tests/test_demo_mode.py` runs both when Node is
 available.
+
+## The desktop shell (a window on the same seam)
+
+`guzzionboard/desktop.py` is what the installed application adds: a native
+window (pywebview) on the loopback server, an export folder, a printable
+snapshot route, and a single-instance record. It is deliberately the thinnest
+possible layer — it can open no port, and it implements no ECU-facing action.
+
+| Piece | Rule it obeys |
+|---|---|
+| `desktop.DesktopApp` | Owns the process: binds loopback, serves, opens the window, shuts down in order (window, server, ECU, actuators) |
+| `desktop.ExportDesk` | Writes what a browser would have downloaded. Never overwrites; sanitises every name it is handed |
+| `desktop.DesktopBridge` | Answers the `/api/desktop/*` routes. No path or folder name from the page is used directly |
+| `server.RequestGuard` | Host, Origin and (desktop only) token checks on every request |
+| `desktop.InstanceDirectory` | Believes a record only after the port answers the app's own ping with the recorded token |
+| `web/desktop-bridge.js` | Injected only when this process serves the page: installs the token, re-routes downloads and printing |
+| `resources.py` | The only module that knows a bundle from a checkout |
+
+**How a build gets there.** `packaging/` is the only place that knows about
+PyInstaller and installers. The spec lays the frozen folder out so that the
+bundle root mirrors this repository (`web/`, `guzzionboard/catalog`,
+`guzzionboard/xdfs`, `vendor/`), which is what lets `resources.py` resolve
+paths the same way installed or not; `build.py` refuses to finish unless the
+artifact passes the same `--selftest` a user can run; and
+`.github/workflows/desktop-build.yml` runs that on each platform's own runner,
+then installs what it built — the Windows setup, silently, and the Linux
+`install.sh` — and starts the installed application. None of it is part of the
+runtime: there is one code path, and it does not know which one it is in.
+
+The window is optional: no engine, no display, or a failure to create one
+leaves the server and the page, and says why. `tests/test_desktop.py` covers
+the guard, the routes, the record, the export desk and the bridge script;
+`guzzionboard/selftest.py` checks a *built* artifact, which is the only way to
+catch data that never made it into a bundle.
 
 That script-level harness is complemented by `tests/browser/map-editor.spec.mjs`.
 Playwright runs the static workstation in Chromium and exercises real focus,

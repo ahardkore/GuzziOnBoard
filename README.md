@@ -6,7 +6,8 @@ Aprilia fitments. Only family-specific operations supported by recovered wire
 evidence are enabled; incomplete ECU profiles are blocked before hardware is
 opened.
 
-> **Status: working software, unproven on a motorcycle.**
+> **Status: working software, unproven on a motorcycle and installer-tested
+> rather than hand-installed.**
 > The protocol stack, capability catalog, safety gate, memory/programming
 > stack and UI are real and tested. The hardware transports are written but
 > have **not** been validated against a bike. ECU writing is fully implemented
@@ -51,19 +52,49 @@ opened.
 | Bench RPM trigger-signal generator — crank/cam WAV, wheel geometry transcribed from the reference tool's own config files; presets, custom wheels and `.rbt`-style batch ramps in the Tools view + API | Implemented |
 | Fault read with workstation-observed context ("what was live when we looked") | Implemented; honestly *not* an ECU freeze frame |
 | Session comparison (two recordings, channel by channel) | Implemented |
+| **Desktop application** — installed via a proper installer, launched as an application, no browser and no URL to remember | Implemented: a native window (pywebview: WebView2/WKWebView/WebKitGTK) on the same loopback workstation, with saved files going to a real folder, printing through a real print dialog, and one instance per machine. Windows gets an Inno Setup installer (per-user, with uninstaller and shortcuts), and macOS a `.app`; both carry their window engine. Linux gets a folder build with a per-user `install.sh` and **no window engine yet**, so there the app serves the workstation and opens your browser (a source install with PyGObject + WebKitGTK does open a window). Anywhere the window cannot start, the app says why and falls back to the browser. CI builds all three, runs the *built* artifact's self-test, and on Windows installs the setup, launches the installed application and uninstalls it again. See [`docs/DESKTOP.md`](docs/DESKTOP.md) |
 | Standalone browser engine simulator (`web/sim.html`) | Implemented; single self-contained page |
 | **Hosted workstation demo** — the real UI with a virtual motorcycle and ECU running in the browser (`web/demo-api.js` + `web/demo-lab.js`) | Implemented; every view works with labelled in-browser fixtures, including a virtual connector/adapter, memory, maps, sessions, reports, guided tests and tools. The demo's write path runs the same hardware-family gate as the installed app and keeps a wrong-family fixture on its virtual bench so the refusal can be watched. Real-bike transport choices are omitted entirely; only the installed app exposes hardware |
 
 More than 500 tests cover framing, checksums, scaling, DTC decoding, handshake negotiation, the safety gate,
 image validation, XDF parsing/render/diff, the full read/backup/write/verify
 round trip (including the hardware-family brick gate, in the app and in the
-browser demo), fault injection, session comparison, the packaging entry point,
+browser demo), fault injection, session comparison, the packaging entry points,
+the desktop shell (its request policy, host routes, export folder, single-
+instance record and installation self-test),
 the reference-tool inclusions (log conversion, bench signal, driver bundle,
 Mana TCU) and complete simulated sessions — plus `scripts/e2e_smoke.py`, a
 30-check full-capability sweep over the live HTTP API and Playwright tests that
 exercise the map editor through a real Chromium DOM.
 
 ## Run it
+
+### As a desktop application
+
+Download the installer from the
+[releases page](https://github.com/ahardkore/GuzziOnBoard/releases), run it,
+and start **GuzziOnBoard** from the Start menu (or drag the `.app` to
+Applications, or run `install.sh` on Linux). It opens in its own window: the
+same workstation, with saved files landing in your Downloads folder, printing
+through a real print dialog, one instance per machine, and nothing to keep
+running in a terminal. A portable `.zip` is published next to the installer for
+machines where nothing may be installed.
+
+If you have the source, building it is:
+
+```bash
+pip install -e '.[desktop,build]'
+python packaging/build.py --installer      # dist/GuzziOnBoard-<version>-setup.exe
+python packaging/build.py --portable-zip   # no installer needed
+```
+
+`guzzionboard-desktop` also runs the window straight from a checkout, and
+`guzzionboard-desktop --selftest` checks an installation without a motorcycle.
+The full story — what the window adds, where files go, the loopback/token
+policy that keeps other pages away from the ECU, troubleshooting — is in
+[`docs/DESKTOP.md`](docs/DESKTOP.md).
+
+### From a checkout, in a browser
 
 Only Python 3.11+ is needed for simulator mode.
 
@@ -72,7 +103,8 @@ python3 run_server.py              # same as: guzzionboard
 ```
 
 `pip install -e .` installs a `guzzionboard` command with a proper
-`--help` (`--host`, `--port`, `--no-record`, `--version`).
+`--help` (`--host`, `--port`, `--no-record`, `--desktop`, `--selftest`,
+`--version`).
 
 Pick a motorcycle in **Garage** (try `Griso 1200 8V` / `2012`), connect in
 simulator mode, and the rest of the workstation comes alive.
@@ -388,6 +420,8 @@ UDS-over-CAN and DoIP are not silently treated as Marelli KWP2000 — is in
 ```text
 web/                     UI (no framework, no build step)
   └── guzzionboard/server.py        local JSON API + static files
+      └── guzzionboard/desktop.py   installed app: window, exports, instance record
+                                   (optional: the browser version is the same server)
       └── workstation.py            selection, session, report
           └── diagnostics.py        identify / live / DTC / actuators / discovery
               ├── safety.py         preconditions, tokens, audit log
@@ -436,6 +470,8 @@ capability is enabled.
 ## Documentation
 
 - `docs/ARCHITECTURE.md` — layer boundaries and the rules each layer obeys.
+- `docs/DESKTOP.md` — the installed application: installing, where files go,
+  what the window adds, the loopback/token policy, building, troubleshooting.
 - `docs/PROTOCOL_NOTES.md` — wire-level reference and provenance for every
   claim in the catalog.
 - `docs/PROGRAMMING.md` — reading, backing up and writing ECU memory: the

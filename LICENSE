@@ -25,5 +25,4 @@ SOFTWARE.
 ECU diagnostics can injure you. ECU programming can brick an ECU or create an
 unsafe motorcycle. Nothing in this project has been validated against a real
 motorcycle; if you connect it to your bike, you are the test. This project is
-not affiliated with Piaggio, Moto Guzzi, Magneti Marelli, or the GuzziDiag
-author.
+not affiliated with Piaggio, Moto Guzzi, Magneti Marelli, or GuzziDiag.

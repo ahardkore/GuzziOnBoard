@@ -46,6 +46,8 @@ test('the installed app serves the real UI, marked as desktop-hosted', async ({ 
   // first API call carry the token.
   const installed = await page.evaluate(() => Boolean(window.gobDesktop && window.gobDesktop.available));
   expect(installed).toBe(true);
+  // The same Atlas-derived interpolation module is loaded in the desktop shell.
+  expect(await page.evaluate(() => AtlasInterpolation.positions([0, 1, 4], 0, 2, true))).toEqual([0, 0.25, 1]);
   const descriptor = await page.evaluate(() => ({
     exports: window.gobDesktop.exports,
     backend: window.gobDesktop.backend,
@@ -180,4 +182,121 @@ test('a page in a browser tab sees none of this', async ({ page }) => {
     return called;
   });
   expect(printed).toBe(true);          // browser behaviour, not a host call
+});
+
+test('desktop host shares the refreshed layout and real simulator timeline', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#modelSelect option[value="Griso 1200 8V"]')).toHaveCount(1);
+  await page.locator('#modelSelect').selectOption('Griso 1200 8V');
+  await page.locator('#yearSelect').selectOption('2012');
+  await expect(page.locator('#connectBtn')).toBeEnabled();
+  await page.locator('#layoutDensity').selectOption('compact');
+  await expect(page.locator('body')).toHaveAttribute('data-density', 'compact');
+  await page.locator('#connectBtn').click();
+  await expect(page.locator('#connTitle')).toHaveText('Connected');
+  await expect(page.locator('#pageTitle')).toHaveText('Overview');
+  await page.locator('[data-view="live"]').click();
+  await page.locator('#pollBtn').click();
+  await expect(page.locator('#livePlot .plot-lane')).not.toHaveCount(0);
+  await expect(page.locator('#livePlot .plot-svg').first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('#livePlot')).toContainText('sweeps');
+  await page.locator('#pollBtn').click();
+  expect(page.failures).toEqual([]);
+});
+
+test('desktop host offers the offline Ducati decoder and manual shim worksheet', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="discovery"]').click();
+  await page.locator('#canlogText').locator('..').locator('summary').click();
+  await page.locator('#canlogText').fill('(1.0) can0 080#0000000055123400');
+  await page.locator('#canlogDecoder').selectOption('ducati_panigale_mitsubishi');
+  await page.locator('#canlogPasteBtn').click();
+  await expect(page.locator('#canlogOut')).toContainText('rpm: 4660');
+  await expect(page.locator('#canlogOut')).toContainText('not vehicle identification or a Guzzi profile', { ignoreCase: true });
+  await page.locator('[data-view="tools"]').click();
+  await page.locator('#shimMeasured').fill('0.300');
+  await page.locator('#shimCurrent').fill('2.500');
+  await page.locator('#shimMin').fill('0.100');
+  await page.locator('#shimMax').fill('0.200');
+  await page.locator('#shimDirection').selectOption('decrease');
+  await page.locator('#shimCalcBtn').click();
+  await expect(page.locator('#shimOut')).toContainText('calculated exact shim: 2.6500 mm');
+  expect(page.failures).toEqual([]);
+});
+
+test('desktop host displays filtered offline CAN byte statistics', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="discovery"]').click();
+  await page.locator('#canlogText').locator('..').locator('summary').click();
+  await page.locator('#canlogText').fill('1.0 R11 567 00 01\n2.0 R11 567 03 81');
+  await page.locator('#canlogFilter').fill('567');
+  await page.locator('#canlogByteStats').check();
+  await page.locator('#canlogPasteBtn').click();
+  await expect(page.locator('#canlogOut')).toContainText('Raw byte observations');
+  await expect(page.locator('#canlogOut')).toContainText('0x80');
+  expect(page.failures).toEqual([]);
+});
+
+test('desktop host provides local manual search and a source-aware service worksheet', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  await page.locator('#serviceLastKm').fill('5000');
+  await page.locator('#serviceCurrentKm').fill('13000');
+  await page.locator('#serviceIntervalKm').fill('10000');
+  await page.locator('#serviceDueBtn').click();
+  await expect(page.locator('#serviceDueOut')).toContainText('2000 km remaining');
+  await page.locator('#manualTextFile').setInputFiles({ name: 'test.txt', mimeType: 'text/plain', buffer: Buffer.from('Example torque M10x1.25.') });
+  await expect(page.locator('#manualTextSearch')).toBeEnabled();
+  await page.locator('#manualTextQuery').fill('M10x1.25');
+  await page.locator('#manualTextSearch').click();
+  await expect(page.locator('#manualTextOut')).toContainText('1 literal match(es)');
+  await expect(page.locator('#manualTextOut')).toContainText('Page unknown');
+  expect(page.failures).toEqual([]);
+});
+
+test('Honda research is selectable but cannot open a physical or simulated session', async ({ page }) => {
+  await page.goto('/');
+  // Earlier desktop tests share the workstation; start with no active session.
+  await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+  await expect(page.locator('#makeSelect option[value="Honda"]')).toHaveCount(1);
+  await page.selectOption('#makeSelect', 'Honda');
+  await page.selectOption('#modelSelect', 'CBR600RR');
+  await page.selectOption('#yearSelect', '2005');
+  await expect(page.locator('#resolveResult')).toContainText('offline research only');
+  const result = await page.evaluate(async () => {
+    const post = async (url, body) => {
+      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      return { status: r.status, body: await r.json() };
+    };
+    const vehicle = { make: 'Honda', model: 'CBR600RR', year: 2005 };
+    return {
+      mismatch: await post('/api/select', { ...vehicle, ecu: '5am', transport: 'kline' }),
+      physical: await post('/api/select', { ...vehicle, transport: 'kline' }),
+      physicalConnect: await post('/api/connect', { mode: 'read_only' }),
+      simulator: await post('/api/select', { ...vehicle, transport: 'simulator' }),
+      simulatorConnect: await post('/api/connect', { mode: 'simulator' }),
+      existing: await post('/api/select', { make: 'Moto Guzzi', model: 'Griso 1200 8V', year: 2012, transport: 'simulator' }),
+      existingConnect: await post('/api/connect', { mode: 'simulator' }),
+      relabel: await post('/api/select', { ...vehicle, transport: 'kline' }),
+      status: await (await fetch('/api/status')).json(),
+    };
+  });
+  expect(result.mismatch.status).toBe(400);
+  expect(result.mismatch.body.error).toContain('not cataloged');
+  expect(result.physical.status).toBe(200);
+  expect(result.physicalConnect.status).toBe(501);
+  expect(result.physicalConnect.body.error).toContain('no port was opened');
+  expect(result.simulator.status).toBe(200);
+  expect(result.simulatorConnect.status).toBe(501);
+  expect(result.simulatorConnect.body.error).toContain('no matching simulator');
+  expect(result.existing.status).toBe(200);
+  expect(result.existingConnect.status).toBe(200);
+  expect(result.relabel.status).toBe(400);
+  expect(result.relabel.body.error).toContain('disconnect the current session');
+  expect(result.status.selection.make).toBe('Moto Guzzi');
+  await page.locator('[data-view="tools"]').click();
+  await page.locator('#hondaFrames').fill('02 0A 71 D1 00 00 00 00 01 22');
+  await page.locator('#hondaDecode').click();
+  await expect(page.locator('#hondaOut')).toContainText('Checksum mismatch; not decoded.');
+  expect(page.failures.filter((error) => !/server responded with a status of (400|501)/.test(error))).toEqual([]);
 });

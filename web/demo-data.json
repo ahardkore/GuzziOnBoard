@@ -15,9 +15,9 @@
     "applied": false,
     "status": {}
    },
-   "ecu_count": 11,
-   "vehicle_count": 118,
-   "model_count": 110,
+   "ecu_count": 12,
+   "vehicle_count": 119,
+   "model_count": 111,
    "year_range": [
     1992,
     2026
@@ -713,6 +713,37 @@
      "field_confirmation": {}
     },
     {
+     "id": "honda_cbr600rr_2005",
+     "family": "2005 Honda CBR600RR research",
+     "display_name": "Honda CBR600RR 2005 (offline research only)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "2005",
+     "notes": "Research placeholder, not a confirmed ECU family or fitment. An independent project reports testing this model; this application only decodes supplied response frames offline. No physical or simulated Honda diagnostic session exists.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://github.com/andreibaw/Honda_K-Line_KWP2000/tree/f3bd42ff438e840e4da3802dd5038a195f3d67be"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Honda diagnostic and programming protocols are not implemented or validated."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "honda-research-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "Honda K-Line transport and diagnostics are not implemented or validated in this application.",
+      "simulator_supported": false
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "mana_tcu",
      "family": "Aprilia Mana CVT TCU",
      "display_name": "Aprilia Mana 850 CVT transmission controller",
@@ -884,6 +915,7 @@
   "makes": [
    "Aprilia",
    "Ducati",
+   "Honda",
    "Moto Guzzi"
   ],
   "models": [
@@ -1220,6 +1252,24 @@
       "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
       "confidence": "documented",
       "label": "Breva 850 (2006-2011)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "CBR600RR",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "CBR600RR",
+      "year_from": 2005,
+      "year_to": 2005,
+      "ecu": "honda_cbr600rr_2005",
+      "displacement": "",
+      "tps": "",
+      "notes": "Research entry for the author-tested 2005 CBR600RR only; exact ECU identity and fitment are unverified. Offline response decoding only, no physical diagnostics or Honda simulator.",
+      "confidence": "inferred",
+      "label": "CBR600RR (2005-2005)",
       "can": {}
      }
     ]
@@ -3798,6 +3848,13 @@
     "year_from": 2009,
     "year_to": 2011,
     "ecu": "7sm"
+   },
+   {
+    "make": "Honda",
+    "model": "CBR600RR",
+    "year_from": 2005,
+    "year_to": 2005,
+    "ecu": "honda_cbr600rr_2005"
    }
   ],
   "ecus": [
@@ -5213,6 +5270,38 @@
      "tester_present_interval": 2.0,
      "physical_supported": true,
      "physical_evidence_note": "A published 7SM diagnostic session log establishes the K-Line session, identification exchange, and baud switch."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
+    "id": "honda_cbr600rr_2005",
+    "family": "2005 Honda CBR600RR research",
+    "display_name": "Honda CBR600RR 2005 (offline research only)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "2005",
+    "notes": "Research placeholder, not a confirmed ECU family or fitment. An independent project reports testing this model; this application only decodes supplied response frames offline. No physical or simulated Honda diagnostic session exists.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://github.com/andreibaw/Honda_K-Line_KWP2000/tree/f3bd42ff438e840e4da3802dd5038a195f3d67be"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Honda diagnostic and programming protocols are not implemented or validated."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "honda-research-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "Honda K-Line transport and diagnostics are not implemented or validated in this application.",
+     "simulator_supported": false
     },
     "actuators": [],
     "routines": [],
@@ -7180,6 +7269,19 @@
    "confidence": "inferred",
    "label": "RSV4 Factory (2009-2011)",
    "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "CBR600RR",
+   "year_from": 2005,
+   "year_to": 2005,
+   "ecu": "honda_cbr600rr_2005",
+   "displacement": "",
+   "tps": "",
+   "notes": "Research entry for the author-tested 2005 CBR600RR only; exact ECU identity and fitment are unverified. Offline response decoding only, no physical diagnostics or Honda simulator.",
+   "confidence": "inferred",
+   "label": "CBR600RR (2005-2005)",
+   "can": {}
   }
  ],
  "profiles": {
@@ -8695,6 +8797,28 @@
       "length": 11
      }
     ]
+   }
+  },
+  "honda_cbr600rr_2005": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "2005HondaCBR600RRresearchHW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "honda-research-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Honda K-Line transport and diagnostics are not implemented or validated in this application.",
+    "simulator_supported": false
+   },
+   "identification": {
+    "available": false
    }
   },
   "mana_tcu": {

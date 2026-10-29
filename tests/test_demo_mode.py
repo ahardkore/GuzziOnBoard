@@ -95,6 +95,8 @@ def test_workstation_page_loads_the_demo_shim_before_the_app():
     # app.js makes its first call.
     assert html.index('src="demo-api.js"') < html.index('src="demo-lab.js"')
     assert html.index('src="demo-lab.js"') < html.index('src="app.js"')
+    assert html.index('src="app.js"') < html.index('src="workshop.js"')
+    assert (WEB / "workshop.js").is_file()
 
 
 def test_local_server_marks_the_page_so_the_shim_stands_down():

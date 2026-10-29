@@ -25,6 +25,7 @@ from . import resources
 
 from . import adapter as adapter_mod
 from . import canlog
+from . import j2534
 from . import klinelog
 from . import logconvert
 from . import rpmsignal
@@ -374,7 +375,7 @@ class Api:
                 can_tx_id=body.get("can_tx_id", ""),
                 can_rx_id=body.get("can_rx_id", ""),
             )
-        except ValueError as exc:
+        except (ValueError, CatalogError) as exc:
             return 400, {"error": str(exc)}
 
     def post_connect(self, body: dict) -> tuple[int, dict]:
@@ -1712,6 +1713,9 @@ class Api:
             "ports": adapter_mod.list_ports(),
         }
 
+    def get_j2534(self, query: dict) -> tuple[int, dict]:
+        return 200, j2534.inventory()
+
     def post_adapter_latency(self, body: dict) -> tuple[int, dict]:
         port = body.get("port", "")
         ok = adapter_mod.set_latency_timer(port, int(body.get("value", 1)))
@@ -1732,9 +1736,9 @@ class Api:
             return 400, {"error": "a capture 'path' or pasted 'text' is required"}
         try:
             if path:
-                result = canlog.analyze_capture_file(path)
+                result = canlog.analyze_capture_file(path, body.get("filter_ids", ""), body.get("decoder", ""), body.get("byte_stats", False))
             else:
-                result = canlog.analyze_capture_text(str(text))
+                result = canlog.analyze_capture_text(str(text), body.get("filter_ids", ""), body.get("decoder", ""), body.get("byte_stats", False))
         except canlog.CanLogError as exc:
             return 400, {"error": str(exc)}
         return 200, result
@@ -1952,6 +1956,7 @@ ROUTES_GET = {
     "/api/memory/basemap": "get_basemap",
     "/api/security": "get_security",
     "/api/adapter": "get_adapter",
+    "/api/adapter/j2534": "get_j2534",
     "/api/tools/gearing": "get_gearing",
     "/api/sessions/export": "get_export",
     "/api/desktop": "get_desktop",

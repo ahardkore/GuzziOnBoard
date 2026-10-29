@@ -68,6 +68,7 @@ datas = [
     (str(SPEC_ROOT / "icons" / "guzzionboard.png"), "packaging/icons"),
     (str(SPEC_ROOT / "icons" / "guzzionboard.ico"), "packaging/icons"),
 ]
+datas.extend([(str(ROOT / "LICENSE"), "."), (str(ROOT / "LICENSES"), "LICENSES")])
 for extra in ("README.md", "docs"):
     if (ROOT / extra).exists():
         datas.append((str(ROOT / extra), extra))
@@ -138,7 +139,7 @@ VSVersionInfo(
         StringStruct('OriginalFilename', 'GuzziOnBoard.exe'),
         StringStruct('ProductName', 'GuzziOnBoard'),
         StringStruct('ProductVersion', '{VERSION}'),
-        StringStruct('LegalCopyright', 'MIT licensed'),
+        StringStruct('LegalCopyright', 'AGPL-3.0-only (see LICENSE)'),
         StringStruct('Comments', 'Not affiliated with Piaggio, Moto Guzzi, Magneti Marelli or the GuzziDiag author.'),
       ])
     ]),
@@ -222,7 +223,7 @@ if sys.platform == "darwin":
             "NSHighResolutionCapable": True,
             "NSRequiresAquaSystemAppearance": False,
             "NSHumanReadableCopyright": (
-                "MIT licensed. Not affiliated with Piaggio, Moto Guzzi, Magneti "
+                "AGPL-3.0-only (see LICENSE). Not affiliated with Piaggio, Moto Guzzi, Magneti "
                 "Marelli or the GuzziDiag author."
             ),
         },

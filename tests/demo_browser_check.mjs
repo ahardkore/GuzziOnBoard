@@ -70,6 +70,7 @@ const sandboxFetch = async (url) => {
     return {
       ok: true, status: 200,
       text: async () => readFileSync(file, 'latin1'),
+      arrayBuffer: async () => { const bytes = readFileSync(file); return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength); },
     };
   }
   throw new Error(`unexpected network call: ${url}`);
@@ -85,6 +86,7 @@ const context = vm.createContext({
   document,
   fetch: sandboxFetch,
   Response,
+  TextDecoder,
   URL,
   URLSearchParams,
   performance,

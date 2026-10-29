@@ -1076,14 +1076,18 @@
   GET['/api/status'] = function () { return [200, status()]; };
 
   POST['/api/select'] = function (body) {
+    if (WS.connected) throw httpError(400, 'disconnect the current session before selecting another vehicle or ECU', 'bad_request');
     var entry = null;
     var base;
-    if (body.ecu) {
-      base = ecuPublic(body.ecu);
-    } else if (body.model && body.year) {
+    if (body.model && body.year) {
       var matches = vehicleMatches(body.model, parseInt(body.year, 10), body.make || '');
-      if (!matches.length) {
-        throw httpError(400, 'no catalog entry for ' + body.model + ' ' + body.year, 'bad_request');
+      if (!body.make && new Set(matches.map(function (v) { return v.make.toLowerCase(); })).size > 1) {
+        throw httpError(400, body.model + ' ' + body.year + ' exists under multiple makes; specify make', 'bad_request');
+      }
+      if (!matches.length) throw httpError(400, 'no catalog entry for ' + body.model + ' ' + body.year, 'bad_request');
+      if (body.ecu) {
+        matches = matches.filter(function (v) { return v.ecu === body.ecu; });
+        if (!matches.length) throw httpError(400, 'ECU override is not cataloged for this make, model and year; verify the ECU label', 'bad_request');
       }
       matches.sort(function (a, b) {
         var wa = (a.year_to || 9999) - a.year_from;
@@ -1092,6 +1096,9 @@
       });
       entry = matches[0];
       base = ecuPublic(entry.ecu);
+    } else if (body.ecu) {
+      if (body.make || body.model || body.year) throw httpError(400, 'ECU-only selection cannot include a partial vehicle identity; specify make, model and year together', 'bad_request');
+      base = ecuPublic(body.ecu);
     } else {
       throw httpError(400, 'select needs either an ecu id or a model and year', 'bad_request');
     }
@@ -1111,20 +1118,25 @@
     };
 
     var notices = [];
-    if (entry && vehicleMatches(entry.model, entry.year_from, '').length > 1) {
+    if (entry && vehicleMatches(entry.model, parseInt(body.year, 10), entry.make).length > 1) {
       notices.push({
         level: 'warn',
-        text: entry.model + ' spans more than one ECU family in this year. Moto '
-          + 'Guzzi changed ECUs as running changes - read the label on your ECU '
+        text: entry.model + ' spans more than one ECU family in this year. Some '
+          + 'models have overlapping fitments - read the label on your ECU '
           + 'and override the selection if it disagrees.',
       });
     }
     if (['inferred', 'unknown'].indexOf(profile.confidence) !== -1) {
+      var readable = [['identify', 'identification'], ['dtc_read', 'fault reading'],
+        ['live', 'live data'], ['discover', 'identifier discovery']].filter(function (pair) {
+          return profile.capabilities.indexOf(pair[0]) !== -1;
+        }).map(function (pair) { return pair[1]; });
       notices.push({
         level: 'warn',
         text: 'The ' + profile.family + " definition is marked '" + profile.confidence
-          + "'. Control actions are disabled; identification, fault codes and the "
-          + 'read-only discovery scan are available.',
+          + "'. Control actions are disabled." + (readable.length
+            ? ' Available operations: ' + readable.join(', ') + '.'
+            : ' No diagnostic operations are exposed.'),
       });
     }
     if (entry && entry.notes) notices.push({ level: 'info', text: entry.notes });
@@ -1135,6 +1147,9 @@
   POST['/api/connect'] = function () {
     if (!WS.selection.profile) throw httpError(400, 'select a vehicle before connecting', 'bad_request');
     if (WS.connected) return [200, status()];
+    if (WS.selection.profile.session && WS.selection.profile.session.simulator_supported === false) {
+      throw httpError(400, 'No matching simulator is implemented for this research entry.', 'bad_request');
+    }
 
     WS.selection.transport = 'simulator';
     WS.selection.device = 'demo://virtual-adapter';

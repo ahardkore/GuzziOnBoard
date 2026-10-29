@@ -8,8 +8,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="A safety-first diagnostic workstation for Moto Guzzi motorcycles — and the same Magneti Marelli ECUs on Ducati and Aprilia. KWP2000 over K-Line and CAN, live data, fault codes, verified backups, TunerPro XDF maps.">
-<title>GuzziOnBoard — safety-first Moto Guzzi diagnostics</title>
+<meta name="description" content="A safety-first multi-make motorcycle diagnostic workstation and evidence catalog, including Moto Guzzi, Ducati and Aprilia, with offline Honda research. KWP2000 over K-Line and CAN, live data, fault codes, verified backups, TunerPro XDF maps.">
+<title>GuzziOnBoard — safety-first motorcycle diagnostics</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🏍️</text></svg>">
 <style>
 :root {
@@ -190,13 +190,13 @@ footer.site { border-top: 1px solid var(--line); margin-top: 70px; padding: 34px
 <section class="wrap">
   <div class="hero">
     <div class="hero-copy">
-      <span class="overline">Open source · MIT · Python 3.11+</span>
-      <h1>A safety-first diagnostic workstation for <em>Moto&nbsp;Guzzi</em> motorcycles.</h1>
+      <span class="overline">Open source · AGPL-3.0 · Python 3.11+</span>
+      <h1>A safety-first workstation for <em>multiple motorcycle makes</em>.</h1>
       <p class="lede">
         The Magneti Marelli ECUs fitted from the mid-1990s to today — identified,
         interrogated, backed up and compared, over <strong>K-Line (KWP2000)</strong> and
         <strong>CAN (ISO-TP)</strong>. The same Marelli hardware on Ducati and Aprilia
-        is covered too, read-only until its identifier tables are confirmed.
+        is cataloged too, read-only until its identifier tables are confirmed. A 2005 Honda CBR600RR research entry supports offline frame decoding only; no Honda connection or simulator is implemented.
       </p>
       <div class="cta-row">
         <a class="btn primary" href="web/tour.html">Take the tour →</a>
@@ -320,8 +320,8 @@ footer.site { border-top: 1px solid var(--line); margin-top: 70px; padding: 34px
     </div>
     <div class="card">
       <h3>A catalog with teeth</h3>
-      <p>10 Marelli engine ECU families plus the Aprilia Mana CVT TCU, 118 model variants
-         across Moto Guzzi, Ducati and Aprilia (1992–2026), each with a confidence level
+      <p>11 existing controller profiles plus a Honda research placeholder, 119 model variants
+         across Moto Guzzi, Ducati, Aprilia and Honda (1992–2026), each with a confidence level
          that governs what the workstation will let you do. Enforced in code, not in the docs.</p>
     </div>
     <div class="card">
@@ -450,8 +450,8 @@ footer.site { border-top: 1px solid var(--line); margin-top: 70px; padding: 34px
   </div>
   <p class="footnote">Ducati and Aprilia bought the same Magneti Marelli ECUs — 748, 916,
      996, 999, Monster, Multistrada; RSV Mille, Tuono, Caponord, RSV4 — and the catalog
-     resolves those bikes to the shared families. Every cross-brand entry ships read-only
-     by design, until its identifier tables are confirmed.</p>
+     resolves those bikes to the shared families. Those Ducati and Aprilia entries ship read-only
+     by design, until their identifier tables are confirmed. The separate Honda research entry is offline-only and does not identify its ECU.</p>
 </section>
 
 </main>
@@ -488,8 +488,8 @@ footer.site { border-top: 1px solid var(--line); margin-top: 70px; padding: 34px
         </ul>
       </div>
     </div>
-    <p class="foot-note">GuzziOnBoard is MIT-licensed. It is a hobby project, not affiliated
-       with Moto Guzzi, Piaggio, Ducati, Aprilia or Magneti Marelli. Working software,
+    <p class="foot-note">GuzziOnBoard is AGPL-3.0-licensed (see the repository for source and notices). It is a hobby project, not affiliated
+       with Moto Guzzi, Piaggio, Ducati, Aprilia, Honda or Magneti Marelli. Working software,
        unproven on a motorcycle — read the safety notes before you connect anything to a
        real ECU.</p>
   </div>

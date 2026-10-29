@@ -1,0 +1,30 @@
+{
+  "id": "honda_cbr600rr_2005",
+  "family": "2005 Honda CBR600RR research",
+  "display_name": "Honda CBR600RR 2005 (offline research only)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "2005",
+  "notes": "Research placeholder, not a confirmed ECU family or fitment. An independent project reports testing this model; this application only decodes supplied response frames offline. No physical or simulated Honda diagnostic session exists.",
+  "session": {
+    "protocol": "honda-research-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Honda K-Line transport and diagnostics are not implemented or validated in this application.",
+    "simulator_supported": false
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Honda diagnostic and programming protocols are not implemented or validated."
+  },
+  "capabilities": [],
+  "sources": [
+    "https://github.com/andreibaw/Honda_K-Line_KWP2000/tree/f3bd42ff438e840e4da3802dd5038a195f3d67be"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}

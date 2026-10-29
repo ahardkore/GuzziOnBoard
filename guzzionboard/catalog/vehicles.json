@@ -1,13 +1,14 @@
 {
  "schema_version": 2,
- "note": "Model-to-ECU mapping for Moto Guzzi. Guzzi changed ECUs as running changes rather than on model-year boundaries, so overlapping entries are expected and the ECU label on the bike always wins over this table. Every entry carries a confidence level; anything marked 'inferred' has not been confirmed against a real motorcycle.",
+ "note": "Multi-make model-to-ECU and research mappings. Fitment may overlap within a model year; verify the ECU label and evidence for the exact motorcycle. Confidence and capability gates apply independently to each mapping.",
  "sources": [
   "Ducati.ms model/ECU list (2009)",
   "GuzziDiag / IAWDiag ECU list and tutorials (von-der-salierburg.de, wildguzzi.com)",
   "guzzifan.com ECU and error-code reference",
   "GuzziTek ECU master list (guzzitek.org, 2011)",
   "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
-  "TuneECU Aprilia and Ducati tune lists (tuneecu.net)"
+  "TuneECU Aprilia and Ducati tune lists (tuneecu.net)",
+  "andreibaw/Honda_K-Line_KWP2000, commit f3bd42ff438e840e4da3802dd5038a195f3d67be: author-tested 2005 Honda CBR600RR; offline response research only"
  ],
  "vehicles": [
   {
@@ -1307,6 +1308,15 @@
    "tps": "",
    "confidence": "inferred",
    "notes": "GuzziTek master list maps the 2009-2011 RSV4 Factory to the 7SM - the same ECU family as the Guzzi California 1400. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR600RR",
+   "year_from": 2005,
+   "year_to": 2005,
+   "ecu": "honda_cbr600rr_2005",
+   "confidence": "inferred",
+   "notes": "Research entry for the author-tested 2005 CBR600RR only; exact ECU identity and fitment are unverified. Offline response decoding only, no physical diagnostics or Honda simulator."
   }
  ]
 }

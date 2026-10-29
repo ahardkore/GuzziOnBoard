@@ -13,7 +13,7 @@
   <div class="brand">
     <div class="brand-mark">GO</div>
     <div>
-      <strong>GuzziOnBoard</strong>
+      <strong>Guzzi<span>OnBoard</span></strong>
       <small id="appVersion">diagnostic workstation</small>
     </div>
   </div>
@@ -46,6 +46,7 @@
   </nav>
 
   <div class="sidebar-foot">
+    <p class="muted small"><a href="https://github.com/ahardkore/GuzziOnBoard" target="_blank" rel="noopener noreferrer">Project source &amp; license</a></p>
     <div class="conn-card" id="connCard">
       <div class="conn-dot" id="connDot"></div>
       <div>
@@ -61,6 +62,7 @@
 <main>
   <header class="topbar">
     <div>
+      <div class="workspace-eyebrow"><span class="workspace-dot"></span> GUZZIONBOARD / WORKSPACE</div>
       <h1 id="pageTitle">Garage</h1>
       <p id="pageSub">Choose the motorcycle and the way you are talking to it.</p>
     </div>
@@ -73,6 +75,9 @@
           <option value="C">°C</option>
           <option value="F">°F</option>
         </select>
+      </label>
+      <label class="unit-pick no-print" title="Adjust interface spacing; no diagnostic settings are changed">
+        <span>Layout</span><select id="layoutDensity"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select>
       </label>
       <button class="btn small no-print" id="printBtn" title="Print this view or save it as PDF">Print / PDF</button>
       <a class="btn small no-print" href="sim.html" target="_blank" rel="noopener">Simulator demo</a>
@@ -91,7 +96,7 @@
     <div class="grid-2">
       <article class="panel">
         <h2>1 · Motorcycle</h2>
-        <p class="muted">Pick the make, model and year; the workstation resolves the ECU and the protocol it speaks. These brands changed ECUs as running changes rather than on model-year boundaries — the label on your ECU always wins over this table.</p>
+        <p class="muted">Pick the make, model and year; the workstation resolves the ECU and the protocol it speaks. Some models have overlapping ECU fitments within a model year. Verify the label and evidence for the exact motorcycle; a research entry does not enable diagnostics.</p>
         <label class="field">
           <span>Make</span>
           <select id="makeSelect"></select>
@@ -107,6 +112,7 @@
         <div id="resolveResult" class="resolve"></div>
         <details class="advanced">
           <summary>Override: pick an ECU family directly</summary>
+          <p class="muted small">With a selected model and year, only a cataloged matching ECU is accepted and the vehicle confidence still applies. Clear the model for an ECU-only bench selection.</p>
           <select id="ecuOverride"><option value="">— use the model lookup —</option></select>
         </details>
       </article>
@@ -251,6 +257,21 @@
         </details>
       </div>
     </article>
+    <article class="panel plot-panel" id="livePlotPanel">
+      <div class="plot-heading">
+        <div><span class="section-kicker">SESSION TELEMETRY</span><h2>Live timeline</h2>
+          <p class="muted small">Recent samples from this connection only. Each channel has its own scale; gaps indicate missing or invalid readings.</p></div>
+        <span class="plot-live-label"><span class="workspace-dot"></span> READ ONLY</span>
+      </div>
+      <div class="plot-layout">
+        <div id="livePlot" class="plot-chart"><p class="plot-empty">Start polling to see the timeline.</p></div>
+        <div class="plot-side"><div class="plot-side-title">CHANNELS <span>UP TO 4</span></div>
+          <div id="plotChannels"><p class="muted small">Connect to choose channels.</p></div>
+          <p class="muted small plot-footnote">Choose channels already included in polling. Values are display-only and do not change the ECU.</p>
+        </div>
+      </div>
+    </article>
+    <div class="metrics-heading"><span class="section-kicker">CURRENT READINGS</span><span class="muted small">Decoded channels &amp; raw provenance</span></div>
     <div id="liveGrid" class="metrics"></div>
 
     <article class="panel">
@@ -412,6 +433,72 @@
       with the same data those tools shipped, where it could be read out of them.</p>
     </article>
 
+    <article class="panel" id="hondaOffline">
+      <h2>Honda CBR600RR 2005 · offline response decoder</h2>
+      <p class="muted small">Paste complete Honda K-Line response frames, one hex frame per line. This experimental decoder uses a third-party implementation tested by its author on a 2005 CBR600RR; fitment and results have not been validated by GuzziOnBoard. It does not connect to a motorcycle, send requests, or upload data. Other models and years are not supported. Do not use results for safety decisions.</p>
+      <label class="field"><span>Response bytes (hex, space-separated)</span>
+        <textarea id="hondaFrames" rows="4" maxlength="16000" placeholder="02 16 71 10 ..."></textarea></label>
+      <div class="toolbar"><button class="btn" id="hondaDecode">Decode locally</button><button class="btn small" id="hondaClear">Clear</button></div>
+      <pre id="hondaOut" class="small" aria-live="polite"></pre>
+      <p class="muted small">Accepts checksum-valid table 10 (22 bytes) and D1 (10 bytes) responses only. Unknown bytes remain in the original frame. See <a href="https://github.com/andreibaw/Honda_K-Line_KWP2000" target="_blank" rel="noopener">source and limitations</a>.</p>
+    </article>
+
+    <article class="panel" id="workshopService">
+      <h2>Service interval worksheet</h2>
+      <p class="muted small">Enter the <b>last documented service</b> and the interval for your exact motorcycle. This calculator does not infer that a previous service happened. Verify all intervals, initial services, severe-use requirements and procedures in the applicable manual. Kilometres only; records are not saved.</p>
+      <details class="advanced">
+        <summary>Review a local service-template JSON (optional)</summary>
+        <p class="muted small">Accepts the <code>motorcycles</code> / <code>tasks</code> format used by Motorcycle Service Database. No database is bundled. Select a model and task and verify fitment before explicitly copying recurring intervals below. Initial odometer/age values and notes are shown for review, not automatically calculated. External files retain their own licenses.</p>
+        <input type="file" id="serviceTemplateFile" accept=".json,application/json" aria-label="Service template JSON">
+        <div class="toolbar"><label class="inline">Template model <select id="serviceTemplateModel" disabled><option value="">— load a template —</option></select></label>
+          <label class="inline">Task <select id="serviceTemplateTask" disabled><option value="">— select a model —</option></select></label>
+          <button class="btn small" id="serviceUseIntervals" disabled>Use recurring intervals</button></div>
+        <div id="serviceTemplateOut" class="muted small"></div>
+      </details>
+      <div class="toolbar">
+        <label class="inline">Last service (km) <input type="number" id="serviceLastKm" min="0" step="1" placeholder="documented km"></label>
+        <label class="inline">Current odometer (km) <input type="number" id="serviceCurrentKm" min="0" step="1" placeholder="current km"></label>
+        <label class="inline">Repeat interval (km) <input type="number" id="serviceIntervalKm" min="1" step="1" placeholder="manual interval"></label>
+      </div>
+      <div class="toolbar">
+        <label class="inline">Last service date <input type="date" id="serviceLastDate"></label>
+        <label class="inline">As-of date <input type="date" id="serviceAsOfDate"></label>
+        <label class="inline">Repeat interval (months) <input type="number" id="serviceIntervalMonths" min="1" max="1200" step="1" placeholder="manual interval"></label>
+        <button class="btn" id="serviceDueBtn">Calculate due thresholds</button>
+      </div>
+      <p class="muted small">Provide a complete distance group, date group, or both. When both apply, service is due at whichever threshold occurs first. Results are arithmetic only, not a maintenance recommendation.</p>
+      <div id="serviceDueOut" aria-live="polite"></div>
+    </article>
+
+    <article class="panel" id="workshopManual">
+      <h2>Search a local manual text</h2>
+      <p class="muted small">Search a user-supplied UTF-8 <code>.txt</code> export locally for exact text such as a part number or torque term. The file stays in this tab's memory and is not uploaded or saved by this tool. PDF, OCR, semantic search and AI answers are not supported; export text separately and verify every result against the original manual.</p>
+      <div class="toolbar"><input type="file" id="manualTextFile" accept=".txt,text/plain" aria-label="Manual text file">
+        <button class="btn small" id="manualTextClear">Clear manual</button>
+        <span id="manualTextStatus" class="muted small">No manual loaded.</span></div>
+      <div class="toolbar"><label class="inline">Exact text <input id="manualTextQuery" type="text" maxlength="200" placeholder="e.g. M10x1.25" size="30"></label>
+        <button class="btn" id="manualTextSearch" disabled>Search excerpts</button></div>
+      <div id="manualTextOut" aria-live="polite"></div>
+    </article>
+
+    <article class="panel">
+      <h2>Manual shim worksheet</h2>
+      <p class="muted small">For a shim mechanism only when the workshop manual confirms a linear 1:1 relation. Enter the measured values, target range and direction yourself; no engine specifications or Ducati/Guzzi presets are assumed. This is arithmetic for review, not installation guidance.</p>
+      <div class="toolbar">
+        <label class="inline">Measured clearance (mm) <input id="shimMeasured" type="number" min="0" max="20" step="0.001" placeholder="required"></label>
+        <label class="inline">Current shim (mm) <input id="shimCurrent" type="number" min="0.001" max="20" step="0.001" placeholder="required"></label>
+        <label class="inline">Target min (mm) <input id="shimMin" type="number" min="0" max="20" step="0.001" placeholder="required"></label>
+        <label class="inline">Target max (mm) <input id="shimMax" type="number" min="0" max="20" step="0.001" placeholder="required"></label>
+      </div>
+      <div class="toolbar">
+        <label class="inline">A thicker shim <select id="shimDirection"><option value="">— confirm the mechanism —</option><option value="decrease">decreases clearance</option><option value="increase">increases clearance</option></select></label>
+        <label class="inline">Available shims (mm, optional) <input id="shimCandidates" type="text" placeholder="2.30, 2.35, 2.40" size="24"></label>
+        <button class="btn" id="shimCalcBtn">Calculate worksheet</button>
+      </div>
+      <p class="muted small">Millimetres only, to 0.001 mm. Verify the exact service manual, shim type and measurements; remeasure after assembly. Many Guzzi engines use screw adjusters rather than interchangeable shims.</p>
+      <div id="shimOut" aria-live="polite"></div>
+    </article>
+
     <article class="panel">
       <h2>Gearing &amp; road speed</h2>
       <p class="tip">
@@ -558,10 +645,17 @@
           <li>Analyse the file here. A minute of a live session is enough.</li>
         </ol>
       </details>
+      <div class="toolbar">
+        <label class="inline">Filter IDs (hex, optional) <input id="canlogFilter" type="text" placeholder="7E0, 7E8" size="24"></label>
+        <label class="inline">Offline decoder <select id="canlogDecoder"><option value="">None</option><option value="ducati_panigale_mitsubishi">Ducati Mitsubishi (research only)</option></select></label>
+        <label class="inline"><input id="canlogByteStats" type="checkbox"> Summarize raw byte changes</label>
+      </div>
       <div class="toolbar" id="canlogFileControls">
         <label class="inline">Capture path <input type="text" id="canlogPath" placeholder="~/captures/session.csv" size="36"></label>
         <button class="btn primary" id="canlogBtn">Analyse capture</button>
       </div>
+      <p class="muted small">Raw byte statistics require an ID filter. Use a single-bus capture: bus/interface is not retained. Values are observations, not decoded signals or proof of vehicle compatibility.</p>
+      <p class="muted small">The optional Ducati decoder is only for matching Mitsubishi Ducati captures; it is not a Guzzi profile, vehicle identification, or permission to transmit. Check the raw bytes and exact vehicle independently.</p>
       <details class="advanced">
         <summary>or paste a few lines</summary>
         <textarea id="canlogText" rows="5" placeholder="(1700000000.123456) can0 7E0#023E00AAAAAAAAAA" spellcheck="false"></textarea>
@@ -617,6 +711,8 @@
         <button class="btn" id="latencyBtn">Set latency to 1 ms</button>
       </div>
       <pre class="log-view" id="adapterOut">Not checked.</pre>
+      <div class="toolbar"><button class="btn" id="j2534Btn">List installed J2534 drivers</button></div>
+      <pre class="log-view" id="j2534Out">Registry inventory only; no driver or ECU will be opened.</pre>
     </article>
 
     <article class="panel">
@@ -705,11 +801,14 @@
             <b id="mapSelectionCount">0 cells selected</b>
             <span class="muted small">Click to select · Shift-click for a rectangle · double-click or Enter to edit</span>
           </div>
+          <p class="muted small">Axis-aware interpolation uses the selected table's numeric axis values (including staged axis edits), not uniform cell spacing. Invalid or non-monotonic axes are refused. These are review-only edits, not recommended tuning values.</p>
           <p class="muted small" id="mapLiveTraceStatus">Live tracing is read-only and starts only after both table axes are mapped explicitly to validated channels.</p>
           <div class="toolbar">
             <button class="btn small" id="mapSetBtn" disabled>Set…</button>
             <button class="btn small" id="mapAddBtn" disabled>Add…</button>
             <button class="btn small" id="mapPercentBtn" disabled>Percent…</button>
+            <label class="inline">Interpolation spacing <select id="mapInterpSpacing"><option value="index">Cells (uniform)</option><option value="axis">Axis values</option></select></label>
+            <label class="inline">Method <select id="mapInterpMethod"><option value="linear">Linear</option><option value="nearest">Nearest endpoint</option></select></label>
             <button class="btn small" id="mapInterpolateRowsBtn" disabled>Interpolate rows →</button>
             <button class="btn small" id="mapInterpolateColsBtn" disabled>Interpolate columns ↓</button>
             <button class="btn small" id="mapSmoothBtn" disabled>Smooth</button>
@@ -758,6 +857,7 @@
           <button class="btn" id="mapImportProjectBtn">Import project…</button>
           <input type="file" id="mapProjectFile" accept="application/json,.json" hidden>
         </div>
+        <p class="muted small">Projects contain paths, hashes, edits and log settings, but not firmware or log data. Reopening requires the exact source image, XDF and address base. Schema 1 projects lack an XDF hash and must be recreated and reviewed.</p>
         <details class="recommendation-packages">
           <summary><b>User/community recommendation packages</b></summary>
           <p class="muted small" id="mapPackageNote">No values are bundled or endorsed. Validated local packages are source-locked and still pass the same preview and liability gates.</p>
@@ -900,6 +1000,9 @@
      (GitHub Pages) it answers /api itself from the exported catalog. -->
 <script src="demo-api.js"></script>
 <script src="demo-lab.js"></script>
+<script src="atlas-interpolation.js"></script>
 <script src="app.js"></script>
+<script src="workshop.js"></script>
+<script src="honda-offline.js"></script>
 </body>
 </html>

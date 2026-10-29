@@ -32,6 +32,7 @@ const state = {
   actions: new Map(),
   promptedProcedureStep: '',
   liveLog: [],
+  plotEpoch: 0, plotRun: 0, plotChannels: new Set(),
   replay: null,
   replayTimer: null,
 };
@@ -80,6 +81,15 @@ const Prefs = {
   set(key, value) {
     try { localStorage.setItem(`guzzionboard.${key}`, value ?? ''); } catch (_) { /* private mode */ }
   },
+};
+
+// A local presentation preference shared by the native desktop and browser.
+const densitySelect = $('#layoutDensity');
+densitySelect.value = Prefs.get('layoutDensity', 'comfortable') === 'compact' ? 'compact' : 'comfortable';
+document.body.dataset.density = densitySelect.value;
+densitySelect.onchange = () => {
+  document.body.dataset.density = densitySelect.value;
+  Prefs.set('layoutDensity', densitySelect.value);
 };
 
 /* ------------------------------------------------------- temperature units
@@ -161,6 +171,8 @@ const VIEW_META = {
   discovery: ['Discovery', 'Read-only sweep for unmapped local identifiers.'],
   simulator: ['Simulated bike', 'Drive the simulated engine and seed faults to practise on.'],
   sessions: ['Sessions', 'Recorded frames, samples and safety decisions.'],
+  firmware: ['ECU memory', 'Back up, inspect and safely review calibration maps.'],
+  tools: ['Tools', 'Offline utilities and capture analysis.'],
   report: ['Report', 'A shareable snapshot of this session.'],
 };
 
@@ -170,6 +182,7 @@ function show(view) {
   const [title, sub] = VIEW_META[view] || ['', ''];
   $('#pageTitle').textContent = title;
   $('#pageSub').textContent = sub;
+  if (view === 'live') renderLivePlot();
   if (view === 'sessions') loadSessions();
   if (view === 'service') loadServiceActions();
   if (view === 'overview') renderOverview();
@@ -596,7 +609,7 @@ async function loadCatalog() {
   make.value = (savedMake && availableMakes.includes(savedMake))
     ? savedMake
     : (availableMakes.includes('Moto Guzzi') ? 'Moto Guzzi' : availableMakes[0]);
-  make.onchange = () => { Prefs.set('make', make.value); fillModels(); updateConnectEnabled(); };
+  make.onchange = () => { Prefs.set('make', make.value); fillModels(); resolveVehicle(); };
   fillModels();
 
   // last time's bike, if it still exists in the catalog
@@ -638,8 +651,8 @@ async function loadCatalog() {
       `<option value="${esc(e.id)}">${esc(e.display_name)} · ${esc(e.years)}</option>`).join('');
 
   $('#coverageLine').innerHTML =
-    `<b>${summary.ecu_count}</b> ECU families · <b>${summary.vehicle_count}</b> model variants · `
-    + `<b>${summary.model_count}</b> distinct models · model years `
+    `<b>${summary.ecu_count}</b> ECU profiles / research entries · <b>${summary.vehicle_count}</b> model variants · `
+    + `<b>${summary.model_count}</b> make/model names · model years `
     + `<b>${summary.year_range[0]}–${summary.year_range[1]}</b>`;
 
   $('#ecuTable tbody').innerHTML = state.catalog.ecus.map((e) => `
@@ -686,14 +699,19 @@ function fillYears() {
     + sorted.map((y) => `<option value="${y}">${y}</option>`).join('');
 }
 
+let resolveRequest = 0;
 async function resolveVehicle() {
+  const request = ++resolveRequest;
   const make = $('#makeSelect').value;
   const model = $('#modelSelect').value;
   const year = parseInt($('#yearSelect').value, 10);
   const box = $('#resolveResult');
   if (!model || !year) { box.innerHTML = ''; state.resolved = null; updateConnectEnabled(); return; }
 
+  state.resolved = null; updateConnectEnabled();
+  box.innerHTML = '<div class="muted small">Resolving selection…</div>';
   const data = await api(`/api/catalog/resolve?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${year}`);
+  if (request !== resolveRequest) return;
   if (!data.matches.length) {
     box.innerHTML = `<div class="resolve-card bad">No catalog entry for <b>${esc(make)} ${esc(model)} ${year}</b>.
       Pick another year, or use the ECU override below if you know the family.</div>`;
@@ -862,7 +880,11 @@ function connectionBusyMessage(selection) {
 async function connect() {
   const ecuOverride = $('#ecuOverride').value;
   const body = ecuOverride
-    ? { ecu: ecuOverride, transport: currentTransport(), device: $('#deviceInput').value }
+    ? { ecu: ecuOverride, transport: currentTransport(), device: $('#deviceInput').value,
+        ...($('#modelSelect').value && $('#yearSelect').value ? {
+          make: $('#makeSelect').value, model: $('#modelSelect').value,
+          year: parseInt($('#yearSelect').value, 10),
+        } : {}) }
     : {
         make: $('#makeSelect').value,
         model: $('#modelSelect').value,
@@ -900,6 +922,10 @@ async function connect() {
     if (busy) { closeModal(); busy = false; }
     await refreshStatus();
     await loadParameters();
+    state.plotEpoch += 1;
+    state.plotChannels = new Set([...state.selectedChannels].slice(0, 3));
+    renderPlotChannels();
+    renderLivePlot();
     await api('/api/identify').then(renderIdentity).catch(() => {});
     await refreshStatus();
     await loadProtocol();
@@ -1123,6 +1149,7 @@ function renderChannelPicker() {
     if (cb.checked) state.selectedChannels.add(cb.value);
     else state.selectedChannels.delete(cb.value);
     renderDerivedGaps();
+    renderPlotChannels();
   }));
   renderDerivedGaps();
 }
@@ -1201,6 +1228,98 @@ function sparkline(values, min, max) {
   }).join(' ');
   return `<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none">
     <polyline points="${points}"/></svg>`;
+}
+
+/* Read-only timeline: the existing live log is the source of truth. Each
+ * channel gets a separate lane and explicitly labelled scale; no values are
+ * interpolated over missing samples and logs from different connections are
+ * never joined. Plot selection does not change what is polled. */
+const PLOT_COLORS = ['#78dfc3', '#e9ac6b', '#90aaff', '#ee91a6'];
+function renderPlotChannels() {
+  const container = $('#plotChannels');
+  if (!container) return;
+  container.innerHTML = state.parameters.map((parameter) => {
+    const chosen = state.plotChannels.has(parameter.key);
+    const color = PLOT_COLORS[[...state.plotChannels].indexOf(parameter.key)] || 'var(--muted)';
+    return `<label class="plot-channel"><input type="checkbox" value="${esc(parameter.key)}" ${chosen ? 'checked' : ''}>
+      <span class="plot-channel-dot" style="--channel-color:${color}"></span><span>${esc(parameter.name)}<small>${state.selectedChannels.has(parameter.key) ? 'selected for polling' : 'not being polled'}</small></span></label>`;
+  }).join('') || '<p class="muted small">Connect to choose channels.</p>';
+  $$('#plotChannels input').forEach((checkbox) => {
+    checkbox.onchange = () => {
+      if (checkbox.checked && state.plotChannels.size >= 4) {
+        checkbox.checked = false;
+        toast('Choose at most four channels for the timeline.', 'warn');
+        return;
+      }
+      if (checkbox.checked) state.plotChannels.add(checkbox.value);
+      else state.plotChannels.delete(checkbox.value);
+      renderPlotChannels();
+      renderLivePlot();
+    };
+  });
+}
+
+function renderLivePlot() {
+  const target = $('#livePlot');
+  if (!target) return;
+  const rows = state.liveLog.filter((row) => row.plotEpoch === state.plotEpoch
+    && Number.isFinite(row.t)).slice(-300);
+  const channels = [...state.plotChannels];
+  if (!rows.length || !channels.length) {
+    target.innerHTML = `<p class="plot-empty">${channels.length ? 'Start polling to see the timeline.' : 'Select up to four channels to compare their timelines.'}</p>`;
+    return;
+  }
+  const times = rows.map((row) => row.t);
+  const start = Math.min(...times), end = Math.max(...times);
+  const duration = end - start;
+  const reversed = times.some((time, index) => index > 0 && time < times[index - 1]);
+  const width = 1000, left = 14, right = 986, laneHeight = 122;
+  const lanes = channels.map((key, channelIndex) => {
+    const meta = state.parameters.find((parameter) => parameter.key === key) || { name: key };
+    const points = rows.map((row) => {
+      const sample = row.values[key];
+      if (!sample || sample.error || sample.text
+          || !['number', 'string'].includes(typeof sample.value)
+          || (typeof sample.value === 'string' && !sample.value.trim())
+          || !Number.isFinite(Number(sample.value))) return null;
+      const value = Number(Temp.value(Number(sample.value), sample.unit));
+      if (!Number.isFinite(value)) return null;
+      return { t: row.t, run: row.plotRun, value, originalUnit: sample.unit || '', unit: Temp.label(sample.unit || '') };
+    });
+    const valid = points.filter(Boolean);
+    if (!valid.length) return `<div class="plot-lane"><div class="plot-lane-head"><b style="color:${PLOT_COLORS[channelIndex]}">${esc(meta.name)}</b><span>Waiting for numeric samples</span></div><div class="plot-lane-empty">No samples for this channel in the current connection.</div></div>`;
+    const units = [...new Set(valid.map((point) => point.unit))];
+    const originalUnits = new Set(valid.map((point) => point.originalUnit));
+    if (units.length !== 1 || originalUnits.size !== 1) return `<div class="plot-lane"><div class="plot-lane-head"><b>${esc(meta.name)}</b><span>Inconsistent units</span></div><div class="plot-lane-empty">Units changed within the connection; no continuous plot is shown.</div></div>`;
+    const values = valid.map((point) => point.value);
+    const min = Math.min(...values), max = Math.max(...values), range = max - min;
+    let last = null, lastRun = null;
+    const paths = [];
+    let path = '';
+    points.forEach((point) => {
+      if (!point) { if (path) paths.push(path); path = ''; last = null; lastRun = null; return; }
+      const x = left + (duration ? (point.t - start) / duration : 0.5) * (right - left);
+      const y = 12 + (range ? (max - point.value) / range : 0.5) * (laneHeight - 24);
+      if (last !== null && (point.t <= last || point.run !== lastRun)) { if (path) paths.push(path); path = ''; }
+      path += `${path ? ' L' : 'M'}${x.toFixed(2)} ${y.toFixed(2)}`;
+      last = point.t; lastRun = point.run;
+    });
+    if (path) paths.push(path);
+    const lastPoint = valid[valid.length - 1];
+    return `<div class="plot-lane"><div class="plot-lane-head"><b style="color:${PLOT_COLORS[channelIndex]}">${esc(meta.name)}</b>
+      <span>MIN ${esc(fmtValue(min))} · MAX ${esc(fmtValue(max))} · LAST ${esc(fmtValue(lastPoint.value))} ${esc(units[0])} · ${valid.length} samples</span></div>
+      <svg class="plot-svg" viewBox="0 0 ${width} ${laneHeight}" role="img" aria-label="${esc(meta.name)} timeline; range ${esc(fmtValue(min))} to ${esc(fmtValue(max))} ${esc(units[0])}">
+        <path class="plot-grid" d="M14 12 H986 M14 61 H986 M14 110 H986 M14 12 V110 M257 12 V110 M500 12 V110 M743 12 V110 M986 12 V110"/>
+        ${paths.map((segment) => {
+          if (!segment.includes(' L')) {
+            const [x, y] = segment.slice(1).split(' ');
+            return `<circle cx="${x}" cy="${y}" r="3" fill="${PLOT_COLORS[channelIndex]}"/>`;
+          }
+          return `<path class="plot-line" style="stroke:${PLOT_COLORS[channelIndex]}" d="${segment}"/>`;
+        }).join('')}
+      </svg></div>`;
+  });
+  target.innerHTML = lanes.join('') + `<div class="plot-time"><span>0.0 s</span><span>LAST ${esc(duration.toFixed(1))} s · ${rows.length} sweeps${reversed ? ' · clock moved backwards; lines interrupted' : ''}</span><span>${esc(duration.toFixed(1))} s</span></div>`;
 }
 
 function loadMapTraceMappings() {
@@ -1348,8 +1467,10 @@ async function pollOnce() {
   const keys = Array.from(state.selectedChannels);
   if (!keys.length) return;
   const started = performance.now();
+  const epoch = state.plotEpoch, run = state.plotRun;
   try {
     const data = await api(`/api/live?keys=${keys.join(',')}`);
+    if (!state.polling || state.plotEpoch !== epoch || state.plotRun !== run) return;
     data.samples.forEach((s) => {
       if (s.value === null || s.text) return;
       const arr = state.history.get(s.key) || [];
@@ -1359,16 +1480,19 @@ async function pollOnce() {
     });
     state.liveLog.push({
       t: data.at || Date.now() / 1000,
+      plotEpoch: epoch, plotRun: run,
       values: Object.fromEntries(data.samples.map((s) => [s.key, s])),
     });
     if (state.liveLog.length > 5000) state.liveLog.shift();
     $('#exportLiveBtn').disabled = false;
     renderLive(data.samples);
+    if (!$('#live').classList.contains('hidden')) renderLivePlot();
     renderAnalysis(data.derived, data.findings);
     const elapsed = performance.now() - started;
     $('#pollRate').textContent =
       `${keys.length} channels · ${elapsed.toFixed(0)} ms/sweep · ${(1000 / Math.max(elapsed, 1)).toFixed(1)} Hz max`;
   } catch (err) {
+    if (!state.polling || state.plotEpoch !== epoch || state.plotRun !== run) return;
     stopPolling();
     toast(`Polling stopped: ${err.message}`, 'bad');
   }
@@ -1400,18 +1524,21 @@ async function prepareAndStartPolling() {
 function startPolling() {
   if (state.polling) return;
   state.polling = true;
+  state.plotRun += 1;
+  const run = state.plotRun;
   $('#pollBtn').textContent = 'Stop polling';
   $('#pollBtn').classList.add('danger');
   const loop = async () => {
-    if (!state.polling) return;
+    if (!state.polling || state.plotRun !== run) return;
     await pollOnce();
-    state.pollTimer = setTimeout(loop, 250);
+    if (state.polling && state.plotRun === run) state.pollTimer = setTimeout(loop, 250);
   };
   loop();
 }
 
 function stopPolling() {
   state.polling = false;
+  state.plotRun += 1;
   clearTimeout(state.pollTimer);
   $('#pollBtn').textContent = 'Start polling';
   $('#pollBtn').classList.remove('danger');
@@ -1929,6 +2056,7 @@ $('#printBtn').onclick = () => printView();
 $('#tempUnit').onchange = (e) => {
   Temp.setUnit(e.target.value);
   if (state.lastSamples.length) renderLive(state.lastSamples);
+  renderLivePlot();
   if (state.lastAnalysis) renderAnalysis(state.lastAnalysis.derived, state.lastAnalysis.findings);
   toast(`Temperatures shown in ${Temp.unit() === 'F' ? 'Fahrenheit' : 'Celsius'}.`, 'ok');
 };
@@ -2516,6 +2644,20 @@ $('#adapterBtn').onclick = async () => {
   if (likely && !$('#adapterPort').value) $('#adapterPort').value = likely.device;
 };
 
+$('#j2534Btn').onclick = async () => {
+  if (isHostedDemo()) {
+    $('#j2534Out').textContent = 'J2534 discovery is available only in the installed workstation on Windows; the demo cannot inspect your computer.';
+    return;
+  }
+  try {
+    const result = await api('/api/adapter/j2534');
+    const lines = (result.devices || []).map((device) =>
+      `${device.name} · J2534 ${device.version} · ${device.registry_view_bits}-bit registry\n  DLL: ${device.library || '(not registered)'}\n  Claimed protocols: ${Object.entries(device.protocol_claims).map(([key, value]) => `${key}=${value}`).join(', ') || '(none listed)'}${device.process_matches_registry_view ? '' : '\n  Registry view differs from this process bitness; DLL compatibility is unverified.'}`);
+    $('#j2534Out').textContent = [result.note, `Host process: ${result.process_bits}-bit`, ...lines,
+      ...(result.errors || []).map((error) => `Scan error: ${error}`)].join('\n\n');
+  } catch (error) { $('#j2534Out').textContent = `Inventory failed: ${error.message}`; }
+};
+
 $('#latencyBtn').onclick = async () => {
   const port = $('#adapterPort').value.trim();
   if (!port) return toast('Enter the adapter port first.', 'bad');
@@ -2739,7 +2881,7 @@ const maps = {
   render: null, changes: new Map(), build: null, baseMap: null,
   selection: new Set(), selectionAnchor: null,
   undo: [], redo: [], preview: null,
-  logRows: [], logHeaders: [], logAnalysis: null,
+  logRows: [], logHeaders: [], logAnalysis: null, logMeta: null, pendingLogProject: null,
   checksumProviders: [], checksumDirectory: '',
   recommendationPackages: [], recommendationDirectory: '',
   activePackage: null,
@@ -3382,38 +3524,41 @@ function interpolateMapSelection(direction) {
       || (direction === 'cols' && r1 - r0 < 2)) {
     return toast('Select at least three cells across the interpolation direction.', 'bad');
   }
-  const descriptor = (row, col) => {
-    const button = $$('[data-map-kind="table"]')
-      .find((candidate) => candidate.dataset.mapId === item.id
-        && Number(candidate.dataset.mapRow) === row
-        && Number(candidate.dataset.mapCol) === col);
-    return button ? mapCellDescriptor(button) : null;
-  };
-  mutateMapChanges(() => {
+  const axis = direction === 'rows' ? 'x' : 'y';
+  const first = direction === 'rows' ? c0 : r0;
+  const last = direction === 'rows' ? c1 : r1;
+  const values = item.axes?.[axis]?.values || item[axis] || [];
+  const currentAxis = values.map((value, index) =>
+    maps.changes.get(mapChangeKey('axis', item.id, index, 0, axis))?.value ?? value);
+  let positions;
+  try {
+    positions = AtlasInterpolation.positions(currentAxis, first, last,
+      $('#mapInterpSpacing').value === 'axis');
+  } catch (error) { return toast(error.message, 'bad'); }
+  const method = $('#mapInterpMethod').value;
+  const byPosition = new Map(cells.map((cell) => [`${cell.row}:${cell.col}`, cell]));
+  const descriptor = (row, col) => byPosition.get(`${row}:${col}`);
+  const proposals = [];
+  try {
     if (direction === 'rows') {
       for (let row = r0; row <= r1; row += 1) {
         const left = descriptor(row, c0); const right = descriptor(row, c1);
-        if (!left || !right) continue;
-        const a = Number(maps.changes.get(left.key)?.value ?? left.before);
-        const b = Number(maps.changes.get(right.key)?.value ?? right.before);
+        const a = Number(left.value); const b = Number(right.value);
         for (let col = c0 + 1; col < c1; col += 1) {
-          const cell = descriptor(row, col);
-          if (cell) setMapValue(cell, a + (b - a) * (col - c0) / (c1 - c0));
+          proposals.push([descriptor(row, col), AtlasInterpolation.interpolate(a, b, positions[col - c0], method)]);
         }
       }
     } else {
       for (let col = c0; col <= c1; col += 1) {
         const top = descriptor(r0, col); const bottom = descriptor(r1, col);
-        if (!top || !bottom) continue;
-        const a = Number(maps.changes.get(top.key)?.value ?? top.before);
-        const b = Number(maps.changes.get(bottom.key)?.value ?? bottom.before);
+        const a = Number(top.value); const b = Number(bottom.value);
         for (let row = r0 + 1; row < r1; row += 1) {
-          const cell = descriptor(row, col);
-          if (cell) setMapValue(cell, a + (b - a) * (row - r0) / (r1 - r0));
+          proposals.push([descriptor(row, col), AtlasInterpolation.interpolate(a, b, positions[row - r0], method)]);
         }
       }
     }
-  });
+  } catch (error) { return toast(error.message, 'bad'); }
+  mutateMapChanges(() => proposals.forEach(([cell, value]) => setMapValue(cell, value)));
 }
 
 function currentTableMatrix(table) {
@@ -3560,7 +3705,7 @@ async function pasteMapSelection() {
 
 function mapProject() {
   return {
-    schema: 1,
+    schema: 2,
     application: 'GuzziOnBoard map project',
     saved_at: new Date().toISOString(),
     source: maps.render?.source || null,
@@ -3568,7 +3713,9 @@ function mapProject() {
       filename: $('#xdfSelect').value,
       title: maps.render?.xdf?.title || '',
       path: maps.render?.xdf?.path || '',
+      sha256: maps.render?.xdf?.sha256 || '',
     },
+    log: maps.logMeta ? { ...maps.logMeta, settings: mapLogSettings() } : null,
     address_base: maps.render?.address_base ?? null,
     checksum_provider: $('#mapChecksumProvider').value || null,
     recommendation_package: maps.activePackage ? { ...maps.activePackage } : null,
@@ -3583,20 +3730,33 @@ function mapProject() {
       rationale: $('#mapEvidenceRationale').value,
       quote: $('#mapEvidenceQuote').value,
     },
-    note: 'A project is a plan, not a flashable image. Reopening it verifies the source hash and every expected raw value.',
+    note: 'A project is a plan, not a flashable image. It contains local paths, hashes and settings, but no firmware or log data. Reopening verifies image and XDF hashes, address base and expected raw values.',
   };
 }
 
 function importMapProject(project) {
   if (!maps.render?.source) throw new Error('Load the project source map before importing edits.');
-  if (!project || project.schema !== 1 || !Array.isArray(project.changes)) {
-    throw new Error('This is not a supported GuzziOnBoard map project.');
+  if (!project || project.schema !== 2 || !Array.isArray(project.changes)) {
+    throw new Error('Project schema 2 with an XDF hash is required; older projects must be recreated and reviewed because their definition cannot be verified.');
   }
-  if (project.source?.sha256 !== maps.render.source.sha256) {
+  if (!/^[a-f0-9]{64}$/i.test(String(project.source?.sha256 || ''))
+      || project.source.sha256 !== maps.render.source.sha256) {
     throw new Error('The loaded map does not match the project source SHA-256.');
   }
   if (project.xdf?.filename !== $('#xdfSelect').value) {
     throw new Error(`The project needs XDF ${project.xdf?.filename || '(unknown)'}.`);
+  }
+  if (!/^[a-f0-9]{64}$/i.test(String(project.xdf?.sha256 || ''))
+      || project.xdf.sha256 !== maps.render.xdf?.sha256) {
+    throw new Error('The loaded XDF content does not match the project SHA-256.');
+  }
+  if ((project.address_base ?? null) !== (maps.render.address_base ?? null)) {
+    throw new Error('The loaded definition uses a different image address base.');
+  }
+  if (project.log && (!/^[a-f0-9]{64}$/i.test(String(project.log.sha256 || ''))
+      || !project.log.settings || typeof project.log.settings !== 'object'
+      || Array.isArray(project.log.settings))) {
+    throw new Error('Project log metadata is invalid.');
   }
   const projectProvider = project.checksum_provider || '';
   if (projectProvider && !maps.checksumProviders.some((candidate) => candidate.id === projectProvider)) {
@@ -3624,10 +3784,12 @@ function importMapProject(project) {
     const col = Number(change.col || 0);
     const raw = kind === 'table' ? item.raw_values?.[row]?.[col]
       : kind === 'axis' ? item.raw_values?.[row] : item.raw;
-    if (Number(change.expected_raw) !== Number(raw)) {
+    if (raw === undefined || change.expected_raw === null || change.expected_raw === undefined
+        || !Number.isFinite(Number(change.expected_raw)) || Number(change.expected_raw) !== Number(raw)) {
       throw new Error(`${owner.title}: expected raw value no longer matches the loaded source.`);
     }
     const key = mapChangeKey(kind, id, row, col, axis);
+    if (imported.has(key)) throw new Error('Project contains duplicate changes to the same location.');
     imported.set(key, {
       ...change, key, id, axis, index: kind === 'axis' ? row : null,
       title: kind === 'axis' ? `${owner.title} (${axis} axis)` : item.title,
@@ -3660,6 +3822,8 @@ function importMapProject(project) {
   mutateMapChanges(() => { maps.changes = imported; });
   importedMappings.forEach(([key, mapping]) => maps.traceMappings.set(key, mapping));
   saveMapTraceMappings();
+  maps.pendingLogProject = project.log || null;
+  restoreProjectLogSettings();
   maps.activePackage = packageRef ? { ...packageRef } : null;
   if (projectPackage) {
     const packageIndex = maps.recommendationPackages.indexOf(projectPackage);
@@ -3741,7 +3905,7 @@ function renderMapBuildState() {
   $('#mapUndoBtn').disabled = !maps.undo.length;
   $('#mapRedoBtn').disabled = !maps.redo.length;
   $('#mapClearChangesBtn').disabled = !changes.length;
-  $('#mapExportProjectBtn').disabled = !changes.length || !source;
+  $('#mapExportProjectBtn').disabled = !source || !maps.render?.xdf?.sha256;
   $('#mapBuildBtn').disabled = !changes.length || !source || !packageMatches
     || !checksumSelectionCompatible();
 }
@@ -3961,6 +4125,7 @@ function renderMapsResult(render) {
   maps.redo = [];
   maps.preview = null;
   maps.logAnalysis = null;
+  maps.pendingLogProject = null;
   maps.activePackage = null;
   maps.lastDoc = {
     title: `${meta.title || 'Maps'} — rendered tables`,
@@ -3997,12 +4162,24 @@ function renderMapsResult(render) {
     </div>`
     + mapsNotices(render)
     + tuningTipsHtml(render)
+    + `<div class="map-navigator"><div><span class="section-kicker">CALIBRATION EXPLORER</span><h3>Tables <span class="muted" id="mapTableCount">${render.tables.length} available</span></h3></div>
+       <label><span class="sr-only">Search table names or categories</span><input id="mapTableSearch" type="search" placeholder="Search tables or categories…" autocomplete="off"></label></div>`
     + render.tables.map((t, i) => `
-      <details ${i === 0 ? 'open' : ''}>
+      <details class="map-table-entry" data-map-search="${esc(`${t.title} ${t.category || ''}`.toLowerCase())}" ${i === 0 ? 'open' : ''}>
         <summary>${esc(t.title)}
           <span class="muted small"> — ${esc(t.category)} · ${esc(t.units)} · ${t.rows}×${t.cols} · <code>${esc(t.address)}</code></span>
         </summary>${mapsTableHtml(t)}</details>`).join('')
     + constants;
+  $('#mapTableSearch').oninput = (event) => {
+    const query = event.target.value.trim().toLowerCase();
+    let visible = 0;
+    $$('#mapsOut .map-table-entry').forEach((entry) => {
+      const matches = !query || entry.dataset.mapSearch.includes(query);
+      entry.hidden = !matches;
+      if (matches) visible += 1;
+    });
+    $('#mapTableCount').textContent = `${visible} of ${render.tables.length} shown`;
+  };
   wireMapsToolbar();
   wireMapEditors();
   wireMapTraceMappings();
@@ -4052,6 +4229,7 @@ $('#mapRedoBtn').onclick = () => {
 };
 $('#mapExportProjectBtn').onclick = () => {
   const project = mapProject();
+  if (!/^[a-f0-9]{64}$/i.test(project.xdf.sha256)) return toast('The XDF content hash is unavailable; project export is disabled.', 'bad');
   const stem = ($('#xdfSelect').value || 'map').replace(/\.xdf$/i, '');
   download(`guzzionboard-${stem}-${Date.now()}.tune.json`,
     JSON.stringify(project, null, 2), 'application/json');
@@ -4318,20 +4496,55 @@ $('#mapPackageStageBtn').onclick = async () => {
   toast('Package changes staged with their source locks. Preview and review every stored value.', 'ok');
 };
 
+const MAP_LOG_SETTINGS = ['mapLogTable', 'mapLogX', 'mapLogY', 'mapLogMeasured', 'mapLogTarget',
+  'mapLogTime', 'mapLogTimeUnit', 'mapLogDelay', 'mapLogSettle', 'mapLogDuration',
+  'mapLogGap', 'mapLogXRate', 'mapLogYRate', 'mapLogMinSamples', 'mapLogCap', 'mapLogStddev'];
+function mapLogSettings() {
+  return Object.fromEntries(MAP_LOG_SETTINGS.map((id) => [id, $(`#${id}`).value]));
+}
+function restoreProjectLogSettings() {
+  const pending = maps.pendingLogProject;
+  if (!pending) return;
+  if (!maps.logMeta || pending.sha256 !== maps.logMeta.sha256) {
+    $('#mapLogSummary').textContent = 'Project log settings waiting for the exact original CSV (SHA-256 must match).';
+    return;
+  }
+  const settings = pending.settings;
+  const available = MAP_LOG_SETTINGS.every((id) => {
+    const element = $(`#${id}`); const value = settings[id];
+    if (typeof value !== 'string' || value.length > 1000) return false;
+    return element.tagName !== 'SELECT' || [...element.options].some((option) => option.value === value);
+  });
+  if (!available) {
+    $('#mapLogSummary').textContent = 'Project log settings do not match the loaded table or CSV columns; map them manually.';
+    maps.pendingLogProject = null;
+    return;
+  }
+  MAP_LOG_SETTINGS.forEach((id) => { $(`#${id}`).value = settings[id]; });
+  maps.pendingLogProject = null;
+  $('#mapLogSummary').textContent = `${maps.logMeta.name} · ${maps.logRows.length} row(s) · project settings restored (SHA-256 matched)`;
+}
+
 $('#mapLogFile').onchange = async () => {
   const file = $('#mapLogFile').files?.[0];
   if (!file) return;
   try {
-    const parsed = parseMapLogCsv(await file.text());
+    const bytes = await file.arrayBuffer();
+    const parsed = parseMapLogCsv(new TextDecoder('utf-8').decode(bytes));
+    const digest = globalThis.crypto?.subtle
+      ? await crypto.subtle.digest('SHA-256', bytes) : null;
+    maps.logMeta = digest ? { name: file.name, sha256: [...new Uint8Array(digest)]
+      .map((byte) => byte.toString(16).padStart(2, '0')).join('') } : null;
     maps.logHeaders = parsed.headers;
     maps.logRows = parsed.rows;
     maps.logAnalysis = null;
     $('#mapLogSummary').textContent = `${file.name} · ${parsed.rows.length} row(s) · ${parsed.headers.length} columns`;
     $('#mapLogOut').innerHTML = '';
     renderMapLogControls();
+    restoreProjectLogSettings();
     toast('Offline log loaded. Map each required column before analysis.', 'ok');
   } catch (err) {
-    maps.logRows = []; maps.logHeaders = []; maps.logAnalysis = null;
+    maps.logRows = []; maps.logHeaders = []; maps.logAnalysis = null; maps.logMeta = null;
     $('#mapLogSummary').textContent = 'No usable log loaded.';
     renderMapLogControls();
     toast(err.message, 'bad');
@@ -4553,6 +4766,54 @@ $$('.nav').forEach((b) => {
   }
 });
 
+/* ---------------------------------------- Manual shim worksheet (offline) */
+// Independent arithmetic only: no source presets, specifications or ECU access.
+function calculateShimWorksheet(measuredText, currentText, minText, maxText, direction, candidatesText) {
+  function microns(text, allowZero, name) {
+    const value = String(text).trim();
+    if (!/^\d+(?:\.\d{1,3})?$/.test(value)) throw new Error(`${name}: enter millimetres to at most 0.001 mm.`);
+    const [whole, fraction = ''] = value.split('.');
+    const result = Number(whole) * 1000 + Number(fraction.padEnd(3, '0'));
+    if (!Number.isSafeInteger(result) || result > 20000 || (!allowZero && result <= 0)) {
+      throw new Error(`${name}: enter ${allowZero ? '0–20' : 'more than 0 and at most 20'} mm.`);
+    }
+    return result;
+  }
+  const measured = microns(measuredText, true, 'Measured clearance');
+  const current = microns(currentText, false, 'Current shim');
+  const min = microns(minText, true, 'Target minimum');
+  const max = microns(maxText, true, 'Target maximum');
+  if (min > max) throw new Error('Target minimum cannot exceed the maximum.');
+  if (!['decrease', 'increase'].includes(direction)) throw new Error('Confirm how a thicker shim affects clearance for this exact mechanism.');
+  const sign = direction === 'decrease' ? -1 : 1;
+  const target = (min + max) / 2;
+  const ideal = current + (target - measured) / sign;
+  if (ideal <= 0 || ideal > 20000) throw new Error('The calculated shim is outside 0–20 mm; recheck the measurements and direction.');
+  let candidates = [];
+  if (String(candidatesText).trim()) {
+    const parts = String(candidatesText).split(',');
+    if (parts.length > 40) throw new Error('Enter at most 40 available shim sizes.');
+    candidates = [...new Set(parts.map((part) => microns(part, false, 'Available shim')))]
+      .map((shim) => ({ shim, predicted: measured + sign * (shim - current) }))
+      .sort((a, b) => Number(a.predicted < 0) - Number(b.predicted < 0)
+        || Math.abs(a.predicted - target) - Math.abs(b.predicted - target) || a.shim - b.shim);
+  }
+  return { ideal, target, min, max, candidates };
+}
+
+$('#shimCalcBtn').onclick = () => {
+  const out = $('#shimOut');
+  try {
+    const result = calculateShimWorksheet($('#shimMeasured').value, $('#shimCurrent').value,
+      $('#shimMin').value, $('#shimMax').value, $('#shimDirection').value, $('#shimCandidates').value);
+    const mm = (value) => (value / 1000).toFixed(4);
+    const choices = result.candidates.length ? `<div class="table-wrap"><table><thead><tr><th>Entered shim (mm)</th><th>Predicted clearance (mm)</th><th>Entered target range</th></tr></thead><tbody>${result.candidates.map((item) => `<tr><td>${mm(item.shim)}</td><td>${mm(item.predicted)}</td><td>${item.predicted < 0 ? 'physically impossible' : item.predicted >= result.min && item.predicted <= result.max ? 'within' : 'outside'}</td></tr>`).join('')}</tbody></table></div>` : '';
+    out.innerHTML = `<div class="gate-card warn"><h4>Worksheet only · verify before use</h4><p class="small">Target midpoint: ${mm(result.target)} mm · calculated exact shim: ${mm(result.ideal)} mm. Nonnegative candidates are sorted by distance from the midpoint; negative predicted clearances are physically impossible and must not be used.</p>${choices}</div>`;
+  } catch (error) {
+    out.innerHTML = `<div class="gate-card bad"><h4>Worksheet not calculated</h4><p class="small">${esc(error.message)}</p></div>`;
+  }
+};
+
 /* ------------------------------------------------- CAN capture analysis */
 /* The CAN id pair is the one unknown on the CAN-era bikes (PRIOR_ART §7
  * item 2). This reads a passive capture — candump, SavvyCAN CSV or CRTD —
@@ -4561,6 +4822,16 @@ $$('.nav').forEach((b) => {
 
 function renderCanlog(result) {
   const out = $('#canlogOut');
+  const traffic = result.traffic?.length ? `<details><summary>Traffic counts by identifier and frame format</summary><ul>${result.traffic.map((item) => `<li><code>${esc(item.id)}</code> · ${item.extended ? '29-bit' : '11-bit'} · ${item.frames} frame(s)</li>`).join('')}</ul></details>` : '';
+  const hexByte = (value) => `0x${Number(value).toString(16).toUpperCase().padStart(2, '0')}`;
+  const byteStats = result.byte_stats ? `<details class="gate-card warn" open><summary>Raw byte observations</summary>
+    <p class="small">Capture order, grouped by ID, frame format and direction; interface/bus is not retained, so use a single-bus capture. Changes compare successive observations where the byte is present. This is not a signal definition or vehicle identification. ${result.byte_stats.omitted_groups} group(s) omitted.</p>
+    ${result.byte_stats.groups.map((group) => `<h4>${esc(group.id)} · ${group.extended ? '29-bit' : '11-bit'} · ${esc(group.direction)}</h4>
+      <p class="small">${group.frames} frame(s) · lengths ${esc(group.lengths.join(', '))} · ${group.skipped_frames} empty or oversized frame(s) skipped</p>
+      <div class="table-wrap"><table><thead><tr><th>Byte (1-based)</th><th>Samples</th><th>Min</th><th>Max</th><th>Changes</th><th>Observed varying bits</th></tr></thead><tbody>${group.bytes.map((byte) => `<tr><td>${byte.index}</td><td>${byte.samples}</td><td>${hexByte(byte.minimum)}</td><td>${hexByte(byte.maximum)}</td><td>${byte.changes}</td><td>${hexByte(byte.varying_mask)}</td></tr>`).join('')}</tbody></table></div>`).join('')}</details>` : '';
+  const decoded = result.decoder ? `<div class="gate-card warn"><h4>Ducati Mitsubishi research decoder · offline only</h4>
+    <p class="small">Not vehicle identification or a Guzzi profile. Verify each signal against the exact vehicle and raw data. ${result.decoder.recognized_frames} matching frame(s); ${result.decoder.invalid_length_frames} invalid-length and ${result.decoder.ignored_tx_frames} transmitted frame(s) ignored; ${result.decoder.omitted_events} additional events omitted. Unknown directions may include transmitted frames.</p>
+    <div class="table-wrap"><table><thead><tr><th>Time (s)</th><th>ID / direction</th><th>Raw bytes</th><th>Candidate values</th></tr></thead><tbody>${result.decoder.events.map((event) => `<tr><td>${esc(event.timestamp)}</td><td>${esc(event.id)} / ${esc(event.direction)}</td><td><code>${esc(event.raw)}</code></td><td>${Object.entries(event.values).map(([key, value]) => `${esc(key)}: ${esc(value)}`).join(' · ')}</td></tr>`).join('')}</tbody></table></div></div>` : '';
   const head = `
     <div class="gate-card ${result.diagnostic_traffic_found ? 'ok' : 'warn'}">
       <h4>${result.diagnostic_traffic_found
@@ -4572,8 +4843,8 @@ function renderCanlog(result) {
     </div>`;
 
   if (!result.diagnostic_traffic_found) {
-    out.innerHTML = head
-      + result.notes.map((n) => `<p class="muted small">${esc(n)}</p>`).join('');
+    out.innerHTML = head + decoded + byteStats
+      + traffic + result.notes.map((n) => `<p class="muted small">${esc(n)}</p>`).join('');
     return;
   }
 
@@ -4581,9 +4852,9 @@ function renderCanlog(result) {
     ? `<p class="small"><b class="ok">This is ${esc(p.matches)}.</b></p>`
     : `<p class="small"><b class="warn">This is neither standard pair.</b>
        Enter <code>${esc(p.request_id)}</code> / <code>${esc(p.response_id)}</code>
-       in the Garage CAN fields when you connect${p.extended ? ' (29-bit)' : ''}.</p>`;
+       only for virtual rehearsal${p.extended ? ' (29-bit)' : ''}. A capture candidate alone does not validate a physical ECU profile.</p>`;
 
-  out.innerHTML = head
+  out.innerHTML = head + decoded + byteStats + traffic
     + result.pairs.map((p, i) => `
       <div class="gate-card ${i === 0 ? 'ok' : ''}">
         <h4>${i === 0 ? 'Best candidate: ' : ''}request <code>${esc(p.request_id)}</code>
@@ -4617,12 +4888,12 @@ async function analyseCanlog(body) {
 $('#canlogBtn').onclick = () => {
   const path = $('#canlogPath').value.trim();
   if (!path) return toast('Give the path of a capture file.', 'bad');
-  analyseCanlog({ path });
+  analyseCanlog({ path, filter_ids: $('#canlogFilter').value.trim(), decoder: $('#canlogDecoder').value, byte_stats: $('#canlogByteStats').checked });
 };
 $('#canlogPasteBtn').onclick = () => {
   const text = $('#canlogText').value.trim();
   if (!text) return toast('Paste some capture lines first.', 'bad');
-  analyseCanlog({ text });
+  analyseCanlog({ text, filter_ids: $('#canlogFilter').value.trim(), decoder: $('#canlogDecoder').value, byte_stats: $('#canlogByteStats').checked });
 };
 
 /* ---------------------------------------------- K-Line capture analysis */

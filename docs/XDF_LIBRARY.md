@@ -25,7 +25,7 @@ tables** and the real, named tables are already there.
 - The origin site carries no explicit redistribution license; it publishes
   the files for free, non-commercial use with a blanket "use at your own
   risk, no liability" notice. We mirror that posture here: nothing in
-  `guzzionboard/xdfs/` is covered by this repository's MIT license, no
+  `guzzionboard/xdfs/` is covered by the application's software license, no
   warranty is made about accuracy, and the files are kept only for
   diagnostic/tuning reference exactly as GuzziDiag users have used them for
   years.

@@ -164,11 +164,28 @@ class Workstation:
         can_rx_id: str | int = "",
     ) -> dict:
         with self._lock:
+            if self.service is not None and self.service.connected:
+                raise ValueError("disconnect the current session before selecting another vehicle or ECU")
             entry = None
-            if ecu:
+            if model and year:
+                # Keep vehicle confidence even when an ECU override is supplied.
+                # An unrelated profile must not inherit a different bike's identity.
+                matches = self.catalog.find(model, year, make)
+                if not make and len({v.make.casefold() for v in matches}) > 1:
+                    raise ValueError(f"{model} {year} exists under multiple makes; specify make")
+                if ecu:
+                    candidates = [v for v in matches if v.ecu == ecu]
+                    if not candidates:
+                        raise ValueError("ECU override is not cataloged for this make, model and year; verify the ECU label")
+                    candidates.sort(key=lambda v: ((v.year_to or 9999) - v.year_from, -v.year_from))
+                    entry = candidates[0]
+                    profile = self.catalog.ecu(ecu)
+                else:
+                    entry, profile = self.catalog.resolve(model, year, make)
+            elif ecu:
+                if make or model or year:
+                    raise ValueError("ECU-only selection cannot include a partial vehicle identity; specify make, model and year together")
                 profile = self.catalog.ecu(ecu)
-            elif model and year:
-                entry, profile = self.catalog.resolve(model, year, make)
             else:
                 raise ValueError("select needs either an ecu id or a model and year")
 
@@ -195,13 +212,13 @@ class Workstation:
         self, entry: VehicleEntry | None, profile: EcuProfile, transport: str
     ) -> list[dict]:
         notices: list[dict] = []
-        if entry and self.catalog.ambiguous(entry.model, entry.year_from):
+        if entry and self.catalog.ambiguous(entry.model, self.selection.year, entry.make):
             notices.append(
                 {
                     "level": "warn",
                     "text": (
                         f"{entry.model} spans more than one ECU family in this year. "
-                        "Moto Guzzi changed ECUs as running changes - read the label "
+                        "Some models have overlapping fitments - read the label "
                         "on your ECU and override the selection if it disagrees."
                     ),
                 }
@@ -315,6 +332,8 @@ class Workstation:
         assert profile is not None
         kind = self.selection.transport_kind
 
+        if kind in self._SIM_TRANSPORTS and profile.session.get("simulator_supported") is False:
+            raise TransportUnavailable(f"{profile.family}: no matching simulator is implemented")
         if kind == "simulator":
             engine = EngineModel(ambient_c=18.0)
             return SimulatorTransport(ecu=SimulatedEcu(profile, engine=engine))
@@ -455,6 +474,9 @@ class Workstation:
                 return self.status()
 
             profile = self.selection.profile
+            if (self.selection.transport_kind in self._SIM_TRANSPORTS
+                    and profile.session.get("simulator_supported") is False):
+                raise TransportUnavailable(f"{profile.family}: no matching simulator is implemented")
             if (
                 self.selection.transport_kind not in self._SIM_TRANSPORTS
                 and profile.session.get("physical_supported") is False

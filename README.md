@@ -1,8 +1,7 @@
 # GuzziOnBoard
 
-A safety-first diagnostic workstation and evidence catalog for Moto Guzzi
-motorcycles from the mid-1990s to current bikes, plus related Ducati and
-Aprilia fitments. Only family-specific operations supported by recovered wire
+A safety-first multi-make diagnostic workstation and evidence catalog, with
+Moto Guzzi, Ducati and Aprilia fitments and a Honda offline research entry. Only family-specific operations supported by recovered wire
 evidence are enabled; incomplete ECU profiles are blocked before hardware is
 opened.
 
@@ -25,28 +24,36 @@ opened.
 | KWP2000 / ISO 14230 application + data link layer | Implemented and unit tested |
 | ISO-TP (ISO 15765-2) segmentation for CAN bikes | Implemented and unit tested |
 | Simulated ECU **speaking the real wire protocol** | Implemented; drives the whole stack |
-| Capability catalog: 11 cataloged controllers, 118 model variants across Moto Guzzi, Ducati and Aprilia, 1992–2026 — engine ECU families plus the Aprilia Mana CVT TCU | Implemented, data-driven |
+| Capability catalog: 11 existing controllers plus one Honda research placeholder, 119 model variants across Moto Guzzi, Ducati, Aprilia and Honda, 1992–2026 — includes the Aprilia Mana CVT TCU | Implemented, data-driven |
 | K-Line transport (validated fast init + validated 5-baud keyword handshake, standards-safe auto fallback, echo cancelling) | Written and unit tested, **untested on hardware** |
 | CAN transport (python-can + ISO-TP) | Written; physical ECU profiles remain blocked because family-specific identifiers and application protocols were not recovered |
 | ECU identification, live data, DTC read/clear | Implemented and exposed only where the family catalog declares the evidence-backed capability |
-| Make / model / year vehicle selection (Moto Guzzi, Ducati, Aprilia) | Implemented; cross-brand bikes read-only by design |
+| Make / model / year vehicle selection (Moto Guzzi, Ducati, Aprilia, Honda research entry) | Existing cross-brand mappings are read-only; Honda is offline research only with physical and simulator sessions blocked |
 | CAN request/response identifiers configurable for virtual rehearsal and capture analysis | Implemented; no generic pair is presented as a motorcycle default |
-| CAN capture analysis: find the id pair from a passive sniff (candump / SavvyCAN / CRTD) | Implemented; read-only by construction |
+| CAN capture analysis: find the id pair from a passive sniff (candump / SavvyCAN / CRTD) | Implemented; read-only by construction, with optional filtered raw-byte statistics |
+| Honda 2005 CBR600RR research | Offline decoding of supplied response frames only; no physical connection or Honda simulation |
+| Ducati Mitsubishi CAN broadcast research | Optional offline decoder for an explicitly selected Ducati profile; no Guzzi compatibility or live capture claimed |
+| Manual shim worksheet | Offline arithmetic with user-entered clearances and mechanism direction; no vehicle specs supplied |
+| Service interval worksheet | Temporary, user-anchored km/date arithmetic; optional review of local service-template JSON, with no Guzzi specifications bundled |
+| Local manual-text search | Literal search of a user-supplied UTF-8 text export, source hash and excerpts; no PDF extraction or AI answers |
 | **Virtual CAN rehearsal**: the whole ISO-TP path (segmentation, flow control, reassembly) against the simulated ECU | Implemented (needs `.[hardware]` extra; the pair you set is the pair it speaks) |
 | Remembers the garage, transport, paths and XDF choices between sessions | Implemented (browser-local) |
 | Print / save any view as PDF; maps export as standalone HTML | Implemented |
 | Actuator tests, TPS reset, adaptation resets | Implemented, gated by confidence + safety |
 | Read-only local-identifier discovery sweep | Implemented |
 | Session recording (raw frames + decoded samples) | Implemented |
+| Read-only live timeline | Up to four independently scaled channels from the current connection, with gaps for missing values and explicit units; visual workspace and compact layout are shared with the desktop app. |
 | Report export (text + JSON) | Implemented |
 | ECU memory **read** | Implemented; 5AM path grounded in a verified capture |
 | Backup with two-read verification | Implemented |
 | Firmware image validation (size, vector table, entropy, HW family) | Implemented |
-| **Maps & tables**: XDF render/validation, 2D/3D editor, named diff, log overlay, and evidence-backed builder | Implemented; 94 XDFs (3842 tables) ship with the repo. Includes rectangular keyboard editing, smoothing/blending, editable embedded axes, explicitly configured live-channel/scale/offset tracing (no name/unit guessing), wideband-delay-aligned timestamp analysis with settling/rate/minimum-dwell filters, bounded AFR proposals, isolated checksum-plugin workers, and unendorsed package registries. Builds prefer the protected base map, require traceable evidence plus typed liability acknowledgement, and always create a new image with a complete manifest. Physical ECU/dyno validation remains pending evidence. |
+| **Maps & tables**: XDF render/validation, 2D/3D editor, named diff, log overlay, and evidence-backed builder | Implemented; 94 XDFs (3842 tables) ship with the repo. Includes searchable tables, rectangular keyboard editing, smoothing/blending, editable embedded axes, explicitly configured live-channel/scale/offset tracing (no name/unit guessing), wideband-delay-aligned timestamp analysis with settling/rate/minimum-dwell filters, bounded AFR proposals, isolated checksum-plugin workers, and unendorsed package registries. Builds prefer the protected base map, require traceable evidence plus typed liability acknowledgement, and always create a new image with a complete manifest. Physical ECU/dyno validation remains pending evidence. |
 | ECU memory **write / erase / program / verify** | Full flow **runs against the simulated ECU** (backup → validate → token → write → read-back verify, honestly labelled); the `hardware-family` gate check refuses any cross-family image before a frame moves (app and demo); gated on hardware pending a bench-confirmed key |
 | Interrupted-write checkpoints and recovery guidance | Implemented |
 | SecurityAccess seed/key plumbing + key-provider plugins | Implemented; the shipped 5AM key is unverified — armable per session via explicit, audited opt-in |
 | Adapter pre-flight incl. FTDI latency timer and the vendored WHQL driver bundle in its fix guidance | Implemented |
+| J2534 driver inventory | Read-only Windows registry inspection of 32/64-bit driver registrations; no DLL is loaded, no J2534 transport or hardware validation yet. See `docs/J2534_AND_PROJECTS.md` |
+| Portable map projects | Schema 2 locks source image, XDF content and address base; log settings restore only against the same CSV hash. Plans do not contain firmware/logs or bypass build safety gates. Schema 1 projects must be recreated. |
 | Gearing / road-speed calculator with the reference tool's full 58-model ratio table (Tools view presets, tyre/final-drive/custom ratios + API), CSV + JSON log export | Implemented |
 | Zeitronix ZT-2 CSV → LogWorks DIF conversion — the reference tool's documented factor-4 timeline error corrected, its exact output one toggle away (paste/convert/download in the Tools view + API) | Implemented |
 | Bench RPM trigger-signal generator — crank/cam WAV, wheel geometry transcribed from the reference tool's own config files; presets, custom wheels and `.rbt`-style batch ramps in the Tools view + API | Implemented |
@@ -337,7 +344,7 @@ the shared families, with one deliberate limit:
 | Ducati | P8, 15M, 16M, 59M, 5AM | 748, 916, 996, 999, 749, Monster 620–1000, Multistrada, 848/1098/1198, ST2/ST3/ST4 |
 | Aprilia | 16M, 5AM, 7SM | RSV Mille, Tuono 1000, Falco, Caponord, Futura, Mana 850, RSV4 Factory |
 
-Every cross-brand entry ships as `inferred`: a documented model→ECU mapping
+The Ducati and Aprilia entries ship as `inferred`: a documented model→ECU mapping
 does not prove that another make uses the same diagnostic identifiers or
 controls. The stricter vehicle/family boundary applies automatically. The
 workstation does not ask an owner to validate those assumptions on a customer
@@ -469,6 +476,8 @@ capability is enabled.
 
 ## Documentation
 
+The refreshed browser/desktop workspace and its read-only timeline are described in [`docs/ATLAS_INSPIRED_WORKSPACE.md`](docs/ATLAS_INSPIRED_WORKSPACE.md).
+
 - `docs/ARCHITECTURE.md` — layer boundaries and the rules each layer obeys.
 - `docs/DESKTOP.md` — the installed application: installing, where files go,
   what the window adds, the loopback/token policy, building, troubleshooting.
@@ -477,6 +486,8 @@ capability is enabled.
 - `docs/PROGRAMMING.md` — reading, backing up and writing ECU memory: the
   verified 5AM sequence, image validation, the SecurityAccess gap and how to
   supply a key provider, and the recovery model.
+- `docs/WORKSHOP_REFERENCE_TOOLS.md` — service intervals, local templates and manual-text search, including limitations and source terms.
+- `docs/EXTERNAL_MOTORCYCLE_RESEARCH.md` — external-source review, attribution, offline Ducati decoder and manual shim worksheet.
 - `docs/PRIOR_ART.md` — the other diagnostic programs worth studying, and
   which one closes each open gap (key algorithm, CAN IDs, per-family
   identifiers, transport validation).
@@ -495,12 +506,25 @@ affiliated with Piaggio, Moto Guzzi, Magneti Marelli, or the GuzziDiag author.
 
 ECU diagnostics can injure you and ECU programming can brick an ECU or create
 an unsafe motorcycle. Nothing here has been validated against a real bike. If
-you connect it to your Guzzi, you are the test.
+you connect it to a motorcycle, you are the test.
 
-MIT licensed.
+## License and source
 
-ECU diagnostics can injure you and ECU programming can brick an ECU or create
-an unsafe motorcycle. Nothing here has been validated against a real bike. If
-you connect it to your Guzzi, you are the test.
+The combined application includes an adaptation of interpolation code from
+[Atlas](https://github.com/jakka351/atlas), commit
+`91499280f20a81cabdd891c5e0ca70143bb8c800`, and is provided under
+**AGPL-3.0-only**; see `LICENSE` and `vendor/atlas/README.md`. The previous
+GuzziOnBoard MIT copyright and permission notice is preserved in
+`LICENSES/GuzziOnBoard-MIT.txt` for pre-existing material. Third-party data and
+components retain their own terms (see their provenance and notices), including the GPL-3.0-or-later Honda decoder adaptation in `web/honda-offline.js` and `LICENSES/Honda-KLine-GPL-3.0.txt`; this
+statement does not grant rights to them.
 
-MIT licensed.
+AGPL does not require (or prohibit) contributing changes to Atlas upstream.
+Distributors of binaries must satisfy the applicable corresponding-source and
+notice requirements; operators of modified network-interactive versions must
+provide users access to the corresponding source as required by section 13.
+The project-source link in the UI is a starting point, not a guarantee that a
+deployed build's exact corresponding source has been published. Before
+shipping or hosting a modified build, publish its matching source and update
+that link or provide another compliant source offer. No release or matching
+source archive has been published by these local changes.

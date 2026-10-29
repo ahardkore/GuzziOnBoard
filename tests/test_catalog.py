@@ -201,7 +201,7 @@ def test_unknown_vehicle_raises_rather_than_guessing(catalog):
 
 
 def test_cross_brand_makes_are_present(catalog):
-    assert set(catalog.makes()) == {"Aprilia", "Ducati", "Moto Guzzi"}
+    assert set(catalog.makes()) == {"Aprilia", "Ducati", "Honda", "Kawasaki", "Moto Guzzi", "Suzuki", "Triumph"}
 
 
 def test_every_cross_brand_entry_is_read_only_until_confirmed(catalog):

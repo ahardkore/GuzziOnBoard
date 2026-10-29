@@ -1,8 +1,7 @@
 # GuzziOnBoard
 
-A safety-first diagnostic workstation and evidence catalog for Moto Guzzi
-motorcycles from the mid-1990s to current bikes, plus related Ducati and
-Aprilia fitments. Only family-specific operations supported by recovered wire
+A safety-first multi-make diagnostic workstation and evidence catalog, with
+Moto Guzzi, Ducati and Aprilia fitments, Kawasaki ER-6n and Triumph Daytona 675 read-only diagnostics, Honda and Suzuki offline research, and scoped Honda offline tuning. Only family-specific operations supported by recovered wire
 evidence are enabled; incomplete ECU profiles are blocked before hardware is
 opened.
 
@@ -25,28 +24,40 @@ opened.
 | KWP2000 / ISO 14230 application + data link layer | Implemented and unit tested |
 | ISO-TP (ISO 15765-2) segmentation for CAN bikes | Implemented and unit tested |
 | Simulated ECU **speaking the real wire protocol** | Implemented; drives the whole stack |
-| Capability catalog: 11 cataloged controllers, 118 model variants across Moto Guzzi, Ducati and Aprilia, 1992–2026 — engine ECU families plus the Aprilia Mana CVT TCU | Implemented, data-driven |
+| Capability catalog: 11 existing controller profiles plus Kawasaki and Triumph read-only profiles, two research placeholders and one Honda offline-tuning profile, 123 model variants across Moto Guzzi, Ducati, Aprilia, Honda, Kawasaki, Suzuki and Triumph, 1992–2026 — includes the Aprilia Mana CVT TCU | Implemented, data-driven |
 | K-Line transport (validated fast init + validated 5-baud keyword handshake, standards-safe auto fallback, echo cancelling) | Written and unit tested, **untested on hardware** |
 | CAN transport (python-can + ISO-TP) | Written; physical ECU profiles remain blocked because family-specific identifiers and application protocols were not recovered |
 | ECU identification, live data, DTC read/clear | Implemented and exposed only where the family catalog declares the evidence-backed capability |
-| Make / model / year vehicle selection (Moto Guzzi, Ducati, Aprilia) | Implemented; cross-brand bikes read-only by design |
+| Make / model / year vehicle selection (Moto Guzzi, Ducati, Aprilia, Kawasaki, Triumph, Honda and Suzuki offline entries) | Existing cross-brand mappings are read-only; the Kawasaki ER-6n 2006 and Triumph Daytona 675 2012 offer source-reported read-only diagnostics; Honda and Suzuki offline entries block physical and simulator sessions |
 | CAN request/response identifiers configurable for virtual rehearsal and capture analysis | Implemented; no generic pair is presented as a motorcycle default |
-| CAN capture analysis: find the id pair from a passive sniff (candump / SavvyCAN / CRTD) | Implemented; read-only by construction |
+| CAN capture analysis: find the id pair from a passive sniff (candump / SavvyCAN / CRTD) | Implemented; read-only by construction, with optional filtered raw-byte statistics |
+| Kawasaki ER-6n 2006 KDS | Read-only live data over a K-Line adapter, based on an author-tested source; this implementation is not hardware-tested, and has no ECU identification, DTCs, controls, memory or simulator |
+| Triumph Daytona 675 2012 OBD | Read-only supported mode 01 PIDs and stored mode 03 codes over K-Line; author-tested source, but this implementation has only synthetic tests; source gauge formulas are not dash-verified |
+| Multi-brand offline research | Honda CBR600RR 2005, Kawasaki ER-6n 2006, Suzuki SV650AK7 2007, Triumph Daytona 675 2012, BMW R1300GS CAN candidates, and generic J1850 VPW CRC research for Harley-Davidson; these offline tools never connect or transmit |
+| CFMoto MSE6 checksum research | Local record inspection for source-reported examples; factory-image mismatches are documented; no repair, identification or programming |
+| Yamaha MT checksum research | Offline inspection of a user-supplied image only; no checksum repair, ECU identification or programming |
+| Ducati Mitsubishi CAN broadcast research | Optional offline decoder for an explicitly selected Ducati profile; no Guzzi compatibility or live capture claimed |
+| Manual shim worksheet | Offline arithmetic with user-entered clearances and mechanism direction; no vehicle specs supplied |
+| Service interval worksheet | User-anchored km/date arithmetic; five bundled CC BY-SA Honda, KTM, Royal Enfield and Suzuki templates plus local JSON import; fitment and intervals need manual review |
+| Local manual-text search | Literal search of a user-supplied UTF-8 text export, source hash and excerpts; no PDF extraction or AI answers |
 | **Virtual CAN rehearsal**: the whole ISO-TP path (segmentation, flow control, reassembly) against the simulated ECU | Implemented (needs `.[hardware]` extra; the pair you set is the pair it speaks) |
 | Remembers the garage, transport, paths and XDF choices between sessions | Implemented (browser-local) |
 | Print / save any view as PDF; maps export as standalone HTML | Implemented |
 | Actuator tests, TPS reset, adaptation resets | Implemented, gated by confidence + safety |
 | Read-only local-identifier discovery sweep | Implemented |
 | Session recording (raw frames + decoded samples) | Implemented |
+| Read-only live timeline | Up to four independently scaled channels from the current connection, with gaps for missing values and explicit units; visual workspace and compact layout are shared with the desktop app. |
 | Report export (text + JSON) | Implemented |
 | ECU memory **read** | Implemented; 5AM path grounded in a verified capture |
 | Backup with two-read verification | Implemented |
 | Firmware image validation (size, vector table, entropy, HW family) | Implemented |
-| **Maps & tables**: XDF render/validation, 2D/3D editor, named diff, log overlay, and evidence-backed builder | Implemented; 94 XDFs (3842 tables) ship with the repo. Includes rectangular keyboard editing, smoothing/blending, editable embedded axes, explicitly configured live-channel/scale/offset tracing (no name/unit guessing), wideband-delay-aligned timestamp analysis with settling/rate/minimum-dwell filters, bounded AFR proposals, isolated checksum-plugin workers, and unendorsed package registries. Builds prefer the protected base map, require traceable evidence plus typed liability acknowledgement, and always create a new image with a complete manifest. Physical ECU/dyno validation remains pending evidence. |
+| **Maps & tables**: XDF render/validation, 2D/3D editor, named diff, log overlay, and evidence-backed builder | Implemented; 95 XDFs (3880 tables) ship with the repo. Includes searchable tables, rectangular keyboard editing, smoothing/blending, editable embedded axes, explicitly configured live-channel/scale/offset tracing (no name/unit guessing), wideband-delay-aligned timestamp analysis with settling/rate/minimum-dwell filters, bounded AFR proposals, isolated checksum-plugin workers, and unendorsed package registries. Builds prefer the protected base map, require traceable evidence plus typed liability acknowledgement, and always create a new image with a complete manifest. Physical ECU/dyno validation remains pending evidence. |
 | ECU memory **write / erase / program / verify** | Full flow **runs against the simulated ECU** (backup → validate → token → write → read-back verify, honestly labelled); the `hardware-family` gate check refuses any cross-family image before a frame moves (app and demo); gated on hardware pending a bench-confirmed key |
 | Interrupted-write checkpoints and recovery guidance | Implemented |
 | SecurityAccess seed/key plumbing + key-provider plugins | Implemented; the shipped 5AM key is unverified — armable per session via explicit, audited opt-in |
 | Adapter pre-flight incl. FTDI latency timer and the vendored WHQL driver bundle in its fix guidance | Implemented |
+| J2534 driver inventory | Read-only Windows registry inspection of 32/64-bit driver registrations; no DLL is loaded, no J2534 transport or hardware validation yet. See `docs/J2534_AND_PROJECTS.md` |
+| Portable map projects | Schema 3 locks source image, XDF content, layout revision and address base; log settings restore only against the same CSV hash. Plans do not contain firmware/logs or bypass build safety gates. Schema 1 and 2 projects must be recreated and reviewed. |
 | Gearing / road-speed calculator with the reference tool's full 58-model ratio table (Tools view presets, tyre/final-drive/custom ratios + API), CSV + JSON log export | Implemented |
 | Zeitronix ZT-2 CSV → LogWorks DIF conversion — the reference tool's documented factor-4 timeline error corrected, its exact output one toggle away (paste/convert/download in the Tools view + API) | Implemented |
 | Bench RPM trigger-signal generator — crank/cam WAV, wheel geometry transcribed from the reference tool's own config files; presets, custom wheels and `.rbt`-style batch ramps in the Tools view + API | Implemented |
@@ -159,8 +170,8 @@ python3 run_server.py
 
 The **Firmware → Maps & tables** panel renders a dump as named fuel and
 ignition tables using TunerPro XDF definitions — the same files the GuzziDiag
-ecosystem uses. 94 of these ship under `guzzionboard/xdfs/` (3842 tables
-across Moto Guzzi, Ducati, Aprilia, Piaggio, Morini, Gilera, GasGas, BMW,
+ecosystem uses. 95 definitions ship under `guzzionboard/xdfs/` (3880 tables
+across Honda, Moto Guzzi, Ducati, Aprilia, Piaggio, Morini, Gilera, GasGas, BMW,
 Husqvarna, Malaguti and Scomadi) so common families work with nothing to
 download; see `docs/XDF_LIBRARY.md` for what's included, its third-party
 provenance, and how to vendor more with `scripts/import_xdfs.py`. The
@@ -224,8 +235,9 @@ inside the declared axes; up to four surrounding cells expose bilinear
 interpolation weights in the diagnostics. Out-of-range values do not falsely pin
 an edge cell.
 
-Projects are plans, not images: import verifies the source SHA-256, XDF filename
-and every expected raw cell. Before the liability confirmation, the server
+Projects are plans, not images: import verifies the source SHA-256, XDF filename,
+layout revision and every expected raw cell. Schema 1 and 2 projects must be recreated
+and reviewed: the previous parser could misinterpret per-item XDF layout flags. Before the liability confirmation, the server
 quantizes the complete plan and returns the exact stored values and named diff
 without writing a file. The accepted preview gets its own SHA-256, and the build
 is refused if that reviewed plan changes.
@@ -248,6 +260,18 @@ staging and building still go through source locks, evidence, preview, and
 liability review. Mathematical AFR correction is not treated as proof that a
 chosen table controls fuel in those operating conditions.
 
+For additional makes, the desktop workstation can load a user-supplied XDF and
+preview staged edits against a local image even if fitment is not recognized.
+The research-only preview hashes the source and XDF, checks each raw value and
+quantizes/diffs in memory; it saves no image and does not apply a checksum or
+establish fitment. The ordinary build and programming gates remain separate.
+Hosted demo previews use synthetic images and bundled definitions only.
+
+**Important:** per-item XDF signedness, byte order and column-major layout are
+now honored. Earlier versions could misinterpret some definitions. Return to the
+original backup and independently review/recreate affected edits, previews and
+built files before any use; see `docs/XDF_LIBRARY.md`.
+
 A build never modifies its source and never enables ECU programming. It writes
 a new `.bin` plus sidecar under `~/.guzzionboard/images/`; the sidecar records
 the source and output SHA-256, exact XDF hash, evidence, acknowledgement,
@@ -257,12 +281,14 @@ map cannot be silently applied to a different one. A non-base source needs a
 second explicit acknowledgement and a mismatched XDF can be viewed but cannot
 build.
 
-No calibration-checksum algorithm is invented or bundled. An XDF that declares
-a checksum is refused unless the operator explicitly selects a compatible local
+One built-in Honda CBR1000RR 2012 US / A01 checksum provider supports an
+exact source image and XDF only; see `docs/XDF_LIBRARY.md`. It is explicitly
+selected and runs in-process, not in the local-plugin sandbox. Other XDFs that
+declare checksums are refused unless the operator selects a compatible local
 plugin from `~/.guzzionboard/checksums/`. Plugins name the exact XDF checksum
 titles they support, update deterministically, verify their output, and have
 their version, source SHA-256, isolation mode, output hash, and exact changed byte
-ranges folded into the reviewed plan. Inspection and calculation run in fresh
+ranges folded into the reviewed plan. Local plugin inspection and calculation run in fresh
 resource-limited, audit-guarded subprocesses with filesystem/network/process
 restrictions and independent-repeat checks. This is containment, not a perfect
 kernel sandbox; plugin self-verification is not core endorsement or physical-ECU
@@ -337,7 +363,7 @@ the shared families, with one deliberate limit:
 | Ducati | P8, 15M, 16M, 59M, 5AM | 748, 916, 996, 999, 749, Monster 620–1000, Multistrada, 848/1098/1198, ST2/ST3/ST4 |
 | Aprilia | 16M, 5AM, 7SM | RSV Mille, Tuono 1000, Falco, Caponord, Futura, Mana 850, RSV4 Factory |
 
-Every cross-brand entry ships as `inferred`: a documented model→ECU mapping
+The Ducati and Aprilia entries ship as `inferred`: a documented model→ECU mapping
 does not prove that another make uses the same diagnostic identifiers or
 controls. The stricter vehicle/family boundary applies automatically. The
 workstation does not ask an owner to validate those assumptions on a customer
@@ -469,6 +495,8 @@ capability is enabled.
 
 ## Documentation
 
+The refreshed browser/desktop workspace and its read-only timeline are described in [`docs/ATLAS_INSPIRED_WORKSPACE.md`](docs/ATLAS_INSPIRED_WORKSPACE.md).
+
 - `docs/ARCHITECTURE.md` — layer boundaries and the rules each layer obeys.
 - `docs/DESKTOP.md` — the installed application: installing, where files go,
   what the window adds, the loopback/token policy, building, troubleshooting.
@@ -477,6 +505,8 @@ capability is enabled.
 - `docs/PROGRAMMING.md` — reading, backing up and writing ECU memory: the
   verified 5AM sequence, image validation, the SecurityAccess gap and how to
   supply a key provider, and the recovery model.
+- `docs/WORKSHOP_REFERENCE_TOOLS.md` — service intervals, local templates and manual-text search, including limitations and source terms.
+- `docs/EXTERNAL_MOTORCYCLE_RESEARCH.md` — external-source review, attribution, offline Ducati decoder and manual shim worksheet.
 - `docs/PRIOR_ART.md` — the other diagnostic programs worth studying, and
   which one closes each open gap (key algorithm, CAN IDs, per-family
   identifiers, transport validation).
@@ -495,12 +525,25 @@ affiliated with Piaggio, Moto Guzzi, Magneti Marelli, or the GuzziDiag author.
 
 ECU diagnostics can injure you and ECU programming can brick an ECU or create
 an unsafe motorcycle. Nothing here has been validated against a real bike. If
-you connect it to your Guzzi, you are the test.
+you connect it to a motorcycle, you are the test.
 
-MIT licensed.
+## License and source
 
-ECU diagnostics can injure you and ECU programming can brick an ECU or create
-an unsafe motorcycle. Nothing here has been validated against a real bike. If
-you connect it to your Guzzi, you are the test.
+The combined application includes an adaptation of interpolation code from
+[Atlas](https://github.com/jakka351/atlas), commit
+`91499280f20a81cabdd891c5e0ca70143bb8c800`, and is provided under
+**AGPL-3.0-only**; see `LICENSE` and `vendor/atlas/README.md`. The previous
+GuzziOnBoard MIT copyright and permission notice is preserved in
+`LICENSES/GuzziOnBoard-MIT.txt` for pre-existing material. Third-party data and
+components retain their own terms (see their provenance and notices), including the third-party offline decoder adaptations and their MIT/GPL notices under `LICENSES/`; this
+statement does not grant rights to them.
 
-MIT licensed.
+AGPL does not require (or prohibit) contributing changes to Atlas upstream.
+Distributors of binaries must satisfy the applicable corresponding-source and
+notice requirements; operators of modified network-interactive versions must
+provide users access to the corresponding source as required by section 13.
+The project-source link in the UI is a starting point, not a guarantee that a
+deployed build's exact corresponding source has been published. Before
+shipping or hosting a modified build, publish its matching source and update
+that link or provide another compliant source offer. No release or matching
+source archive has been published by these local changes.

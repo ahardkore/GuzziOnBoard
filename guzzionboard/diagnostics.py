@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 
 from .catalog import Catalog, EcuProfile, Parameter, load_catalog
 from .protocol.legacy_iaw import LegacyIAWSession
+from .protocol.kawasaki_er6n import KawasakiER6nSession, decode_kawasaki_value
+from .protocol.triumph_daytona import TriumphDaytonaSession
 from .protocol.kwp2000 import (
     KWP2000Session,
     NegativeResponse,
@@ -131,20 +133,28 @@ class DiagnosticsService:
                     "request was sent."
                 )
 
-            self.connection = self.transport.open()
             method = init_method or self.profile.kline.get("init", "fast")
-            self.init_result = self.transport.initialize(
-                self.connection,
-                method=method,
-                address=self.profile.kline.get("address", 0x33),
-                fast_target=self.profile.kline.get(
-                    "fast_target", self.profile.kline.get("address", 0x33)
-                ),
-                tester_address=self.profile.kline.get("tester_address", 0xF1),
-                fast_functional=self.profile.kline.get("fast_functional", True),
-                legacy_wakeup_timeout=self.profile.kline.get("wakeup_timeout", 8.0),
-                legacy_comm_baud=self.profile.kline.get("comm_baud", 7680),
-            )
+            exact_method = self.profile.session.get("protocol")
+            if exact_method in ("kawasaki-er6n", "triumph-daytona-2012") and method != exact_method:
+                raise TransportUnavailable(f"{self.profile.family} requires its profile-default initialization")
+            self.connection = self.transport.open()
+            try:
+                self.init_result = self.transport.initialize(
+                    self.connection,
+                    method=method,
+                    address=self.profile.kline.get("address", 0x33),
+                    fast_target=self.profile.kline.get(
+                        "fast_target", self.profile.kline.get("address", 0x33)
+                    ),
+                    tester_address=self.profile.kline.get("tester_address", 0xF1),
+                    fast_functional=self.profile.kline.get("fast_functional", True),
+                    legacy_wakeup_timeout=self.profile.kline.get("wakeup_timeout", 8.0),
+                    legacy_comm_baud=self.profile.kline.get("comm_baud", 7680),
+                )
+            except Exception:
+                self.connection.close()
+                self.connection = None
+                raise
             # Fast K-Line initialisation occurs before KWP2000Session exists.
             # Preserve those raw bytes in the same provenance log as every
             # later request/response instead of losing the most important
@@ -184,7 +194,37 @@ class DiagnosticsService:
                     "validated; no request was sent"
                 )
 
-            if self.init_result.protocol == "legacy-iaw":
+            if self.profile.session.get("protocol") == "kawasaki-er6n":
+                from .protocol.kwp2000 import decode_frame
+                try:
+                    wake = decode_frame(self.init_result.response)
+                    if (not self.init_result.handshake_complete or wake.target != 0xF1
+                            or wake.source != 0x11 or wake.payload != b"\xc1\xea\x8f"):
+                        raise ProtocolError("ER-6n wake-up response does not match C1 EA 8F and addresses")
+                    self.session = KawasakiER6nSession(
+                        connection=self.connection, target=0x11, source=0xF1,
+                        on_frame=self.log.frame, write_guard=lambda _: False,
+                    )
+                    self.session.request([0x10, 0x80])
+                except Exception:
+                    self.connection.close()
+                    self.connection = None
+                    self.session = None
+                    raise
+            elif self.profile.session.get("protocol") == "triumph-daytona-2012":
+                try:
+                    if (self.init_result.protocol != "iso9141-2" or not self.init_result.handshake_complete
+                            or self.init_result.key_bytes != (0x08, 0x08)):
+                        raise ProtocolError("Daytona requires the ISO 9141 08 08 slow-init handshake")
+                    self.session = TriumphDaytonaSession(connection=self.connection,
+                        on_frame=self.log.frame, write_guard=lambda _: False)
+                    self.session.initialise()
+                except Exception:
+                    self.connection.close()
+                    self.connection = None
+                    self.session = None
+                    raise
+            elif self.init_result.protocol == "legacy-iaw":
                 self.session = LegacyIAWSession(
                     connection=self.connection,
                     timeout=float(self.profile.session.get("response_timeout", 0.5)),
@@ -235,7 +275,9 @@ class DiagnosticsService:
             if self.session is not None:
                 self.release_all_outputs()
                 try:
-                    if isinstance(self.session, KWP2000Session):
+                    if isinstance(self.session, (KawasakiER6nSession, TriumphDaytonaSession)):
+                        pass  # no unverified stop exchange
+                    elif isinstance(self.session, KWP2000Session):
                         self.session.stop_diagnostic_session()
                         self.session.stop_communication()
                     else:
@@ -388,9 +430,12 @@ class DiagnosticsService:
             self.last_samples[param.key] = sample
             return sample
 
-        value = apply_scaling(
-            value_raw, scale=param.scale, bias=param.bias, recip=param.recip
-        )
+        if isinstance(session, KawasakiER6nSession):
+            value = decode_kawasaki_value(param.local_id, raw)
+        else:
+            value = apply_scaling(
+                value_raw, scale=param.scale, bias=param.bias, recip=param.recip
+            )
         value = round(value, param.digits) if param.digits else int(round(value))
         text = param.states.get(str(int(value_raw)), "") if param.states else ""
 
@@ -440,6 +485,12 @@ class DiagnosticsService:
                     f"{self.profile.family}: fault-memory request is not validated"
                 )
             session = self._require()
+            if isinstance(session, TriumphDaytonaSession):
+                dtcs = session.read_stored_codes()
+                self._touch()
+                self.log.action("read_dtcs", {"count": len(dtcs), "dtcs": dtcs, "format": "obd-stored"})
+                return {"dtcs": dtcs, "format": "obd-stored", "context": {},
+                        "note": "Stored mode 03 codes only; pending codes, warning-lamp state and individual status bytes were not read."}
             if isinstance(session, LegacyIAWSession):
                 result = self._read_legacy_fault_registers(session)
                 self._touch()

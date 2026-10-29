@@ -1420,5 +1420,20 @@
         "label": "Scomadi 200 V0.02"
       }
     ]
+  },
+  {
+    "zip_filename": "CBR1000RR_2012_US.xdf",
+    "source_url": "https://github.com/roccofz1/HondaECU/blob/dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109/definitions/xdf/CBR1000RR_2012_US.xdf",
+    "brand": "honda",
+    "family": "CBR1000RR-2012-US",
+    "label": "Honda CBR1000RR 2012 US (HondaECU)",
+    "xdf_filename": "CBR1000RR_2012_US.xdf",
+    "vendor_path": "honda/CBR1000RR_2012_US.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "Honda CBR1000RR 2012 US"
+      }
+    ]
   }
 ]

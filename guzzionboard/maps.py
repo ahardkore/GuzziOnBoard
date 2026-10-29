@@ -25,8 +25,9 @@ XDFs are third-party files. A growing set ships with this project under
 add more) — :func:`available_xdfs` finds those automatically. Anything not
 (yet) bundled can still be dropped into ``~/.guzzionboard/xdfs/`` the same way
 key providers go into ``~/.guzzionboard/keys/``; a user-supplied file with the
-same title overrides a bundled one. The origin for all of these is
-https://www.von-der-salierburg.de/download/GuzziDiag/ (TunerPro XDF section).
+same filename overrides a bundled one. The GuzziDiag definitions originate at
+https://www.von-der-salierburg.de/download/GuzziDiag/; see docs/XDF_LIBRARY.md
+for other sources and licensing.
 
 One wrinkle worth understanding: XDF addresses are offsets into the *file
 the XDF was authored against* - usually the full device image including the
@@ -35,6 +36,8 @@ device 0x4000, so rendering a region dump needs ``address_base=0x4000``.
 That base is auto-detected from the image size and always reported back.
 """
 from __future__ import annotations
+
+import hashlib
 
 from . import resources
 
@@ -245,13 +248,21 @@ class Embedded:
     major_stride_bits: int = 0    # 0 = contiguous (cols * minor stride)
     minor_stride_bits: int = 0    # 0 = contiguous (element size)
     signed: bool = False
+    little_endian: bool | None = None  # None inherits XDF header default
+    column_major: bool = False
 
     @classmethod
-    def parse(cls, node: ET.Element, *, signed_default: bool = False) -> "Embedded":
+    def parse(cls, node: ET.Element, *, signed_default: bool = False,
+              float_default: bool = False) -> "Embedded":
         size_bits = _int(node.get("mmedelementsizebits"), 8)
         if size_bits not in (8, 16, 32):
             raise XdfError(f"unsupported element size {size_bits} bits")
-        type_flags = _int(node.get("mmedtypeflags"))
+        flag_text = node.get("mmedtypeflags")
+        type_flags = _int(flag_text) if flag_text is not None else None
+        if type_flags is not None and type_flags & ~0x07:
+            raise XdfError(f"unsupported embedded data flags 0x{type_flags:X} (float/unknown encoding)")
+        if type_flags is None and float_default:
+            raise XdfError("floating-point embedded data is not supported")
         return cls(
             address=_int(node.get("mmedaddress")),
             size_bits=size_bits,
@@ -259,8 +270,20 @@ class Embedded:
             cols=max(1, _int(node.get("mmedcolcount"), 1)),
             major_stride_bits=_int(node.get("mmedmajorstridebits")),
             minor_stride_bits=_int(node.get("mmedminorstridebits")),
-            signed=bool(type_flags & 0x1) or signed_default,
+            signed=bool(type_flags & 0x1) if type_flags is not None else signed_default,
+            little_endian=bool(type_flags & 0x2) if type_flags is not None else None,
+            column_major=bool(type_flags & 0x4) if type_flags is not None else False,
         )
+
+    def validate_layout(self) -> None:
+        # Reject layouts whose semantics are not supported rather than rounding
+        # bit offsets or guessing the interaction of column-major and strides.
+        for stride, used in ((self.major_stride_bits, self.rows > 1),
+                             (self.minor_stride_bits, self.cols > 1)):
+            if used and (stride < 0 or stride % 8):
+                raise XdfError("negative or non-byte-aligned embedded stride is not supported")
+        if self.column_major and (self.major_stride_bits or self.minor_stride_bits):
+            raise XdfError("column-major embedded data with explicit strides is not supported")
 
     @property
     def count(self) -> int:
@@ -268,13 +291,20 @@ class Embedded:
 
     @property
     def span_bits(self) -> int:
+        self.validate_layout()
+        if self.column_major:
+            return self.count * self.size_bits
         minor = self.minor_stride_bits or self.size_bits
         major = self.major_stride_bits or (minor * self.cols)
         return (self.rows - 1) * major + (self.cols - 1) * minor + self.size_bits
 
     def positions(self, offset: int) -> list[tuple[int, int]]:
         """``(image offset, byte length)`` for each row-major element."""
+        self.validate_layout()
         size = self.size_bits // 8
+        if self.column_major:
+            return [(offset + (c * self.rows + r) * size, size)
+                    for r in range(self.rows) for c in range(self.cols)]
         minor = (self.minor_stride_bits or self.size_bits) // 8
         major = (
             self.major_stride_bits // 8
@@ -289,6 +319,8 @@ class Embedded:
     def read(self, image: bytes, offset: int, *, little_endian: bool) -> list[int]:
         """Every raw element, row-major."""
         out: list[int] = []
+        if self.little_endian is not None:
+            little_endian = self.little_endian
         for pos, size in self.positions(offset):
             chunk = image[pos : pos + size]
             if pos < 0 or len(chunk) != size:
@@ -332,6 +364,8 @@ class Embedded:
                 f"data at 0x{self.address:X} falls outside the image"
             )
         before = bytes(image[pos : pos + size])
+        if self.little_endian is not None:
+            little_endian = self.little_endian
         after = raw.to_bytes(
             size, "little" if little_endian else "big", signed=self.signed
         )
@@ -360,7 +394,8 @@ class Axis:
     target: "XdfTable | None" = field(default=None, repr=False, compare=False)
 
     @classmethod
-    def parse(cls, node: ET.Element, *, signed_default: bool) -> "Axis":
+    def parse(cls, node: ET.Element, *, signed_default: bool,
+              float_default: bool = False) -> "Axis":
         units = (node.findtext("units") or "").strip()
         count = max(1, _int(node.findtext("indexcount"), 1))
         labels: dict[int, str] = {}
@@ -371,8 +406,10 @@ class Axis:
         embedded = None
         data_node = node.find("EMBEDDEDDATA")
         if data_node is not None and data_node.get("mmedaddress") is not None:
-            embedded = Embedded.parse(data_node, signed_default=signed_default)
+            embedded = Embedded.parse(data_node, signed_default=signed_default,
+                                      float_default=float_default)
             embedded.rows, embedded.cols = 1, count
+            embedded.validate_layout()
 
         info = node.find("embedinfo")
         link_id = (info.get("linkobjid") or "").strip() if info is not None else ""
@@ -564,11 +601,13 @@ class XdfFile:
     author: str = ""
     version: str = ""
     path: str = ""
+    file_sha256: str = ""  # fingerprint of the bytes actually parsed
     region_size: int | None = None
     base_offset: int = 0
     base_subtract: bool = False
     little_endian: bool = False
     signed_default: bool = False
+    float_default: bool = False
     categories: dict[int, str] = field(default_factory=dict)
     tables: list[XdfTable] = field(default_factory=list)
     constants: list[XdfConstant] = field(default_factory=list)
@@ -580,11 +619,13 @@ class XdfFile:
     def from_file(cls, path: str | Path) -> "XdfFile":
         path = Path(path)
         try:
-            text = path.read_text(encoding="ISO-8859-1")
+            raw = path.read_bytes()
+            text = raw.decode("ISO-8859-1")
         except OSError as exc:
             raise XdfError(f"cannot read {path}: {exc}") from exc
         xdf = cls.from_string(text)
         xdf.path = str(path)
+        xdf.file_sha256 = hashlib.sha256(raw).hexdigest()
         return xdf
 
     @classmethod
@@ -614,6 +655,7 @@ class XdfFile:
         if defaults is not None:
             xdf.little_endian = bool(_int(defaults.get("lsbfirst")))
             xdf.signed_default = bool(_int(defaults.get("signed")))
+            xdf.float_default = bool(_int(defaults.get("float")))
         for category in header.findall("CATEGORY"):
             xdf.categories[_int(category.get("index"))] = (
                 category.get("name") or ""
@@ -649,10 +691,11 @@ class XdfFile:
                     "reason": str(exc),
                 })
 
-        for node in root.findall("XDFCHECKSUM"):
+        for index, node in enumerate(root.findall("XDFCHECKSUM"), 1):
             title = (node.findtext("title") or "").strip()
-            if title:
-                xdf.checksums.append(title)
+            # An unnamed declaration is still a declaration, not evidence
+            # that the image needs no calibration checksum handling.
+            xdf.checksums.append(title or f"(unnamed checksum #{index})")
 
         xdf.resolve_links()
 
@@ -700,7 +743,8 @@ class XdfFile:
         title = (node.findtext("title") or "").strip() or "(untitled table)"
         axes: dict[str, Axis] = {}
         for axis_node in node.findall("XDFAXIS"):
-            axis = Axis.parse(axis_node, signed_default=xdf.signed_default)
+            axis = Axis.parse(axis_node, signed_default=xdf.signed_default,
+                              float_default=xdf.float_default)
             axes[axis.ident] = axis
 
         z = axes.get("z")
@@ -717,6 +761,7 @@ class XdfFile:
         if x_axis is not None and z.embedded.cols == 1 and x_axis.count > 1:
             # A 3D table may omit mmedcolcount; the x axis knows.
             z.embedded.cols = x_axis.count
+        z.embedded.validate_layout()
 
         table = XdfTable(
             title=title,
@@ -754,7 +799,8 @@ class XdfFile:
             description=(node.findtext("description") or "").strip(),
             category=category,
             units=(node.findtext("units") or "").strip(),
-            embedded=Embedded.parse(data_node, signed_default=xdf.signed_default),
+            embedded=Embedded.parse(data_node, signed_default=xdf.signed_default,
+                                    float_default=xdf.float_default),
             math=cls._check_math(node, title),
             decimalpl=_int(node.findtext("decimalpl")) or None
             if node.findtext("decimalpl") else None,
@@ -1281,8 +1327,8 @@ class XdfFile:
             )
         else:
             add(
-                "ok", "calibration-checksum",
-                "definition declares no calibration checksum",
+                "warn", "calibration-checksum",
+                "definition declares no calibration checksum; this does not establish that the image needs none",
             )
         fitted = fitment(self.path)
         if not fitted.get("family"):
@@ -1460,6 +1506,7 @@ BRAND_LABELS = {
     "ducati": "Ducati",
     "gasgas": "GasGas",
     "gilera": "Gilera",
+    "honda": "Honda",
     "husqvarna": "Husqvarna",
     "malaguti": "Malaguti",
     "morini": "Moto Morini",

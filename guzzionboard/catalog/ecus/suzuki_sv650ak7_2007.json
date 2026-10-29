@@ -1,0 +1,30 @@
+{
+  "id": "suzuki_sv650ak7_2007",
+  "family": "2007 Suzuki SV650AK7 research",
+  "display_name": "Suzuki SV650AK7 2007 (offline research only)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "2007",
+  "notes": "Research placeholder, not a confirmed ECU family, market, firmware or fitment. A third-party project reports testing one vehicle; only offline supplied response analysis is implemented. No diagnostic communication, memory access or simulator.",
+  "session": {
+    "protocol": "research-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Suzuki diagnostic transport and protocol are not implemented or validated in this application.",
+    "simulator_supported": false
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Research-only profile; programming and checksum verification are not implemented."
+  },
+  "capabilities": [],
+  "sources": [
+    "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}

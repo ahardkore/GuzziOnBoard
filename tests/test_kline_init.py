@@ -275,3 +275,28 @@ def test_diagnostics_does_not_send_start_communication_twice():
         assert transport.connection.writes == []
     finally:
         service.disconnect()
+
+
+def test_er6n_wakeup_uses_source_address_and_paced_bytes(monkeypatch):
+    clock = _clock(monkeypatch)
+    reply = encode_request([0xc1, 0xea, 0x8f], target=0xf1, source=0x11)
+    port = FakePort(reply)
+    transport = KLineTransport(baud=10250)
+    result = transport.initialize(KLineConnection(port=port, echo=False, inter_byte_delay=0.005),
+                                  method='kawasaki-er6n')
+    assert result.ok and result.baud == 10250
+    assert result.request == bytes.fromhex('81 11 f1 81 04')
+    assert b''.join(port.writes) == result.request
+    assert all(len(part) == 1 for part in port.writes)
+    assert sum(s == 0.005 for s in clock.sleeps) == 5
+
+
+def test_iso9141_burst_restores_timeout_and_stops_on_gap():
+    class Port:
+        def __init__(self): self.timeout, self.data = 0.1, bytearray(b'\x48\x6b\xd1\x41')
+        def read(self, n):
+            data = self.data[:n]; del self.data[:n]; return bytes(data)
+    port = Port()
+    conn = KLineConnection(port=port)
+    assert conn.read_iso9141_burst(0.8) == b'\x48\x6b\xd1\x41'
+    assert port.timeout == 0.1

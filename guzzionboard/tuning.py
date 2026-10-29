@@ -79,7 +79,10 @@ def validate_recommendation(value: dict | None) -> dict:
 
 def _xdf_sha256(xdf: XdfFile) -> str:
     try:
-        return hashlib.sha256(Path(xdf.path).read_bytes()).hexdigest()
+        digest = hashlib.sha256(Path(xdf.path).read_bytes()).hexdigest()
+        if xdf.file_sha256 and digest != xdf.file_sha256:
+            raise TuningError("XDF changed after parsing; render and review it again")
+        return digest
     except OSError:
         # XDFs constructed by API users/tests still get a deterministic
         # structural fingerprint rather than a made-up file hash.
@@ -204,7 +207,7 @@ def prepare_tune(
         "warnings": [
             "Recommendation evidence is traceable, not endorsed by GuzziOnBoard.",
             (
-                "The selected checksum plugin verified its own deterministic output; "
+                "The selected checksum provider verified its own deterministic output; "
                 "that is not a core endorsement or proof on physical ECU hardware."
                 if checksum else
                 "No XDF calibration checksum was declared; validate the built image "

@@ -526,3 +526,14 @@ def _load_build_module():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def test_desktop_bundles_licenses_and_atlas_provenance():
+    """The combined build carries its terms and the earlier MIT grant."""
+    spec = SPEC.read_text(encoding="utf-8")
+    assert 'ROOT / "LICENSE"' in spec and 'ROOT / "LICENSES"' in spec
+    assert 'AGPL-3.0-only' in spec
+    assert 'AGPL-3.0-only' in (ROOT / 'pyproject.toml').read_text(encoding='utf-8')
+    assert 'GNU AFFERO GENERAL PUBLIC LICENSE' in (ROOT / 'LICENSE').read_text(encoding='utf-8')
+    assert 'Copyright (c) 2026 ahardkore' in (ROOT / 'LICENSES/GuzziOnBoard-MIT.txt').read_text(encoding='utf-8')
+    assert '91499280f20a81cabdd891c5e0ca70143bb8c800' in (ROOT / 'vendor/atlas/README.md').read_text(encoding='utf-8')

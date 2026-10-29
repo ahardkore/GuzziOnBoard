@@ -1,7 +1,7 @@
 # The bundled XDF library
 
-`guzzionboard/xdfs/` is a vendored copy of the TunerPro XDF definitions
-published at <https://www.von-der-salierburg.de/download/GuzziDiag/> (the
+`guzzionboard/xdfs/` contains TunerPro XDF definitions from multiple sources.
+The GuzziDiag collection is published at <https://www.von-der-salierburg.de/download/GuzziDiag/> (the
 GuzziDiag/IAWDiag archive — the same community reference the rest of this
 project's protocol work is grounded in, see `docs/PRIOR_ART.md`).
 
@@ -18,14 +18,14 @@ tables** and the real, named tables are already there.
 
 ## Provenance and licensing
 
-- These are **third-party, community-authored files** — not written by this
+- The GuzziDiag archive files are **third-party, community-authored files** — not written by this
   project. Primary authorship (where recorded in the XDF itself) is
   `beard` and the wider GuzziDiag/IAWDiag/wildguzzi.com community; see each
   file's own `<author>` field.
-- The origin site carries no explicit redistribution license; it publishes
+- The GuzziDiag origin site carries no explicit redistribution license; it publishes
   the files for free, non-commercial use with a blanket "use at your own
-  risk, no liability" notice. We mirror that posture here: nothing in
-  `guzzionboard/xdfs/` is covered by this repository's MIT license, no
+  risk, no liability" notice. We mirror that posture here: none of
+  those GuzziDiag files are covered by the application's software license, no
   warranty is made about accuracy, and the files are kept only for
   diagnostic/tuning reference exactly as GuzziDiag users have used them for
   years.
@@ -41,7 +41,7 @@ tables** and the real, named tables are already there.
 
 ## What is bundled today
 
-**All 94 cataloged definitions** are vendored — 3842 tables and 2148
+**All 95 cataloged definitions** are vendored — 3880 tables and 2148
 constants in total, every one parse-checked by `guzzionboard.maps.XdfFile`:
 
 | Brand | Files | | Brand | Files |
@@ -49,13 +49,13 @@ constants in total, every one parse-checked by `guzzionboard.maps.XdfFile`:
 | Ducati | 29 | | Morini | 4 |
 | Moto Guzzi | 24 | | GasGas | 3 |
 | Aprilia | 18 | | Gilera | 2 |
-| Piaggio | 10 | | BMW / Husqvarna / Malaguti / Scomadi | 1 each |
+| Piaggio | 10 | | BMW / Honda / Husqvarna / Malaguti / Scomadi | 1 each |
 
 Run `python3 scripts/import_xdfs.py --status` at any time to re-confirm the
 count; if the catalog ever gains an entry that is not vendored yet, it
 prints the missing file and its upstream URL.
 
-The original zips these were extracted from are mirrored, unmodified, in
+The original GuzziDiag zips these were extracted from are mirrored, unmodified, in
 `vendor/guzzidiag/xdf/`, with sizes, SHA-256s and upstream URLs recorded in
 `vendor/guzzidiag/MANIFEST.json` (see `vendor/guzzidiag/README.md`). That
 mirror is the provenance record; `guzzionboard/xdfs/` is what the app loads.
@@ -68,7 +68,7 @@ guzzionboard/xdfs/
                        ECU family, model label, upstream URL and the path
                        it lands at once vendored
   PROVENANCE.json      per-vendored-file source URL, hash and import date
-  moto_guzzi/ aprilia/ ducati/ bmw/ gasgas/ gilera/ husqvarna/
+  moto_guzzi/ aprilia/ ducati/ bmw/ gasgas/ gilera/ honda/ husqvarna/
   malaguti/ morini/ piaggio/ scomadi/
                        the actual .xdf files, one brand folder each,
                        named exactly as the origin site's zip (minus .zip)
@@ -178,3 +178,60 @@ A zip whose filename isn't in `catalog.json` still gets imported (into
 `guzzionboard/xdfs/unsorted/`) with a warning, so one-off/new files from the
 community aren't silently dropped; update `catalog.json` for it in the same
 PR.
+
+## Data-layout correction and research preview
+
+Explicit item `mmedtypeflags` now control signedness, little/big endian and
+column-major ordering; an absent attribute inherits the XDF header defaults.
+The previous parser could interpret explicit flags incorrectly, including in
+BMW, Husqvarna, Ducati and Aprilia definitions. **Do not rely on values,
+exports or builds produced with the earlier parser**: return to the original
+backup, rerender, re-create edits and check the byte diff and checksum. Map
+project schema 3 records the layout revision; older schema 1 and 2 projects
+must be recreated and reviewed rather than silently reinterpreted. This change
+does not verify definition fitment or calibration correctness. See
+`docs/PRIOR_ART.md` for references and unsupported encodings.
+
+The desktop/local app can render a user-provided XDF placed in the user XDF
+directory and preview staged edits even when that XDF/ECU family is not in the
+catalog. The hosted demonstration uses synthetic images and bundled definitions
+only. **Preview edits for research** checks the source and XDF SHA-256 and raw
+cell locks, quantizes values in memory and shows the resulting diff; it writes
+no image, does not repair any checksum, and does not validate ECU, software,
+vehicle fitment or a tuning recommendation. The regular build and programming
+gates are unchanged. A research preview is not a build authorization.
+
+## Honda CBR1000RR 2012 US: offline image build
+
+`honda/CBR1000RR_2012_US.xdf` is unmodified from [Ryan Hope and HondaECU
+contributors' repository](https://github.com/roccofz1/HondaECU/tree/dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109)
+(commit `dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109`); XDF SHA-256
+`c942ffc16e498985dba5592388e7cf6f2d23e2adde94fde825b52d1287141415`.
+The upstream repository has a GPL-3.0 license, reproduced in
+`LICENSES/HondaECU-GPL-3.0.txt`. The checksum provider adapts its
+`checksum8bitHonda`/`validate_checksum` logic: additive inverse of every byte
+except the checksum byte, stored at `0x3FFF8` over a 256 KiB image.
+
+Upstream names the XDF **CBR1000RR 2012 US** and groups the example image
+`38770-MGP-A01.bin` under **2012–2013 CBR1000RR**. We associate that image
+and definition on this shared model/year context; upstream does not explicitly
+pair the two files. Offline, the source example renders 38 supported tables
+and its full-image byte sum is zero. `Top Speed Limit` has an unsupported
+`X >> 4` equation and is not editable. One synthetic edit to the upstream
+example changed the selected data byte and checksum byte as expected; this
+is not a hardware test or validation of every definition or tune.
+
+To use the new workstation/desktop path: select **Honda → CBR1000RR (US) →
+2012**, click **Select for offline maps**, render your own full original 256 KiB image with this XDF, select
+**Honda CBR1000RR 2012 US / A01 checksum**, stage edits and follow the normal
+preview/evidence/acknowledgement/build workflow. The original must have SHA-256
+`c0fb37e60fbf38a8479166a5ef9ca0fdcc8b4f7c37de97f9dadaab1db0da0764`
+and the definition must have the pinned hash above; other calibrations and
+previously modified images can still be examined with research preview, not
+built by this profile. No OEM firmware is shipped here. The checksum provider
+requires an explicit selection, verifies its output and only changes one byte.
+The source image/XDF association and an image hash do not establish physical
+ECU identity; independently confirm your hardware and configuration. No Honda
+read, write, flashing, live session, or hardware-test claim is enabled. The
+static hosted demo can render/research-preview definitions but cannot execute
+the workstation checksum provider or create an ECU-ready output.

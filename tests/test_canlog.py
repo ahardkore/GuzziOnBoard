@@ -245,3 +245,119 @@ class TestCanLogApi:
         assert api.post_tools_canlog({"text": "   "})[0] == 400
         status, payload = api.post_tools_canlog({"path": str(tmp_path / "nope")})
         assert status == 400 and "cannot read" in payload["error"]
+
+
+def test_offline_capture_filter_and_traffic_breakdown():
+    from guzzionboard.canlog import analyze_capture_text
+    text = '\n'.join([
+        '(1.0) can0 7E0#023E00',
+        '(1.1) can0 7E8#027E00',
+        '(1.2) can0 123#010203',
+        '(1.3) can0 7E0#023E00',
+    ])
+    report = analyze_capture_text(text, '0x7e0, 7E8')
+    assert report['capture_frames'] == 4 and report['frames'] == 3
+    assert report['traffic'][0] == {'id': '0x7E0', 'extended': False, 'frames': 2}
+    assert any('filter applied' in note for note in report['notes'])
+
+
+def test_offline_capture_filter_rejects_bad_ids_and_empty_result():
+    from guzzionboard.canlog import CanLogError, analyze_capture_text
+    import pytest
+    text = '(1.0) can0 7E0#023E00'
+    for ids in ('-1', '0x20000000', '7e0,,7e8', 'zzz', '123'):
+        with pytest.raises(CanLogError):
+            analyze_capture_text(text, ids)
+
+
+def test_opt_in_ducati_decoder_is_offline_and_strict_about_format_and_length():
+    capture = "\n".join([
+        "(1.0) can0 080#0000000055123400",       # APS 42, RPM 4660
+        "(2.0) can0 018#0000000065B00000",       # gear 3, wheel speed 91
+        "(3.0) can0 100#0000001E7B280000",       # -10 C, 12.3 V, 0 C
+        "(4.0) can0 00000080#0000000055123400",  # same id, but 29-bit
+        "(5.0) can0 080#00000000",               # too short
+    ])
+    normal = analyze_capture_text(capture)
+    assert "decoder" not in normal
+    result = analyze_capture_text(capture, decoder="ducati_panigale_mitsubishi")
+    decoder = result["decoder"]
+    assert decoder["recognized_frames"] == 3
+    assert decoder["invalid_length_frames"] == 1
+    assert decoder["events"][0]["values"] == {"throttle_percent": 42, "rpm": 0x1234}
+    assert decoder["events"][1]["values"] == {"rear_wheel_speed_kmh": 91, "gear_raw": 3}
+    assert decoder["events"][2]["values"] == {"coolant_c": -10, "air_c": 0, "battery_v": 12.3}
+    assert decoder["events"][0]["raw"] == "0000000055123400"
+    assert any(item["extended"] and item["id"] == "0x80" for item in result["traffic"])
+    filtered = analyze_capture_text(capture, "100", "ducati_panigale_mitsubishi")
+    assert filtered["decoder"]["recognized_frames"] == 1
+    with pytest.raises(CanLogError, match="unknown offline telemetry decoder"):
+        analyze_capture_text(capture, decoder="guess")
+
+
+def test_ducati_decoder_ignores_tx_and_caps_research_output():
+    lines = ["1.0 T11 080 00 00 00 00 55 12 34 00"]
+    lines += [f"{n + 2}.0 R11 080 00 00 00 00 55 12 34 00" for n in range(205)]
+    decoder = analyze_capture_text("\n".join(lines), decoder="ducati_panigale_mitsubishi")["decoder"]
+    assert decoder["ignored_tx_frames"] == 1
+    assert decoder["recognized_frames"] == 205
+    assert len(decoder["events"]) == 200 and decoder["omitted_events"] == 5
+    assert decoder["events"][0]["direction"] == "Rx"
+
+
+def test_savvycan_numeric_only_ids_are_hex_and_missing_bytes_are_rejected():
+    header = 'Time Stamp,ID,Extended,Dir,Bus,LEN,D1,D2,D3,D4,D5,D6,D7,D8\n'
+    capture = header + '1000000,080,0,Rx,0,8,00,00,00,00,55,12,34,00\n'
+    result = analyze_capture_text(capture, decoder='ducati_panigale_mitsubishi')
+    assert result['decoder']['events'][0]['values']['rpm'] == 0x1234
+    with pytest.raises(CanLogError, match='missing SavvyCAN data byte'):
+        analyze_capture_text(header + '1000000,080,0,Rx,0,8,00,,00,00,55,12,34,00\n')
+
+
+def test_savvycan_fd_and_flexray_are_not_decoded_as_classic_can():
+    header = 'Time Stamp,ID,Extended,Dir,Bus,LEN,D1,D2,D3,D4,D5,D6,D7,D8\n'
+    for flag in ('FD+BRS', 'FR'):
+        text = header + f'1000000,00000080,false,Rx,0,8,00,00,00,00,55,12,34,00,{flag},\n'
+        with pytest.raises(CanLogError, match='CAN-FD and FlexRay'):
+            analyze_capture_text(text, decoder='ducati_panigale_mitsubishi')
+
+
+def test_byte_statistics_are_opt_in_filtered_and_split_by_format_and_direction():
+    capture = '\n'.join([
+        '1.0 R11 567 00 01',
+        '2.0 R11 567 03 01',
+        '3.0 R11 567 01',
+        '4.0 R11 567 01 81',
+        '5.0 T11 567 FF 10',
+        '6.0 R29 567 FF 20',
+        '7.0 R11 568 04 09',
+    ])
+    assert 'byte_stats' not in analyze_capture_text(capture)
+    with pytest.raises(CanLogError, match='explicit CAN ID filter'):
+        analyze_capture_text(capture, byte_stats=True)
+    with pytest.raises(CanLogError, match='true or false'):
+        analyze_capture_text(capture, '567', byte_stats='false')
+    result = analyze_capture_text(capture, '567', byte_stats=True)
+    stats = result['byte_stats']
+    assert len(stats['groups']) == 3 and stats['omitted_groups'] == 0
+    first, tx, ext = stats['groups']
+    assert (first['id'], first['extended'], first['direction'], first['frames'], first['lengths']) == ('0x567', False, 'Rx', 4, [1, 2])
+    assert first['bytes'] == [
+        {'index': 1, 'samples': 4, 'minimum': 0, 'maximum': 3, 'changes': 2, 'varying_mask': 3},
+        {'index': 2, 'samples': 3, 'minimum': 1, 'maximum': 129, 'changes': 1, 'varying_mask': 128},
+    ]
+    assert tx['direction'] == 'Tx' and not tx['extended']
+    assert ext['direction'] == 'Rx' and ext['extended']
+    assert result['frames'] == 6
+
+
+def test_byte_statistics_ignore_empty_or_oversized_frames_and_bound_output():
+    from guzzionboard.canlog import summarize_payload_bytes
+    frames = [CanFrame(0, 1, False, b'\x01'), CanFrame(1, 1, False, b''),
+              CanFrame(2, 1, False, b'\x02' * 9)]
+    frames += [CanFrame(0, i, False, b'\x00') for i in range(2, 111)]
+    result = summarize_payload_bytes(frames)
+    assert len(result['groups']) == 100 and result['omitted_groups'] == 10
+    first = result['groups'][0]
+    assert first['frames'] == 3 and first['skipped_frames'] == 2
+    assert first['lengths'] == [0, 1, 9] and first['bytes'][0]['samples'] == 1

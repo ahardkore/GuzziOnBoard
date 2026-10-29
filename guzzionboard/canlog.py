@@ -186,7 +186,7 @@ def _parse_candump_line(line: str, index: int) -> CanFrame | None:
             data = b""                    # remote frame
         else:
             data = bytes.fromhex(data_part) if data_part else b""
-        return CanFrame(timestamp, ident, ident > 0x7FF, data)
+        return CanFrame(timestamp, ident, len(ident_hex.removeprefix("0x").removeprefix("0X")) == 8 or ident > 0x7FF, data)
 
     # verbose: ID [n] B1 B2 ...
     ident = _hex_id(head)
@@ -198,7 +198,7 @@ def _parse_candump_line(line: str, index: int) -> CanFrame | None:
     if not rest:
         return None
     data = bytes.fromhex("".join(t for t in rest if _hex_id(t) is not None))
-    return CanFrame(timestamp, ident, ident > 0x7FF, data)
+    return CanFrame(timestamp, ident, len(head.removeprefix("0x").removeprefix("0X")) == 8 or ident > 0x7FF, data)
 
 
 def _parse_crtd_line(line: str, index: int) -> CanFrame | None:
@@ -221,7 +221,7 @@ def _parse_crtd_line(line: str, index: int) -> CanFrame | None:
     if ident is None:
         return None
     data = bytes.fromhex("".join(t for t in tokens[2:] if _hex_id(t) is not None))
-    return CanFrame(stamp or 0.0, ident, extended, data[:8], direction)
+    return CanFrame(stamp or 0.0, ident, extended, data, direction)
 
 
 def _parse_savvycan_csv(text_lines: list[str]) -> list[CanFrame]:
@@ -236,25 +236,15 @@ def _parse_savvycan_csv(text_lines: list[str]) -> list[CanFrame]:
     len_col = col.get("len")
     data_cols = [col[f"d{n}"] for n in range(1, 9) if f"d{n}" in col]
 
-    # SavvyCAN writes ids in hex; be honest about files that are not.
-    id_tokens = []
-    for line in text_lines[1:]:
-        cells = line.split(",")
-        if len(cells) > id_col:
-            token = cells[id_col].strip()
-            if token:
-                id_tokens.append(token)
-    has_hex_letters = any(any(c in "abcdefABCDEF" for c in t) for t in id_tokens)
-
     frames: list[CanFrame] = []
     for line in text_lines[1:]:
         cells = [c.strip() for c in line.split(",")]
         if len(cells) <= id_col or not cells[id_col]:
             continue
         raw_id = cells[id_col]
-        ident = _hex_id(raw_id) if has_hex_letters else _dec_id(raw_id)
-        if ident is None:
-            ident = _hex_id(raw_id)
+        # SavvyCAN's documented ID column is hexadecimal even when it
+        # happens to contain digits only (e.g. 080 is 0x80, not decimal 80).
+        ident = _hex_id(raw_id)
         if ident is None:
             raise CanLogError(f"bad id column value {raw_id!r}")
         stamp = 0.0
@@ -273,12 +263,25 @@ def _parse_savvycan_csv(text_lines: list[str]) -> list[CanFrame]:
                 length = int(cells[len_col])
             except ValueError:
                 length = None
+        if length is not None and (length < 0 or length > 8 or length > len(data_cols)):
+            raise CanLogError("invalid or incomplete SavvyCAN data length")
+        # Newer SavvyCAN native CSV may append FD/FlexRay flags after the
+        # classic data columns, even when the payload has eight bytes or less.
+        # Do not interpret a different bus format as a classic CAN frame.
+        if data_cols and any(token.upper().startswith(("FD", "FR")) for token in cells[max(data_cols) + 1:] if token):
+            raise CanLogError("SavvyCAN CAN-FD and FlexRay frames are not supported")
         data = bytearray()
+        missing = False
         for i, c in enumerate(data_cols):
-            if len(cells) <= c or not cells[c]:
-                continue
             if length is not None and i >= length:
                 break
+            if len(cells) <= c or not cells[c]:
+                missing = True
+                if length is not None:
+                    raise CanLogError("missing SavvyCAN data byte")
+                continue
+            if missing:
+                raise CanLogError("missing SavvyCAN data byte")
             try:
                 data.append(int(cells[c], 16))
             except ValueError:
@@ -566,8 +569,7 @@ def analyze_frames(frames: list[CanFrame]) -> dict:
     if not pairs:
         notes.append(
             "No ISO-TP diagnostic traffic was recognised. Either the log has "
-            "no diagnostic session in it (start one with GuzziCanDiag while "
-            "capturing), or the pair does not speak ISO-TP the standard way - "
+            "no diagnostic session in it, or the pair does not speak ISO-TP the standard way - "
             "in which case this project wants to hear about it."
         )
 
@@ -581,22 +583,117 @@ def analyze_frames(frames: list[CanFrame]) -> dict:
     }
 
 
-def analyze_capture_file(path: str | Path) -> dict:
+def filter_capture(frames: list[CanFrame], ids: str = "") -> list[CanFrame]:
+    """Restrict offline analysis to explicit hexadecimal identifiers only."""
+    if not isinstance(ids, str) or len(ids) > 1000:
+        raise CanLogError("CAN ID filter must be a short comma-separated string")
+    if not ids.strip():
+        return frames
+    tokens = ids.split(",")
+    if len(tokens) > 50:
+        raise CanLogError("CAN ID filter accepts at most 50 identifiers")
+    selected = set()
+    for token in tokens:
+        token = token.strip().lower().removeprefix("0x")
+        if not token or len(token) > 8 or any(c not in _HEX for c in token):
+            raise CanLogError("CAN ID filter expects comma-separated hexadecimal IDs")
+        value = int(token, 16)
+        if value > 0x1FFFFFFF:
+            raise CanLogError("CAN ID exceeds the 29-bit limit")
+        selected.add(value)
+    filtered = [frame for frame in frames if frame.id in selected]
+    if not filtered:
+        raise CanLogError("no capture frames match the CAN ID filter")
+    return filtered
+
+
+def summarize_traffic(frames: list[CanFrame]) -> list[dict]:
+    """Counts by ID and frame format; no inference about payload meaning."""
+    totals: dict[tuple[int, bool], int] = {}
+    for frame in frames:
+        key = (frame.id, frame.extended)
+        totals[key] = totals.get(key, 0) + 1
+    return [{"id": f"0x{ident:X}", "extended": extended, "frames": count}
+            for (ident, extended), count in sorted(totals.items(),
+                                                   key=lambda item: (-item[1], item[0]))]
+
+
+def summarize_payload_bytes(frames: list[CanFrame], limit: int = 100) -> dict:
+    """Describe observed byte variation without assigning any signal meaning.
+
+    Groups are separated by identifier, frame format, and known direction.
+    Bus/interface is not retained by the current parser; callers must use a
+    single-bus capture. Observations are compared in capture order, omitting
+    frames where a byte is absent. Only classic 1–8 byte payloads are counted.
+    """
+    groups: dict[tuple[int, bool, str], dict] = {}
+    for frame in frames:
+        direction_text = (frame.direction or "").lower()
+        direction = "Tx" if direction_text.startswith("t") else "Rx" if direction_text.startswith("r") else "unknown"
+        key = (frame.id, frame.extended, direction)
+        group = groups.setdefault(key, {"id": f"0x{frame.id:X}", "extended": frame.extended,
+                                        "direction": direction, "frames": 0, "skipped_frames": 0,
+                                        "lengths": set(), "bytes": [{} for _ in range(8)]})
+        group["frames"] += 1
+        group["lengths"].add(len(frame.data))
+        if not 1 <= len(frame.data) <= 8:
+            group["skipped_frames"] += 1
+            continue
+        for i, value in enumerate(frame.data):
+            byte = group["bytes"][i]
+            if not byte:
+                byte.update(index=i + 1, samples=0, minimum=value, maximum=value,
+                            changes=0, varying_mask=0, previous=value)
+            elif value != byte["previous"]:
+                byte["changes"] += 1
+                byte["varying_mask"] |= byte["previous"] ^ value
+            byte["samples"] += 1
+            byte["minimum"] = min(byte["minimum"], value)
+            byte["maximum"] = max(byte["maximum"], value)
+            byte["previous"] = value
+    result = []
+    for (ident, extended, direction), group in sorted(groups.items(), key=lambda item: (-item[1]["frames"], item[0]))[:limit]:
+        group["lengths"] = sorted(group["lengths"])
+        group["bytes"] = [{k: v for k, v in byte.items() if k != "previous"} for byte in group["bytes"] if byte]
+        result.append(group)
+    return {"groups": result, "omitted_groups": max(0, len(groups) - limit)}
+
+
+def _capture_report(frames: list[CanFrame], fmt: str, warnings: list[str], ids: str,
+                    decoder: str = "", byte_stats: bool = False) -> dict:
+    if decoder not in ("", "ducati_panigale_mitsubishi"):
+        raise CanLogError("unknown offline telemetry decoder")
+    if not isinstance(byte_stats, bool):
+        raise CanLogError("byte statistics setting must be true or false")
+    if byte_stats and (not isinstance(ids, str) or not ids.strip()):
+        raise CanLogError("byte statistics require an explicit CAN ID filter")
+    total = len(frames)
+    frames = filter_capture(frames, ids)
+    result = analyze_frames(frames)
+    result["format"] = fmt
+    result["capture_frames"] = total
+    result["filter_ids"] = ids
+    result["traffic"] = summarize_traffic(frames)
+    if byte_stats:
+        result["byte_stats"] = summarize_payload_bytes(frames)
+    if decoder:
+        from .ducati_panigale_can import decode_capture
+        result["decoder"] = decode_capture(frames)
+    if ids.strip():
+        warnings.append("ID filter applied before analysis; omitted traffic may change or invalidate candidate pairs. IDs match either frame format.")
+    if warnings:
+        result["notes"] = warnings + result["notes"]
+    return result
+
+
+def analyze_capture_file(path: str | Path, ids: str = "", decoder: str = "", byte_stats: bool = False) -> dict:
     frames, fmt, warnings = parse_capture_file(path)
-    result = analyze_frames(frames)
-    result["format"] = fmt
-    if warnings:
-        result["notes"] = warnings + result["notes"]
-    return result
+    return _capture_report(frames, fmt, warnings, ids, decoder, byte_stats)
 
 
-def analyze_capture_text(text: str) -> dict:
+def analyze_capture_text(text: str, ids: str = "", decoder: str = "", byte_stats: bool = False) -> dict:
     frames, fmt, warnings = parse_capture(text)
-    result = analyze_frames(frames)
-    result["format"] = fmt
-    if warnings:
-        result["notes"] = warnings + result["notes"]
-    return result
+    return _capture_report(frames, fmt, warnings, ids, decoder, byte_stats)
 
 
 #: For docs and the UI: how to take the capture in the first place.

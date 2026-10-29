@@ -25,6 +25,7 @@ from . import resources
 
 from . import adapter as adapter_mod
 from . import canlog
+from . import j2534
 from . import klinelog
 from . import logconvert
 from . import rpmsignal
@@ -47,9 +48,9 @@ from .maps import (
 from .checksums import (
     PLUGIN_DIR as CHECKSUM_PLUGIN_DIR,
     ChecksumUnavailable,
-    load_providers as load_checksum_providers,
-    provider_by_id as checksum_provider_by_id,
+    load_providers as load_local_checksum_providers,
 )
+from . import honda_tuning
 from .map_analysis import LogAnalysisError, analyze_fuel_log
 from .programming import ProgrammingError, ProgrammingService
 from . import confirmations as confirmations_mod
@@ -80,6 +81,33 @@ from . import sessiondiff
 from .sessionlog import SessionLog
 from .transports.base import TransportError, TransportUnavailable
 from .workstation import Workstation
+
+
+def load_checksum_providers():
+    local, errors = load_local_checksum_providers()
+    builtin = honda_tuning.provider()
+    filtered = []
+    for item in local:
+        if item.provider_id == builtin.provider_id:
+            errors.append({
+                "path": item.source,
+                "error": "provider id is reserved by the built-in Honda provider",
+            })
+        else:
+            filtered.append(item)
+    return [builtin, *filtered], errors
+
+
+def checksum_provider_by_id(provider_id: str):
+    providers, errors = load_checksum_providers()
+    for provider in providers:
+        if provider.provider_id == provider_id:
+            return provider
+    raise ChecksumUnavailable(
+        f"no checksum provider with id {provider_id!r}; "
+        f"{len(errors)} plugin(s) failed to load"
+    )
+
 
 #: The UI directory. Resolved through :mod:`guzzionboard.resources` so an
 #: installed build finds the copy an installer shipped and a source checkout
@@ -374,7 +402,7 @@ class Api:
                 can_tx_id=body.get("can_tx_id", ""),
                 can_rx_id=body.get("can_rx_id", ""),
             )
-        except ValueError as exc:
+        except (ValueError, CatalogError) as exc:
             return 400, {"error": str(exc)}
 
     def post_connect(self, body: dict) -> tuple[int, dict]:
@@ -1026,13 +1054,31 @@ class Api:
     def _family_tokens(value: str) -> set[str]:
         compact = re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
         return set(re.findall(
-            r"MIUG3|MIU1|MBC1|5AM2|5AM|16M|15RC|15M|15P|59M|7SM|5SM|5DM|11MP|P7|P8",
+            r"CBR1000RR2012US|MIUG3|MIU1|MBC1|5AM2|5AM|16M|15RC|15M|15P|59M|7SM|5SM|5DM|11MP|P7|P8",
             compact,
         ))
 
     def _check_build_fitment(self, xdf: XdfFile, image: FirmwareImage) -> None:
         """A mismatched XDF may be viewed, but it may never build bytes."""
         xdf_family = str(fitment(xdf.path).get("family") or "")
+        if xdf_family == "CBR1000RR-2012-US":
+            selection = self.ws.selection
+            if (xdf.file_sha256 != honda_tuning.XDF_SHA256
+                    or image.sha256 != honda_tuning.SOURCE_SHA256
+                    or image.size != honda_tuning.IMAGE_SIZE
+                    or selection.make.lower() != "honda"
+                    or selection.model != "CBR1000RR (US)"
+                    or selection.year != 2012
+                    or not selection.profile or selection.profile.id != honda_tuning.ECU_ID
+                    or (image.ecu_id and image.ecu_id != honda_tuning.ECU_ID)):
+                raise TuningError(
+                    "Honda CBR1000RR build requires the 2012 US selection, the "
+                    "pinned HondaECU XDF and exact 38770-MGP-A01 original image SHA-256"
+                )
+            # Carry the scoped ECU identity into any resulting sidecar even if
+            # the operator supplied an unlabelled raw image.
+            image.ecu_id = honda_tuning.ECU_ID
+            return
         if not xdf_family:
             raise TuningError(
                 "this XDF has no cataloged ECU-family fitment; it may be "
@@ -1040,15 +1086,21 @@ class Api:
             )
         expected: set[str] = set()
         if self.ws.selection.profile is not None:
-            # A selected/connected bench is authoritative. Do not let a file
-            # labelled as another ECU widen this set and make either family
-            # appear acceptable.
+            # A selected/connected bench is authoritative. An unrecognised
+            # research profile must not silently inherit Marelli fitment.
             expected = self._family_tokens(self.ws.selection.profile.family)
-        elif image.ecu_id:
+            if not expected:
+                raise TuningError("selected ECU family has no supported XDF fitment; cannot build or preview a tuning image")
+        if image.ecu_id:
             try:
-                expected = self._family_tokens(self.ws.catalog.ecu(image.ecu_id).family)
+                source_family = self._family_tokens(self.ws.catalog.ecu(image.ecu_id).family)
             except CatalogError:
-                pass
+                source_family = set()
+            if not source_family:
+                raise TuningError("source ECU family has no supported XDF fitment; cannot build or preview a tuning image")
+            if expected and not (expected & source_family):
+                raise TuningError("source ECU conflicts with the selected ECU; mismatched definitions cannot build a map")
+            expected = source_family if not expected else expected & source_family
         actual = self._family_tokens(xdf_family)
         if expected and not (expected & actual):
             raise TuningError(
@@ -1065,9 +1117,7 @@ class Api:
             image, is_base, base_status = self._map_source(body)
             xdf = self._load_xdf(ref)
             render = xdf.render(image, address_base=self._address_base(body))
-            render["xdf"]["sha256"] = hashlib.sha256(
-                Path(xdf.path).read_bytes()
-            ).hexdigest() if xdf.path and Path(xdf.path).is_file() else ""
+            render["xdf"]["sha256"] = xdf.file_sha256
         except (XdfError, TuningError, OSError) as exc:
             return 400, {"error": str(exc)}
         return 200, {
@@ -1219,8 +1269,8 @@ class Api:
             "providers": [provider.as_dict() for provider in providers],
             "errors": errors,
             "note": (
-                "No calibration checksum algorithm is bundled or guessed. "
-                "Plugins run in fresh resource-limited, audit-guarded subprocesses; "
+                "The built-in Honda provider is restricted to its pinned XDF and source image. "
+                "Local plugins run in fresh resource-limited, audit-guarded subprocesses; "
                 "they remain local code, and self-verification does not prove "
                 "correctness on physical ECU hardware."
             ),
@@ -1388,6 +1438,44 @@ class Api:
                 "id", "version", "title", "license", "maintainers", "fitment",
                 "xdf", "evidence", "validation", "status", "package_sha256",
             )
+        }
+
+    def post_maps_research_preview(self, body: dict) -> tuple[int, dict]:
+        """Preview user-supplied XDF edits without creating an image or certifying fitment."""
+        if not body.get("xdf"):
+            return 400, {"error": "an 'xdf' (filename or .xdf path) is required"}
+        try:
+            source, is_base, _ = self._map_source(body)
+            resolved = self._load_xdf(body["xdf"])
+            # Parse and fingerprint the same bytes; a definition changing
+            # between separate reads must not make the hash describe another file.
+            xdf_path = Path(resolved.path)
+            xdf_bytes = xdf_path.read_bytes()
+            xdf_hash = hashlib.sha256(xdf_bytes).hexdigest()
+            xdf = XdfFile.from_string(xdf_bytes.decode("ISO-8859-1"))
+            xdf.path = str(xdf_path)
+            if body.get("expected_source_sha256") != source.sha256:
+                raise TuningError("source image SHA-256 changed; render it again")
+            if body.get("expected_xdf_sha256") != xdf_hash:
+                raise TuningError("XDF SHA-256 changed; render it again")
+            base = self._address_base(body)
+            candidate, changes = xdf.apply_changes(source, body.get("changes"), address_base=base)
+            effective_base = xdf.suggest_address_base(source.size) if base is None else base
+            diff = xdf.diff(source, candidate, address_base=effective_base)
+        except (XdfError, TuningError, OSError) as exc:
+            return 400, {"error": str(exc)}
+        return 200, {
+            "research_only": True, "writes_file": False,
+            "source": {"path": source.path, "sha256": source.sha256,
+                       "bytes": source.size, "is_base_map": is_base},
+            "xdf": {"path": xdf.path, "sha256": xdf_hash, "title": xdf.title},
+            "address_base": effective_base, "changes": changes, "diff": diff,
+            "candidate_sha256": hashlib.sha256(candidate).hexdigest(),
+            "declared_checksums": list(xdf.checksums),
+            "warning": ("Research preview only: vehicle/ECU/software fitment and "
+                        "checksum correctness are not established. No checksum was "
+                        "applied, no image was saved, and this is not a build or "
+                        "authorization to program an ECU."),
         }
 
     def post_maps_preview(self, body: dict) -> tuple[int, dict]:
@@ -1712,6 +1800,9 @@ class Api:
             "ports": adapter_mod.list_ports(),
         }
 
+    def get_j2534(self, query: dict) -> tuple[int, dict]:
+        return 200, j2534.inventory()
+
     def post_adapter_latency(self, body: dict) -> tuple[int, dict]:
         port = body.get("port", "")
         ok = adapter_mod.set_latency_timer(port, int(body.get("value", 1)))
@@ -1732,9 +1823,9 @@ class Api:
             return 400, {"error": "a capture 'path' or pasted 'text' is required"}
         try:
             if path:
-                result = canlog.analyze_capture_file(path)
+                result = canlog.analyze_capture_file(path, body.get("filter_ids", ""), body.get("decoder", ""), body.get("byte_stats", False))
             else:
-                result = canlog.analyze_capture_text(str(text))
+                result = canlog.analyze_capture_text(str(text), body.get("filter_ids", ""), body.get("decoder", ""), body.get("byte_stats", False))
         except canlog.CanLogError as exc:
             return 400, {"error": str(exc)}
         return 200, result
@@ -1952,6 +2043,7 @@ ROUTES_GET = {
     "/api/memory/basemap": "get_basemap",
     "/api/security": "get_security",
     "/api/adapter": "get_adapter",
+    "/api/adapter/j2534": "get_j2534",
     "/api/tools/gearing": "get_gearing",
     "/api/sessions/export": "get_export",
     "/api/desktop": "get_desktop",
@@ -1980,6 +2072,7 @@ ROUTES_POST = {
     "/api/maps/validate-definition": "post_maps_validate_definition",
     "/api/maps/analyze-log": "post_maps_analyze_log",
     "/api/maps/preview": "post_maps_preview",
+    "/api/maps/research-preview": "post_maps_research_preview",
     "/api/maps/build": "post_maps_build",
     "/api/recommendations/validate": "post_recommendation_validate",
     "/api/physical-validation/validate": "post_physical_validation_validate",

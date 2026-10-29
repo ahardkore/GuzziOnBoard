@@ -164,11 +164,28 @@ class Workstation:
         can_rx_id: str | int = "",
     ) -> dict:
         with self._lock:
+            if self.service is not None and self.service.connected:
+                raise ValueError("disconnect the current session before selecting another vehicle or ECU")
             entry = None
-            if ecu:
+            if model and year:
+                # Keep vehicle confidence even when an ECU override is supplied.
+                # An unrelated profile must not inherit a different bike's identity.
+                matches = self.catalog.find(model, year, make)
+                if not make and len({v.make.casefold() for v in matches}) > 1:
+                    raise ValueError(f"{model} {year} exists under multiple makes; specify make")
+                if ecu:
+                    candidates = [v for v in matches if v.ecu == ecu]
+                    if not candidates:
+                        raise ValueError("ECU override is not cataloged for this make, model and year; verify the ECU label")
+                    candidates.sort(key=lambda v: ((v.year_to or 9999) - v.year_from, -v.year_from))
+                    entry = candidates[0]
+                    profile = self.catalog.ecu(ecu)
+                else:
+                    entry, profile = self.catalog.resolve(model, year, make)
+            elif ecu:
+                if make or model or year:
+                    raise ValueError("ECU-only selection cannot include a partial vehicle identity; specify make, model and year together")
                 profile = self.catalog.ecu(ecu)
-            elif model and year:
-                entry, profile = self.catalog.resolve(model, year, make)
             else:
                 raise ValueError("select needs either an ecu id or a model and year")
 
@@ -195,13 +212,13 @@ class Workstation:
         self, entry: VehicleEntry | None, profile: EcuProfile, transport: str
     ) -> list[dict]:
         notices: list[dict] = []
-        if entry and self.catalog.ambiguous(entry.model, entry.year_from):
+        if entry and self.catalog.ambiguous(entry.model, self.selection.year, entry.make):
             notices.append(
                 {
                     "level": "warn",
                     "text": (
                         f"{entry.model} spans more than one ECU family in this year. "
-                        "Moto Guzzi changed ECUs as running changes - read the label "
+                        "Some models have overlapping fitments - read the label "
                         "on your ECU and override the selection if it disagrees."
                     ),
                 }
@@ -315,6 +332,8 @@ class Workstation:
         assert profile is not None
         kind = self.selection.transport_kind
 
+        if kind in self._SIM_TRANSPORTS and profile.session.get("simulator_supported") is False:
+            raise TransportUnavailable(f"{profile.family}: no matching simulator is implemented")
         if kind == "simulator":
             engine = EngineModel(ambient_c=18.0)
             return SimulatorTransport(ecu=SimulatedEcu(profile, engine=engine))
@@ -455,6 +474,21 @@ class Workstation:
                 return self.status()
 
             profile = self.selection.profile
+            if profile.session.get("protocol") == "kawasaki-er6n":
+                if (self.selection.entry is None or self.selection.make.casefold() != "kawasaki"
+                        or self.selection.model.casefold() != "er-6n" or self.selection.year != 2006):
+                    raise TransportUnavailable("ER-6n KDS requires the exact Kawasaki ER-6n 2006 vehicle selection")
+                if self.selection.transport_kind != "kline" or mode != "read_only":
+                    raise TransportUnavailable("ER-6n KDS supports K-Line in read-only mode only; no simulator or CAN session")
+            if profile.session.get("protocol") == "triumph-daytona-2012":
+                if (self.selection.entry is None or self.selection.make.casefold() != "triumph"
+                        or self.selection.model.casefold() != "daytona 675" or self.selection.year != 2012):
+                    raise TransportUnavailable("Daytona OBD requires the exact Triumph Daytona 675 2012 vehicle selection")
+                if self.selection.transport_kind != "kline" or mode != "read_only":
+                    raise TransportUnavailable("Daytona OBD supports K-Line in read-only mode only; no simulator or CAN session")
+            if (self.selection.transport_kind in self._SIM_TRANSPORTS
+                    and profile.session.get("simulator_supported") is False):
+                raise TransportUnavailable(f"{profile.family}: no matching simulator is implemented")
             if (
                 self.selection.transport_kind not in self._SIM_TRANSPORTS
                 and profile.session.get("physical_supported") is False
@@ -495,7 +529,16 @@ class Workstation:
                 log=self.log,
                 catalog=self.catalog,
             )
-            self.service.connect(init_method=init_method)
+            try:
+                self.service.connect(init_method=init_method)
+            except Exception:
+                self.service.disconnect()
+                self.service = None
+                self._session_profile = None
+                if self.log is not None:
+                    self.log.close()
+                    self.log = None
+                raise
             return self.status()
 
     def disconnect(self) -> dict:

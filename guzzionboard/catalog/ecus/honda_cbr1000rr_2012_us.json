@@ -1,0 +1,30 @@
+{
+  "id": "honda_cbr1000rr_2012_us",
+  "family": "CBR1000RR-2012-US",
+  "display_name": "Honda CBR1000RR 2012 US (offline tuning only)",
+  "transport": "kline",
+  "confidence": "inferred",
+  "years": "2012",
+  "notes": "HondaECU repository supplies the 2012 US XDF and a 2012\u20132013 38770-MGP-A01 stock image. The offline builder accepts only the exact source-image and XDF hashes. ECU hardware identity and physical programming are not established by a file hash.",
+  "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented.",
+    "simulator_supported": false
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Offline image editing does not implement ECU programming."
+  },
+  "capabilities": [],
+  "sources": [
+    "https://github.com/roccofz1/HondaECU/tree/dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}

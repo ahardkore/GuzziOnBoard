@@ -150,6 +150,26 @@ class KLineConnection(Connection):
             return bytes(buffer[:needed])
         return bytes(buffer) if buffer else b""
 
+    def read_iso9141_burst(self, timeout: float, *, gap: float = 0.060, limit: int = 512) -> bytes:
+        """ISO 9141 has no frame length: collect a bounded burst until quiet."""
+        previous_timeout = self.port.timeout
+        data = bytearray()
+        try:
+            self.port.timeout = timeout
+            byte = self.port.read(1)
+            if not byte:
+                return b""
+            data += byte
+            self.port.timeout = gap
+            while len(data) < limit:
+                byte = self.port.read(1)
+                if not byte:
+                    return bytes(data)
+                data += byte
+            raise TransportError("ISO 9141 burst exceeded the frame limit")
+        finally:
+            self.port.timeout = previous_timeout
+
     def read_bytes(self, size: int, timeout: float) -> bytes:
         """Read raw bytes without applying KWP's frame-length rules."""
         deadline = time.monotonic() + timeout
@@ -230,6 +250,8 @@ class KLineTransport(Transport):
             "legacy-iaw-16m": "legacy-iaw-16m",
             "legacy-16m": "legacy-iaw-16m",
             "legacy-iaw-direct": "legacy-iaw-direct",
+            "kawasaki-er6n": "kawasaki-er6n",
+            "triumph-daytona-2012": "triumph-daytona-2012",
         }
         selected = aliases.get(str(method).strip().lower())
         if selected is None:
@@ -237,6 +259,19 @@ class KLineTransport(Transport):
                 f"unknown init method {method!r}; use auto, fast, slow, "
                 "legacy-iaw-16m or legacy-iaw-direct"
             )
+        if selected == "triumph-daytona-2012":
+            attempts = []
+            for index in range(6):
+                result = self._slow_init(connection, 0x33, bit_time=0.196,
+                    idle=3.0 if index == 0 else 6.0, sync_timeout=1.5, allow_iso9141=True)
+                attempts.append(f"slow 0x33 try {index + 1}/6: {result.detail}")
+                if result.ok:
+                    break
+            result.attempts = attempts
+            return result
+        if selected == "kawasaki-er6n":
+            return self._fast_init(connection, target=0x11, source=0xF1,
+                                   functional=False, paced=True)
         if selected == "legacy-iaw-16m":
             return self._legacy_iaw_16m_init(
                 connection,
@@ -384,6 +419,7 @@ class KLineTransport(Transport):
         target: int = ADDRESS_OBD,
         source: int = 0xF1,
         functional: bool = True,
+        paced: bool = False,
     ) -> InitResult:
         """Idle, send the 25/25 ms wake pattern, then validate 0xC1."""
         port = connection.port
@@ -401,10 +437,13 @@ class KLineTransport(Transport):
         time.sleep(max(0.0, start + FAST_TOTAL_S - time.monotonic()))
 
         request = self._request_start_communication(target, source, functional)
-        port.write(request)
-        port.flush()
-        if connection.echo:
-            connection._consume_echo(request)
+        if paced:
+            connection.write(request)
+        else:
+            port.write(request)
+            port.flush()
+            if connection.echo:
+                connection._consume_echo(request)
 
         reply = connection.read_frame(FAST_RESPONSE_TIMEOUT_S)
         if not reply:
@@ -473,12 +512,15 @@ class KLineTransport(Transport):
             response=reply,
         )
 
-    def _slow_init(self, connection: KLineConnection, address: int) -> InitResult:
+    def _slow_init(self, connection: KLineConnection, address: int, *,
+                   bit_time: float = SLOW_BIT_S, idle: float = W5_IDLE_S,
+                   sync_timeout: float = SLOW_SYNC_TIMEOUT_S,
+                   allow_iso9141: bool = False) -> InitResult:
         """Bit-bang the address at 5 baud and validate every handshake byte."""
         port = connection.port
         port.break_condition = False
         port.reset_input_buffer()
-        time.sleep(W5_IDLE_S)
+        time.sleep(idle)
 
         # Start bit (low), 8 data bits LSB first, stop bit (high).
         pattern = [0] + [(address >> i) & 1 for i in range(8)] + [1]
@@ -486,7 +528,7 @@ class KLineTransport(Transport):
         for index, bit in enumerate(pattern):
             port.break_condition = bit == 0
             # Absolute scheduling: sleep() drift would break the 200 ms budget.
-            target = start + (index + 1) * SLOW_BIT_S
+            target = start + (index + 1) * bit_time
             while True:
                 remaining = target - time.monotonic()
                 if remaining <= 0:
@@ -494,8 +536,10 @@ class KLineTransport(Transport):
                 time.sleep(min(remaining, 0.005))
         port.break_condition = False
 
+        if allow_iso9141:
+            port.reset_input_buffer()  # bit-banged break edges can leave junk
         sync = b""
-        deadline = time.monotonic() + SLOW_SYNC_TIMEOUT_S
+        deadline = time.monotonic() + sync_timeout
         while time.monotonic() < deadline and len(sync) < 3:
             chunk = port.read(3 - len(sync))
             if chunk:
@@ -538,7 +582,7 @@ class KLineTransport(Transport):
                     f"{confirm.hex() or 'none'} (expected {expected:02X})"
                 ),
             )
-        if protocol != "iso14230":
+        if protocol != "iso14230" and not (allow_iso9141 and (kw1, kw2) == (0x08, 0x08)):
             return InitResult(
                 ok=False,
                 method="slow",

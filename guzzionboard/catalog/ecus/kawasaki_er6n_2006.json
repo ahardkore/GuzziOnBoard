@@ -1,0 +1,124 @@
+{
+  "id": "kawasaki_er6n_2006",
+  "family": "2006 Kawasaki ER-6n KDS (source-reported)",
+  "display_name": "Kawasaki ER-6n 2006 (read-only KDS)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "2006",
+  "notes": "Read-only KDS based on iKawa, whose author reports testing a 2006 ER-6n. GuzziOnBoard has not tested this implementation on a motorcycle. ECU part number, software and market unknown. No identification, DTCs, controls, memory access or simulator.",
+  "session": {
+    "protocol": "kawasaki-er6n",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "iKawa reports testing one 2006 ER-6n; this implementation has only synthetic protocol tests."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Research-only profile; programming and checksum verification are not implemented."
+  },
+  "capabilities": [
+    "live"
+  ],
+  "sources": [
+    "https://github.com/gabrielerandazzo/iKawa/tree/79eb9049d13037be6fd91b8a1d1acd164ca70104"
+  ],
+  "parameters": [
+    {
+      "key": "rpm",
+      "name": "Engine speed",
+      "local_id": 9,
+      "unit": "rpm",
+      "length": 2,
+      "digits": 0,
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "coolant",
+      "name": "Coolant temperature",
+      "local_id": 6,
+      "unit": "\u00b0C",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "air_temp",
+      "name": "Intake air temperature",
+      "local_id": 7,
+      "unit": "\u00b0C",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "battery",
+      "name": "Battery voltage",
+      "local_id": 10,
+      "unit": "V",
+      "length": 1,
+      "digits": 2,
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "gear",
+      "name": "Gear / status",
+      "local_id": 11,
+      "unit": "",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "speed",
+      "name": "Speed",
+      "local_id": 12,
+      "unit": "km/h",
+      "length": 2,
+      "digits": 1,
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "air_pressure",
+      "name": "Air pressure",
+      "local_id": 5,
+      "unit": "",
+      "length": 2,
+      "digits": 1,
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "ambient_pressure",
+      "name": "Atmospheric pressure",
+      "local_id": 8,
+      "unit": "",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "documented"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10250,
+    "init": "kawasaki-er6n",
+    "address": 17,
+    "ecu_address": 17,
+    "tester_address": 241,
+    "fast_functional": false,
+    "addressed": true,
+    "inter_byte_delay": 0.005
+  }
+}

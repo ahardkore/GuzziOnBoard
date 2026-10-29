@@ -324,7 +324,7 @@ class VehicleEntry:
     year_from: int
     year_to: int | None
     ecu: str
-    make: str = "Moto Guzzi"
+    make: str
     displacement: str = ""
     tps: str = ""
     notes: str = ""
@@ -400,8 +400,10 @@ class Catalog:
         if not matches:
             scope = f" in {make}" if make else ""
             raise CatalogError(f"no catalog entry{scope} for {model} {year}")
+        if not make and len({v.make.casefold() for v in matches}) > 1:
+            raise CatalogError(f"{model} {year} exists under multiple makes; specify make")
         if len(matches) > 1:
-            # Overlapping running changes exist (Guzzi changed ECUs mid-year).
+            # Overlapping running changes can exist within one make.
             # Prefer the entry with the narrower window, then the later start.
             matches.sort(
                 key=lambda v: (
@@ -411,15 +413,15 @@ class Catalog:
         entry = matches[0]
         return entry, self.ecu(entry.ecu)
 
-    def ambiguous(self, model: str, year: int) -> bool:
-        return len(self.find(model, year)) > 1
+    def ambiguous(self, model: str, year: int, make: str = "") -> bool:
+        return len(self.find(model, year, make)) > 1
 
     def summary(self) -> dict:
         return {
             "protocol_updates": self.field_updates,
             "ecu_count": len(self.ecus),
             "vehicle_count": len(self.vehicles),
-            "model_count": len(self.models()),
+            "model_count": len({(v.make.casefold(), v.model.casefold()) for v in self.vehicles}),
             "year_range": [
                 min(v.year_from for v in self.vehicles),
                 max((v.year_to or 2026) for v in self.vehicles),

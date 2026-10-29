@@ -1,0 +1,149 @@
+{
+  "id": "triumph_daytona_675_2012",
+  "family": "2012 Triumph Daytona 675 Keihin (source-reported)",
+  "display_name": "Triumph Daytona 675 2012 (read-only OBD)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "2012",
+  "notes": "Based on daytona-kline, tested by its author on one 2012 bike. GuzziOnBoard has not hardware-tested this implementation. SAE gauge formulas were not compared to the dash by the source. ECU identity, market and firmware unknown. Only supported mode 01 PIDs and stored mode 03 DTCs; no clears, unlock, controls, memory or simulator.",
+  "session": {
+    "protocol": "triumph-daytona-2012",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "daytona-kline reports testing slow init and OBD on one 2012 Daytona 675. This port is synthetic-test-only; gauge formulas are not dash-verified."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Research-only profile; programming and checksum verification are not implemented."
+  },
+  "capabilities": [
+    "live",
+    "dtc_read"
+  ],
+  "sources": [
+    "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32"
+  ],
+  "parameters": [
+    {
+      "key": "rpm",
+      "name": "Engine speed (unverified)",
+      "local_id": 12,
+      "unit": "rpm",
+      "length": 2,
+      "scale": 0.25,
+      "bias": 0,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "speed",
+      "name": "Speed (unverified)",
+      "local_id": 13,
+      "unit": "km/h",
+      "length": 1,
+      "scale": 1,
+      "bias": 0,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "tps",
+      "name": "Throttle (unverified)",
+      "local_id": 17,
+      "unit": "%",
+      "length": 1,
+      "scale": 0.39215686274509803,
+      "bias": 0,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "coolant",
+      "name": "Coolant temperature (unverified)",
+      "local_id": 5,
+      "unit": "\u00b0C",
+      "length": 1,
+      "scale": 1,
+      "bias": -40,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "airtemp",
+      "name": "Intake temperature (unverified)",
+      "local_id": 15,
+      "unit": "\u00b0C",
+      "length": 1,
+      "scale": 1,
+      "bias": -40,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "map",
+      "name": "Manifold pressure (unverified)",
+      "local_id": 11,
+      "unit": "kPa",
+      "length": 1,
+      "scale": 1,
+      "bias": 0,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "load",
+      "name": "Engine load (unverified)",
+      "local_id": 4,
+      "unit": "%",
+      "length": 1,
+      "scale": 0.39215686274509803,
+      "bias": 0,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "timing",
+      "name": "Timing advance (unverified)",
+      "local_id": 14,
+      "unit": "\u00b0",
+      "length": 1,
+      "scale": 0.5,
+      "bias": -64,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "trim",
+      "name": "Short-term fuel trim (unverified)",
+      "local_id": 6,
+      "unit": "%",
+      "length": 1,
+      "scale": 0.78125,
+      "bias": -100,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "triumph-daytona-2012",
+    "address": 51,
+    "inter_byte_delay": 0.005
+  }
+}

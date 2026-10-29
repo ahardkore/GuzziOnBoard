@@ -223,10 +223,18 @@ because the Guzzi XDF zip could not be downloaded from the sandbox):**
   `<MATH equation="X/45.5">`. Only value-only equations (a bare `X` plus
   arithmetic) are interpreted; per-cell or address-linked `<VAR
   type="address">` equations are reported unsupported, never guessed.
-- `EMBEDDEDDATA mmedtypeflags & 0x1` marks signed data, overriding
-  `DEFAULTS signed`; `DEFAULTS lsbfirst` sets endianness (absent/0 =
-  big-endian). `mmedcolcount` may be omitted for 2D tables; the axis
-  `indexcount` wins. Strides are in *bits*; zero means contiguous.
+- Correction to the earlier parser notes: an explicit `EMBEDDEDDATA
+  mmedtypeflags` uses `0x01` for signed, `0x02` for little-endian, and
+  `0x04` for column-major storage. When the attribute is absent the integer
+  signedness and endianness inherit `DEFAULTS`. Explicit flags override the
+  defaults even when a bit is clear. This interpretation was cross-checked
+  against the MIT-licensed [MacTuner XDF parser](https://github.com/leonsuv/MacTuner/blob/e3bd90e0e416ff7e96a6953a193079a7313294ca/Sources/MacTuner/XDF.swift)
+  and the [xdfbinext parser/adapter](https://github.com/jtownson/xdfbinext/tree/a8147bc5810b166999735ff540d40c9adb9cd9af).
+  No third-party implementation code was copied. Unsupported floating-point,
+  unknown flags, meaningful negative or non-byte-aligned strides, and
+  column-major with explicit strides are reported rather than guessed.
+  `mmedcolcount` may be omitted; the axis `indexcount` supplies it. Strides
+  are in bits; zero means contiguous.
 - `BASEOFFSET`: bin offset = address + offset, or address − offset when
   `subtract="1"`. Separately, the 5AM XDFs address the full 0x50000 device
   while a flash read returns the 0x4C000 region from device 0x4000 —

@@ -480,12 +480,19 @@
     return gFormat(value);
   }
 
-  function parseEmbedded(node, signedDefault) {
+  function parseEmbedded(node, signedDefault, floatDefault) {
     var sizeBits = intOf(node.attrs.mmedelementsizebits, 8);
     if (sizeBits !== 8 && sizeBits !== 16 && sizeBits !== 32) {
       throw new Error('unsupported element size ' + sizeBits + ' bits');
     }
-    var flags = intOf(node.attrs.mmedtypeflags, 0);
+    var hasFlags = node.attrs.mmedtypeflags !== undefined;
+    var flags = hasFlags ? intOf(node.attrs.mmedtypeflags, 0) : null;
+    if (flags !== null && (!Number.isSafeInteger(flags) || flags < 0 || flags > 7)) {
+      throw new Error('unsupported embedded data flags (float/unknown encoding)');
+    }
+    if (flags === null && floatDefault) {
+      throw new Error('floating-point embedded data is not supported');
+    }
     return {
       address: intOf(node.attrs.mmedaddress, 0),
       size_bits: sizeBits,
@@ -493,11 +500,27 @@
       cols: Math.max(1, intOf(node.attrs.mmedcolcount, 1)),
       major_stride_bits: intOf(node.attrs.mmedmajorstridebits, 0),
       minor_stride_bits: intOf(node.attrs.mmedminorstridebits, 0),
-      signed: !!(flags & 0x1) || !!signedDefault,
+      signed: hasFlags ? !!(flags & 0x1) : !!signedDefault,
+      little_endian: hasFlags ? !!(flags & 0x2) : null,
+      column_major: hasFlags && !!(flags & 0x4),
     };
   }
 
+  function validateEmbeddedLayout(embedded) {
+    [[embedded.major_stride_bits, embedded.rows > 1],
+      [embedded.minor_stride_bits, embedded.cols > 1]].forEach(function (entry) {
+      if (entry[1] && (entry[0] < 0 || entry[0] % 8)) {
+        throw new Error('negative or non-byte-aligned embedded stride is not supported');
+      }
+    });
+    if (embedded.column_major && (embedded.major_stride_bits || embedded.minor_stride_bits)) {
+      throw new Error('column-major embedded data with explicit strides is not supported');
+    }
+  }
+
   function spanBits(embedded) {
+    validateEmbeddedLayout(embedded);
+    if (embedded.column_major) return embedded.rows * embedded.cols * embedded.size_bits;
     var minor = embedded.minor_stride_bits || embedded.size_bits;
     var major = embedded.major_stride_bits || (minor * embedded.cols);
     return (embedded.rows - 1) * major + (embedded.cols - 1) * minor
@@ -505,6 +528,7 @@
   }
 
   function embeddedPositions(embedded, offset) {
+    validateEmbeddedLayout(embedded);
     var size = embedded.size_bits / 8;
     var minor = (embedded.minor_stride_bits || embedded.size_bits) / 8;
     var major = embedded.major_stride_bits
@@ -512,13 +536,15 @@
     var out = [];
     for (var r = 0; r < embedded.rows; r++) {
       for (var c = 0; c < embedded.cols; c++) {
-        out.push({ pos: offset + r * major + c * minor, size: size });
+        out.push({ pos: offset + (embedded.column_major
+          ? (c * embedded.rows + r) * size : r * major + c * minor), size: size });
       }
     }
     return out;
   }
 
   function readEmbedded(embedded, bytes, offset, littleEndian) {
+    if (embedded.little_endian !== null) littleEndian = embedded.little_endian;
     return embeddedPositions(embedded, offset).map(function (slot) {
       if (slot.pos < 0 || slot.pos + slot.size > bytes.length) {
         throw new Error('data at 0x' + embedded.address.toString(16).toUpperCase()
@@ -538,8 +564,9 @@
   }
 
   function writeEmbedded(embedded, bytes, offset, littleEndian, raws) {
+    if (embedded.little_endian !== null) littleEndian = embedded.little_endian;
     embeddedPositions(embedded, offset).forEach(function (slot, index) {
-      if (slot.pos < 0 || slot.pos + slot.size > bytes.length) return;
+      if (slot.pos < 0 || slot.pos + slot.size > bytes.length) throw new Error('embedded data falls outside the image');
       var limit = Math.pow(2, slot.size * 8);
       var value = Math.round(raws[index]);
       if (embedded.signed && value < 0) value += limit;
@@ -551,7 +578,7 @@
     });
   }
 
-  function parseAxis(node, signedDefault) {
+  function parseAxis(node, signedDefault, floatDefault) {
     var count = Math.max(1, intOf(kidText(node, 'indexcount'), 1));
     var labels = [];
     for (var i = 0; i < count; i++) labels.push('');
@@ -564,9 +591,10 @@
     var embedded = null;
     var dataNode = kid(node, 'EMBEDDEDDATA');
     if (dataNode && dataNode.attrs.mmedaddress !== undefined) {
-      embedded = parseEmbedded(dataNode, signedDefault);
+      embedded = parseEmbedded(dataNode, signedDefault, floatDefault);
       embedded.rows = 1;
       embedded.cols = count;
+      validateEmbeddedLayout(embedded);
     }
     // <embedinfo type="3" linkobjid="0x7FDD" />: this axis' labels are the
     // values of another item (a legend table holding the breakpoints).
@@ -736,6 +764,7 @@
       base_subtract: false,
       little_endian: false,
       signed_default: false,
+      float_default: false,
       categories: {},
       tables: [],
       constants: [],
@@ -754,6 +783,7 @@
     if (defaults) {
       xdf.little_endian = !!intOf(defaults.attrs.lsbfirst, 0);
       xdf.signed_default = !!intOf(defaults.attrs.signed, 0);
+      xdf.float_default = !!intOf(defaults.attrs.float, 0);
     }
     kids(header, 'CATEGORY').forEach(function (category) {
       xdf.categories[intOf(category.attrs.index, 0)] =
@@ -771,7 +801,7 @@
       try {
         var axes = {};
         kids(node, 'XDFAXIS').forEach(function (axisNode) {
-          axes[axisNode.attrs.id || '?'] = parseAxis(axisNode, xdf.signed_default);
+          axes[axisNode.attrs.id || '?'] = parseAxis(axisNode, xdf.signed_default, xdf.float_default);
         });
         var z = axes.z;
         if (!z || !z.embedded) throw new Error(title + ': no z-axis data');
@@ -788,6 +818,7 @@
         if (axes.x && z.embedded.cols === 1 && axes.x.count > 1) {
           z.embedded.cols = axes.x.count;
         }
+        validateEmbeddedLayout(z.embedded);
         var decimals = kidText(zNode, 'decimalpl');
         var table = {
           title: title,
@@ -834,7 +865,7 @@
           description: (kidText(node, 'description') || '').trim(),
           category: categoryOf(node),
           units: (kidText(node, 'units') || '').trim(),
-          embedded: parseEmbedded(dataNode, xdf.signed_default),
+          embedded: parseEmbedded(dataNode, xdf.signed_default, xdf.float_default),
           math: checkMath(node, title),
           decimalpl: decimals ? (intOf(decimals, 0) || null) : null,
           uniqueid: node.attrs.uniqueid || '',
@@ -844,9 +875,9 @@
       }
     });
 
-    kids(root, 'XDFCHECKSUM').forEach(function (node) {
+    kids(root, 'XDFCHECKSUM').forEach(function (node, index) {
       var title = (kidText(node, 'title') || '').trim();
-      if (title) xdf.checksums.push(title);
+      xdf.checksums.push(title || '(unnamed checksum #' + (index + 1) + ')');
     });
 
     if (!xdf.tables.length && !xdf.constants.length) {
@@ -1086,7 +1117,7 @@
     if (addressBase === null || addressBase === undefined) {
       addressBase = suggestAddressBase(xdf, image.bytes.length);
     }
-    var bytes = new Uint8Array(image.bytes), applied = [], touched = {};
+    var bytes = new Uint8Array(image.bytes), applied = [], touched = {}, touchedBytes = {};
     changes.forEach(function (change) {
       var kind = String(change.kind || '').toLowerCase();
       var ref = String(change.id || change.item_id || change.title || '');
@@ -1138,8 +1169,17 @@
       if (converted.raw === beforeRaw) throw new Error(title + ': requested value is unchanged');
       var before = compileMath(item.math)(beforeRaw);
       if (decimals !== null) before = round(before, decimals);
-      raws[index] = converted.raw;
-      writeEmbedded(item.embedded, bytes, offset, xdf.little_endian, raws);
+      var slot = embeddedPositions(item.embedded, offset)[index];
+      for (var byteIndex = slot.pos; byteIndex < slot.pos + slot.size; byteIndex++) {
+        if (touchedBytes[byteIndex]) throw new Error(title + ': overlapping byte writes in this change set');
+        touchedBytes[byteIndex] = true;
+      }
+      // Write only this cell. Rewriting a whole table from source would erase
+      // earlier edits to other cells in the same staged plan.
+      var cellLayout = Object.assign({}, item.embedded, {
+        rows: 1, cols: 1, major_stride_bits: 0, minor_stride_bits: 0, column_major: false,
+      });
+      writeEmbedded(cellLayout, bytes, slot.pos, xdf.little_endian, [converted.raw]);
       applied.push({
         kind: kind, id: id, axis: axisName,
         index: kind === 'axis' ? index : null, title: title,
@@ -1287,9 +1327,12 @@
     if (xdfCache[entry.path]) return Promise.resolve(xdfCache[entry.path]);
     return fetch(entry.url, { cache: 'force-cache' }).then(function (r) {
       if (!r.ok) throw new Error(entry.path + ': HTTP ' + r.status);
-      return r.text();
-    }).then(function (text) {
+      return r.arrayBuffer();
+    }).then(function (buffer) {
+      var bytes = new Uint8Array(buffer);
+      var text = new TextDecoder('utf-8').decode(bytes);
       var xdf = parseXdf(text, entry.path);
+      xdf.sha256 = sha256(bytes);
       xdfCache[entry.path] = xdf;
       return xdf;
     });
@@ -2577,7 +2620,7 @@
   D.register('GET', '/api/checksum-providers', function () {
     return [200, {
       directory: '~/.guzzionboard/checksums', providers: [], errors: [], simulated: true,
-      note: 'Hosted demo cannot execute local checksum plugins. No calibration checksum algorithm is bundled or guessed.',
+      note: 'Hosted demo cannot execute local checksum plugins or the workstation Honda checksum provider. No calibration checksum is applied in the demo.',
     }];
   });
 
@@ -2633,6 +2676,7 @@
     var base = addressBaseOf(body);
     return loadXdf(xdfEntryFor(body.xdf)).then(function (xdf) {
       var render = renderXdf(xdf, image, base);
+      render.xdf.sha256 = xdf.sha256;
       render.image = describeImage(image);
       render.source = {
         path: path, sha256: sha256(image.bytes),
@@ -2912,8 +2956,8 @@
         detail: 'definition declares checksum(s) requiring an explicit compatible provider: ' + xdf.checksums.join(', '),
       });
       else findings.push({
-        level: 'ok', check: 'calibration-checksum', item: '',
-        detail: 'definition declares no calibration checksum',
+        level: 'warn', check: 'calibration-checksum', item: '',
+        detail: 'definition declares no calibration checksum; this does not establish that the image needs none',
       });
       if (!entry.family) findings.push({ level: 'fatal', check: 'fitment', detail: 'no ECU family' });
       else findings.push({ level: 'ok', check: 'fitment', detail: 'cataloged for ' + entry.family });
@@ -2968,6 +3012,34 @@
       diff.image = describeImage(before);
       diff.simulated = true;
       return [200, diff];
+    });
+  });
+
+  D.register('POST', '/api/maps/research-preview', function (body) {
+    if (!body.xdf) throw bad("an 'xdf' (filename or .xdf path) is required");
+    var status = baseMapStatus(body.region || 'flash');
+    var isBase = !!body.use_base_map;
+    if (isBase && !status.intact) throw bad(status.reason || 'no intact base map');
+    var path = isBase ? status.path : body.path;
+    if (!path) throw bad("an image 'path' is required, or set use_base_map=true");
+    if (!isBase && status.intact && status.path === path) isBase = true;
+    var source = imageAt(path), sourceHash = sha256(source.bytes);
+    if (body.expected_source_sha256 !== sourceHash) throw bad('source image SHA-256 changed; render it again');
+    return loadXdf(xdfEntryFor(body.xdf)).then(function (xdf) {
+      if (body.expected_xdf_sha256 !== xdf.sha256) throw bad('XDF SHA-256 changed; render it again');
+      var prepared, diff;
+      try {
+        prepared = applyXdfChanges(xdf, source, body.changes, addressBaseOf(body));
+        diff = diffXdf(xdf, source, { bytes: prepared.bytes }, prepared.address_base);
+      } catch (exc) { throw bad(String(exc.message || exc)); }
+      return [200, {
+        simulated: true, research_only: true, writes_file: false,
+        source: { path: path, sha256: sourceHash, bytes: source.bytes.length, is_base_map: isBase },
+        xdf: { path: xdf.path, sha256: xdf.sha256, title: xdf.title },
+        address_base: prepared.address_base, changes: prepared.changes, diff: diff,
+        candidate_sha256: sha256(prepared.bytes), declared_checksums: xdf.checksums.slice(),
+        warning: 'Research preview only: fitment and checksum correctness are not established. No checksum was applied, no image was saved, and this is not authorization to program an ECU.',
+      }];
     });
   });
 
@@ -4861,6 +4933,13 @@
           : parseFloat(inner);
         if (!isFinite(timestamp)) { skipped++; return; }
       }
+      // CRTD timestamps precede the frame type and are not parenthesized.
+      if (tokens.length >= 4 && /^(R|T)(11|29)?$/i.test(tokens[1])) {
+        var crtdTimestamp = Number(tokens[0]);
+        if (!Number.isFinite(crtdTimestamp)) { skipped++; return; }
+        timestamp = crtdTimestamp;
+        tokens.shift();
+      }
       // CRTD: <ts> R11 <id> <bytes...>
       if (tokens.length >= 3 && /^(R|T)(11|29)?$/i.test(tokens[0] === '' ? '' : tokens[0])) {
         var kindToken = tokens[0].toUpperCase();
@@ -4869,8 +4948,7 @@
           format = 'crtd';
           frames.push({
             timestamp: timestamp, id: ident, extended: kindToken.indexOf('29') >= 0,
-            data: tokens.slice(2).map(hexId).filter(function (b) { return b !== null; })
-              .slice(0, 8),
+            direction: kindToken.charAt(0) === 'T' ? 'Tx' : 'Rx', data: tokens.slice(2).map(hexId).filter(function (b) { return b !== null; }),
           });
           return;
         }
@@ -4886,15 +4964,16 @@
       if (head.indexOf('#') >= 0) {
         var bits = head.split('#');
         var id2 = hexId(bits[0]);
-        if (id2 === null || bits[1].charAt(0) === '#') { skipped++; return; }
+        if (id2 === null || bits.length !== 2) { skipped++; return; }
         var payload = bits[1] || '';
         var bytes = [];
         if (!/^R/i.test(payload)) {
+          if (!/^(?:[0-9a-f]{2})*$/i.test(payload)) { skipped++; return; }
           for (var i = 0; i + 1 < payload.length; i += 2) {
             bytes.push(parseInt(payload.substr(i, 2), 16));
           }
         }
-        frames.push({ timestamp: timestamp, id: id2, extended: id2 > 0x7FF, data: bytes });
+        frames.push({ timestamp: timestamp, id: id2, extended: bits[0].replace(/^0x/i, '').length === 8 || id2 > 0x7FF, data: bytes });
         return;
       }
       var id3 = hexId(head);
@@ -4902,7 +4981,7 @@
       var rest = tokens.slice(1).filter(function (t) { return t.charAt(0) !== '['; });
       var data = rest.map(hexId).filter(function (b) { return b !== null; });
       if (!data.length) { skipped++; return; }
-      frames.push({ timestamp: timestamp, id: id3, extended: id3 > 0x7FF, data: data });
+      frames.push({ timestamp: timestamp, id: id3, extended: head.replace(/^0x/i, '').length === 8 || id3 > 0x7FF, data: data });
     });
     if (!frames.length) {
       throw bad('no frames recognised - expected candump or CRTD lines. The '
@@ -5088,14 +5167,91 @@
     };
   }
 
+  /* DucatiPanigaleCanBus offline frame adaptation, Copyright (c) 2021 Renato
+   * Bonomini, MIT. See LICENSES/DucatiPanigaleCanBus-MIT.txt and
+   * docs/EXTERNAL_MOTORCYCLE_RESEARCH.md for exact source and limitations. */
+  function decodeDucatiCapture(frames) {
+    var events = [], recognized = 0, invalid = 0, ignoredTx = 0;
+    frames.forEach(function (frame) {
+      if (frame.extended || [0x18, 0x80, 0x100].indexOf(frame.id) < 0) return;
+      if (String(frame.direction || '').toLowerCase().startsWith('t')) { ignoredTx++; return; }
+      var d = frame.data, min = frame.id === 0x80 ? 7 : 6;
+      if (d.length < min || d.length > 8 || d.some(function (n) { return !Number.isInteger(n) || n < 0 || n > 255; })) { invalid++; return; }
+      var values;
+      if (frame.id === 0x80) values = { throttle_percent: Math.floor(d[4] / 2), rpm: d[5] * 256 + d[6] };
+      else if (frame.id === 0x18) values = { rear_wheel_speed_kmh: ((d[4] & 31) << 4) + (d[5] >> 4), gear_raw: Math.floor(d[4] / 32) };
+      else values = { coolant_c: d[3] - 40, air_c: d[5] - 40, battery_v: d[4] / 10 };
+      recognized++;
+      if (events.length < 200) events.push({ timestamp: frame.timestamp, id: '0x' + frame.id.toString(16).toUpperCase(),
+        direction: frame.direction || 'unknown', raw: d.map(function (v) { return v.toString(16).padStart(2, '0').toUpperCase(); }).join(''), values: values });
+    });
+    return { profile: 'ducati_panigale_mitsubishi', events: events, recognized_frames: recognized,
+      invalid_length_frames: invalid, ignored_tx_frames: ignoredTx, omitted_events: Math.max(0, recognized - events.length) };
+  }
+
+  // Raw per-byte observations only: not a vehicle profile or signal decoder.
+  function summarizeCanBytes(frames) {
+    var groups = {};
+    frames.forEach(function (frame) {
+      var dir = String(frame.direction || '').toLowerCase();
+      var direction = dir.startsWith('t') ? 'Tx' : dir.startsWith('r') ? 'Rx' : 'unknown';
+      var key = frame.id + ':' + (frame.extended ? '1' : '0') + ':' + direction;
+      var group = groups[key];
+      if (!group) group = groups[key] = { number: frame.id, id: '0x' + frame.id.toString(16).toUpperCase(),
+        extended: !!frame.extended, direction: direction, frames: 0, skipped_frames: 0, lengths: [], bytes: Array.from({ length: 8 }, function () { return null; }) };
+      group.frames++;
+      if (group.lengths.indexOf(frame.data.length) < 0) group.lengths.push(frame.data.length);
+      if (frame.data.length < 1 || frame.data.length > 8 || frame.data.some(function (v) { return !Number.isInteger(v) || v < 0 || v > 255; })) { group.skipped_frames++; return; }
+      frame.data.forEach(function (value, i) {
+        var byte = group.bytes[i];
+        if (!byte) byte = group.bytes[i] = { index: i + 1, samples: 0, minimum: value, maximum: value, changes: 0, varying_mask: 0, previous: value };
+        else if (byte.previous !== value) { byte.changes++; byte.varying_mask |= byte.previous ^ value; }
+        byte.samples++; byte.minimum = Math.min(byte.minimum, value); byte.maximum = Math.max(byte.maximum, value); byte.previous = value;
+      });
+    });
+    var all = Object.values(groups).sort(function (a, b) {
+      return b.frames - a.frames || a.number - b.number || Number(a.extended) - Number(b.extended)
+        || (a.direction < b.direction ? -1 : a.direction > b.direction ? 1 : 0);
+    });
+    var selected = all.slice(0, 100).map(function (group) {
+      delete group.number; group.lengths.sort(function (a, b) { return a - b; });
+      group.bytes = group.bytes.filter(Boolean).map(function (byte) { delete byte.previous; return byte; });
+      return group;
+    });
+    return { groups: selected, omitted_groups: Math.max(0, all.length - 100) };
+  }
+
   D.register('POST', '/api/tools/canlog', function (body) {
     if (body.path && !body.text) {
       throw bad('the hosted demo has no disk: paste the capture lines instead '
         + 'of giving a path (the local workstation reads candump, SavvyCAN '
         + 'CSV and CRTD files).');
     }
+    if (body.decoder !== undefined && body.decoder !== '' && body.decoder !== 'ducati_panigale_mitsubishi') throw bad('unknown offline telemetry decoder');
+    if (body.byte_stats !== undefined && typeof body.byte_stats !== 'boolean') throw bad('byte statistics setting must be true or false');
+    if (body.byte_stats && (typeof body.filter_ids !== 'string' || !body.filter_ids.trim())) throw bad('byte statistics require an explicit CAN ID filter');
     var parsed = parseCanText(String(body.text || ''));
+    var total = parsed.frames.length, filter = body.filter_ids || '';
+    if (typeof filter !== 'string' || filter.length > 1000) throw bad('CAN ID filter must be a short string');
+    if (filter.trim()) {
+      var tokens = filter.split(',');
+      if (tokens.length > 50 || tokens.some(function (token) { return !/^(?:0x)?[0-9a-f]{1,8}$/i.test(token.trim()) || parseInt(token.trim().replace(/^0x/i, ''), 16) > 0x1fffffff; })) throw bad('CAN ID filter expects up to 50 comma-separated hexadecimal IDs within the 29-bit limit');
+      var ids = tokens.map(function (token) { return parseInt(token.trim().replace(/^0x/i, ''), 16); });
+      parsed.frames = parsed.frames.filter(function (frame) { return ids.indexOf(frame.id) !== -1; });
+      if (!parsed.frames.length) throw bad('no capture frames match the CAN ID filter');
+      parsed.warnings.push('ID filter applied before analysis; omitted traffic may change or invalidate candidate pairs. IDs match either frame format.');
+    }
     var result = analyseCanFrames(parsed.frames);
+    var counts = {};
+    parsed.frames.forEach(function (frame) {
+      var key = frame.id + ':' + (frame.extended ? '1' : '0');
+      if (!counts[key]) counts[key] = { id: '0x' + frame.id.toString(16).toUpperCase(), extended: !!frame.extended, frames: 0, number: frame.id };
+      counts[key].frames++;
+    });
+    result.traffic = Object.values(counts).sort(function (a, b) { return b.frames - a.frames || a.number - b.number || Number(a.extended) - Number(b.extended); }).map(function (item) { delete item.number; return item; });
+    result.capture_frames = total; result.filter_ids = filter;
+    if (body.decoder === 'ducati_panigale_mitsubishi') result.decoder = decodeDucatiCapture(parsed.frames);
+    if (body.byte_stats) result.byte_stats = summarizeCanBytes(parsed.frames);
     result.format = parsed.format;
     result.notes = parsed.warnings.concat(result.notes);
     result.analysed_in = 'browser';
@@ -5400,7 +5556,7 @@
     md5: md5, sha256: sha256, checksums: checksums,
     entropyEstimate: entropyEstimate, looksLikeVectorTable: looksLikeVectorTable,
     hardwareStrings: hardwareStrings, parseXml: parseXml, parseXdf: parseXdf,
-    renderXdf: renderXdf, diffXdf: diffXdf, suggestAddressBase: suggestAddressBase,
+    renderXdf: renderXdf, diffXdf: diffXdf, applyXdfChanges: applyXdfChanges, suggestAddressBase: suggestAddressBase,
     parseCanText: parseCanText, analyseCanFrames: analyseCanFrames,
     tyreCircumference: tyreCircumference, renderTriggerWav: renderTriggerWav,
     buildReport: buildReport, reportText: reportText, verdicts: VERDICTS,

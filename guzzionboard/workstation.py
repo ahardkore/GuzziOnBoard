@@ -474,6 +474,18 @@ class Workstation:
                 return self.status()
 
             profile = self.selection.profile
+            if profile.session.get("protocol") == "kawasaki-er6n":
+                if (self.selection.entry is None or self.selection.make.casefold() != "kawasaki"
+                        or self.selection.model.casefold() != "er-6n" or self.selection.year != 2006):
+                    raise TransportUnavailable("ER-6n KDS requires the exact Kawasaki ER-6n 2006 vehicle selection")
+                if self.selection.transport_kind != "kline" or mode != "read_only":
+                    raise TransportUnavailable("ER-6n KDS supports K-Line in read-only mode only; no simulator or CAN session")
+            if profile.session.get("protocol") == "triumph-daytona-2012":
+                if (self.selection.entry is None or self.selection.make.casefold() != "triumph"
+                        or self.selection.model.casefold() != "daytona 675" or self.selection.year != 2012):
+                    raise TransportUnavailable("Daytona OBD requires the exact Triumph Daytona 675 2012 vehicle selection")
+                if self.selection.transport_kind != "kline" or mode != "read_only":
+                    raise TransportUnavailable("Daytona OBD supports K-Line in read-only mode only; no simulator or CAN session")
             if (self.selection.transport_kind in self._SIM_TRANSPORTS
                     and profile.session.get("simulator_supported") is False):
                 raise TransportUnavailable(f"{profile.family}: no matching simulator is implemented")
@@ -517,7 +529,16 @@ class Workstation:
                 log=self.log,
                 catalog=self.catalog,
             )
-            self.service.connect(init_method=init_method)
+            try:
+                self.service.connect(init_method=init_method)
+            except Exception:
+                self.service.disconnect()
+                self.service = None
+                self._session_profile = None
+                if self.log is not None:
+                    self.log.close()
+                    self.log = None
+                raise
             return self.status()
 
     def disconnect(self) -> dict:

@@ -225,7 +225,7 @@ def test_missing_items_make_the_file_useless(tmp_path):
 def test_constant_with_math_and_signed_little_endian(xdf: XdfFile,
                                                      device_image: bytearray):
     device_image[0x8000:0x8002] = (340).to_bytes(2, "little", signed=True)
-    xdf.little_endian = True             # DEFAULTS lsbfirst=1 in a sibling file
+    xdf.constants[0].embedded.little_endian = True  # item flag 0x03
     entry = xdf.render(bytes(device_image))["constants"][0]
     assert entry["title"] == "Rev limiter"
     assert entry["raw"] == 340

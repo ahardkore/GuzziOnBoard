@@ -1,6 +1,6 @@
-/* Offline workshop worksheets. No external documents, templates or code are
- * bundled. Ideas informed by motorcycle-service-db and manual-rag-assistant;
- * this is a separate, literal-search implementation, not RAG or AI. */
+/* Offline workshop worksheets. Bundled CC BY-SA templates are unmodified
+ * motorcycle-service-db data; see web/service-templates/README.md. The
+ * search implementation is literal, not RAG or AI. */
 'use strict';
 
 const workshop = { templates: [], templateFile: '', intervalSource: null, manual: null, manualLoad: 0, templateLoad: 0 };
@@ -138,25 +138,48 @@ function renderServiceTemplate() {
   byId('serviceTemplateOut').textContent = detail;
 }
 
-byId('serviceTemplateFile').onchange = async (event) => {
-  const token = ++workshop.templateLoad;
-  workshop.templates = [];
+function resetServiceTemplates() {
+  workshop.templates = []; workshop.templateFile = '';
   byId('serviceTemplateModel').innerHTML = '<option value="">— choose a model —</option>';
   byId('serviceTemplateTask').innerHTML = '<option value="">— choose a task —</option>';
   byId('serviceTemplateModel').disabled = true; byId('serviceTemplateTask').disabled = true;
   byId('serviceUseIntervals').disabled = true; byId('serviceTemplateOut').textContent = '';
+}
+function applyServiceTemplates(text, name, token) {
+  const templates = parseServiceTemplates(text);
+  if (token !== workshop.templateLoad) return;
+  workshop.templates = templates; workshop.templateFile = name;
+  byId('serviceTemplateModel').innerHTML = '<option value="">— choose a model —</option>'
+    + templates.map((model, index) => `<option value="${index}">${esc(model.name)}</option>`).join('');
+  byId('serviceTemplateModel').disabled = false;
+  byId('serviceTemplateOut').textContent = `${name}: ${templates.length} model(s) loaded for review. Verify fitment and license.`;
+}
+byId('serviceTemplateFile').onchange = async (event) => {
+  const token = ++workshop.templateLoad;
+  resetServiceTemplates();
+  byId('bundledServiceTemplate').value = '';
   const file = event.target.files?.[0];
   if (!file) return;
   try {
     if (file.size > 2 * 1024 * 1024) throw new Error('Template exceeds 2 MiB.');
     const text = await file.text();
-    const templates = parseServiceTemplates(text);
     if (token !== workshop.templateLoad) return;
-    workshop.templates = templates; workshop.templateFile = file.name;
-    byId('serviceTemplateModel').innerHTML = '<option value="">— choose a model —</option>'
-      + templates.map((model, index) => `<option value="${index}">${esc(model.name)}</option>`).join('');
-    byId('serviceTemplateModel').disabled = false;
-    byId('serviceTemplateOut').textContent = `${file.name}: ${templates.length} model(s) loaded for review. Verify fitment and license.`;
+    applyServiceTemplates(text, file.name, token);
+  } catch (error) { if (token === workshop.templateLoad) byId('serviceTemplateOut').textContent = `Could not load template: ${error.message}`; }
+};
+const bundledServiceFiles = new Set(['honda_africa_twin.json', 'ktm_790_adventure.json',
+  'royal_enfield_himalayan.json', 'suzuki_dr650.json', 'suzuki_drz400.json']);
+byId('bundledServiceTemplate').onchange = async (event) => {
+  const token = ++workshop.templateLoad, name = event.target.value;
+  resetServiceTemplates(); byId('serviceTemplateFile').value = '';
+  if (!name) return;
+  try {
+    if (!bundledServiceFiles.has(name)) throw new Error('Unknown bundled template.');
+    const response = await fetch(`service-templates/${name}`);
+    if (!response.ok) throw new Error('Bundled template not available in this installation.');
+    const text = await response.text();
+    if (token !== workshop.templateLoad) return;
+    applyServiceTemplates(text, `Motorcycle Service DB (${name}, CC BY-SA 4.0)`, token);
   } catch (error) { if (token === workshop.templateLoad) byId('serviceTemplateOut').textContent = `Could not load template: ${error.message}`; }
 };
 byId('serviceTemplateModel').onchange = () => {

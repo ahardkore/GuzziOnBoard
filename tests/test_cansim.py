@@ -40,7 +40,9 @@ def build(catalog, ecu_id="miug4", **kw):
 def test_identify_rides_the_isotp_round_trip(catalog):
     """A 55-byte identification forces first frame + flow control + consecutive
     frames in both directions - the path that had never run before."""
-    service, _ecu = build(catalog, "miug4")
+    # 5AM exposes a synthetic 55-byte ID; MIU G4 is intentionally blocked
+    # because its identification service has not been established.
+    service, _ecu = build(catalog, "5am")
     service.connect()
     identity = service.identify()
     assert len(identity.raw) >= 40

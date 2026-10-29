@@ -938,5 +938,16 @@
     "version": "0.15",
     "imported_utc": "2026-10-06T03:30:10Z",
     "verified_parse": true
+  },
+  "honda/CBR1000RR_2012_US.xdf": {
+    "source_url": "https://github.com/roccofz1/HondaECU/blob/dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109/definitions/xdf/CBR1000RR_2012_US.xdf",
+    "origin_zip": null,
+    "sha256": "c942ffc16e498985dba5592388e7cf6f2d23e2adde94fde825b52d1287141415",
+    "title": "CBR1000RR 2012 US",
+    "author": "Ryan Hope / HondaECU contributors (repository history)",
+    "version": "1.00",
+    "imported_utc": "2026-10-29",
+    "verified_parse": true,
+    "license": "GPL-3.0 repository license; see LICENSES/HondaECU-GPL-3.0.txt"
   }
 }

@@ -110,6 +110,8 @@
           <select id="yearSelect"></select>
         </label>
         <div id="resolveResult" class="resolve"></div>
+        <button class="btn" id="selectOfflineBtn" disabled>Select for offline maps</button>
+        <p class="muted small">Selects the vehicle without opening a diagnostic session. Disconnect any active session first.</p>
         <details class="advanced">
           <summary>Override: pick an ECU family directly</summary>
           <p class="muted small">With a selected model and year, only a cataloged matching ECU is accepted and the vehicle confidence still applies. Clear the model for an ECU-only bench selection.</p>
@@ -443,12 +445,73 @@
       <p class="muted small">Accepts checksum-valid table 10 (22 bytes) and D1 (10 bytes) responses only. Unknown bytes remain in the original frame. See <a href="https://github.com/andreibaw/Honda_K-Line_KWP2000" target="_blank" rel="noopener">source and limitations</a>.</p>
     </article>
 
+    <article class="panel" id="multiResearch">
+      <h2>Multi-brand offline capture research</h2>
+      <p class="muted small">Choose an exact research profile and paste complete previously captured frames, one per line. Candidate interpretations come from third-party, model-specific projects; GuzziOnBoard has not tested them on a motorcycle. This tool never connects, transmits, unlocks, clears faults or uploads data. Do not use these values for riding, safety or tuning decisions.</p>
+      <label class="field"><span>Profile (no automatic vehicle identification)</span><select id="multiResearchProfile">
+        <option value="">— choose a profile —</option>
+        <option value="kawasaki_er6n">Kawasaki ER-6n 2006 · K-Line (iKawa)</option>
+        <option value="suzuki_sv650ak7">Suzuki SV650AK7 2007 · K-Line (SV650overlay)</option>
+        <option value="triumph_daytona">Triumph Daytona 675 2012 · ISO 9141 (daytona-kline)</option>
+        <option value="bmw_r1300gs">BMW R1300GS · CAN (EasierCan; year unspecified)</option>
+        <option value="harley_vpw">Harley-Davidson Touring 2008 · J1850 VPW CRC research (not bike-validated)</option>
+      </select></label>
+      <p class="muted small">For K-Line and J1850 paste full space-separated hex bytes including checksum/CRC. For BMW CAN use <code>10C#0011223344556677</code> per line (11-bit data frames only); direction is unknown. Up to 100 frames. Raw bytes are preserved in results.</p>
+      <label class="field"><span>Frames</span><textarea id="multiResearchFrames" rows="5" maxlength="16000" placeholder="Paste one complete frame per line"></textarea></label>
+      <div class="toolbar"><button class="btn" id="multiResearchDecode">Decode locally</button><button class="btn small" id="multiResearchClear">Clear</button></div>
+      <pre id="multiResearchOut" class="small" aria-live="polite"></pre>
+      <p class="muted small">Interpretations are candidate values, not proof of vehicle fitment or frame authenticity. <a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/EXTERNAL_MOTORCYCLE_RESEARCH.md" target="_blank" rel="noopener">Sources, licenses and limitations</a>.</p>
+    </article>
+
+    <article class="panel" id="tuningResearch">
+      <h2>Multi-brand tuning research</h2>
+      <p class="muted small">Research links are not supported tuning definitions. No maps, firmware, write commands or checksum repair are bundled for these bikes. A matching ECU, exact software, definition, checksum and legal use must be independently verified; a passing checksum alone does not establish fitment or safety.</p>
+      <ul class="small">
+        <li><a href="https://github.com/NetworkDir/moto-ecu-checksum/tree/43ccc5f3663e2a175b7217f802bc302830e6862b" target="_blank" rel="noopener">CFMoto / Yamaha / Honda checksum research</a> — source-reported software-specific examples; some running CFMoto factory images fail its checks. A separate local-only Yamaha checksum research check is below; no repair is enabled.</li>
+        <li><a href="https://github.com/kelvinvalencio/cbr250rr-ecu-binary-definition/tree/8be351c718205843c842c7abe62eafa51bdac218" target="_blank" rel="noopener">Honda CBR250RR binary definition</a> — no detected license and uncertain scaling; not bundled.</li>
+        <li><a href="https://github.com/tientuk3/DensoToXDF" target="_blank" rel="noopener">Suzuki / Kawasaki Denso XDF generator</a> — no detected license; generated offsets and fitment are unverified. Not bundled.</li>
+        <li><a href="https://github.com/aaronlumen/Performance-Harley-Davidson-Tuning" target="_blank" rel="noopener">Harley-Davidson tuning collection</a> — GPL repository, but specific bike, software, provenance and road legality must be established. No tunes imported.</li>
+      </ul>
+      <p class="muted small">You can inspect a user-supplied XDF and image using the existing Maps workflow. The current build gate does not authorize unknown ECU families, and research references do not enable writing.</p>
+    </article>
+
+    <article class="panel" id="yamahaResearch">
+      <h2>Yamaha MT image checksum · offline research</h2>
+      <p class="muted small">Inspect a user-supplied, plain binary image locally. This research check follows one third-party Yamaha MT word-sum layout; GuzziOnBoard has not validated it against a real image or motorcycle. It does not edit, save or upload the file. A match does <b>not</b> prove identity, software compatibility, signature validity, calibration safety or legal road use. Never use the result as authorization to flash.</p>
+      <label class="field"><span>Exact variant claimed by the source</span><select id="yamahaVariant">
+        <option value="">— choose a size/model scope —</option>
+        <option value="mt_1m">1 MiB · source lists MT-25 2019, MT-07 2014–16 or 2021, MT-09 SP 2019</option>
+        <option value="mt07_2020">896 KiB · MT-07 2020 only (source report)</option>
+      </select></label>
+      <div class="toolbar"><input type="file" id="yamahaImage" aria-label="Yamaha binary image"><button class="btn" id="yamahaInspect">Inspect locally</button><button class="btn small" id="yamahaClear">Clear</button></div>
+      <pre id="yamahaOut" class="small" aria-live="polite"></pre>
+      <p class="muted small">The selection is a user claim, not an ECU match. Unsupported lengths, nonmatching trailer structure and files with external headers are refused. SHA-256 is shown when available. Source and limitations are documented in <a href="https://github.com/NetworkDir/moto-ecu-checksum/tree/43ccc5f3663e2a175b7217f802bc302830e6862b" target="_blank" rel="noopener">moto-ecu-checksum</a>.</p>
+    </article>
+
+    <article class="panel" id="cfmotoChecksum">
+      <h2>CFMoto Bosch MSE6 checksum · offline research</h2>
+      <p class="muted small">Inspect a local binary using the source's MSE6 record heuristic, reported for the 2024 NK250 and 2023 450SR. It does not identify an ECU or produce a file. The source explicitly reports mismatches on untouched running 450SR factory images. Do not use either result as permission to flash.</p>
+      <input type="file" id="mseImage" aria-label="CFMoto binary image">
+      <button class="btn small" id="mseInspect">Inspect locally</button>
+      <button class="btn small" id="mseClear">Clear</button>
+      <pre id="mseOut" class="small" aria-live="polite"></pre>
+      <p class="muted small">The source searches a fixed window and infers records from structure; random data can match. Its code sums word starts strictly before the end address, despite an inclusive-end comment. No correction or programming is performed.</p>
+    </article>
+
     <article class="panel" id="workshopService">
       <h2>Service interval worksheet</h2>
       <p class="muted small">Enter the <b>last documented service</b> and the interval for your exact motorcycle. This calculator does not infer that a previous service happened. Verify all intervals, initial services, severe-use requirements and procedures in the applicable manual. Kilometres only; records are not saved.</p>
       <details class="advanced">
-        <summary>Review a local service-template JSON (optional)</summary>
-        <p class="muted small">Accepts the <code>motorcycles</code> / <code>tasks</code> format used by Motorcycle Service Database. No database is bundled. Select a model and task and verify fitment before explicitly copying recurring intervals below. Initial odometer/age values and notes are shown for review, not automatically calculated. External files retain their own licenses.</p>
+        <summary>Review a service template (optional)</summary>
+        <p class="muted small">Choose a bundled <a href="https://github.com/ramblenride/motorcycle-service-db/tree/3d21b582720e18c9f80e254bfdaf3875cf443990" target="_blank" rel="noopener">Motorcycle Service Database</a> template (CC BY-SA 4.0) or your own JSON. The source may be incomplete or wrong; confirm the exact market, year and manual before use. Initial and severe-use rules are not calculated. Yamaha's source has conflicting model information and is not bundled.</p>
+        <label class="inline">Bundled source <select id="bundledServiceTemplate">
+          <option value="">— choose a template —</option>
+          <option value="honda_africa_twin.json">Honda Africa Twin 2016–2019</option>
+          <option value="ktm_790_adventure.json">KTM 790 Adventure 2019–2020</option>
+          <option value="royal_enfield_himalayan.json">Royal Enfield Himalayan 2016+ (verify year)</option>
+          <option value="suzuki_dr650.json">Suzuki DR650 1996+ (verify year)</option>
+          <option value="suzuki_drz400.json">Suzuki DRZ400 S/SM 2001+ (verify year)</option>
+        </select></label>
         <input type="file" id="serviceTemplateFile" accept=".json,application/json" aria-label="Service template JSON">
         <div class="toolbar"><label class="inline">Template model <select id="serviceTemplateModel" disabled><option value="">— load a template —</option></select></label>
           <label class="inline">Task <select id="serviceTemplateTask" disabled><option value="">— select a model —</option></select></label>
@@ -759,7 +822,7 @@
 
     <article class="panel">
       <h2>Maps &amp; tables</h2>
-      <p class="muted small">Render a dump as named fuel and ignition tables with a TunerPro XDF definition &mdash; all 94 cataloged GuzziDiag definitions ship bundled. Drop <code>.xdf</code> files into <code>~/.guzzionboard/xdfs/</code> to correct or extend them. Rendering and comparison are read-only; the advanced builder below always writes a new file and never changes its source.</p>
+      <p class="muted small">Render a dump as named fuel and ignition tables with a TunerPro XDF definition &mdash; 94 GuzziDiag definitions and one Honda CBR1000RR definition ship bundled. Drop <code>.xdf</code> files into <code>~/.guzzionboard/xdfs/</code> to correct or extend them. Rendering and comparison are read-only; the advanced builder below always writes a new file and never changes its source.</p>
       <p class="muted small">The chooser is grouped by motorcycle, not by the title the definition's author happened to type: definitions for the ECU family on the bench come first, everything else is listed under the bikes it was published for and marked as not matching. Picking a map from the wrong family does not give slightly wrong numbers &mdash; it reads a different calibration layout at the same addresses. A mismatched definition can be viewed, but the builder refuses to use it.</p>
       <div class="toolbar">
         <label class="inline">Bike
@@ -790,6 +853,7 @@
       </div>
 
       <div class="map-builder danger-zone" id="mapBuilder">
+        <div class="gate-card warn"><h4>Review earlier XDF work</h4><p class="small">Earlier versions could interpret item-specific signedness, byte order or column order incorrectly. Return to the original backup and recreate and review affected edits, previews and built files. Schema 1 and 2 projects cannot be silently imported.</p></div>
         <h3>Advanced &middot; Evidence-backed map builder</h3>
         <p class="muted small">Load a map, select known values, then double-click or use the transformation tools to stage changes. Every build needs an inspectable recommendation, previews the exact quantized plan, records source/XDF/plan/output hashes and byte changes, and requires the liability acknowledgement below. No fuel, spark, lambda or limiter recommendations are invented or bundled by this app.</p>
         <div id="mapBuildSource" class="gate-card warn">
@@ -852,12 +916,14 @@
           <div id="mapLogOut"></div>
         </details>
         <div class="toolbar">
+          <button class="btn" id="mapResearchPreviewBtn" disabled>Preview edits for research</button>
           <button class="btn" id="mapClearChangesBtn" disabled>Clear staged changes</button>
           <button class="btn" id="mapExportProjectBtn" disabled>Export project</button>
           <button class="btn" id="mapImportProjectBtn">Import project…</button>
           <input type="file" id="mapProjectFile" accept="application/json,.json" hidden>
         </div>
-        <p class="muted small">Projects contain paths, hashes, edits and log settings, but not firmware or log data. Reopening requires the exact source image, XDF and address base. Schema 1 projects lack an XDF hash and must be recreated and reviewed.</p>
+        <div id="mapResearchPreviewOut"></div>
+        <p class="muted small">Research preview works with a user-supplied XDF even when fitment is not recognized. It creates no image, performs no checksum repair, and does not establish ECU/software fitment. Projects contain paths, hashes, edits and log settings, but not firmware or log data. Reopening requires the exact source image, XDF and address base. Schema 1 and 2 projects must be recreated and reviewed because earlier versions may have interpreted XDF item layouts differently.</p>
         <details class="recommendation-packages">
           <summary><b>User/community recommendation packages</b></summary>
           <p class="muted small" id="mapPackageNote">No values are bundled or endorsed. Validated local packages are source-locked and still pass the same preview and liability gates.</p>
@@ -876,8 +942,8 @@
           <label class="field"><span>Exact excerpt (optional)</span><textarea id="mapEvidenceQuote" rows="2" placeholder="quote the recommendation so the build can be reviewed later"></textarea></label>
         </fieldset>
         <label class="field"><span>Calibration checksum provider</span>
-          <select id="mapChecksumProvider"><option value="">None — only valid when the XDF declares no checksum</option></select>
-          <small class="muted" id="mapChecksumNote">No checksum algorithm is guessed or bundled. Local plugins run in isolated, resource-limited workers and must explicitly match every checksum declared by the XDF.</small>
+          <select id="mapChecksumProvider"><option value="">None — available only if the XDF declares no checksum; correctness unknown</option></select>
+          <small class="muted" id="mapChecksumNote">No automatic map-build checksum algorithm is bundled. Local plugins run in isolated, resource-limited workers and must explicitly match every checksum declared by the XDF.</small>
         </label>
         <label class="inline"><input type="checkbox" id="mapNonBaseAccept"> I understand this source is not the protected base map (required only when shown above).</label>
         <label class="check acknowledgement-check"><input type="checkbox" id="mapAckCheck"> I have reviewed and accept the liability acknowledgement below.</label>
@@ -1004,5 +1070,8 @@
 <script src="app.js"></script>
 <script src="workshop.js"></script>
 <script src="honda-offline.js"></script>
+<script src="multibrand-offline.js"></script>
+<script src="yamaha-checksum.js"></script>
+<script src="cfmoto-checksum.js"></script>
 </body>
 </html>

@@ -100,3 +100,11 @@ def test_definition_validation_surfaces_declared_calibration_checksums():
                    if item["check"] == "calibration-checksum")
     assert finding["level"] == "warn"
     assert "explicitly selected compatible provider" in finding["detail"]
+
+
+def test_no_xdf_checksum_declaration_does_not_claim_checksum_not_needed():
+    xdf = XdfFile.from_string(build_xdf())
+    finding = next(item for item in xdf.validate_definition()['findings']
+                   if item['check'] == 'calibration-checksum')
+    assert finding['level'] == 'warn'
+    assert 'does not establish' in finding['detail']

@@ -248,7 +248,8 @@ def test_the_hosted_demo_is_virtual_only_but_connector_steps_are_runnable():
     assert "demo://virtual-kline" in lab_source
     assert "SIMULATED CONNECTOR" in lab_source
     assert "isHostedDemo" in app_source
-    assert "vehicle.ecu === '5am'" in app_source
+    assert "['5am', 'honda_cbr1000rr_2012_us'].includes(vehicle.ecu)" in app_source
+    assert "demoWithoutSimulator" in app_source
     assert "Griso 1200 8V" in app_source
     # The stand-ins never request browser access to real hardware.
     assert "navigator.serial" not in combined

@@ -275,6 +275,8 @@ test('project locks definition and address base and stores log settings without 
       (value) => { value.xdf.sha256 = '0'.repeat(64); },
       (value) => { value.address_base = (value.address_base || 0) + 1; },
       (value) => { value.schema = 1; },
+      (value) => { value.schema = 2; },
+      (value) => { value.layout_revision = 'old'; },
     ]) {
       const changed = structuredClone(original);
       mutate(changed);
@@ -282,11 +284,13 @@ test('project locks definition and address base and stores log settings without 
     }
     return { project, errors };
   });
-  expect(result.project.schema).toBe(2);
+  expect(result.project.schema).toBe(3);
   expect(result.project.xdf.sha256).toMatch(/^[0-9a-f]{64}$/);
   expect(result.errors[0]).toContain('XDF content');
   expect(result.errors[1]).toContain('address base');
-  expect(result.errors[2]).toContain('schema 2');
+  expect(result.errors[2]).toContain('schema 3');
+  expect(result.errors[3]).toContain('schema 3');
+  expect(result.errors[4]).toContain('layout revision');
   await expect(page.locator('#mapExportProjectBtn')).toBeEnabled();
 });
 

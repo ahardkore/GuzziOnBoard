@@ -135,6 +135,37 @@ const post = (path, body) =>
 
 console.log('demo-api.js (hosted demo backend)');
 
+// Synthetic item flags contradict header defaults; no motorcycle data is used.
+const layoutFixture = `<XDFFORMAT><XDFHEADER><deftitle>Layout</deftitle>
+<DEFAULTS signed="1" lsbfirst="0" float="0"/><REGION size="0x100"/></XDFHEADER>
+<XDFTABLE uniqueid="cells"><title>Cells</title>
+<XDFAXIS id="x"><indexcount>3</indexcount></XDFAXIS><XDFAXIS id="y"><indexcount>2</indexcount></XDFAXIS>
+<XDFAXIS id="z"><EMBEDDEDDATA mmedtypeflags="0x06" mmedaddress="0x20"
+mmedelementsizebits="16" mmedrowcount="2" mmedcolcount="3"/><MATH equation="X"/></XDFAXIS>
+</XDFTABLE><XDFCHECKSUM/></XDFFORMAT>`;
+const lab = context.window.GUZZI_DEMO.lab;
+const layout = lab.parseXdf(layoutFixture, 'synthetic.xdf');
+const layoutBytes = new Uint8Array(256);
+[1, 4, 2, 5, 3, 6].forEach((value, i) => { layoutBytes[0x20 + 2 * i] = value; });
+const layoutRendered = lab.renderXdf(layout, { bytes: layoutBytes }, 0);
+check('hosted XDF honors item-level unsigned little-endian column-major layout',
+  JSON.stringify(layoutRendered.tables[0].raw_values) === '[[1,2,3],[4,5,6]]');
+check('hosted parser retains unnamed checksum declarations',
+  layout.checksums[0] === '(unnamed checksum #1)');
+const appliedLayout = lab.applyXdfChanges(layout, { bytes: layoutBytes }, [
+  {kind:'table', id:'cells', row:0, col:1, expected_raw:2, value:4660},
+  {kind:'table', id:'cells', row:1, col:2, expected_raw:6, value:22136},
+], 0);
+check('hosted multi-cell edits preserve both exact little-endian column-major locations',
+  appliedLayout.bytes[0x24] === 0x34 && appliedLayout.bytes[0x25] === 0x12
+  && appliedLayout.bytes[0x2a] === 0x78 && appliedLayout.bytes[0x2b] === 0x56
+  && layoutBytes[0x24] === 2 && layoutBytes[0x2a] === 6);
+const floatLayout = lab.parseXdf(layoutFixture.replace('mmedtypeflags="0x06"', 'mmedtypeflags="0x10002"')
+  .replace('<XDFCHECKSUM/>', '<XDFCONSTANT uniqueid="valid"><title>Valid</title><EMBEDDEDDATA mmedaddress="0x10" mmedelementsizebits="8" mmedtypeflags="0"/></XDFCONSTANT>'), 'float.xdf');
+check('hosted parser refuses float layouts instead of interpreting them as integers',
+  floatLayout.tables.length === 0 && floatLayout.unsupported.length === 1);
+
+
 check('every hosted-demo API route has a browser implementation',
   Object.keys(context.window.GUZZI_DEMO.localOnly).length === 0,
   Object.keys(context.window.GUZZI_DEMO.localOnly).join(', '));
@@ -559,6 +590,15 @@ if (editable) {
     },
     acknowledgement: 'I understand modified maps can damage the engine and accept responsibility',
   };
+  const researchBody = { ...buildBody, expected_source_sha256: buildRendered.payload.source.sha256,
+    expected_xdf_sha256: buildRendered.payload.xdf.sha256 };
+  const research = await post('/api/maps/research-preview', researchBody);
+  check('hosted research preview locks source and XDF and does not save a candidate',
+    research.status === 200 && research.payload.research_only === true
+      && research.payload.writes_file === false && research.payload.diff.identical === false,
+    JSON.stringify(research.payload).slice(0, 180));
+  const staleResearch = await post('/api/maps/research-preview', { ...researchBody, expected_xdf_sha256: '0'.repeat(64) });
+  check('hosted research preview refuses a stale XDF hash', staleResearch.status === 400);
   const previewed = await post('/api/maps/preview', buildBody);
   check('a map plan is quantized and diffed without writing a file',
     previewed.status === 200 && previewed.payload.writes_file === false

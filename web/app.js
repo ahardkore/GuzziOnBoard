@@ -602,7 +602,7 @@ async function loadCatalog() {
   const { summary } = state.catalog;
 
   const make = $('#makeSelect');
-  const availableMakes = isHostedDemo() ? ['Moto Guzzi'] : state.catalog.makes;
+  const availableMakes = isHostedDemo() ? ['Moto Guzzi', 'Honda'] : state.catalog.makes;
   make.innerHTML = availableMakes
     .map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
   const savedMake = Prefs.get('make');
@@ -670,7 +670,7 @@ async function loadCatalog() {
 
 function vehiclesOf(make) {
   return (state.catalog.vehicles || []).filter((vehicle) =>
-    vehicle.make === make && (!isHostedDemo() || vehicle.ecu === '5am'));
+    vehicle.make === make && (!isHostedDemo() || ['5am', 'honda_cbr1000rr_2012_us'].includes(vehicle.ecu)));
 }
 
 function fillModels() {
@@ -803,7 +803,9 @@ function updateConnectEnabled() {
   const haveVehicle = Boolean(state.resolved) || Boolean($('#ecuOverride').value);
   const physical = isPhysicalTransport(currentTransport());
   const ok = haveVehicle && (!physical || $('#checklistAccept').checked);
-  $('#connectBtn').disabled = !ok || state.connected;
+  const demoWithoutSimulator = isHostedDemo() && state.resolved?.ecu_detail?.session?.simulator_supported === false;
+  $('#connectBtn').disabled = !ok || state.connected || demoWithoutSimulator;
+  $('#selectOfflineBtn').disabled = !haveVehicle || state.connected;
 }
 
 /* ------------------------------------------------------------- connect */
@@ -877,7 +879,7 @@ function connectionBusyMessage(selection) {
   );
 }
 
-async function connect() {
+function selectionRequest() {
   const ecuOverride = $('#ecuOverride').value;
   const body = ecuOverride
     ? { ecu: ecuOverride, transport: currentTransport(), device: $('#deviceInput').value,
@@ -897,6 +899,34 @@ async function connect() {
     body.can_rx_id = $('#canRxId').value.trim();
   }
 
+  return body;
+}
+
+async function selectForOfflineMaps() {
+  $('#selectOfflineBtn').disabled = true;
+  try {
+    const selection = await api('/api/select', { method: 'POST', body: selectionRequest() });
+    state.selection = selection;
+    renderNotices(selection.notices);
+    await refreshStatus();
+    maps.render = null;
+    maps.changes.clear();
+    maps.selection.clear(); maps.selectionAnchor = null;
+    maps.undo = []; maps.redo = []; maps.preview = null;
+    maps.logAnalysis = null; maps.activePackage = null; maps.lastDoc = null;
+    $('#mapsOut').innerHTML = '';
+    $('#mapBuildOut').innerHTML = '';
+    invalidateResearchPreview();
+    renderMapBuildState();
+    show('firmware');
+    await loadXdfs();
+    toast('Vehicle selected for offline maps; no ECU session was opened.', 'ok');
+  } catch (err) { toast(err.message, 'bad'); }
+  finally { updateConnectEnabled(); }
+}
+
+async function connect() {
+  const body = selectionRequest();
   $('#connectBtn').disabled = true;
   let busy = false;
   try {
@@ -909,6 +939,9 @@ async function connect() {
       await api('/api/checklist', { method: 'POST', body: { accepted: $('#checklistAccept').checked } });
     }
     const initMethod = currentTransport() === 'kline' ? $('#initMethod').value : '';
+    if (['kawasaki_er6n_2006', 'triumph_daytona_675_2012'].includes(selection.ecu?.id) && initMethod) {
+      throw new Error('This model requires ECU profile default handshake; select it before connecting.');
+    }
     Prefs.set('initMethod', initMethod);
     if (physical) {
       showBusyDialog(selection.ecu?.id === '16m' ? 'Listening for key-on' : 'Connecting',
@@ -926,7 +959,9 @@ async function connect() {
     state.plotChannels = new Set([...state.selectedChannels].slice(0, 3));
     renderPlotChannels();
     renderLivePlot();
-    await api('/api/identify').then(renderIdentity).catch(() => {});
+    if (selection.ecu?.effective_capabilities?.includes('identify')) {
+      await api('/api/identify').then(renderIdentity).catch(() => {});
+    }
     await refreshStatus();
     await loadProtocol();
     show('overview');
@@ -1033,7 +1068,7 @@ async function refreshStatus() {
     ? (simulated
       ? `🧪 simulated ${ecu?.family || 'ECU'} — everything works, nothing is real`
       : `${ecu?.family || ''} via ${state.selection.transport}`)
-    : 'Pick a motorcycle in the Garage';
+    : (ecu ? `Offline selection: ${ecu.family} · no session open` : 'Pick a motorcycle in the Garage');
   $('#disconnectBtn').disabled = !state.connected;
 
   const capabilities = new Set(state.selection?.ecu?.effective_capabilities || []);
@@ -1052,7 +1087,7 @@ async function refreshStatus() {
       .map((c) => `<li>${esc(c)}</li>`).join('');
   }
   if (state.selection?.notices) renderNotices(state.selection.notices);
-
+  updateConnectEnabled();
   renderOverview();
 }
 
@@ -1572,9 +1607,10 @@ async function readDtcs() {
   $('#faultBadge').classList.toggle('hidden', !list.length);
   $('#dtcSummary').textContent = list.length
     ? `${list.length} code${list.length > 1 ? 's' : ''} in memory`
-    : 'Fault memory is clean.';
+    : data.format === 'obd-stored' ? 'No stored codes reported (pending codes not read).' : 'Fault memory is clean.';
 
   const context = Object.entries(data.context || {});
+  const obdHtml = data.format === 'obd-stored' ? `<div class="gate blocked">${esc(data.note || 'Stored codes only.')}</div>` : '';
   const legacyHtml = data.format === 'legacy-fault-bitfields'
     ? `<div class="gate blocked"><b>Legacy raw fault flags.</b> ${esc(data.note || '')}
        ${(data.registers || []).map((r) =>
@@ -1589,18 +1625,18 @@ async function readDtcs() {
        ).join(' ')}</div>`
     : '';
 
-  $('#faultList').innerHTML = legacyHtml + contextHtml + (list.length ? list.map((d) => `
+  $('#faultList').innerHTML = obdHtml + legacyHtml + contextHtml + (list.length ? list.map((d) => `
     <article class="fault ${d.warning_indicator ? 'warn' : ''}">
       <div class="fault-code">${esc(d.code)}</div>
       <div class="fault-info">
         <strong>${esc(d.description || 'No description in the catalog for this code')}</strong>
-        <small>status byte 0x${d.status_byte.toString(16).toUpperCase().padStart(2, '0')}
-          · kind ${d.kind}${d.warning_indicator ? ' · warning lamp' : ''}</small>
+        <small>${d.status_byte == null ? 'status byte not supplied' : `status byte 0x${d.status_byte.toString(16).toUpperCase().padStart(2, '0')}`}
+          · kind ${esc(d.kind)}${d.warning_indicator ? ' · warning lamp' : ''}</small>
       </div>
       <div class="fault-status ${d.status}">${esc(d.status)}</div>
     </article>`).join('')
     : `<article class="panel empty"><div class="empty-icon">✓</div>
-       <h3>No diagnostic trouble codes</h3><p>The ECU reports a clean fault memory.</p></article>`);
+       <h3>No diagnostic trouble codes</h3><p>${data.format === 'obd-stored' ? 'No stored codes reported; pending codes were not read.' : 'The ECU reports a clean fault memory.'}</p></article>`);
 
   state.clearDecision = data.clear;
   renderGate(data.clear, $('#clearGate'));
@@ -2063,6 +2099,7 @@ $('#tempUnit').onchange = (e) => {
 $('#ecuOverride').onchange = updateConnectEnabled;
 $('#checklistAccept').onchange = updateConnectEnabled;
 $('#connectBtn').onclick = connect;
+$('#selectOfflineBtn').onclick = selectForOfflineMaps;
 $('#disconnectBtn').onclick = disconnect;
 $('#identifyBtn').onclick = identifyWithGuide;
 $('#pollBtn').onclick = prepareAndStartPolling;
@@ -2901,7 +2938,7 @@ const mapChangeLocation = (change) => change.kind === 'table'
 function benchFamilies() {
   const family = (maps.vehicle?.ecu_family
     || state.status?.vehicle?.ecu?.family || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const tokens = family.match(/(MIUG3|MIU1|MBC1|5AM2|5AM|16M|15RC|15M|15P|59M|7SM|5SM|5DM|11MP|P7|P8)/g) || [];
+  const tokens = family.match(/(CBR1000RR2012US|MIUG3|MIU1|MBC1|5AM2|5AM|16M|15RC|15M|15P|59M|7SM|5SM|5DM|11MP|P7|P8)/g) || [];
   // "IAW 5AM / 5AM2" and "MIU G3" both have to land on the catalog's ids.
   return [...new Set(tokens.map((t) => (t === '5AM2' ? '5AM' : t)))];
 }
@@ -2909,7 +2946,7 @@ function benchFamilies() {
 function xdfFits(entry) {
   const families = benchFamilies();
   if (!families.length) return null;              // nothing identified yet
-  return families.includes(String(entry.family || '').toUpperCase());
+  return families.includes(String(entry.family || '').toUpperCase().replace(/[^A-Z0-9]/g, ''));
 }
 
 function xdfOptionLabel(entry) {
@@ -2982,7 +3019,9 @@ function renderXdfFitNote() {
   const bikes = (entry.fits || []).map((f) => f.label).filter(Boolean);
   const tone = fits === false ? 'bad' : (fits === true ? 'ok' : 'warn');
   const headline = fits === true
-    ? `Matches the ${benchFamilies().join('/')} on the bench`
+    ? (entry.family === 'CBR1000RR-2012-US'
+      ? 'Matches the selected 2012 US Honda profile; ECU identity not established'
+      : `Matches the ${benchFamilies().join('/')} on the bench`)
     : (fits === false
       ? `Not for this motorcycle — this is a ${esc(entry.family || 'different')} `
         + `definition and the bench ECU is ${esc(benchFamilies().join('/'))}`
@@ -2992,6 +3031,7 @@ function renderXdfFitNote() {
     <p class="small">${esc(entry.label || entry.filename)} · file <code>${esc(entry.filename)}</code>${
       entry.version ? ` · v${esc(entry.version)}` : ''}</p>
     ${bikes.length ? `<p class="small">Published for: ${bikes.map(esc).join(' · ')}</p>` : ''}
+    ${entry.family === 'CBR1000RR-2012-US' ? '<p class="small">Offline build also requires the pinned XDF and exact A01 original-image SHA-256. No Honda programming is provided.</p>' : ''}
     ${fits === false ? '<p class="small">Rendering it is read-only and harmless, but the '
       + 'table names and addresses will not describe your ECU. Do not tune from it.</p>' : ''}
   </div>`;
@@ -3089,6 +3129,7 @@ async function loadXdfs() {
     if (onlyChk) onlyChk.onchange = renderXdfOptions;
 
     $('#xdfSelect').onchange = () => {
+      invalidateResearchPreview();
       Prefs.set('xdf', $('#xdfSelect').value);
       renderXdfFitNote();
     };
@@ -3338,7 +3379,14 @@ function mapChangesSnapshot() {
   return [...maps.changes.entries()].map(([key, value]) => [key, { ...value }]);
 }
 
+let researchPreviewVersion = 0;
+function invalidateResearchPreview() {
+  researchPreviewVersion += 1;
+  $('#mapResearchPreviewOut').innerHTML = '';
+}
+
 function restoreMapChanges(snapshot) {
+  invalidateResearchPreview();
   maps.changes = new Map(snapshot.map(([key, value]) => [key, { ...value }]));
   maps.preview = null;
   syncMapEditorButtons();
@@ -3354,6 +3402,7 @@ function mutateMapChanges(mutator) {
     if (maps.undo.length > 50) maps.undo.shift();
     maps.redo = [];
     maps.preview = null;
+    invalidateResearchPreview();
   }
   syncMapEditorButtons();
   renderMapBuildState();
@@ -3705,7 +3754,8 @@ async function pasteMapSelection() {
 
 function mapProject() {
   return {
-    schema: 2,
+    schema: 3,
+    layout_revision: 'xdf-item-flags-v1',
     application: 'GuzziOnBoard map project',
     saved_at: new Date().toISOString(),
     source: maps.render?.source || null,
@@ -3736,8 +3786,8 @@ function mapProject() {
 
 function importMapProject(project) {
   if (!maps.render?.source) throw new Error('Load the project source map before importing edits.');
-  if (!project || project.schema !== 2 || !Array.isArray(project.changes)) {
-    throw new Error('Project schema 2 with an XDF hash is required; older projects must be recreated and reviewed because their definition cannot be verified.');
+  if (!project || project.schema !== 3 || project.layout_revision !== 'xdf-item-flags-v1' || !Array.isArray(project.changes)) {
+    throw new Error('Project schema 3 with the current XDF layout revision is required; older projects must be recreated and reviewed because their data layout may have been interpreted differently.');
   }
   if (!/^[a-f0-9]{64}$/i.test(String(project.source?.sha256 || ''))
       || project.source.sha256 !== maps.render.source.sha256) {
@@ -3905,6 +3955,7 @@ function renderMapBuildState() {
   $('#mapUndoBtn').disabled = !maps.undo.length;
   $('#mapRedoBtn').disabled = !maps.redo.length;
   $('#mapClearChangesBtn').disabled = !changes.length;
+  $('#mapResearchPreviewBtn').disabled = !changes.length || !source || !maps.render?.xdf?.sha256;
   $('#mapExportProjectBtn').disabled = !source || !maps.render?.xdf?.sha256;
   $('#mapBuildBtn').disabled = !changes.length || !source || !packageMatches
     || !checksumSelectionCompatible();
@@ -4115,6 +4166,7 @@ function tuningTipsHtml(render) {
 }
 
 function renderMapsResult(render) {
+  invalidateResearchPreview();
   const meta = render.xdf || {};
   maps.render = render;
   if (render.source?.path) $('#mapsImagePath').value = render.source.path;
@@ -4243,6 +4295,37 @@ $('#mapProjectFile').onchange = async (event) => {
     importMapProject(JSON.parse(await file.text()));
     toast('Map project loaded and checked against this source.', 'ok');
   } catch (err) { toast(`Project refused: ${err.message}`, 'bad'); }
+};
+
+$('#mapResearchPreviewBtn').onclick = async () => {
+  const source = maps.render?.source;
+  if (!source || !maps.render?.xdf?.sha256 || !maps.changes.size) return;
+  const out = $('#mapResearchPreviewOut');
+  out.innerHTML = '<p class="muted small">Computing research-only edit preview…</p>';
+  const version = ++researchPreviewVersion;
+  const selectedXdf = $('#xdfSelect').value;
+  try {
+    const result = await api('/api/maps/research-preview', { method: 'POST', body: {
+      xdf: $('#xdfSelect').value, path: source.path, use_base_map: !!source.is_base_map,
+      region: 'flash', address_base: maps.render.address_base,
+      expected_source_sha256: source.sha256, expected_xdf_sha256: maps.render.xdf.sha256,
+      changes: [...maps.changes.values()],
+    } });
+    if (version !== researchPreviewVersion || selectedXdf !== $('#xdfSelect').value) return;
+    const rows = result.changes.slice(0, 40).map((c) => `<tr><td>${esc(c.title)}</td>
+      <td>${mapChangeLocation(c)}</td><td>${esc(fmtValue(c.before))}</td>
+      <td>${esc(fmtValue(c.requested))}</td><td>${esc(fmtValue(c.after))} ${esc(c.units)}</td></tr>`).join('');
+    out.innerHTML = `<div class="gate-card warn"><h4>Research preview · no image saved</h4>
+      <p class="small">${esc(result.warning)}</p><p class="small">Source SHA-256 <code>${esc(result.source.sha256)}</code><br>
+      XDF SHA-256 <code>${esc(result.xdf.sha256)}</code><br>
+      Candidate bytes SHA-256 (no checksum repair) <code>${esc(result.candidate_sha256)}</code></p>
+      <p class="small">${result.changes.length} change(s); ${result.changes.filter((c) => c.quantized).length} quantized. XDF checksum declarations: ${esc(result.declared_checksums.join(', ') || 'none (does not prove no checksum exists)')}.</p>
+      <div class="table-wrap"><table class="data"><thead><tr><th>Item</th><th>Cell</th><th>Before</th><th>Requested</th><th>Stored</th></tr></thead><tbody>${rows}</tbody></table></div>
+      ${result.changes.length > 40 ? '<p class="small">Showing the first 40 changes.</p>' : ''}</div>`;
+  } catch (err) {
+    if (version !== researchPreviewVersion || selectedXdf !== $('#xdfSelect').value) return;
+    out.innerHTML = `<div class="gate-card bad"><h4>Research preview refused</h4><p class="small">${esc(err.message)}</p></div>`;
+  }
 };
 
 $('#mapBuildBtn').onclick = async () => {

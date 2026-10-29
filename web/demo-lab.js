@@ -480,12 +480,19 @@
     return gFormat(value);
   }
 
-  function parseEmbedded(node, signedDefault) {
+  function parseEmbedded(node, signedDefault, floatDefault) {
     var sizeBits = intOf(node.attrs.mmedelementsizebits, 8);
     if (sizeBits !== 8 && sizeBits !== 16 && sizeBits !== 32) {
       throw new Error('unsupported element size ' + sizeBits + ' bits');
     }
-    var flags = intOf(node.attrs.mmedtypeflags, 0);
+    var hasFlags = node.attrs.mmedtypeflags !== undefined;
+    var flags = hasFlags ? intOf(node.attrs.mmedtypeflags, 0) : null;
+    if (flags !== null && (!Number.isSafeInteger(flags) || flags < 0 || flags > 7)) {
+      throw new Error('unsupported embedded data flags (float/unknown encoding)');
+    }
+    if (flags === null && floatDefault) {
+      throw new Error('floating-point embedded data is not supported');
+    }
     return {
       address: intOf(node.attrs.mmedaddress, 0),
       size_bits: sizeBits,
@@ -493,11 +500,27 @@
       cols: Math.max(1, intOf(node.attrs.mmedcolcount, 1)),
       major_stride_bits: intOf(node.attrs.mmedmajorstridebits, 0),
       minor_stride_bits: intOf(node.attrs.mmedminorstridebits, 0),
-      signed: !!(flags & 0x1) || !!signedDefault,
+      signed: hasFlags ? !!(flags & 0x1) : !!signedDefault,
+      little_endian: hasFlags ? !!(flags & 0x2) : null,
+      column_major: hasFlags && !!(flags & 0x4),
     };
   }
 
+  function validateEmbeddedLayout(embedded) {
+    [[embedded.major_stride_bits, embedded.rows > 1],
+      [embedded.minor_stride_bits, embedded.cols > 1]].forEach(function (entry) {
+      if (entry[1] && (entry[0] < 0 || entry[0] % 8)) {
+        throw new Error('negative or non-byte-aligned embedded stride is not supported');
+      }
+    });
+    if (embedded.column_major && (embedded.major_stride_bits || embedded.minor_stride_bits)) {
+      throw new Error('column-major embedded data with explicit strides is not supported');
+    }
+  }
+
   function spanBits(embedded) {
+    validateEmbeddedLayout(embedded);
+    if (embedded.column_major) return embedded.rows * embedded.cols * embedded.size_bits;
     var minor = embedded.minor_stride_bits || embedded.size_bits;
     var major = embedded.major_stride_bits || (minor * embedded.cols);
     return (embedded.rows - 1) * major + (embedded.cols - 1) * minor
@@ -505,6 +528,7 @@
   }
 
   function embeddedPositions(embedded, offset) {
+    validateEmbeddedLayout(embedded);
     var size = embedded.size_bits / 8;
     var minor = (embedded.minor_stride_bits || embedded.size_bits) / 8;
     var major = embedded.major_stride_bits
@@ -512,13 +536,15 @@
     var out = [];
     for (var r = 0; r < embedded.rows; r++) {
       for (var c = 0; c < embedded.cols; c++) {
-        out.push({ pos: offset + r * major + c * minor, size: size });
+        out.push({ pos: offset + (embedded.column_major
+          ? (c * embedded.rows + r) * size : r * major + c * minor), size: size });
       }
     }
     return out;
   }
 
   function readEmbedded(embedded, bytes, offset, littleEndian) {
+    if (embedded.little_endian !== null) littleEndian = embedded.little_endian;
     return embeddedPositions(embedded, offset).map(function (slot) {
       if (slot.pos < 0 || slot.pos + slot.size > bytes.length) {
         throw new Error('data at 0x' + embedded.address.toString(16).toUpperCase()
@@ -538,8 +564,9 @@
   }
 
   function writeEmbedded(embedded, bytes, offset, littleEndian, raws) {
+    if (embedded.little_endian !== null) littleEndian = embedded.little_endian;
     embeddedPositions(embedded, offset).forEach(function (slot, index) {
-      if (slot.pos < 0 || slot.pos + slot.size > bytes.length) return;
+      if (slot.pos < 0 || slot.pos + slot.size > bytes.length) throw new Error('embedded data falls outside the image');
       var limit = Math.pow(2, slot.size * 8);
       var value = Math.round(raws[index]);
       if (embedded.signed && value < 0) value += limit;
@@ -551,7 +578,7 @@
     });
   }
 
-  function parseAxis(node, signedDefault) {
+  function parseAxis(node, signedDefault, floatDefault) {
     var count = Math.max(1, intOf(kidText(node, 'indexcount'), 1));
     var labels = [];
     for (var i = 0; i < count; i++) labels.push('');
@@ -564,9 +591,10 @@
     var embedded = null;
     var dataNode = kid(node, 'EMBEDDEDDATA');
     if (dataNode && dataNode.attrs.mmedaddress !== undefined) {
-      embedded = parseEmbedded(dataNode, signedDefault);
+      embedded = parseEmbedded(dataNode, signedDefault, floatDefault);
       embedded.rows = 1;
       embedded.cols = count;
+      validateEmbeddedLayout(embedded);
     }
     // <embedinfo type="3" linkobjid="0x7FDD" />: this axis' labels are the
     // values of another item (a legend table holding the breakpoints).
@@ -736,6 +764,7 @@
       base_subtract: false,
       little_endian: false,
       signed_default: false,
+      float_default: false,
       categories: {},
       tables: [],
       constants: [],
@@ -754,6 +783,7 @@
     if (defaults) {
       xdf.little_endian = !!intOf(defaults.attrs.lsbfirst, 0);
       xdf.signed_default = !!intOf(defaults.attrs.signed, 0);
+      xdf.float_default = !!intOf(defaults.attrs.float, 0);
     }
     kids(header, 'CATEGORY').forEach(function (category) {
       xdf.categories[intOf(category.attrs.index, 0)] =
@@ -771,7 +801,7 @@
       try {
         var axes = {};
         kids(node, 'XDFAXIS').forEach(function (axisNode) {
-          axes[axisNode.attrs.id || '?'] = parseAxis(axisNode, xdf.signed_default);
+          axes[axisNode.attrs.id || '?'] = parseAxis(axisNode, xdf.signed_default, xdf.float_default);
         });
         var z = axes.z;
         if (!z || !z.embedded) throw new Error(title + ': no z-axis data');
@@ -788,6 +818,7 @@
         if (axes.x && z.embedded.cols === 1 && axes.x.count > 1) {
           z.embedded.cols = axes.x.count;
         }
+        validateEmbeddedLayout(z.embedded);
         var decimals = kidText(zNode, 'decimalpl');
         var table = {
           title: title,
@@ -834,7 +865,7 @@
           description: (kidText(node, 'description') || '').trim(),
           category: categoryOf(node),
           units: (kidText(node, 'units') || '').trim(),
-          embedded: parseEmbedded(dataNode, xdf.signed_default),
+          embedded: parseEmbedded(dataNode, xdf.signed_default, xdf.float_default),
           math: checkMath(node, title),
           decimalpl: decimals ? (intOf(decimals, 0) || null) : null,
           uniqueid: node.attrs.uniqueid || '',
@@ -844,9 +875,9 @@
       }
     });
 
-    kids(root, 'XDFCHECKSUM').forEach(function (node) {
+    kids(root, 'XDFCHECKSUM').forEach(function (node, index) {
       var title = (kidText(node, 'title') || '').trim();
-      if (title) xdf.checksums.push(title);
+      xdf.checksums.push(title || '(unnamed checksum #' + (index + 1) + ')');
     });
 
     if (!xdf.tables.length && !xdf.constants.length) {
@@ -1086,7 +1117,7 @@
     if (addressBase === null || addressBase === undefined) {
       addressBase = suggestAddressBase(xdf, image.bytes.length);
     }
-    var bytes = new Uint8Array(image.bytes), applied = [], touched = {};
+    var bytes = new Uint8Array(image.bytes), applied = [], touched = {}, touchedBytes = {};
     changes.forEach(function (change) {
       var kind = String(change.kind || '').toLowerCase();
       var ref = String(change.id || change.item_id || change.title || '');
@@ -1138,8 +1169,17 @@
       if (converted.raw === beforeRaw) throw new Error(title + ': requested value is unchanged');
       var before = compileMath(item.math)(beforeRaw);
       if (decimals !== null) before = round(before, decimals);
-      raws[index] = converted.raw;
-      writeEmbedded(item.embedded, bytes, offset, xdf.little_endian, raws);
+      var slot = embeddedPositions(item.embedded, offset)[index];
+      for (var byteIndex = slot.pos; byteIndex < slot.pos + slot.size; byteIndex++) {
+        if (touchedBytes[byteIndex]) throw new Error(title + ': overlapping byte writes in this change set');
+        touchedBytes[byteIndex] = true;
+      }
+      // Write only this cell. Rewriting a whole table from source would erase
+      // earlier edits to other cells in the same staged plan.
+      var cellLayout = Object.assign({}, item.embedded, {
+        rows: 1, cols: 1, major_stride_bits: 0, minor_stride_bits: 0, column_major: false,
+      });
+      writeEmbedded(cellLayout, bytes, slot.pos, xdf.little_endian, [converted.raw]);
       applied.push({
         kind: kind, id: id, axis: axisName,
         index: kind === 'axis' ? index : null, title: title,
@@ -2580,7 +2620,7 @@
   D.register('GET', '/api/checksum-providers', function () {
     return [200, {
       directory: '~/.guzzionboard/checksums', providers: [], errors: [], simulated: true,
-      note: 'Hosted demo cannot execute local checksum plugins. No calibration checksum algorithm is bundled or guessed.',
+      note: 'Hosted demo cannot execute local checksum plugins or the workstation Honda checksum provider. No calibration checksum is applied in the demo.',
     }];
   });
 
@@ -2916,8 +2956,8 @@
         detail: 'definition declares checksum(s) requiring an explicit compatible provider: ' + xdf.checksums.join(', '),
       });
       else findings.push({
-        level: 'ok', check: 'calibration-checksum', item: '',
-        detail: 'definition declares no calibration checksum',
+        level: 'warn', check: 'calibration-checksum', item: '',
+        detail: 'definition declares no calibration checksum; this does not establish that the image needs none',
       });
       if (!entry.family) findings.push({ level: 'fatal', check: 'fitment', detail: 'no ECU family' });
       else findings.push({ level: 'ok', check: 'fitment', detail: 'cataloged for ' + entry.family });
@@ -2972,6 +3012,34 @@
       diff.image = describeImage(before);
       diff.simulated = true;
       return [200, diff];
+    });
+  });
+
+  D.register('POST', '/api/maps/research-preview', function (body) {
+    if (!body.xdf) throw bad("an 'xdf' (filename or .xdf path) is required");
+    var status = baseMapStatus(body.region || 'flash');
+    var isBase = !!body.use_base_map;
+    if (isBase && !status.intact) throw bad(status.reason || 'no intact base map');
+    var path = isBase ? status.path : body.path;
+    if (!path) throw bad("an image 'path' is required, or set use_base_map=true");
+    if (!isBase && status.intact && status.path === path) isBase = true;
+    var source = imageAt(path), sourceHash = sha256(source.bytes);
+    if (body.expected_source_sha256 !== sourceHash) throw bad('source image SHA-256 changed; render it again');
+    return loadXdf(xdfEntryFor(body.xdf)).then(function (xdf) {
+      if (body.expected_xdf_sha256 !== xdf.sha256) throw bad('XDF SHA-256 changed; render it again');
+      var prepared, diff;
+      try {
+        prepared = applyXdfChanges(xdf, source, body.changes, addressBaseOf(body));
+        diff = diffXdf(xdf, source, { bytes: prepared.bytes }, prepared.address_base);
+      } catch (exc) { throw bad(String(exc.message || exc)); }
+      return [200, {
+        simulated: true, research_only: true, writes_file: false,
+        source: { path: path, sha256: sourceHash, bytes: source.bytes.length, is_base_map: isBase },
+        xdf: { path: xdf.path, sha256: xdf.sha256, title: xdf.title },
+        address_base: prepared.address_base, changes: prepared.changes, diff: diff,
+        candidate_sha256: sha256(prepared.bytes), declared_checksums: xdf.checksums.slice(),
+        warning: 'Research preview only: fitment and checksum correctness are not established. No checksum was applied, no image was saved, and this is not authorization to program an ECU.',
+      }];
     });
   });
 
@@ -5488,7 +5556,7 @@
     md5: md5, sha256: sha256, checksums: checksums,
     entropyEstimate: entropyEstimate, looksLikeVectorTable: looksLikeVectorTable,
     hardwareStrings: hardwareStrings, parseXml: parseXml, parseXdf: parseXdf,
-    renderXdf: renderXdf, diffXdf: diffXdf, suggestAddressBase: suggestAddressBase,
+    renderXdf: renderXdf, diffXdf: diffXdf, applyXdfChanges: applyXdfChanges, suggestAddressBase: suggestAddressBase,
     parseCanText: parseCanText, analyseCanFrames: analyseCanFrames,
     tyreCircumference: tyreCircumference, renderTriggerWav: renderTriggerWav,
     buildReport: buildReport, reportText: reportText, verdicts: VERDICTS,

@@ -271,6 +271,34 @@ class TestTuningApi:
         assert status == 400
         assert "mismatched definitions" in payload["error"]
 
+    @pytest.mark.parametrize("make,model,year", [
+        ("Honda", "CBR600RR", 2005), ("Suzuki", "SV650AK7", 2007),
+        ("Kawasaki", "ER-6n", 2006), ("Triumph", "Daytona 675", 2012),
+    ])
+    def test_research_only_ecu_cannot_inherit_marelli_xdf(self, api, source, make, model, year):
+        api.ws.select(make=make, model=model, year=year)
+        status, result = api.post_maps_preview({
+            "path": source.path, "xdf": "5AM_fixture.xdf",
+            "changes": [{"kind": "table", "id": "fuel-main", "row": 0,
+                         "col": 0, "expected_raw": 10, "value": 2.0}],
+        })
+        assert status == 400
+        assert "no supported XDF fitment" in result["error"]
+
+    def test_unknown_source_ecu_cannot_inherit_marelli_xdf(self, api, source):
+        source.ecu_id = "unknown-controller"
+        from guzzionboard.tuning import TuningError
+        with pytest.raises(TuningError, match="source ECU family has no supported XDF"):
+            api._check_build_fitment(api._load_xdf("5AM_fixture.xdf"), source)
+
+    @pytest.mark.parametrize("source_id", ["unknown-controller", "honda_cbr600rr_2005", "7sm"])
+    def test_selected_ecu_cannot_hide_incompatible_source(self, api, source, source_id):
+        api.ws.select(ecu="5am")
+        source.ecu_id = source_id
+        from guzzionboard.tuning import TuningError
+        with pytest.raises(TuningError, match="source ECU"):
+            api._check_build_fitment(api._load_xdf("5AM_fixture.xdf"), source)
+
 
 def test_overlapping_items_cannot_silently_overwrite_edits(xdf, source):
     # A constant can alias a table (including just one byte of a wider value).
@@ -283,3 +311,36 @@ def test_overlapping_items_cannot_silently_overwrite_edits(xdf, source):
              "value": 0x0a15 * 25},
         ])
     assert source.data[0x20:0x22] == bytes([10, 20])
+
+
+def test_research_preview_supports_unrecognized_xdf_without_creating_files(tmp_path, monkeypatch, source):
+    import hashlib
+    from guzzionboard import server
+    from guzzionboard.workstation import Workstation
+    xdf_path = tmp_path / 'user_honda_definition.xdf'
+    xdf_path.write_text(XDF_TEXT.replace('</XDFFORMAT>', '<XDFCHECKSUM><title>Unknown</title></XDFCHECKSUM></XDFFORMAT>'))
+    xdf = XdfFile.from_file(xdf_path)
+    monkeypatch.setattr(server, 'available_xdfs', lambda directory=None: [xdf])
+    api = server.Api(Workstation(session_dir=tmp_path / 'sessions'))
+    api.ws.select(make='Honda', model='CBR600RR', year=2005)
+    body = {'path': source.path, 'xdf': xdf_path.name,
+            'expected_source_sha256': source.sha256,
+            'expected_xdf_sha256': hashlib.sha256(xdf_path.read_bytes()).hexdigest(),
+            'changes': [{'kind': 'table', 'id': 'fuel-main', 'row': 0, 'col': 1,
+                         'expected_raw': 20, 'value': 2.5}]}
+    files_before = sorted(p.name for p in tmp_path.iterdir())
+    status, report = api.post_maps_research_preview(body)
+    assert status == 200
+    assert report['research_only'] and not report['writes_file']
+    assert report['declared_checksums'] == ['Unknown']
+    assert report['changes'][0]['after_raw'] == 25
+    assert not report['diff']['identical']
+    assert 'No checksum was applied' in report['warning']
+    assert sorted(p.name for p in tmp_path.iterdir()) == files_before
+    status, _ = api.post_maps_preview(body)
+    assert status == 400, 'research preview does not open the build route'
+    for key in ('expected_source_sha256', 'expected_xdf_sha256'):
+        status, report = api.post_maps_research_preview({**body, key: '0' * 64})
+        assert status == 400 and 'SHA-256 changed' in report['error']
+    status, report = api.post_maps_research_preview({**body, 'changes': [{**body['changes'][0], 'expected_raw': 1}]})
+    assert status == 400 and 'source changed' in report['error']

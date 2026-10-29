@@ -8,7 +8,10 @@
   "GuzziTek ECU master list (guzzitek.org, 2011)",
   "Guzzitek ECU master list and La Guzzitheque injection bible (guzzitek.org)",
   "TuneECU Aprilia and Ducati tune lists (tuneecu.net)",
-  "andreibaw/Honda_K-Line_KWP2000, commit f3bd42ff438e840e4da3802dd5038a195f3d67be: author-tested 2005 Honda CBR600RR; offline response research only"
+  "andreibaw/Honda_K-Line_KWP2000, commit f3bd42ff438e840e4da3802dd5038a195f3d67be: author-tested 2005 Honda CBR600RR; offline response research only",
+  "https://github.com/gabrielerandazzo/iKawa/tree/79eb9049d13037be6fd91b8a1d1acd164ca70104: Kawasaki ER-6n 2006 author-tested read-only KDS reference",
+  "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce: Suzuki SV650AK7 2007 author-tested reference, offline research only",
+  "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32: Triumph Daytona 675 2012 author-tested read-only OBD reference"
  ],
  "vehicles": [
   {
@@ -1317,6 +1320,42 @@
    "ecu": "honda_cbr600rr_2005",
    "confidence": "inferred",
    "notes": "Research entry for the author-tested 2005 CBR600RR only; exact ECU identity and fitment are unverified. Offline response decoding only, no physical diagnostics or Honda simulator."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "ER-6n",
+   "year_from": 2006,
+   "year_to": 2006,
+   "ecu": "kawasaki_er6n_2006",
+   "confidence": "inferred",
+   "notes": "iKawa author reports testing this model. Read-only KDS adapter; GuzziOnBoard has not hardware-tested its implementation. ECU identity and market unconfirmed; no simulator, DTCs, controls or programming."
+  },
+  {
+   "make": "Suzuki",
+   "model": "SV650AK7",
+   "year_from": 2007,
+   "year_to": 2007,
+   "ecu": "suzuki_sv650ak7_2007",
+   "confidence": "inferred",
+   "notes": "Author-reported fitment, not independently validated. ECU identity unconfirmed; offline capture analysis only. No physical diagnostic or simulator session."
+  },
+  {
+   "make": "Triumph",
+   "model": "Daytona 675",
+   "year_from": 2012,
+   "year_to": 2012,
+   "ecu": "triumph_daytona_675_2012",
+   "confidence": "inferred",
+   "notes": "daytona-kline author tested slow init, OBD and fault reads on one 2012 Daytona. Our implementation is not hardware-tested. Gauge formulas have not been compared with the dash. No ECU unlock, clear, control, simulator or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR1000RR (US)",
+   "year_from": 2012,
+   "year_to": 2012,
+   "ecu": "honda_cbr1000rr_2012_us",
+   "confidence": "inferred",
+   "notes": "HondaECU repository: 2012 US XDF; source image 38770-MGP-A01 2012–2013. Offline build is locked to the exact source and definition; no live Honda sessions or programming."
   }
  ]
 }

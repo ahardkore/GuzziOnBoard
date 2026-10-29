@@ -19,13 +19,13 @@ by discovery.
 
 ## Calibration projects
 
-The map editor exports schema 2 JSON. Render the original source and the same
+The map editor exports schema 3 JSON with a recorded XDF layout revision. Render the original source and the same
 XDF first, then import the project. The image SHA-256, XDF filename and SHA-256,
 and image address base must match, as must each edited cell's original raw
 value. Duplicate changes are rejected. The stored plan is not a firmware image,
 and importing does not bypass validation, preview, checksum-provider selection,
-fitment, source, evidence or programming gates. A schema 1 project cannot be
-safely verified against its definition: recreate and review it as schema 2.
+fitment, source, evidence or programming gates. Schema 1 and 2 projects may have been interpreted with the previous layout
+semantics and cannot be safely imported: recreate and review them as schema 3.
 
 Projects retain explicit trace mappings, staged changes, evidence references,
 checksum provider and recommendation-package references. If an offline CSV was

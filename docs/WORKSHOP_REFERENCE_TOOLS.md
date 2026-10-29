@@ -37,10 +37,13 @@ a complete validator or importer for all schema extensions. Files are limited
 to 2 MiB, 100 models and 500 tasks per model.
 
 The upstream data is CC BY-SA 4.0, separate from this application's license.
-No upstream data is bundled or copied into this project. The selected file is
-processed only in the user's browser session; anyone redistributing the data
-must check its attribution and share-alike terms. The upstream repository does
-not currently provide a Moto Guzzi entry.
+Five unchanged Honda, KTM, Royal Enfield and Suzuki templates are bundled;
+see `web/service-templates/README.md` for attribution, hashes and terms.
+The upstream Yamaha file is excluded because its model label and manual reference
+conflict. Open-ended year claims and all task details still require confirmation
+against the correct manufacturer manual. Imported files and selected templates
+are processed locally in the browser session. The upstream repository does not
+provide a Moto Guzzi entry.
 
 ## Search a local manual text
 

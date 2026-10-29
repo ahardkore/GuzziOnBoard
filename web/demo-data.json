@@ -15,9 +15,9 @@
     "applied": false,
     "status": {}
    },
-   "ecu_count": 12,
-   "vehicle_count": 119,
-   "model_count": 111,
+   "ecu_count": 16,
+   "vehicle_count": 123,
+   "model_count": 115,
    "year_range": [
     1992,
     2026
@@ -713,6 +713,37 @@
      "field_confirmation": {}
     },
     {
+     "id": "honda_cbr1000rr_2012_us",
+     "family": "CBR1000RR-2012-US",
+     "display_name": "Honda CBR1000RR 2012 US (offline tuning only)",
+     "transport": "kline",
+     "confidence": "inferred",
+     "years": "2012",
+     "notes": "HondaECU repository supplies the 2012 US XDF and a 2012–2013 38770-MGP-A01 stock image. The offline builder accepts only the exact source-image and XDF hashes. ECU hardware identity and physical programming are not established by a file hash.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://github.com/roccofz1/HondaECU/tree/dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Offline image editing does not implement ECU programming."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "offline-tuning-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented.",
+      "simulator_supported": false
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "honda_cbr600rr_2005",
      "family": "2005 Honda CBR600RR research",
      "display_name": "Honda CBR600RR 2005 (offline research only)",
@@ -737,6 +768,51 @@
       "physical_supported": false,
       "physical_blocked_reason": "Honda K-Line transport and diagnostics are not implemented or validated in this application.",
       "simulator_supported": false
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "kawasaki_er6n_2006",
+     "family": "2006 Kawasaki ER-6n KDS (source-reported)",
+     "display_name": "Kawasaki ER-6n 2006 (read-only KDS)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "2006",
+     "notes": "Read-only KDS based on iKawa, whose author reports testing a 2006 ER-6n. GuzziOnBoard has not tested this implementation on a motorcycle. ECU part number, software and market unknown. No identification, DTCs, controls, memory access or simulator.",
+     "capabilities": [
+      "live"
+     ],
+     "effective_capabilities": [
+      "live"
+     ],
+     "sources": [
+      "https://github.com/gabrielerandazzo/iKawa/tree/79eb9049d13037be6fd91b8a1d1acd164ca70104"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Research-only profile; programming and checksum verification are not implemented."
+     },
+     "kline": {
+      "baud": 10250,
+      "init": "kawasaki-er6n",
+      "address": 17,
+      "ecu_address": 17,
+      "tester_address": 241,
+      "fast_functional": false,
+      "addressed": true,
+      "inter_byte_delay": 0.005
+     },
+     "can": {},
+     "session": {
+      "protocol": "kawasaki-er6n",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "tester_present_interval": 2.0,
+      "physical_evidence_note": "iKawa reports testing one 2006 ER-6n; this implementation has only synthetic protocol tests."
      },
      "actuators": [],
      "routines": [],
@@ -909,6 +985,80 @@
      "routines": [],
      "capability_confidence": {},
      "field_confirmation": {}
+    },
+    {
+     "id": "suzuki_sv650ak7_2007",
+     "family": "2007 Suzuki SV650AK7 research",
+     "display_name": "Suzuki SV650AK7 2007 (offline research only)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "2007",
+     "notes": "Research placeholder, not a confirmed ECU family, market, firmware or fitment. A third-party project reports testing one vehicle; only offline supplied response analysis is implemented. No diagnostic communication, memory access or simulator.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Research-only profile; programming and checksum verification are not implemented."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "research-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "Suzuki diagnostic transport and protocol are not implemented or validated in this application.",
+      "simulator_supported": false
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "triumph_daytona_675_2012",
+     "family": "2012 Triumph Daytona 675 Keihin (source-reported)",
+     "display_name": "Triumph Daytona 675 2012 (read-only OBD)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "2012",
+     "notes": "Based on daytona-kline, tested by its author on one 2012 bike. GuzziOnBoard has not hardware-tested this implementation. SAE gauge formulas were not compared to the dash by the source. ECU identity, market and firmware unknown. Only supported mode 01 PIDs and stored mode 03 DTCs; no clears, unlock, controls, memory or simulator.",
+     "capabilities": [
+      "live",
+      "dtc_read"
+     ],
+     "effective_capabilities": [
+      "live",
+      "dtc_read"
+     ],
+     "sources": [
+      "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Research-only profile; programming and checksum verification are not implemented."
+     },
+     "kline": {
+      "baud": 10400,
+      "init": "triumph-daytona-2012",
+      "address": 51,
+      "inter_byte_delay": 0.005
+     },
+     "can": {},
+     "session": {
+      "protocol": "triumph-daytona-2012",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "tester_present_interval": 2.0,
+      "physical_evidence_note": "daytona-kline reports testing slow init and OBD on one 2012 Daytona 675. This port is synthetic-test-only; gauge formulas are not dash-verified."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
     }
    ]
   },
@@ -916,7 +1066,10 @@
    "Aprilia",
    "Ducati",
    "Honda",
-   "Moto Guzzi"
+   "Kawasaki",
+   "Moto Guzzi",
+   "Suzuki",
+   "Triumph"
   ],
   "models": [
    {
@@ -1252,6 +1405,24 @@
       "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
       "confidence": "documented",
       "label": "Breva 850 (2006-2011)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "CBR1000RR (US)",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "CBR1000RR (US)",
+      "year_from": 2012,
+      "year_to": 2012,
+      "ecu": "honda_cbr1000rr_2012_us",
+      "displacement": "",
+      "tps": "",
+      "notes": "HondaECU repository: 2012 US XDF; source image 38770-MGP-A01 2012–2013. Offline build is locked to the exact source and definition; no live Honda sessions or programming.",
+      "confidence": "inferred",
+      "label": "CBR1000RR (US) (2012-2012)",
       "can": {}
      }
     ]
@@ -1602,6 +1773,24 @@
     ]
    },
    {
+    "model": "Daytona 675",
+    "variants": [
+     {
+      "make": "Triumph",
+      "model": "Daytona 675",
+      "year_from": 2012,
+      "year_to": 2012,
+      "ecu": "triumph_daytona_675_2012",
+      "displacement": "",
+      "tps": "",
+      "notes": "daytona-kline author tested slow init, OBD and fault reads on one 2012 Daytona. Our implementation is not hardware-tested. Gauge formulas have not been compared with the dash. No ECU unlock, clear, control, simulator or programming.",
+      "confidence": "inferred",
+      "label": "Daytona 675 (2012-2012)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Daytona RS",
     "variants": [
      {
@@ -1615,6 +1804,24 @@
       "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
       "confidence": "documented",
       "label": "Daytona RS (1996-2001)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "ER-6n",
+    "variants": [
+     {
+      "make": "Kawasaki",
+      "model": "ER-6n",
+      "year_from": 2006,
+      "year_to": 2006,
+      "ecu": "kawasaki_er6n_2006",
+      "displacement": "",
+      "tps": "",
+      "notes": "iKawa author reports testing this model. Read-only KDS adapter; GuzziOnBoard has not hardware-tested its implementation. ECU identity and market unconfirmed; no simulator, DTCs, controls or programming.",
+      "confidence": "inferred",
+      "label": "ER-6n (2006-2006)",
       "can": {}
      }
     ]
@@ -2227,6 +2434,24 @@
       "notes": "ST4S. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "ST4 S (2002-2004)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "SV650AK7",
+    "variants": [
+     {
+      "make": "Suzuki",
+      "model": "SV650AK7",
+      "year_from": 2007,
+      "year_to": 2007,
+      "ecu": "suzuki_sv650ak7_2007",
+      "displacement": "",
+      "tps": "",
+      "notes": "Author-reported fitment, not independently validated. ECU identity unconfirmed; offline capture analysis only. No physical diagnostic or simulator session.",
+      "confidence": "inferred",
+      "label": "SV650AK7 (2007-2007)",
       "can": {}
      }
     ]
@@ -3855,6 +4080,34 @@
     "year_from": 2005,
     "year_to": 2005,
     "ecu": "honda_cbr600rr_2005"
+   },
+   {
+    "make": "Kawasaki",
+    "model": "ER-6n",
+    "year_from": 2006,
+    "year_to": 2006,
+    "ecu": "kawasaki_er6n_2006"
+   },
+   {
+    "make": "Suzuki",
+    "model": "SV650AK7",
+    "year_from": 2007,
+    "year_to": 2007,
+    "ecu": "suzuki_sv650ak7_2007"
+   },
+   {
+    "make": "Triumph",
+    "model": "Daytona 675",
+    "year_from": 2012,
+    "year_to": 2012,
+    "ecu": "triumph_daytona_675_2012"
+   },
+   {
+    "make": "Honda",
+    "model": "CBR1000RR (US)",
+    "year_from": 2012,
+    "year_to": 2012,
+    "ecu": "honda_cbr1000rr_2012_us"
    }
   ],
   "ecus": [
@@ -5278,6 +5531,38 @@
     "parameters": []
    },
    {
+    "id": "honda_cbr1000rr_2012_us",
+    "family": "CBR1000RR-2012-US",
+    "display_name": "Honda CBR1000RR 2012 US (offline tuning only)",
+    "transport": "kline",
+    "confidence": "inferred",
+    "years": "2012",
+    "notes": "HondaECU repository supplies the 2012 US XDF and a 2012–2013 38770-MGP-A01 stock image. The offline builder accepts only the exact source-image and XDF hashes. ECU hardware identity and physical programming are not established by a file hash.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://github.com/roccofz1/HondaECU/tree/dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Offline image editing does not implement ECU programming."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "offline-tuning-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented.",
+     "simulator_supported": false
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
     "id": "honda_cbr600rr_2005",
     "family": "2005 Honda CBR600RR research",
     "display_name": "Honda CBR600RR 2005 (offline research only)",
@@ -5308,6 +5593,165 @@
     "capability_confidence": {},
     "field_confirmation": {},
     "parameters": []
+   },
+   {
+    "id": "kawasaki_er6n_2006",
+    "family": "2006 Kawasaki ER-6n KDS (source-reported)",
+    "display_name": "Kawasaki ER-6n 2006 (read-only KDS)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "2006",
+    "notes": "Read-only KDS based on iKawa, whose author reports testing a 2006 ER-6n. GuzziOnBoard has not tested this implementation on a motorcycle. ECU part number, software and market unknown. No identification, DTCs, controls, memory access or simulator.",
+    "capabilities": [
+     "live"
+    ],
+    "effective_capabilities": [
+     "live"
+    ],
+    "sources": [
+     "https://github.com/gabrielerandazzo/iKawa/tree/79eb9049d13037be6fd91b8a1d1acd164ca70104"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Research-only profile; programming and checksum verification are not implemented."
+    },
+    "kline": {
+     "baud": 10250,
+     "init": "kawasaki-er6n",
+     "address": 17,
+     "ecu_address": 17,
+     "tester_address": 241,
+     "fast_functional": false,
+     "addressed": true,
+     "inter_byte_delay": 0.005
+    },
+    "can": {},
+    "session": {
+     "protocol": "kawasaki-er6n",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "tester_present_interval": 2.0,
+     "physical_evidence_note": "iKawa reports testing one 2006 ER-6n; this implementation has only synthetic protocol tests."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": [
+     {
+      "key": "rpm",
+      "name": "Engine speed",
+      "local_id": 9,
+      "request_ids": [],
+      "unit": "rpm",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "coolant",
+      "name": "Coolant temperature",
+      "local_id": 6,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "air_temp",
+      "name": "Intake air temperature",
+      "local_id": 7,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "battery",
+      "name": "Battery voltage",
+      "local_id": 10,
+      "request_ids": [],
+      "unit": "V",
+      "group": "engine",
+      "digits": 2,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "gear",
+      "name": "Gear / status",
+      "local_id": 11,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "speed",
+      "name": "Speed",
+      "local_id": 12,
+      "request_ids": [],
+      "unit": "km/h",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "air_pressure",
+      "name": "Air pressure",
+      "local_id": 5,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "ambient_pressure",
+      "name": "Atmospheric pressure",
+      "local_id": 8,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     }
+    ]
    },
    {
     "id": "mana_tcu",
@@ -5732,6 +6176,209 @@
     "capability_confidence": {},
     "field_confirmation": {},
     "parameters": []
+   },
+   {
+    "id": "suzuki_sv650ak7_2007",
+    "family": "2007 Suzuki SV650AK7 research",
+    "display_name": "Suzuki SV650AK7 2007 (offline research only)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "2007",
+    "notes": "Research placeholder, not a confirmed ECU family, market, firmware or fitment. A third-party project reports testing one vehicle; only offline supplied response analysis is implemented. No diagnostic communication, memory access or simulator.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Research-only profile; programming and checksum verification are not implemented."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "research-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "Suzuki diagnostic transport and protocol are not implemented or validated in this application.",
+     "simulator_supported": false
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
+    "id": "triumph_daytona_675_2012",
+    "family": "2012 Triumph Daytona 675 Keihin (source-reported)",
+    "display_name": "Triumph Daytona 675 2012 (read-only OBD)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "2012",
+    "notes": "Based on daytona-kline, tested by its author on one 2012 bike. GuzziOnBoard has not hardware-tested this implementation. SAE gauge formulas were not compared to the dash by the source. ECU identity, market and firmware unknown. Only supported mode 01 PIDs and stored mode 03 DTCs; no clears, unlock, controls, memory or simulator.",
+    "capabilities": [
+     "live",
+     "dtc_read"
+    ],
+    "effective_capabilities": [
+     "live",
+     "dtc_read"
+    ],
+    "sources": [
+     "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Research-only profile; programming and checksum verification are not implemented."
+    },
+    "kline": {
+     "baud": 10400,
+     "init": "triumph-daytona-2012",
+     "address": 51,
+     "inter_byte_delay": 0.005
+    },
+    "can": {},
+    "session": {
+     "protocol": "triumph-daytona-2012",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "tester_present_interval": 2.0,
+     "physical_evidence_note": "daytona-kline reports testing slow init and OBD on one 2012 Daytona 675. This port is synthetic-test-only; gauge formulas are not dash-verified."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": [
+     {
+      "key": "rpm",
+      "name": "Engine speed (unverified)",
+      "local_id": 12,
+      "request_ids": [],
+      "unit": "rpm",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "speed",
+      "name": "Speed (unverified)",
+      "local_id": 13,
+      "request_ids": [],
+      "unit": "km/h",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "tps",
+      "name": "Throttle (unverified)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "coolant",
+      "name": "Coolant temperature (unverified)",
+      "local_id": 5,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "airtemp",
+      "name": "Intake temperature (unverified)",
+      "local_id": 15,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "map",
+      "name": "Manifold pressure (unverified)",
+      "local_id": 11,
+      "request_ids": [],
+      "unit": "kPa",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "load",
+      "name": "Engine load (unverified)",
+      "local_id": 4,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "timing",
+      "name": "Timing advance (unverified)",
+      "local_id": 14,
+      "request_ids": [],
+      "unit": "°",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "trim",
+      "name": "Short-term fuel trim (unverified)",
+      "local_id": 6,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     }
+    ]
    }
   ]
  },
@@ -7282,6 +7929,58 @@
    "confidence": "inferred",
    "label": "CBR600RR (2005-2005)",
    "can": {}
+  },
+  {
+   "make": "Kawasaki",
+   "model": "ER-6n",
+   "year_from": 2006,
+   "year_to": 2006,
+   "ecu": "kawasaki_er6n_2006",
+   "displacement": "",
+   "tps": "",
+   "notes": "iKawa author reports testing this model. Read-only KDS adapter; GuzziOnBoard has not hardware-tested its implementation. ECU identity and market unconfirmed; no simulator, DTCs, controls or programming.",
+   "confidence": "inferred",
+   "label": "ER-6n (2006-2006)",
+   "can": {}
+  },
+  {
+   "make": "Suzuki",
+   "model": "SV650AK7",
+   "year_from": 2007,
+   "year_to": 2007,
+   "ecu": "suzuki_sv650ak7_2007",
+   "displacement": "",
+   "tps": "",
+   "notes": "Author-reported fitment, not independently validated. ECU identity unconfirmed; offline capture analysis only. No physical diagnostic or simulator session.",
+   "confidence": "inferred",
+   "label": "SV650AK7 (2007-2007)",
+   "can": {}
+  },
+  {
+   "make": "Triumph",
+   "model": "Daytona 675",
+   "year_from": 2012,
+   "year_to": 2012,
+   "ecu": "triumph_daytona_675_2012",
+   "displacement": "",
+   "tps": "",
+   "notes": "daytona-kline author tested slow init, OBD and fault reads on one 2012 Daytona. Our implementation is not hardware-tested. Gauge formulas have not been compared with the dash. No ECU unlock, clear, control, simulator or programming.",
+   "confidence": "inferred",
+   "label": "Daytona 675 (2012-2012)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "CBR1000RR (US)",
+   "year_from": 2012,
+   "year_to": 2012,
+   "ecu": "honda_cbr1000rr_2012_us",
+   "displacement": "",
+   "tps": "",
+   "notes": "HondaECU repository: 2012 US XDF; source image 38770-MGP-A01 2012–2013. Offline build is locked to the exact source and definition; no live Honda sessions or programming.",
+   "confidence": "inferred",
+   "label": "CBR1000RR (US) (2012-2012)",
+   "can": {}
   }
  ],
  "profiles": {
@@ -8799,6 +9498,28 @@
     ]
    }
   },
+  "honda_cbr1000rr_2012_us": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "CBR1000RR-2012-USHW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented.",
+    "simulator_supported": false
+   },
+   "identification": {
+    "available": false
+   }
+  },
   "honda_cbr600rr_2005": {
    "parameters": {},
    "actuators": {},
@@ -8816,6 +9537,134 @@
     "physical_supported": false,
     "physical_blocked_reason": "Honda K-Line transport and diagnostics are not implemented or validated in this application.",
     "simulator_supported": false
+   },
+   "identification": {
+    "available": false
+   }
+  },
+  "kawasaki_er6n_2006": {
+   "parameters": {
+    "rpm": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 9,
+     "states": {}
+    },
+    "coolant": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 6,
+     "states": {}
+    },
+    "air_temp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 7,
+     "states": {}
+    },
+    "battery": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 2,
+     "dead": false,
+     "local_id": 10,
+     "states": {}
+    },
+    "gear": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 11,
+     "states": {}
+    },
+    "speed": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 12,
+     "states": {}
+    },
+    "air_pressure": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 5,
+     "states": {}
+    },
+    "ambient_pressure": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 8,
+     "states": {}
+    }
+   },
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "2006KawasakiER-6nKDS(source-reported)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "kawasaki-er6n",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "iKawa reports testing one 2006 ER-6n; this implementation has only synthetic protocol tests."
    },
    "identification": {
     "available": false
@@ -9177,6 +10026,169 @@
       "encoding": "ascii"
      }
     ]
+   }
+  },
+  "suzuki_sv650ak7_2007": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "2007SuzukiSV650AK7researchHW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "research-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Suzuki diagnostic transport and protocol are not implemented or validated in this application.",
+    "simulator_supported": false
+   },
+   "identification": {
+    "available": false
+   }
+  },
+  "triumph_daytona_675_2012": {
+   "parameters": {
+    "rpm": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.25,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 12,
+     "states": {}
+    },
+    "speed": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 13,
+     "states": {}
+    },
+    "tps": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.39215686274509803,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "coolant": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": -40.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 5,
+     "states": {}
+    },
+    "airtemp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": -40.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 15,
+     "states": {}
+    },
+    "map": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 11,
+     "states": {}
+    },
+    "load": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.39215686274509803,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 4,
+     "states": {}
+    },
+    "timing": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.5,
+     "bias": -64.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 14,
+     "states": {}
+    },
+    "trim": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.78125,
+     "bias": -100.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 6,
+     "states": {}
+    }
+   },
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "2012TriumphDaytona675Keihin(source-reported)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "triumph-daytona-2012",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "daytona-kline reports testing slow init and OBD on one 2012 Daytona 675. This port is synthetic-test-only; gauge formulas are not dash-verified."
+   },
+   "identification": {
+    "available": false
    }
   }
  },
@@ -12261,6 +13273,61 @@
    "catalogued": true,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Gilera_GP800_V1.05.zip",
    "url": "../guzzionboard/xdfs/gilera/5AM_Gilera_GP800_V1.05.xdf"
+  },
+  {
+   "title": "CBR1000RR 2012 US",
+   "path": "guzzionboard/xdfs/honda/CBR1000RR_2012_US.xdf",
+   "version": "1.00",
+   "tables": 38,
+   "constants": 0,
+   "unsupported": 1,
+   "region_size": 262143,
+   "categories": [
+    "Fan Temp",
+    "Fuel",
+    "Group 1",
+    "Group 2",
+    "Group 3",
+    "Group U1",
+    "Group U1",
+    "Group U2",
+    "Group U3",
+    "Group U4",
+    "Group U5",
+    "Group U6",
+    "Idle RPM",
+    "Ignition",
+    "Injector Balance",
+    "Limiters",
+    "Lower",
+    "MAP vs RPM",
+    "MS0",
+    "MS1",
+    "Settings",
+    "Steering Damper",
+    "Steering Damper2",
+    "TPS vs RPM",
+    "Unknown",
+    "Upper"
+   ],
+   "filename": "CBR1000RR_2012_US.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "CBR1000RR-2012-US",
+   "label": "Honda CBR1000RR 2012 US (HondaECU)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "Honda CBR1000RR 2012 US"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "source_url": "https://github.com/roccofz1/HondaECU/blob/dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109/definitions/xdf/CBR1000RR_2012_US.xdf",
+   "url": "../guzzionboard/xdfs/honda/CBR1000RR_2012_US.xdf"
   },
   {
    "title": "Husqvarna MBC1",

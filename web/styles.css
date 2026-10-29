@@ -943,3 +943,7 @@ textarea.mono-out { background: var(--bg-2); color: var(--muted); }
 #manualTextOut p { overflow-wrap: anywhere; }
 
 #hondaOut { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
+
+#multiResearchOut { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
+
+#yamahaOut { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }

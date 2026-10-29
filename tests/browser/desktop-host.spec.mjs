@@ -8,8 +8,8 @@
 // the installed app.
 
 import { test, expect } from '@playwright/test';
-import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, readdirSync, existsSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 const EXPORTS = join(process.cwd(), '.desktop-test-data', 'exports');
 
@@ -299,4 +299,162 @@ test('Honda research is selectable but cannot open a physical or simulated sessi
   await page.locator('#hondaDecode').click();
   await expect(page.locator('#hondaOut')).toContainText('Checksum mismatch; not decoded.');
   expect(page.failures.filter((error) => !/server responded with a status of (400|501)/.test(error))).toEqual([]);
+});
+
+test('desktop exposes multi-brand offline research and blocks hardware sessions', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+  await expect(page.locator('#makeSelect option[value="Suzuki"]')).toHaveCount(1);
+  await expect(page.locator('#makeSelect option[value="Kawasaki"]')).toHaveCount(1);
+  await expect(page.locator('#makeSelect option[value="Triumph"]')).toHaveCount(1);
+  await page.selectOption('#makeSelect', 'Kawasaki');
+  await page.selectOption('#modelSelect', 'ER-6n');
+  await page.selectOption('#yearSelect', '2006');
+  await expect(page.locator('#resolveResult')).toContainText('read-only KDS');
+  const result = await page.evaluate(async () => {
+    const post = async (url, body) => {
+      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      return { status: r.status, body: await r.json() };
+    };
+    return {
+      select: await post('/api/select', { make: 'Suzuki', model: 'SV650AK7', year: 2007, transport: 'kline' }),
+      connect: await post('/api/connect', { mode: 'read_only' }),
+    };
+  });
+  expect(result.select.status).toBe(200);
+  expect(result.select.body.ecu.capabilities).toEqual([]);
+  expect(result.connect.status).toBe(501);
+  expect(result.connect.body.error).toContain('no port was opened');
+  await page.locator('[data-view="tools"]').click();
+  await page.selectOption('#multiResearchProfile', 'bmw_r1300gs');
+  await page.locator('#multiResearchFrames').fill('10C#00003E');
+  await page.locator('#multiResearchDecode').click();
+  await expect(page.locator('#multiResearchOut')).toContainText('engine speed candidate: 3968 rpm');
+  const posts = [];
+  page.on('request', (req) => { if (req.method() === 'POST') posts.push(req.url()); });
+  const synthetic = Buffer.alloc(0x100000);
+  synthetic.write('ABCDY123', synthetic.length - 16, 'ascii');
+  synthetic[synthetic.length - 6] = 0x64; synthetic[synthetic.length - 5] = 0x02;
+  let sum = 0;
+  for (let i = 0; i < synthetic.length; i += 2) sum = (sum + synthetic.readUInt16BE(i)) & 0xffff;
+  synthetic.writeUInt16BE((0x5aa5 - sum) & 0xffff, synthetic.length - 8);
+  await page.selectOption('#yamahaVariant', 'mt_1m');
+  await page.locator('#yamahaImage').setInputFiles({ name: 'synthetic.bin', mimeType: 'application/octet-stream', buffer: synthetic });
+  await page.locator('#yamahaInspect').click();
+  await expect(page.locator('#yamahaOut')).toContainText('Sum matches source target');
+  await expect(page.locator('#yamahaOut')).toContainText('not flash or safety approval');
+  expect(posts).toEqual([]);
+  expect(page.failures.filter((error) => !/server responded with a status of 501/.test(error))).toEqual([]);
+});
+
+test('desktop serves the bundled licensed service references', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  await page.locator('#workshopService summary').click();
+  await page.locator('#bundledServiceTemplate').selectOption('suzuki_dr650.json');
+  await expect(page.locator('#serviceTemplateOut')).toContainText('CC BY-SA 4.0');
+  await page.locator('#serviceTemplateModel').selectOption('0');
+  await expect(page.locator('#serviceTemplateOut')).toContainText('Suzuki DR650');
+  await expect(page.locator('#serviceUseIntervals')).toBeDisabled();
+  expect(page.failures).toEqual([]);
+});
+
+test('desktop includes CFMoto offline image inspection', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  await page.locator('#mseImage').setInputFiles({ name: 'short.bin', mimeType: 'application/octet-stream', buffer: Buffer.alloc(10) });
+  await page.locator('#mseInspect').click();
+  await expect(page.locator('#mseOut')).toContainText('Image must be between');
+  expect(page.failures).toEqual([]);
+});
+
+test('desktop exposes Triumph read-only OBD without inventing status bytes', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+  await page.selectOption('#makeSelect', 'Triumph');
+  await page.selectOption('#modelSelect', 'Daytona 675');
+  await page.selectOption('#yearSelect', '2012');
+  await expect(page.locator('#resolveResult')).toContainText('read-only OBD');
+  const selected = await page.evaluate(async () => {
+    const r = await fetch('/api/select', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ make: 'Triumph', model: 'Daytona 675', year: 2012, transport: 'simulator' }) });
+    return r.json();
+  });
+  expect(selected.ecu.capabilities).toEqual(['live', 'dtc_read']);
+  expect(selected.ecu.session.simulator_supported).toBe(false);
+  await page.route('**/api/dtcs', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+    dtcs: [{ code: 'P0122', description: '', status_byte: null, kind: 'OBD stored', status: 'stored', warning_indicator: false }],
+    format: 'obd-stored', note: 'Stored codes only; pending codes were not read.', context: {},
+    clear: { allowed: false, checks: [] },
+  }) }));
+  await page.evaluate(() => readDtcs());
+  await expect(page.locator('#faultList')).toContainText('P0122');
+  await expect(page.locator('#faultList')).toContainText('status byte not supplied');
+  await expect(page.locator('#faultList')).toContainText('pending codes were not read');
+  expect(page.failures).toEqual([]);
+});
+
+
+test('desktop previews staged edits with an uncatalogued user XDF without writing an image', async ({ page }) => {
+  const root = resolve('.desktop-test-data');
+  const definitions = join(root, 'xdfs');
+  mkdirSync(definitions, { recursive: true });
+  const xdfPath = join(definitions, 'Honda_synthetic_research.xdf');
+  const imagePath = join(root, 'research-fixture.bin');
+  const xdf = `<XDFFORMAT><XDFHEADER><deftitle>Synthetic Honda research</deftitle>
+    <DEFAULTS signed="1" lsbfirst="0"/><REGION size="0x100"/></XDFHEADER>
+    <XDFTABLE uniqueid="cells"><title>Research table</title>
+    <XDFAXIS id="x"><indexcount>2</indexcount></XDFAXIS>
+    <XDFAXIS id="y"><indexcount>2</indexcount></XDFAXIS>
+    <XDFAXIS id="z"><EMBEDDEDDATA mmedtypeflags="0x06" mmedaddress="0x20"
+      mmedelementsizebits="16" mmedrowcount="2" mmedcolcount="2"/><MATH equation="X"/></XDFAXIS>
+    </XDFTABLE><XDFCHECKSUM><title>Unknown checksum</title></XDFCHECKSUM></XDFFORMAT>`;
+  const image = Buffer.alloc(256);
+  [1, 3, 2, 4].forEach((value, i) => image.writeUInt16LE(value, 0x20 + i * 2));
+  writeFileSync(xdfPath, xdf); writeFileSync(imagePath, image);
+  await page.goto('/');
+  await page.locator('[data-view="firmware"]').click();
+  await page.locator('#xdfOnlyFitting').uncheck();
+  await page.locator('#mapsRefreshBtn').click();
+  await expect(page.locator('#xdfSelect option[value="Honda_synthetic_research.xdf"]')).toHaveCount(1);
+  await page.locator('#xdfSelect').selectOption('Honda_synthetic_research.xdf');
+  await page.locator('#mapsImagePath').fill(imagePath);
+  await page.locator('#mapsRenderBtn').click();
+  if (await page.locator('#modal').isVisible()) await page.locator('#modalConfirm').click();
+  const cell = page.locator('[data-map-kind="table"][data-map-id="cells"][data-map-row="0"][data-map-col="1"]');
+  await expect(cell).toHaveAttribute('data-map-value', '2');
+  await cell.dblclick();
+  await page.locator('#mapEditValue').fill('50');
+  await page.locator('#modalConfirm').click();
+  await expect(page.locator('#mapResearchPreviewBtn')).toBeEnabled();
+  await expect(page.locator('#mapBuildBtn')).toBeDisabled(); // declared checksum is unhandled
+  await page.locator('#mapResearchPreviewBtn').click();
+  await expect(page.locator('#mapResearchPreviewOut')).toContainText('Research preview · no image saved');
+  await expect(page.locator('#mapResearchPreviewOut')).toContainText('Unknown checksum');
+  await expect(page.locator('#mapResearchPreviewOut')).toContainText('No checksum was applied');
+  expect(readFileSync(imagePath)).toEqual(image);
+  await page.locator('#mapClearChangesBtn').click();
+  await expect(page.locator('#mapResearchPreviewOut')).toBeEmpty();
+  // Firmware panel asks for unavailable disconnected-session state.
+  expect(page.failures.filter((error) => !/server responded with a status of 409/.test(error))).toEqual([]);
+});
+
+test('desktop selects the 2012 US Honda for offline maps without opening a session', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+  await page.selectOption('#makeSelect', 'Honda');
+  await page.selectOption('#modelSelect', 'CBR1000RR (US)');
+  await page.selectOption('#yearSelect', '2012');
+  await expect(page.locator('#selectOfflineBtn')).toBeEnabled();
+  await page.locator('#selectOfflineBtn').click();
+  await expect(page.locator('#firmware')).toBeVisible();
+  await expect(page.locator('#connTitle')).toHaveText('Not connected');
+  await expect(page.locator('#xdfSelect')).toHaveValue('CBR1000RR_2012_US.xdf');
+  await expect(page.locator('#xdfFitNote')).toContainText('ECU identity not established');
+  await expect(page.locator('#mapChecksumProvider option[value="honda-cbr1000rr-2012-us-a01-v1"]')).toHaveCount(1);
+  await page.locator('#mapChecksumProvider').selectOption('honda-cbr1000rr-2012-us-a01-v1');
+  await expect(page.locator('#mapChecksumNote')).toContainText('exact XDF and original image SHA-256');
+  const status = await page.evaluate(async () => (await fetch('/api/status')).json());
+  expect(status.connected).toBe(false);
+  expect(status.selection.ecu.id).toBe('honda_cbr1000rr_2012_us');
+  expect(page.failures.filter((error) => !/server responded with a status of 409/.test(error))).toEqual([]);
 });

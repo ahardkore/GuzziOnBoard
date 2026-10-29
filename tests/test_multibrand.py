@@ -70,3 +70,20 @@ def test_connected_session_cannot_be_relabelled_with_another_vehicle():
     assert ws.status()["connected"] is True
     ws.disconnect()
     assert ws.select(make="Honda", model="CBR600RR", year=2005)["make"] == "Honda"
+
+
+@pytest.mark.parametrize("make,model,year", [
+    ("Suzuki", "SV650AK7", 2007),
+])
+def test_research_profiles_have_no_hardware_or_simulator(make, model, year):
+    ws = Workstation(record=False)
+    for transport in ("kline", "can", "simulator", "cansim"):
+        selection = ws.select(make=make, model=model, year=year, transport=transport)
+        assert selection["ecu"]["capabilities"] == []
+        assert selection["ecu"]["session"]["physical_supported"] is False
+        assert selection["ecu"]["session"]["simulator_supported"] is False
+        with pytest.raises(TransportUnavailable):
+            ws.connect(mode="simulator" if transport in ("simulator", "cansim") else "read_only")
+        assert ws.service is None and ws.log is None
+    with pytest.raises(ValueError, match="not cataloged"):
+        ws.select(make=make, model=model, year=year, ecu="5am")

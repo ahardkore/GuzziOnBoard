@@ -875,6 +875,12 @@
       }
     });
 
+    [['XDFFLAG', 'flag'], ['XDFPATCH', 'patch']].forEach(function (spec) {
+      kids(root, spec[0]).forEach(function (node) {
+        xdf.unsupported.push({ title: (kidText(node, 'title') || '').trim() || '(untitled ' + spec[1] + ')',
+          kind: spec[1], reason: 'XDF ' + spec[1] + ' items are not supported and are not applied' });
+      });
+    });
     kids(root, 'XDFCHECKSUM').forEach(function (node, index) {
       var title = (kidText(node, 'title') || '').trim();
       xdf.checksums.push(title || '(unnamed checksum #' + (index + 1) + ')');
@@ -2643,7 +2649,7 @@
           filename: entry.filename, brand: entry.brand,
           brand_label: entry.brand_label, family: entry.family,
           label: entry.label, fits: entry.fits, fits_brands: entry.fits_brands,
-          catalogued: entry.catalogued, source_url: entry.source_url,
+          catalogued: entry.catalogued, research_only: entry.research_only, source_url: entry.source_url,
         };
       }),
       groups: groupXdfs(xdfIndex()),
@@ -3056,6 +3062,7 @@
     if (!sourceIsBase && baseStatus.intact && baseStatus.path === sourcePath) sourceIsBase = true;
     var source = imageAt(sourcePath), base = addressBaseOf(body);
     var entry = xdfEntryFor(body.xdf);
+    if (entry.research_only || !entry.family) throw bad('this XDF is research-only; it cannot build an image');
     var benchLabel = String(mapsVehicle().ecu_family || '').toUpperCase();
     var bench = benchLabel.replace(/[^A-Z0-9]/g, '');
     var entryFamily = String(entry.family || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -3120,6 +3127,7 @@
     }
     var source = imageAt(sourcePath), base = addressBaseOf(body);
     var entry = xdfEntryFor(body.xdf);
+    if (entry.research_only || !entry.family) throw bad('this XDF is research-only; it cannot build an image');
     var benchLabel = String(mapsVehicle().ecu_family || '').toUpperCase();
     var bench = benchLabel.replace(/[^A-Z0-9]/g, '');
     var entryFamily = String(entry.family || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -5189,6 +5197,38 @@
       invalid_length_frames: invalid, ignored_tx_frames: ignoredTx, omitted_events: Math.max(0, recognized - events.length) };
   }
 
+  /* HarleyDroid EVO HarleyCan.kt, GPL-3.0-or-later, Copyright (C)
+   * 2010–2012 Stelian Pop and (C) 2026 Quickosss. Community CAN mappings
+   * are best-effort and vary by model/year; no gear estimation here. */
+  function decodeHarleyHdlanCapture(frames) {
+    var events = [], recognized = 0, invalid = 0, ignoredTx = 0;
+    var min = { 0x521: 2, 0x5c0: 8, 0x541: 6, 0x550: 1, 0x530: 3, 0x5c1: 2 };
+    frames.forEach(function (frame) {
+      if (frame.extended || !Object.hasOwn(min, frame.id)) return;
+      if (String(frame.direction || '').toLowerCase().startsWith('t')) { ignoredTx++; return; }
+      var d = frame.data;
+      if (d.length < min[frame.id] || d.length > 8 || d.some(function (n) { return !Number.isInteger(n) || n < 0 || n > 255; })) { invalid++; return; }
+      var values, index, rpm;
+      if (frame.id === 0x521) {
+        index = d[1] === 0 && d.length >= 3 && d[2] ? 2 : 1;
+        values = { speed_kmh_candidate: d[index], source_byte_index: index };
+      } else if (frame.id === 0x5c0) values = { odometer_km_candidate: d[5] * 65536 + d[6] * 256 + d[7] };
+      else if (frame.id === 0x541) values = { engine_temp_c_candidate: d[5] };
+      else if (frame.id === 0x550) values = { clutch_candidate: Boolean(d[0] & 1) };
+      else if (frame.id === 0x530) values = { neutral_candidate: Boolean(d[2] & 0x81), status_byte: d[2] };
+      else {
+        index = 0; rpm = Math.floor((d[0] * 256 + d[1]) / 4);
+        if ((rpm < 1 || rpm > 9000) && d.length >= 4) { index = 2; rpm = Math.floor((d[2] * 256 + d[3]) / 4); }
+        values = { rpm_candidate: rpm >= 1 && rpm <= 9000 ? rpm : null, source_byte_index: index };
+      }
+      recognized++;
+      if (events.length < 200) events.push({ timestamp: frame.timestamp, id: '0x' + frame.id.toString(16).toUpperCase(),
+        direction: frame.direction || 'unknown', raw: d.map(function (v) { return v.toString(16).padStart(2, '0').toUpperCase(); }).join(''), values: values });
+    });
+    return { profile: 'harley_hdlan_community', events: events, recognized_frames: recognized,
+      invalid_length_frames: invalid, ignored_tx_frames: ignoredTx, omitted_events: Math.max(0, recognized - events.length) };
+  }
+
   // Raw per-byte observations only: not a vehicle profile or signal decoder.
   function summarizeCanBytes(frames) {
     var groups = {};
@@ -5227,7 +5267,7 @@
         + 'of giving a path (the local workstation reads candump, SavvyCAN '
         + 'CSV and CRTD files).');
     }
-    if (body.decoder !== undefined && body.decoder !== '' && body.decoder !== 'ducati_panigale_mitsubishi') throw bad('unknown offline telemetry decoder');
+    if (body.decoder !== undefined && body.decoder !== '' && body.decoder !== 'ducati_panigale_mitsubishi' && body.decoder !== 'harley_hdlan_community') throw bad('unknown offline telemetry decoder');
     if (body.byte_stats !== undefined && typeof body.byte_stats !== 'boolean') throw bad('byte statistics setting must be true or false');
     if (body.byte_stats && (typeof body.filter_ids !== 'string' || !body.filter_ids.trim())) throw bad('byte statistics require an explicit CAN ID filter');
     var parsed = parseCanText(String(body.text || ''));
@@ -5251,6 +5291,7 @@
     result.traffic = Object.values(counts).sort(function (a, b) { return b.frames - a.frames || a.number - b.number || Number(a.extended) - Number(b.extended); }).map(function (item) { delete item.number; return item; });
     result.capture_frames = total; result.filter_ids = filter;
     if (body.decoder === 'ducati_panigale_mitsubishi') result.decoder = decodeDucatiCapture(parsed.frames);
+    if (body.decoder === 'harley_hdlan_community') result.decoder = decodeHarleyHdlanCapture(parsed.frames);
     if (body.byte_stats) result.byte_stats = summarizeCanBytes(parsed.frames);
     result.format = parsed.format;
     result.notes = parsed.warnings.concat(result.notes);

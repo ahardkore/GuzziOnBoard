@@ -15,9 +15,9 @@
     "applied": false,
     "status": {}
    },
-   "ecu_count": 16,
-   "vehicle_count": 123,
-   "model_count": 115,
+   "ecu_count": 18,
+   "vehicle_count": 125,
+   "model_count": 117,
    "year_range": [
     1992,
     2026
@@ -706,6 +706,78 @@
       "tester_present_interval": 2.0,
       "physical_supported": true,
       "physical_evidence_note": "A published 7SM diagnostic session log establishes the K-Line session, identification exchange, and baud switch."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "harley_j1850_harleydroid",
+     "family": "Harley-Davidson J1850 VPW (HarleyDroid)",
+     "display_name": "Harley J1850 / HarleyDroid (read-only, ECU-only)",
+     "transport": "elm_j1850",
+     "confidence": "unknown",
+     "years": "model/year varies",
+     "notes": "HarleyDroid documents J1850 diagnostic requests and broadcast signals discovered on Harley motorcycles, notably Sportster. Exact model/year compatibility varies. This GuzziOnBoard integration has synthetic tests only and has not been tested on a motorcycle. ELM327 serial at 38400 baud, read-only; no flash, fault clear or service commands.",
+     "capabilities": [
+      "identify",
+      "live",
+      "dtc_read"
+     ],
+     "effective_capabilities": [
+      "identify",
+      "live",
+      "dtc_read"
+     ],
+     "sources": [
+      "https://github.com/QuickosssLabs/HarleyDroidEVO/tree/668b63efc05977eb65cb8e84e597ae2205355d4c"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "HarleyDroid diagnostic queries do not implement ECU calibration reading or programming."
+     },
+     "kline": {
+      "init": "harley-j1850-harleydroid"
+     },
+     "can": {},
+     "session": {
+      "protocol": "harley-j1850-harleydroid",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "physical_evidence_note": "HarleyDroid uses J1850 VPW via ELM327 on Harley bikes, notably Sportster. This integration is not hardware-tested."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "honda_cb500_mgz_a03",
+     "family": "CB500-MGZ-A03",
+     "display_name": "Honda CB500 / CBR500 MGZ-A03 (offline tuning only)",
+     "transport": "kline",
+     "confidence": "inferred",
+     "years": "2013-2016",
+     "notes": "HondaECU identifies MGZ-A03 for CB500F / CBR500R 2013–2016. Offline image build accepts only the exact pinned source image and adapted XDF. Image hashes do not identify a physical ECU.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Offline image editing does not implement ECU programming."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "offline-tuning-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented.",
+      "simulator_supported": false
      },
      "actuators": [],
      "routines": [],
@@ -1410,6 +1482,24 @@
     ]
    },
    {
+    "model": "CB500F",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "CB500F",
+      "year_from": 2013,
+      "year_to": 2016,
+      "ecu": "honda_cb500_mgz_a03",
+      "displacement": "",
+      "tps": "",
+      "notes": "HondaECU lists MGZ-A03 for this model range; offline image build accepts only exact MGZ-A03 stock image and adapted XDF. No live diagnostics or programming.",
+      "confidence": "inferred",
+      "label": "CB500F (2013-2016)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "CBR1000RR (US)",
     "variants": [
      {
@@ -1423,6 +1513,24 @@
       "notes": "HondaECU repository: 2012 US XDF; source image 38770-MGP-A01 2012–2013. Offline build is locked to the exact source and definition; no live Honda sessions or programming.",
       "confidence": "inferred",
       "label": "CBR1000RR (US) (2012-2012)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "CBR500R",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "CBR500R",
+      "year_from": 2013,
+      "year_to": 2016,
+      "ecu": "honda_cb500_mgz_a03",
+      "displacement": "",
+      "tps": "",
+      "notes": "HondaECU lists MGZ-A03 for this model range; offline image build accepts only exact MGZ-A03 stock image and adapted XDF. No live diagnostics or programming.",
+      "confidence": "inferred",
+      "label": "CBR500R (2013-2016)",
       "can": {}
      }
     ]
@@ -4108,6 +4216,20 @@
     "year_from": 2012,
     "year_to": 2012,
     "ecu": "honda_cbr1000rr_2012_us"
+   },
+   {
+    "make": "Honda",
+    "model": "CB500F",
+    "year_from": 2013,
+    "year_to": 2016,
+    "ecu": "honda_cb500_mgz_a03"
+   },
+   {
+    "make": "Honda",
+    "model": "CBR500R",
+    "year_from": 2013,
+    "year_to": 2016,
+    "ecu": "honda_cb500_mgz_a03"
    }
   ],
   "ecus": [
@@ -5523,6 +5645,123 @@
      "tester_present_interval": 2.0,
      "physical_supported": true,
      "physical_evidence_note": "A published 7SM diagnostic session log establishes the K-Line session, identification exchange, and baud switch."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
+    "id": "harley_j1850_harleydroid",
+    "family": "Harley-Davidson J1850 VPW (HarleyDroid)",
+    "display_name": "Harley J1850 / HarleyDroid (read-only, ECU-only)",
+    "transport": "elm_j1850",
+    "confidence": "unknown",
+    "years": "model/year varies",
+    "notes": "HarleyDroid documents J1850 diagnostic requests and broadcast signals discovered on Harley motorcycles, notably Sportster. Exact model/year compatibility varies. This GuzziOnBoard integration has synthetic tests only and has not been tested on a motorcycle. ELM327 serial at 38400 baud, read-only; no flash, fault clear or service commands.",
+    "capabilities": [
+     "identify",
+     "live",
+     "dtc_read"
+    ],
+    "effective_capabilities": [
+     "identify",
+     "live",
+     "dtc_read"
+    ],
+    "sources": [
+     "https://github.com/QuickosssLabs/HarleyDroidEVO/tree/668b63efc05977eb65cb8e84e597ae2205355d4c"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "HarleyDroid diagnostic queries do not implement ECU calibration reading or programming."
+    },
+    "kline": {
+     "init": "harley-j1850-harleydroid"
+    },
+    "can": {},
+    "session": {
+     "protocol": "harley-j1850-harleydroid",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "physical_evidence_note": "HarleyDroid uses J1850 VPW via ELM327 on Harley bikes, notably Sportster. This integration is not hardware-tested."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": [
+     {
+      "key": "rpm",
+      "name": "Engine speed (J1850)",
+      "local_id": 1,
+      "request_ids": [],
+      "unit": "rpm",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "speed",
+      "name": "Road speed (J1850)",
+      "local_id": 2,
+      "request_ids": [],
+      "unit": "km/h",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "engine_temp",
+      "name": "Engine temperature (source candidate)",
+      "local_id": 3,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     }
+    ]
+   },
+   {
+    "id": "honda_cb500_mgz_a03",
+    "family": "CB500-MGZ-A03",
+    "display_name": "Honda CB500 / CBR500 MGZ-A03 (offline tuning only)",
+    "transport": "kline",
+    "confidence": "inferred",
+    "years": "2013-2016",
+    "notes": "HondaECU identifies MGZ-A03 for CB500F / CBR500R 2013–2016. Offline image build accepts only the exact pinned source image and adapted XDF. Image hashes do not identify a physical ECU.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Offline image editing does not implement ECU programming."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "offline-tuning-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented.",
+     "simulator_supported": false
     },
     "actuators": [],
     "routines": [],
@@ -7981,6 +8220,32 @@
    "confidence": "inferred",
    "label": "CBR1000RR (US) (2012-2012)",
    "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "CB500F",
+   "year_from": 2013,
+   "year_to": 2016,
+   "ecu": "honda_cb500_mgz_a03",
+   "displacement": "",
+   "tps": "",
+   "notes": "HondaECU lists MGZ-A03 for this model range; offline image build accepts only exact MGZ-A03 stock image and adapted XDF. No live diagnostics or programming.",
+   "confidence": "inferred",
+   "label": "CB500F (2013-2016)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "CBR500R",
+   "year_from": 2013,
+   "year_to": 2016,
+   "ecu": "honda_cb500_mgz_a03",
+   "displacement": "",
+   "tps": "",
+   "notes": "HondaECU lists MGZ-A03 for this model range; offline image build accepts only exact MGZ-A03 stock image and adapted XDF. No live diagnostics or programming.",
+   "confidence": "inferred",
+   "label": "CBR500R (2013-2016)",
+   "can": {}
   }
  ],
  "profiles": {
@@ -9496,6 +9761,90 @@
       "length": 11
      }
     ]
+   }
+  },
+  "harley_j1850_harleydroid": {
+   "parameters": {
+    "rpm": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.25,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 1,
+     "states": {}
+    },
+    "speed": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.0078125,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 2,
+     "states": {}
+    },
+    "engine_temp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": -40.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 3,
+     "states": {}
+    }
+   },
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "Harley-DavidsonJ1850VPW(HarleyDroid)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "harley-j1850-harleydroid",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "physical_evidence_note": "HarleyDroid uses J1850 VPW via ELM327 on Harley bikes, notably Sportster. This integration is not hardware-tested."
+   },
+   "identification": {
+    "available": true
+   }
+  },
+  "honda_cb500_mgz_a03": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "CB500-MGZ-A03HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented.",
+    "simulator_supported": false
+   },
+   "identification": {
+    "available": false
    }
   },
   "honda_cbr1000rr_2012_us": {
@@ -11555,7 +11904,7 @@
    "version": "1.02",
    "tables": 32,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 65536,
    "categories": [],
    "filename": "15P_1P0Z_V1.02.xdf",
@@ -11585,6 +11934,7 @@
     "Piaggio"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0Z_V1.02.zip",
    "url": "../guzzionboard/xdfs/aprilia/15P_1P0Z_V1.02.xdf"
   },
@@ -11594,7 +11944,7 @@
    "version": "1.00",
    "tables": 55,
    "constants": 9,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 327680,
    "categories": [
     "Aprilia GP850",
@@ -11622,6 +11972,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_GP850_V1.00.zip",
    "url": "../guzzionboard/xdfs/aprilia/5AM_Aprilia_GP850_V1.00.xdf"
   },
@@ -11631,7 +11982,7 @@
    "version": "1.38 long",
    "tables": 205,
    "constants": 571,
-   "unsupported": 0,
+   "unsupported": 14,
    "region_size": 327680,
    "categories": [
     "Development",
@@ -11659,6 +12010,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_Mana_V1.38.ZIP",
    "url": "../guzzionboard/xdfs/aprilia/5AM_Aprilia_Mana_V1.38.xdf"
   },
@@ -11668,7 +12020,7 @@
    "version": "1.00",
    "tables": 57,
    "constants": 9,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 327680,
    "categories": [
     "Aprilia SRV850",
@@ -11696,6 +12048,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Aprilia_SRV850_V1.00.zip",
    "url": "../guzzionboard/xdfs/aprilia/5AM_Aprilia_SRV850_V1.00.xdf"
   },
@@ -11705,7 +12058,7 @@
    "version": "0.12",
    "tables": 31,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 720896,
    "categories": [
     "Development",
@@ -11729,6 +12082,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_Caponord_1200_1050Fxxx.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_Caponord_1200_1050Fxxx.xdf"
   },
@@ -11738,7 +12092,7 @@
    "version": "0.14",
    "tables": 32,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 720896,
    "categories": [
     "Development",
@@ -11762,6 +12116,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_Dorsoduro_1200_1338XXxx_V0.14.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_Dorsoduro_1200_1338XXxx_V0.14.xdf"
   },
@@ -11771,7 +12126,7 @@
    "version": "1.03",
    "tables": 59,
    "constants": 3,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 720896,
    "categories": [
     "Development",
@@ -11795,6 +12150,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_1037AH01_V1.03.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_1037AH01_V1.03.xdf"
   },
@@ -11804,7 +12160,7 @@
    "version": "0.14",
    "tables": 32,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 720896,
    "categories": [
     "Development",
@@ -11828,6 +12184,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_1338XXxx_V0.14.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_1338XXxx_V0.14.xdf"
   },
@@ -11837,7 +12194,7 @@
    "version": "0.15",
    "tables": 40,
    "constants": 0,
-   "unsupported": 1,
+   "unsupported": 6,
    "region_size": 720896,
    "categories": [
     "Development",
@@ -11861,6 +12218,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_13A9XXxx_V0.15.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_13A9XXxx_V0.15.xdf"
   },
@@ -11870,7 +12228,7 @@
    "version": "0.12",
    "tables": 31,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 720896,
    "categories": [
     "Development",
@@ -11894,6 +12252,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_40xxXXxx_V0.12.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_40xxXXxx_V0.12.xdf"
   },
@@ -11903,7 +12262,7 @@
    "version": "0.13",
    "tables": 31,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 720896,
    "categories": [
     "Development",
@@ -11927,6 +12286,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_6403XXxx_V0.13.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_6403XXxx_V0.13.xdf"
   },
@@ -11936,7 +12296,7 @@
    "version": "0.15",
    "tables": 32,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 720896,
    "categories": [
     "Development",
@@ -11960,6 +12320,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_6404XXxx_V0.15.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_6404XXxx_V0.15.xdf"
   },
@@ -11969,7 +12330,7 @@
    "version": "0.15",
    "tables": 33,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 720896,
    "categories": [
     "Development",
@@ -11993,6 +12354,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_7614XXxx_V0.15.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_7614XXxx_V0.15.xdf"
   },
@@ -12026,6 +12388,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_RSV4_7617XXxx_V0.15.zip",
    "url": "../guzzionboard/xdfs/aprilia/7SM_RSV4_7617XXxx_V0.15.xdf"
   },
@@ -12054,6 +12417,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_RS4_125_CM088115_V1.02.zip",
    "url": "../guzzionboard/xdfs/aprilia/MIUG3_Aprilia_RS4_125_CM088115_V1.02.xdf"
   },
@@ -12063,7 +12427,7 @@
    "version": "1.00",
    "tables": 59,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 524288,
    "categories": [
     "Development",
@@ -12087,6 +12451,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_RS4_125_CM227201_V1.02.zip",
    "url": "../guzzionboard/xdfs/aprilia/MIUG3_Aprilia_RS4_125_CM227201_V1.02.xdf"
   },
@@ -12120,6 +12485,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_SR_MAX_300ie_V1.02.zip",
    "url": "../guzzionboard/xdfs/aprilia/MIUG3_Aprilia_SR_MAX_300ie_V1.02.xdf"
   },
@@ -12129,7 +12495,7 @@
    "version": "1.0",
    "tables": 89,
    "constants": 1,
-   "unsupported": 0,
+   "unsupported": 31,
    "region_size": 524288,
    "categories": [
     "Development",
@@ -12153,6 +12519,7 @@
     "Aprilia"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Aprilia_SX125_464EA105_V1.00.zip",
    "url": "../guzzionboard/xdfs/aprilia/MIUG3_Aprilia_SX125_464EA105_V1.00.xdf"
   },
@@ -12162,7 +12529,7 @@
    "version": "1.01",
    "tables": 34,
    "constants": 2,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 524288,
    "categories": [
     "Development",
@@ -12186,6 +12553,7 @@
     "BMW"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_BMW_C600_V1.01.zip",
    "url": "../guzzionboard/xdfs/bmw/MBC1_BMW_C600_V1.01.xdf"
   },
@@ -12222,6 +12590,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_Ducati_750SS_V2.28.zip",
    "url": "../guzzionboard/xdfs/ducati/15M_Ducati_750SS_V2.28.xdf"
   },
@@ -12258,6 +12627,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_Ducati_M900_V1.0.zip",
    "url": "../guzzionboard/xdfs/ducati/15M_Ducati_M900_V1.0.xdf"
   },
@@ -12291,6 +12661,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_Duc748_916S_64k_V1.1.zip",
    "url": "../guzzionboard/xdfs/ducati/16M_Duc748_916S_64k_V1.1.xdf"
   },
@@ -12300,7 +12671,7 @@
    "version": "1.28",
    "tables": 29,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 1,
    "region_size": 262144,
    "categories": [
     "Development",
@@ -12324,6 +12695,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Ducati_1000SS_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/59M_Ducati_1000SS_V1.28.xdf"
   },
@@ -12333,7 +12705,7 @@
    "version": "1.01",
    "tables": 93,
    "constants": 318,
-   "unsupported": 1,
+   "unsupported": 4,
    "region_size": 262144,
    "categories": [
     "59M 2003 Ducati ST4S,800SS,1000SS",
@@ -12357,6 +12729,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Ducati_ST4S_2003_1.01.xdf.zip",
    "url": "../guzzionboard/xdfs/ducati/59M_Ducati_ST4S_2003_1.01.xdf"
   },
@@ -12366,7 +12739,7 @@
    "version": "1.28",
    "tables": 30,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 262144,
    "categories": [
     "Development",
@@ -12390,6 +12763,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Monster%20S4_2002_96508702B_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/59M_Monster S4_2002_96508702B_V1.28.xdf"
   },
@@ -12399,7 +12773,7 @@
    "version": "1.30",
    "tables": 30,
    "constants": 4,
-   "unsupported": 0,
+   "unsupported": 1,
    "region_size": 262144,
    "categories": [
     "Development",
@@ -12423,6 +12797,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_Monster%20S4_28640191B_V1.30.zip",
    "url": "../guzzionboard/xdfs/ducati/59M_Monster S4_28640191B_V1.30.xdf"
   },
@@ -12432,7 +12807,7 @@
    "version": "1.27",
    "tables": 30,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 262144,
    "categories": [
     "Development",
@@ -12456,6 +12831,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/59M_SS-800_28640671A_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/59M_SS-800_28640671A_V1.28.xdf"
   },
@@ -12465,7 +12841,7 @@
    "version": "2.20",
    "tables": 42,
    "constants": 7,
-   "unsupported": 0,
+   "unsupported": 7,
    "region_size": 327680,
    "categories": [
     "Development",
@@ -12490,6 +12866,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_1198SP_96520411B_2.2.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_1198SP_96520411B_2.2.xdf"
   },
@@ -12499,7 +12876,7 @@
    "version": "1.27",
    "tables": 45,
    "constants": 4,
-   "unsupported": 0,
+   "unsupported": 5,
    "region_size": 327680,
    "categories": [
     "1198",
@@ -12523,6 +12900,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1098R_22C3_013_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1098R_22C3_013_V1.28.xdf"
   },
@@ -12532,7 +12910,7 @@
    "version": "V1.1",
    "tables": 24,
    "constants": 7,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 327680,
    "categories": [
     "5AM 1098_S_DP",
@@ -12556,6 +12934,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1098_S_DP_V1.1.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1098_S_DP_V1.1.xdf"
   },
@@ -12565,7 +12944,7 @@
    "version": "1.27",
    "tables": 33,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 7,
    "region_size": 327680,
    "categories": [
     "1198",
@@ -12589,6 +12968,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198S_3213_PQ58_V1.27.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1198S_3213_PQ58_V1.27.xdf"
   },
@@ -12598,7 +12978,7 @@
    "version": "1.27",
    "tables": 28,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 327680,
    "categories": [
     "1198",
@@ -12622,6 +13002,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198_328641831D_V1.27.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1198_328641831D_V1.27.xdf"
   },
@@ -12631,7 +13012,7 @@
    "version": "1.27",
    "tables": 33,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 7,
    "region_size": 327680,
    "categories": [
     "1198",
@@ -12655,6 +13036,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_1198_DP_V1.27.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_1198_DP_V1.27.xdf"
   },
@@ -12664,7 +13046,7 @@
    "version": "V1.0",
    "tables": 24,
    "constants": 6,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 327680,
    "categories": [
     "5am 848 22aesma2",
@@ -12688,6 +13070,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_22AELM26_28641571A_V1.1.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_848_22AELM26_28641571A_V1.1.xdf"
   },
@@ -12697,7 +13080,7 @@
    "version": "V1.0",
    "tables": 22,
    "constants": 6,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 327680,
    "categories": [
     "5am 848 22aesma2",
@@ -12721,6 +13104,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_22aesma2_96519408B_V1.0.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_848_22aesma2_96519408B_V1.0.xdf"
   },
@@ -12730,7 +13114,7 @@
    "version": "V1.0",
    "tables": 7,
    "constants": 6,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 327680,
    "categories": [],
    "filename": "5AM_Ducati_848_V1.0.xdf",
@@ -12749,6 +13133,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_848_V1.0.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_848_V1.0.xdf"
   },
@@ -12758,7 +13143,7 @@
    "version": "V1.0",
    "tables": 7,
    "constants": 6,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 327680,
    "categories": [],
    "filename": "5AM_Ducati_Hypermotard_1100_V1.0.xdf",
@@ -12777,6 +13162,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_Hypermotard_1100_V1.0.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_Hypermotard_1100_V1.0.xdf"
   },
@@ -12786,7 +13172,7 @@
    "version": "V1.0",
    "tables": 5,
    "constants": 6,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 327680,
    "categories": [],
    "filename": "5AM_Ducati_MTS1000_HW103_V1.0.xdf",
@@ -12805,6 +13191,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_MTS1000_HW103_V1.0.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_MTS1000_HW103_V1.0.xdf"
   },
@@ -12814,7 +13201,7 @@
    "version": "V1.0",
    "tables": 6,
    "constants": 6,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 327680,
    "categories": [],
    "filename": "5AM_Ducati_MTS1000_HW610_V1.0.xdf",
@@ -12833,6 +13220,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_MTS1000_HW610_V1.0.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_MTS1000_HW610_V1.0.xdf"
   },
@@ -12842,7 +13230,7 @@
    "version": "1.28",
    "tables": 36,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 327680,
    "categories": [
     "Development",
@@ -12866,6 +13254,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_Multistrada_1100_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_Multistrada_1100_V1.28.xdf"
   },
@@ -12875,7 +13264,7 @@
    "version": "1.28",
    "tables": 36,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 327680,
    "categories": [
     "Development",
@@ -12899,6 +13288,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S2_1000R_DP_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_S2_1000R_DP_V1.28.xdf"
   },
@@ -12908,7 +13298,7 @@
    "version": "1.28",
    "tables": 36,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 327680,
    "categories": [
     "Development",
@@ -12932,6 +13322,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S2_800R_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_S2_800R_V1.28.xdf"
   },
@@ -12941,7 +13332,7 @@
    "version": "V1.0",
    "tables": 6,
    "constants": 6,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 327680,
    "categories": [],
    "filename": "5AM_Ducati_S4R_996_Monster_HW610_V1.0.xdf",
@@ -12960,6 +13351,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_S4R_996_Monster_HW610_V1.0.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_S4R_996_Monster_HW610_V1.0.xdf"
   },
@@ -12969,7 +13361,7 @@
    "version": "1.35",
    "tables": 40,
    "constants": 0,
-   "unsupported": 2,
+   "unsupported": 9,
    "region_size": 327680,
    "categories": [
     "Development",
@@ -12993,6 +13385,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_SC1000_BIPOSTO_(Stock&DP)_S4RS_V1.35.xdf"
   },
@@ -13002,7 +13395,7 @@
    "version": "1.32",
    "tables": 40,
    "constants": 0,
-   "unsupported": 2,
+   "unsupported": 6,
    "region_size": 327680,
    "categories": [
     "Development",
@@ -13026,6 +13419,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_SC1000_MONOPOSTO_(DP)_V1.35.xdf"
   },
@@ -13035,7 +13429,7 @@
    "version": "1.35",
    "tables": 40,
    "constants": 0,
-   "unsupported": 2,
+   "unsupported": 7,
    "region_size": 327680,
    "categories": [
     "Development",
@@ -13059,6 +13453,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_SC1000_MONOPOSTO_(Stock)_PaulSmart_V1.35.xdf"
   },
@@ -13068,7 +13463,7 @@
    "version": "1.28",
    "tables": 30,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 327680,
    "categories": [
     "Development",
@@ -13092,6 +13487,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_SF_Serie_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_SF_Serie_V1.28.xdf"
   },
@@ -13101,7 +13497,7 @@
    "version": "1.28",
    "tables": 27,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 327680,
    "categories": [
     "Development",
@@ -13125,6 +13521,7 @@
     "Ducati"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.zip",
    "url": "../guzzionboard/xdfs/ducati/5AM_Ducati_ST3s_ABS_06_DP_2235SD01_96517506B_V1.28.xdf"
   },
@@ -13134,7 +13531,7 @@
    "version": "1.02",
    "tables": 43,
    "constants": 2,
-   "unsupported": 0,
+   "unsupported": 1,
    "region_size": 65536,
    "categories": [],
    "filename": "15P_00_GasGas450_V1.02.xdf",
@@ -13153,6 +13550,7 @@
     "GasGas"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_00_GasGas450_V1.02.zip",
    "url": "../guzzionboard/xdfs/gasgas/15P_00_GasGas450_V1.02.xdf"
   },
@@ -13162,7 +13560,7 @@
    "version": "1.02",
    "tables": 43,
    "constants": 2,
-   "unsupported": 0,
+   "unsupported": 1,
    "region_size": 65536,
    "categories": [],
    "filename": "15P_00_GasGasFSR450_V1.02.xdf",
@@ -13181,6 +13579,7 @@
     "GasGas"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_00_GasGasFSR450_V1.02.zip",
    "url": "../guzzionboard/xdfs/gasgas/15P_00_GasGasFSR450_V1.02.xdf"
   },
@@ -13209,6 +13608,7 @@
     "GasGas"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_GasGasFE400_V1.00.zip",
    "url": "../guzzionboard/xdfs/gasgas/15P_GasGasFE400_V1.00.xdf"
   },
@@ -13218,7 +13618,7 @@
    "version": "1.03",
    "tables": 30,
    "constants": 4,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 65536,
    "categories": [],
    "filename": "15P_1P10_V1.03.xdf",
@@ -13243,6 +13643,7 @@
     "Piaggio"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P10_V1.03.zip",
    "url": "../guzzionboard/xdfs/gilera/15P_1P10_V1.03.xdf"
   },
@@ -13252,7 +13653,7 @@
    "version": "1.05",
    "tables": 26,
    "constants": 4,
-   "unsupported": 0,
+   "unsupported": 6,
    "region_size": 327680,
    "categories": [],
    "filename": "5AM_Gilera_GP800_V1.05.xdf",
@@ -13271,8 +13672,399 @@
     "Gilera"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Gilera_GP800_V1.05.zip",
    "url": "../guzzionboard/xdfs/gilera/5AM_Gilera_GP800_V1.05.xdf"
+  },
+  {
+   "title": "",
+   "path": "guzzionboard/xdfs/honda/38770-K0F-A01.xdf",
+   "version": "",
+   "tables": 9,
+   "constants": 0,
+   "unsupported": 4,
+   "region_size": 65536,
+   "categories": [
+    "Breakpoints",
+    "Fuel",
+    "Ignition",
+    "Limiters",
+    "TPS"
+   ],
+   "filename": "38770-K0F-A01.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "HONDA-RESEARCH",
+   "label": "Honda Z125M K0F 2019 / 38770-K0F-A01 (research only)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "Honda Z125M K0F 2019 / 38770-K0F-A01 (research only)"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/Z125M_K0F_2019/38770-K0F-A01.xdf",
+   "url": "../guzzionboard/xdfs/honda/38770-K0F-A01.xdf"
+  },
+  {
+   "title": "",
+   "path": "guzzionboard/xdfs/honda/38770-K26-911.xdf",
+   "version": "",
+   "tables": 8,
+   "constants": 0,
+   "unsupported": 4,
+   "region_size": 65536,
+   "categories": [
+    "Breakpoints",
+    "Fuel",
+    "Ignition",
+    "Limiters",
+    "TPS"
+   ],
+   "filename": "38770-K26-911.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "HONDA-RESEARCH",
+   "label": "Honda MSX125 K26 2013-2016 / 38770-K26-911 (research only)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "Honda MSX125 K26 2013-2016 / 38770-K26-911 (research only)"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/MSX125_K26_2013-2016/38770-K26-911.xdf",
+   "url": "../guzzionboard/xdfs/honda/38770-K26-911.xdf"
+  },
+  {
+   "title": "",
+   "path": "guzzionboard/xdfs/honda/38770-K26-B13.xdf",
+   "version": "",
+   "tables": 7,
+   "constants": 0,
+   "unsupported": 4,
+   "region_size": 65536,
+   "categories": [
+    "Breakpoints",
+    "Fuel",
+    "Ignition",
+    "Limiters",
+    "TPS"
+   ],
+   "filename": "38770-K26-B13.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "HONDA-RESEARCH",
+   "label": "Honda MSX125 K26 2016-2019 / 38770-K26-B13 (research only)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "Honda MSX125 K26 2016-2019 / 38770-K26-B13 (research only)"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/MSX125_K26_2016-2019/38770-K26-B13.xdf",
+   "url": "../guzzionboard/xdfs/honda/38770-K26-B13.xdf"
+  },
+  {
+   "title": "",
+   "path": "guzzionboard/xdfs/honda/38770-K26-C31.xdf",
+   "version": "",
+   "tables": 12,
+   "constants": 0,
+   "unsupported": 12,
+   "region_size": 65536,
+   "categories": [
+    "Breakpoints",
+    "Decel Fuel Cut-Off",
+    "Feedback Fuel",
+    "Fuel",
+    "Ignition",
+    "Limiters",
+    "Rev Limiter",
+    "TPS",
+    "Thailand"
+   ],
+   "filename": "38770-K26-C31.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "HONDA-RESEARCH",
+   "label": "Honda MSX125 K26 2016-2019 / 38770-K26-C31 (research only)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "Honda MSX125 K26 2016-2019 / 38770-K26-C31 (research only)"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/MSX125_K26_2016-2019/38770-K26-C31.xdf",
+   "url": "../guzzionboard/xdfs/honda/38770-K26-C31.xdf"
+  },
+  {
+   "title": "",
+   "path": "guzzionboard/xdfs/honda/38770-KYK-D12.xdf",
+   "version": "",
+   "tables": 11,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 415030,
+   "categories": [
+    "Breakpoints",
+    "Fuel",
+    "Ignition",
+    "Limiters",
+    "MAP",
+    "TPS"
+   ],
+   "filename": "38770-KYK-D12.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "HONDA-RESEARCH",
+   "label": "Honda CRF110F KYK 2019 / 38770-KYK-D12 (research only)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "Honda CRF110F KYK 2019 / 38770-KYK-D12 (research only)"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CRF110F_KYK_2019/38770-KYK-D12.xdf",
+   "url": "../guzzionboard/xdfs/honda/38770-KYK-D12.xdf"
+  },
+  {
+   "title": "",
+   "path": "guzzionboard/xdfs/honda/38770-MEL.xdf",
+   "version": "",
+   "tables": 66,
+   "constants": 0,
+   "unsupported": 1,
+   "region_size": 2498884,
+   "categories": [
+    "Breakpoints",
+    "Fuel",
+    "Gears 1-2",
+    "Gears 3-4",
+    "Gears 5-6",
+    "HESD",
+    "Idle",
+    "Ignition",
+    "Intake Flap",
+    "Limiters",
+    "MAP",
+    "MS0",
+    "MS1",
+    "Neutral/Clutch-In",
+    "TPS"
+   ],
+   "filename": "38770-MEL.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "HONDA-RESEARCH",
+   "label": "Honda CBR1000RR MEL 2006-2007 / 38770-MEL (research only)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "Honda CBR1000RR MEL 2006-2007 / 38770-MEL (research only)"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CBR1000RR_MEL_2006-2007/38770-MEL.xdf",
+   "url": "../guzzionboard/xdfs/honda/38770-MEL.xdf"
+  },
+  {
+   "title": "",
+   "path": "guzzionboard/xdfs/honda/38770-MGZ.xdf",
+   "version": "",
+   "tables": 17,
+   "constants": 0,
+   "unsupported": 1,
+   "region_size": 262144,
+   "categories": [
+    "Breakpoints",
+    "Fuel",
+    "Group 1",
+    "Group 2",
+    "Group 3",
+    "Ignition",
+    "Limiters",
+    "MAP",
+    "Switches",
+    "TPS",
+    "Testing"
+   ],
+   "filename": "38770-MGZ.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "HONDA-RESEARCH",
+   "label": "Honda CBR500R MGZ 2013-2016 / 38770-MGZ (research only) · default endian conflicts with A03",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "Honda CBR500R MGZ 2013-2016 / 38770-MGZ (research only)"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CBR500R_MGZ_2013-2016/38770-MGZ.xdf",
+   "url": "../guzzionboard/xdfs/honda/38770-MGZ.xdf"
+  },
+  {
+   "title": "",
+   "path": "guzzionboard/xdfs/honda/38770-MJW.xdf",
+   "version": "",
+   "tables": 35,
+   "constants": 0,
+   "unsupported": 56,
+   "region_size": 262144,
+   "categories": [
+    "B0",
+    "B1",
+    "B2",
+    "B3",
+    "B4",
+    "B5",
+    "B6",
+    "B7",
+    "Breakpoints",
+    "Fuel",
+    "Group 1",
+    "Group 2",
+    "Group 3",
+    "Idle",
+    "Ignition",
+    "Limiters",
+    "MAP",
+    "Switches",
+    "TPS",
+    "Testing"
+   ],
+   "filename": "38770-MJW.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "HONDA-RESEARCH",
+   "label": "Honda CBR500R MJW 2017-2018 / 38770-MJW (research only)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "Honda CBR500R MJW 2017-2018 / 38770-MJW (research only)"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CBR500R_MJW_2017-2018/38770-MJW.xdf",
+   "url": "../guzzionboard/xdfs/honda/38770-MJW.xdf"
+  },
+  {
+   "title": "",
+   "path": "guzzionboard/xdfs/honda/38770-MKE-DataSettings.xdf",
+   "version": "",
+   "tables": 12,
+   "constants": 0,
+   "unsupported": 2,
+   "region_size": 33170,
+   "categories": [
+    "Breakpoints",
+    "Fuel",
+    "Ignition"
+   ],
+   "filename": "38770-MKE-DataSettings.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "HONDA-RESEARCH",
+   "label": "Honda CRF450R MKE 2017-2019 / 38770-MKE-DataSettings (research only)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "Honda CRF450R MKE 2017-2019 / 38770-MKE-DataSettings (research only)"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CRF450R_MKE_2017-2019/38770-MKE-DataSettings.xdf",
+   "url": "../guzzionboard/xdfs/honda/38770-MKE-DataSettings.xdf"
+  },
+  {
+   "title": "CB500F / CBR500R MGZ-A03 research adaptation",
+   "path": "guzzionboard/xdfs/honda/CB500_MGZ_A03_gob.xdf",
+   "version": "",
+   "tables": 17,
+   "constants": 0,
+   "unsupported": 1,
+   "region_size": 262144,
+   "categories": [
+    "Breakpoints",
+    "Fuel",
+    "Group 1",
+    "Group 2",
+    "Group 3",
+    "Ignition",
+    "Limiters",
+    "MAP",
+    "Switches",
+    "TPS",
+    "Testing"
+   ],
+   "filename": "CB500_MGZ_A03_gob.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "CB500-MGZ-A03",
+   "label": "Honda CB500F / CBR500R 2013–2016 MGZ-A03 (scoped offline adaptation)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "CB500F / CBR500R 2013–2016, 38770-MGZ-A03 only"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": false,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+   "url": "../guzzionboard/xdfs/honda/CB500_MGZ_A03_gob.xdf"
   },
   {
    "title": "CBR1000RR 2012 US",
@@ -13280,7 +14072,7 @@
    "version": "1.00",
    "tables": 38,
    "constants": 0,
-   "unsupported": 1,
+   "unsupported": 7,
    "region_size": 262143,
    "categories": [
     "Fan Temp",
@@ -13326,6 +14118,7 @@
     "Honda"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://github.com/roccofz1/HondaECU/blob/dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109/definitions/xdf/CBR1000RR_2012_US.xdf",
    "url": "../guzzionboard/xdfs/honda/CBR1000RR_2012_US.xdf"
   },
@@ -13335,7 +14128,7 @@
    "version": "1.00",
    "tables": 34,
    "constants": 2,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 524288,
    "categories": [
     "Development",
@@ -13359,6 +14152,7 @@
     "Husqvarna"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_Nuda_900_V1.00.zip",
    "url": "../guzzionboard/xdfs/husqvarna/MBC1_Nuda_900_V1.00.xdf"
   },
@@ -13368,7 +14162,7 @@
    "version": "1.02",
    "tables": 40,
    "constants": 6,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 524288,
    "categories": [
     "Axes",
@@ -13395,6 +14189,7 @@
     "Malaguti"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Malaguti_4643AFC1_XTM125_V1.02.zip",
    "url": "../guzzionboard/xdfs/malaguti/MIUG3_Malaguti_4643AFC1_XTM125_V1.02.xdf"
   },
@@ -13404,7 +14199,7 @@
    "version": "1.31",
    "tables": 35,
    "constants": 5,
-   "unsupported": 1,
+   "unsupported": 4,
    "region_size": 327680,
    "categories": [
     "Development",
@@ -13428,6 +14223,7 @@
     "Moto Morini"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Corsaro_Two_Lambda_V1.34.zip",
    "url": "../guzzionboard/xdfs/morini/5AM_Morini_Corsaro_Two_Lambda_V1.34.xdf"
   },
@@ -13437,7 +14233,7 @@
    "version": "1.25",
    "tables": 54,
    "constants": 23,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 327680,
    "categories": [
     "5AM Moto Morini Corsaro",
@@ -13460,6 +14256,7 @@
     "Moto Morini"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Corsaro_V1.25.zip",
    "url": "../guzzionboard/xdfs/morini/5AM_Morini_Corsaro_V1.25.xdf"
   },
@@ -13469,7 +14266,7 @@
    "version": "1.22",
    "tables": 22,
    "constants": 2,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 327680,
    "categories": [
     "5AM Two Lambda Morini GP",
@@ -13492,6 +14289,7 @@
     "Moto Morini"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_GP_2_Lambda_V1.22.zip",
    "url": "../guzzionboard/xdfs/morini/5AM_Morini_GP_2_Lambda_V1.22.xdf"
   },
@@ -13501,7 +14299,7 @@
    "version": "1.25",
    "tables": 54,
    "constants": 23,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 327680,
    "categories": [
     "IAW 5AM One Lambda Morini GP",
@@ -13524,6 +14322,7 @@
     "Moto Morini"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_Morini_Sport_GP_95_Scrambler_V1.25.zip",
    "url": "../guzzionboard/xdfs/morini/5AM_Morini_Sport_GP_95_Scrambler_V1.25.xdf"
   },
@@ -13560,6 +14359,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_428_00_GuzziDiag_V2.28.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/15M_428_00_GuzziDiag_V2.28.xdf"
   },
@@ -13604,6 +14404,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_61600.381.00_Cali_V2.52.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/15M_61600.381.00_Cali_V2.52.xdf"
   },
@@ -13613,7 +14414,7 @@
    "version": "1.01",
    "tables": 1,
    "constants": 1,
-   "unsupported": 0,
+   "unsupported": 1,
    "region_size": 512,
    "categories": [],
    "filename": "15M_EEPROM_V1.01.xdf",
@@ -13632,6 +14433,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_EEPROM_V1.01.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/15M_EEPROM_V1.01.xdf"
   },
@@ -13669,6 +14471,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15M_GuzziDiag_V2.32.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/15M_GuzziDiag_V2.32.xdf"
   },
@@ -13678,7 +14481,7 @@
    "version": "1.01",
    "tables": 1,
    "constants": 2,
-   "unsupported": 0,
+   "unsupported": 1,
    "region_size": 512,
    "categories": [],
    "filename": "15RC_EEPROM_V1.01.xdf",
@@ -13697,6 +14500,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_EEPROM_V1.01.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/15RC_EEPROM_V1.01.xdf"
   },
@@ -13706,7 +14510,7 @@
    "version": "2.17",
    "tables": 48,
    "constants": 3,
-   "unsupported": 2,
+   "unsupported": 3,
    "region_size": 65535,
    "categories": [
     "Definition (Read Only)",
@@ -13734,6 +14538,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_GuzziDiag_1100_V2.17.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/15RC_GuzziDiag_1100_V2.17.xdf"
   },
@@ -13743,7 +14548,7 @@
    "version": "2.17",
    "tables": 48,
    "constants": 3,
-   "unsupported": 2,
+   "unsupported": 3,
    "region_size": 65535,
    "categories": [
     "Definition (Read Only)",
@@ -13771,6 +14576,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15RC_GuzziDiag_V7_V2.17.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/15RC_GuzziDiag_V7_V2.17.xdf"
   },
@@ -13780,7 +14586,7 @@
    "version": "1.23",
    "tables": 18,
    "constants": 3,
-   "unsupported": 1,
+   "unsupported": 2,
    "region_size": 32768,
    "categories": [],
    "filename": "16M_GuzziDiag_32k_V1.23.xdf",
@@ -13799,6 +14605,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_32k_V1.23.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/16M_GuzziDiag_32k_V1.23.xdf"
   },
@@ -13827,6 +14634,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/16M_GuzziDiag_64k_V1.21-daytona-RS-Kit.xdf"
   },
@@ -13836,7 +14644,7 @@
    "version": "1.23",
    "tables": 18,
    "constants": 3,
-   "unsupported": 1,
+   "unsupported": 2,
    "region_size": 65536,
    "categories": [],
    "filename": "16M_GuzziDiag_64k_V1.23.xdf",
@@ -13855,6 +14663,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/16M_GuzziDiag_64k_V1.23.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/16M_GuzziDiag_64k_V1.23.xdf"
   },
@@ -13883,6 +14692,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_EEPROM_V1.01.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/5AM_EEPROM_V1.01.xdf"
   },
@@ -13892,7 +14702,7 @@
    "version": "1.41",
    "tables": 133,
    "constants": 355,
-   "unsupported": 2,
+   "unsupported": 45,
    "region_size": 327680,
    "categories": [
     "Development",
@@ -13920,6 +14730,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_GuzziDiag_One_Lambda_V1.41.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/5AM_GuzziDiag_One_Lambda_V1.41.xdf"
   },
@@ -13929,7 +14740,7 @@
    "version": "1.40",
    "tables": 260,
    "constants": 648,
-   "unsupported": 1,
+   "unsupported": 24,
    "region_size": 327680,
    "categories": [
     "Development",
@@ -13963,6 +14774,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/5AM_GuzziDiag_Two_Lambda_V1.40.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/5AM_GuzziDiag_Two_Lambda_V1.40.xdf"
   },
@@ -13972,7 +14784,7 @@
    "version": "1.04",
    "tables": 58,
    "constants": 3,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 720896,
    "categories": [
     "Development",
@@ -13996,6 +14808,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_1050_EURO3_V1.04.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_1400_1050_EURO3_V1.04.xdf"
   },
@@ -14005,7 +14818,7 @@
    "version": "1.04",
    "tables": 56,
    "constants": 3,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 720896,
    "categories": [
     "Development",
@@ -14029,6 +14842,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_EURO4_V1.04.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_1400_EURO4_V1.04.xdf"
   },
@@ -14038,7 +14852,7 @@
    "version": "0.12",
    "tables": 30,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 720896,
    "categories": [
     "Development",
@@ -14062,6 +14876,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_1400_MGX21_V0.14.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_1400_MGX21_V0.14.xdf"
   },
@@ -14071,7 +14886,7 @@
    "version": "1.07",
    "tables": 54,
    "constants": 10,
-   "unsupported": 0,
+   "unsupported": 5,
    "region_size": 720896,
    "categories": [
     "Development",
@@ -14095,6 +14910,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/7SM_MotoGuzzi_V85TT_7621XXxx_V1.07.xdf"
   },
@@ -14104,7 +14920,7 @@
    "version": "1.15",
    "tables": 47,
    "constants": 11,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 524288,
    "categories": [
     "Development",
@@ -14128,6 +14944,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7III_V1.15.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V7III_V1.15.xdf"
   },
@@ -14137,7 +14954,7 @@
    "version": "1.15",
    "tables": 41,
    "constants": 9,
-   "unsupported": 0,
+   "unsupported": 4,
    "region_size": 524288,
    "categories": [
     "Development",
@@ -14161,6 +14978,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7II_V1.15.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V7II_V1.15.xdf"
   },
@@ -14170,7 +14988,7 @@
    "version": "1.09",
    "tables": 62,
    "constants": 1,
-   "unsupported": 0,
+   "unsupported": 31,
    "region_size": 524288,
    "categories": [
     "Development",
@@ -14194,6 +15012,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V7_V1.10.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V7_V1.10.xdf"
   },
@@ -14203,7 +15022,7 @@
    "version": "1.09",
    "tables": 80,
    "constants": 1,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 524288,
    "categories": [
     "Development",
@@ -14227,6 +15046,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V9_4640xxxx_V1.09.xdf"
   },
@@ -14236,7 +15056,7 @@
    "version": "1.09",
    "tables": 91,
    "constants": 1,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 524288,
    "categories": [
     "Development",
@@ -14260,6 +15080,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/MIUG3_MotoGuzzi_V9_464DVCAO_V1.09.xdf"
   },
@@ -14288,6 +15109,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/P7_GuzziDiag_16k_V1.26.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/P7_GuzziDiag_16k_V1.26.xdf"
   },
@@ -14297,7 +15119,7 @@
    "version": "1.30",
    "tables": 46,
    "constants": 1,
-   "unsupported": 1,
+   "unsupported": 2,
    "region_size": 32768,
    "categories": [],
    "filename": "P8_GuzziDiag_32k_V1.30.xdf",
@@ -14316,6 +15138,7 @@
     "Moto Guzzi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/P8_GuzziDiag_32k_V1.30.zip",
    "url": "../guzzionboard/xdfs/moto_guzzi/P8_GuzziDiag_32k_V1.30.xdf"
   },
@@ -14325,7 +15148,7 @@
    "version": "1.02",
    "tables": 30,
    "constants": 2,
-   "unsupported": 0,
+   "unsupported": 1,
    "region_size": 65536,
    "categories": [],
    "filename": "15P_1P0P_V1.03.xdf",
@@ -14344,6 +15167,7 @@
     "Piaggio"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0P_V1.03.zip",
    "url": "../guzzionboard/xdfs/piaggio/15P_1P0P_V1.03.xdf"
   },
@@ -14353,7 +15177,7 @@
    "version": "1.02",
    "tables": 26,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 65536,
    "categories": [],
    "filename": "15P_1P0T_V1.02.xdf",
@@ -14372,6 +15196,7 @@
     "Piaggio"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/15P_1P0T_V1.02.zip",
    "url": "../guzzionboard/xdfs/piaggio/15P_1P0T_V1.02.xdf"
   },
@@ -14381,7 +15206,7 @@
    "version": "0.02",
    "tables": 33,
    "constants": 3,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 327680,
    "categories": [],
    "filename": "MIU1_CM081701_22A3GS14_V0.03.xdf",
@@ -14400,6 +15225,7 @@
     "Piaggio"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIU1_CM081701_22A3GS14_V0.03.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIU1_CM081701_22A3GS14_V0.03.xdf"
   },
@@ -14428,6 +15254,7 @@
     "Piaggio"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_34B9BU42_V1.00.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_34B9BU42_V1.00.xdf"
   },
@@ -14461,6 +15288,7 @@
     "Piaggio"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_4528BU53_V1.00.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_4528BU53_V1.00.xdf"
   },
@@ -14470,7 +15298,7 @@
    "version": "1.04",
    "tables": 27,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 524288,
    "categories": [
     "Development",
@@ -14494,6 +15322,7 @@
     "Piaggio"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_4530xxxx_GTS300_V1.04.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_4530xxxx_GTS300_V1.04.xdf"
   },
@@ -14503,7 +15332,7 @@
    "version": "1.04",
    "tables": 27,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 2,
    "region_size": 524288,
    "categories": [
     "Development",
@@ -14527,6 +15356,7 @@
     "Piaggio"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_464CDABL_GTS300_V1.04.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_464CDABL_GTS300_V1.04.xdf"
   },
@@ -14555,6 +15385,7 @@
     "Piaggio"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_Fly_3V_V1.01.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_Fly_3V_V1.01.xdf"
   },
@@ -14564,7 +15395,7 @@
    "version": "1.00",
    "tables": 27,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 3,
    "region_size": 524288,
    "categories": [
     "Development",
@@ -14588,6 +15419,7 @@
     "Piaggio"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_GTS300_3417BN15_V1.00.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_GTS300_3417BN15_V1.00.xdf"
   },
@@ -14621,6 +15453,7 @@
     "Piaggio"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Piaggio_GTS300_V2_V1.03.zip",
    "url": "../guzzionboard/xdfs/piaggio/MIUG3_Piaggio_GTS300_V2_V1.03.xdf"
   },
@@ -14630,7 +15463,7 @@
    "version": "0.02",
    "tables": 58,
    "constants": 0,
-   "unsupported": 0,
+   "unsupported": 1,
    "region_size": 524288,
    "categories": [
     "Development",
@@ -14654,6 +15487,7 @@
     "Scomadi"
    ],
    "catalogued": true,
+   "research_only": false,
    "source_url": "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MIUG3_Scomadi_200_V0.02.zip",
    "url": "../guzzionboard/xdfs/scomadi/MIUG3_Scomadi_200_V0.02.xdf"
   }

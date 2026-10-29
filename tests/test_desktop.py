@@ -97,6 +97,10 @@ class FakeBridge:
         return {"name": path.name, "path": str(path), "dir": str(path.parent),
                 "bytes": len(content)}
 
+    def save_binary(self, name: str, data: bytes) -> dict:
+        self.calls.append(("save_binary", {"name": name, "data": data}))
+        return ExportDesk(self.exports).write_binary(name, data)
+
     def print_view(self, html: str) -> dict:
         self.calls.append(("print", {"html": html}))
         return {"path": str(self.exports / "view.html"), "opened": True, "note": "printed"}
@@ -397,6 +401,37 @@ def test_saving_a_file_goes_to_the_host(api_server, tmp_path):
                            token=token, payload={"name": "../../escape.txt", "content": "x"})
     written = Path(payload["path"])
     assert status == 200 and written.parent == bridge.exports
+
+
+def test_binary_exports_validate_and_never_overwrite(api_server):
+    server, bridge, token = api_server
+    body = {"name": "../../region.bin", "content_base64": base64.b64encode(b"\x00\xffabc").decode()}
+    status, first = call(server, "POST", "/api/desktop/save-binary", token=token, payload=body)
+    assert status == 200 and Path(first["path"]).parent == bridge.exports
+    assert Path(first["path"]).read_bytes() == b"\x00\xffabc"
+    status, second = call(server, "POST", "/api/desktop/save-binary", token=token, payload=body)
+    assert status == 200 and first["path"] != second["path"]
+    assert Path(second["path"]).read_bytes() == b"\x00\xffabc"
+    assert call(server, "POST", "/api/desktop/save-binary", payload=body)[0] == 403
+    assert call(server, "POST", "/api/desktop/save-binary", token=token,
+                payload={"name": "a.bin", "content_base64": "*invalid*"})[0] == 400
+    assert call(server, "POST", "/api/desktop/save-binary", token=token,
+                payload={"name": "a.bin", "content_base64": "YWJj===="})[0] == 400
+    assert call(server, "POST", "/api/desktop/save-binary", token=token,
+                payload={"name": "a.bin", "content_base64": "A" * 1398105})[0] == 400
+    assert call(server, "POST", "/api/desktop/save-binary", token=token,
+                payload={"name": "", "content_base64": ""})[0] == 400
+
+
+def test_binary_exports_concurrent_writers_do_not_overwrite(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    desk = ExportDesk(tmp_path)
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        results = list(pool.map(lambda n: desk.write_binary("shared.bin", bytes([n])), range(40)))
+    paths = [Path(result["path"]) for result in results]
+    assert len(set(paths)) == 40
+    assert {path.read_bytes() for path in paths} == {bytes([n]) for n in range(40)}
 
 
 def test_saving_requires_a_name_and_text(api_server):

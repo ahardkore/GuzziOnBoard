@@ -691,6 +691,16 @@ class XdfFile:
                     "reason": str(exc),
                 })
 
+        # Do not silently hide definitions we cannot render or apply. In
+        # particular, many motorcycle XDFs have switches and binary patches.
+        for tag, kind in (("XDFFLAG", "flag"), ("XDFPATCH", "patch")):
+            for node in root.findall(tag):
+                xdf.unsupported.append({
+                    "title": (node.findtext("title") or "").strip() or f"(untitled {kind})",
+                    "kind": kind,
+                    "reason": f"XDF {kind} items are not supported and are not applied",
+                })
+
         for index, node in enumerate(root.findall("XDFCHECKSUM"), 1):
             title = (node.findtext("title") or "").strip()
             # An unnamed declaration is still a declaration, not evidence
@@ -1601,6 +1611,7 @@ def fitment(path: str | Path | None) -> dict:
         "fits": fits,
         "fits_brands": sorted({f["brand_label"] for f in fits if f["brand_label"]}),
         "catalogued": bool(entry),
+        "research_only": bool(entry.get("research_only")),
         "source_url": str(entry.get("source_url") or ""),
     }
 

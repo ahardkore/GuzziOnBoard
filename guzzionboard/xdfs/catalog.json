@@ -1435,5 +1435,154 @@
         "label": "Honda CBR1000RR 2012 US"
       }
     ]
+  },
+  {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CBR1000RR_MEL_2006-2007/38770-MEL.xdf",
+    "brand": "honda",
+    "family": "HONDA-RESEARCH",
+    "label": "Honda CBR1000RR MEL 2006-2007 / 38770-MEL (research only)",
+    "xdf_filename": "38770-MEL.xdf",
+    "vendor_path": "honda/38770-MEL.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "Honda CBR1000RR MEL 2006-2007 / 38770-MEL (research only)"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CBR500R_MGZ_2013-2016/38770-MGZ.xdf",
+    "brand": "honda",
+    "family": "HONDA-RESEARCH",
+    "label": "Honda CBR500R MGZ 2013-2016 / 38770-MGZ (research only) · default endian conflicts with A03",
+    "xdf_filename": "38770-MGZ.xdf",
+    "vendor_path": "honda/38770-MGZ.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "Honda CBR500R MGZ 2013-2016 / 38770-MGZ (research only)"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CBR500R_MJW_2017-2018/38770-MJW.xdf",
+    "brand": "honda",
+    "family": "HONDA-RESEARCH",
+    "label": "Honda CBR500R MJW 2017-2018 / 38770-MJW (research only)",
+    "xdf_filename": "38770-MJW.xdf",
+    "vendor_path": "honda/38770-MJW.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "Honda CBR500R MJW 2017-2018 / 38770-MJW (research only)"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CRF110F_KYK_2019/38770-KYK-D12.xdf",
+    "brand": "honda",
+    "family": "HONDA-RESEARCH",
+    "label": "Honda CRF110F KYK 2019 / 38770-KYK-D12 (research only)",
+    "xdf_filename": "38770-KYK-D12.xdf",
+    "vendor_path": "honda/38770-KYK-D12.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "Honda CRF110F KYK 2019 / 38770-KYK-D12 (research only)"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CRF450R_MKE_2017-2019/38770-MKE-DataSettings.xdf",
+    "brand": "honda",
+    "family": "HONDA-RESEARCH",
+    "label": "Honda CRF450R MKE 2017-2019 / 38770-MKE-DataSettings (research only)",
+    "xdf_filename": "38770-MKE-DataSettings.xdf",
+    "vendor_path": "honda/38770-MKE-DataSettings.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "Honda CRF450R MKE 2017-2019 / 38770-MKE-DataSettings (research only)"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/MSX125_K26_2013-2016/38770-K26-911.xdf",
+    "brand": "honda",
+    "family": "HONDA-RESEARCH",
+    "label": "Honda MSX125 K26 2013-2016 / 38770-K26-911 (research only)",
+    "xdf_filename": "38770-K26-911.xdf",
+    "vendor_path": "honda/38770-K26-911.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "Honda MSX125 K26 2013-2016 / 38770-K26-911 (research only)"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/MSX125_K26_2016-2019/38770-K26-B13.xdf",
+    "brand": "honda",
+    "family": "HONDA-RESEARCH",
+    "label": "Honda MSX125 K26 2016-2019 / 38770-K26-B13 (research only)",
+    "xdf_filename": "38770-K26-B13.xdf",
+    "vendor_path": "honda/38770-K26-B13.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "Honda MSX125 K26 2016-2019 / 38770-K26-B13 (research only)"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/MSX125_K26_2016-2019/38770-K26-C31.xdf",
+    "brand": "honda",
+    "family": "HONDA-RESEARCH",
+    "label": "Honda MSX125 K26 2016-2019 / 38770-K26-C31 (research only)",
+    "xdf_filename": "38770-K26-C31.xdf",
+    "vendor_path": "honda/38770-K26-C31.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "Honda MSX125 K26 2016-2019 / 38770-K26-C31 (research only)"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/Z125M_K0F_2019/38770-K0F-A01.xdf",
+    "brand": "honda",
+    "family": "HONDA-RESEARCH",
+    "label": "Honda Z125M K0F 2019 / 38770-K0F-A01 (research only)",
+    "xdf_filename": "38770-K0F-A01.xdf",
+    "vendor_path": "honda/38770-K0F-A01.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "Honda Z125M K0F 2019 / 38770-K0F-A01 (research only)"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+    "brand": "honda",
+    "family": "CB500-MGZ-A03",
+    "label": "Honda CB500F / CBR500R 2013–2016 MGZ-A03 (scoped offline adaptation)",
+    "xdf_filename": "CB500_MGZ_A03_gob.xdf",
+    "vendor_path": "honda/CB500_MGZ_A03_gob.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "CB500F / CBR500R 2013–2016, 38770-MGZ-A03 only"
+      }
+    ]
   }
 ]

@@ -1,9 +1,9 @@
 # Calibration checksum plugins
 
-GuzziOnBoard includes one explicitly selected, in-process Honda CBR1000RR
-2012 US / 38770-MGP-A01 calibration checksum provider, locked to a specific
-XDF and source-image hash; see `XDF_LIBRARY.md`. It does not apply to other
-Honda calibrations or brands. Protocol-frame and upload checksums elsewhere in
+GuzziOnBoard includes two explicitly selected in-process Honda providers:
+CBR1000RR 2012 US / 38770-MGP-A01 and CB500F / CBR500R MGZ-A03. Each is
+locked to its specific XDF and original source-image hash; see `XDF_LIBRARY.md`.
+Neither applies to other Honda calibrations or brands. Protocol-frame and upload checksums elsewhere in
 the project are not interchangeable with calibration checksum fields.
 
 Put trusted Python plugins in `~/.guzzionboard/checksums/`. A plugin defines:
@@ -50,7 +50,7 @@ and disabled network namespace.
 
 ## Selection and provenance
 
-Providers, including the bundled Honda provider, are never auto-selected. The chosen id must explicitly support every
+Providers, including the bundled Honda providers, are never auto-selected. The chosen id must explicitly support every
 checksum title declared by the XDF. Preview and build preserve image length,
 refuse more than 4096 changed bytes, and record provider id/version/source,
 plugin SHA-256, isolation mode, input/output hashes, verification claim, and

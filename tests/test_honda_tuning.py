@@ -22,7 +22,9 @@ def test_vendored_honda_definition_is_exact_and_exposes_unsupported_item():
     assert xdf.title == 'CBR1000RR 2012 US'
     assert xdf.checksums == ['Honda Checksum']
     assert len(xdf.tables) == 38
-    assert [item['title'] for item in xdf.unsupported] == ['Top Speed Limit']
+    assert [item['title'] for item in xdf.unsupported if item['kind'] == 'table'] == ['Top Speed Limit']
+    assert [item['kind'] for item in xdf.unsupported].count('patch') == 5
+    assert [item['kind'] for item in xdf.unsupported].count('flag') == 1
 
 
 def test_checksum_scope_and_byte_changes(monkeypatch):

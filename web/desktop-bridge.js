@@ -144,6 +144,7 @@
       headers: { 'X-GuzziOnBoard-Token': token },
     }).then((response) => response.json()),
     saveText: (name, text) => post('/api/desktop/save', { name, content: String(text) }),
+    saveBinary: (name, base64) => post('/api/desktop/save-binary', { name, content_base64: base64 }),
     printView: async () => post('/api/desktop/print', { html: await printView() }),
     openExternal: (url) => post('/api/desktop/open-external', { url }),
     openFolder: (which) => post('/api/desktop/open-folder', { which: which || 'exports' }),

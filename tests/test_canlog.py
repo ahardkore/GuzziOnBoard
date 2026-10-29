@@ -361,3 +361,39 @@ def test_byte_statistics_ignore_empty_or_oversized_frames_and_bound_output():
     first = result['groups'][0]
     assert first['frames'] == 3 and first['skipped_frames'] == 2
     assert first['lengths'] == [0, 1, 9] and first['bytes'][0]['samples'] == 1
+
+
+def test_harley_hdlan_community_candidates_are_opt_in_and_bounded():
+    capture = "\n".join([
+        "1.0 R11 521 00 64 00 00 00 00 00 00",
+        "2.0 R11 5C0 00 00 00 00 00 00 13 88",
+        "3.0 R11 541 00 00 00 00 00 50 00 00",
+        "4.0 R11 550 01 00 00 00 00 00",
+        "5.0 R11 530 00 00 81 00 00 00 00 00",
+        "6.0 R11 5C1 1D 74 00 00 00 00 00 00",
+        "7.0 T11 521 00 FF 00 00 00 00 00 00",
+        "8.0 R29 00000521 00 64 00 00 00 00 00 00",
+        "9.0 R11 5C0 00 01",
+    ])
+    assert "decoder" not in analyze_capture_text(capture)
+    result = analyze_capture_text(capture, decoder="harley_hdlan_community")["decoder"]
+    assert result["recognized_frames"] == 6
+    assert result["ignored_tx_frames"] == 1 and result["invalid_length_frames"] == 1
+    assert [event["values"] for event in result["events"]] == [
+        {"speed_kmh_candidate": 100, "source_byte_index": 1},
+        {"odometer_km_candidate": 5000}, {"engine_temp_c_candidate": 80},
+        {"clutch_candidate": True}, {"neutral_candidate": True, "status_byte": 0x81},
+        {"rpm_candidate": 1885, "source_byte_index": 0},
+    ]
+    assert result["events"][0]["raw"] == "0064000000000000"
+    assert analyze_capture_text(capture, "521", "harley_hdlan_community")["decoder"]["recognized_frames"] == 1
+
+
+def test_harley_hdlan_rpm_fallback_and_output_limit():
+    lines = ["1.0 R11 5C1 00 00 0F A0", "2.0 R11 5C1 00 00"]
+    lines += [f"{i + 3}.0 R11 521 00 00 64 00" for i in range(205)]
+    result = analyze_capture_text("\n".join(lines), decoder="harley_hdlan_community")["decoder"]
+    assert result["events"][0]["values"] == {"rpm_candidate": 1000, "source_byte_index": 2}
+    assert result["events"][1]["values"]["rpm_candidate"] is None
+    assert result["events"][2]["values"] == {"speed_kmh_candidate": 100, "source_byte_index": 2}
+    assert len(result["events"]) == 200 and result["omitted_events"] == 7

@@ -8,6 +8,8 @@ care whether the page in front of it is a browser tab
 """
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import json
 import math
@@ -50,7 +52,7 @@ from .checksums import (
     ChecksumUnavailable,
     load_providers as load_local_checksum_providers,
 )
-from . import honda_tuning
+from . import honda_tuning, honda_mgz
 from .map_analysis import LogAnalysisError, analyze_fuel_log
 from .programming import ProgrammingError, ProgrammingService
 from . import confirmations as confirmations_mod
@@ -80,22 +82,24 @@ from . import replay
 from . import sessiondiff
 from .sessionlog import SessionLog
 from .transports.base import TransportError, TransportUnavailable
+from .protocol.kwp2000 import ProtocolError
 from .workstation import Workstation
 
 
 def load_checksum_providers():
     local, errors = load_local_checksum_providers()
-    builtin = honda_tuning.provider()
+    builtins = [honda_tuning.provider(), honda_mgz.provider()]
+    builtin_ids = {provider.provider_id for provider in builtins}
     filtered = []
     for item in local:
-        if item.provider_id == builtin.provider_id:
+        if item.provider_id in builtin_ids:
             errors.append({
                 "path": item.source,
                 "error": "provider id is reserved by the built-in Honda provider",
             })
         else:
             filtered.append(item)
-    return [builtin, *filtered], errors
+    return [*builtins, *filtered], errors
 
 
 def checksum_provider_by_id(provider_id: str):
@@ -468,6 +472,23 @@ class Api:
         if not isinstance(content, str):
             raise ValueError("'content' must be a string")
         return 200, desktop.save_text(name, content)
+
+    def post_desktop_save_binary(self, body: dict) -> tuple[int, dict]:
+        desktop = self._require_desktop("saving a binary export")
+        name, encoded = body.get("name"), body.get("content_base64")
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("'name' is required")
+        if not isinstance(encoded, str) or len(encoded) > 1398104:
+            raise ValueError("binary export must be base64 and at most 1 MiB")
+        try:
+            data = base64.b64decode(encoded, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise ValueError("invalid base64 binary export") from exc
+        if len(data) > 1024 * 1024:
+            raise ValueError("binary export exceeds 1 MiB")
+        if base64.b64encode(data).decode("ascii") != encoded:
+            raise ValueError("invalid base64 binary export")
+        return 200, desktop.save_binary(name, data)
 
     def post_desktop_print(self, body: dict) -> tuple[int, dict]:
         desktop = self._require_desktop("printing")
@@ -1060,7 +1081,10 @@ class Api:
 
     def _check_build_fitment(self, xdf: XdfFile, image: FirmwareImage) -> None:
         """A mismatched XDF may be viewed, but it may never build bytes."""
-        xdf_family = str(fitment(xdf.path).get("family") or "")
+        xdf_info = fitment(xdf.path)
+        xdf_family = str(xdf_info.get("family") or "")
+        if xdf_info.get("research_only"):
+            raise TuningError("this XDF is research-only: rendering and research preview are allowed, but building an image is not")
         if xdf_family == "CBR1000RR-2012-US":
             selection = self.ws.selection
             if (xdf.file_sha256 != honda_tuning.XDF_SHA256
@@ -1078,6 +1102,22 @@ class Api:
             # Carry the scoped ECU identity into any resulting sidecar even if
             # the operator supplied an unlabelled raw image.
             image.ecu_id = honda_tuning.ECU_ID
+            return
+        if xdf_family == "CB500-MGZ-A03":
+            selection = self.ws.selection
+            if (xdf.file_sha256 != honda_mgz.XDF_SHA256
+                    or image.sha256 != honda_mgz.SOURCE_SHA256
+                    or image.size != honda_mgz.IMAGE_SIZE
+                    or selection.make.lower() != "honda"
+                    or selection.model not in ("CB500F", "CBR500R")
+                    or selection.year not in (2013, 2014, 2015, 2016)
+                    or not selection.profile or selection.profile.id != honda_mgz.ECU_ID
+                    or (image.ecu_id and image.ecu_id != honda_mgz.ECU_ID)):
+                raise TuningError(
+                    "Honda MGZ-A03 build requires a matching CB500F / CBR500R 2013–2016 selection, "
+                    "the pinned adapted XDF and the exact MGZ-A03 original image SHA-256"
+                )
+            image.ecu_id = honda_mgz.ECU_ID
             return
         if not xdf_family:
             raise TuningError(
@@ -1269,7 +1309,7 @@ class Api:
             "providers": [provider.as_dict() for provider in providers],
             "errors": errors,
             "note": (
-                "The built-in Honda provider is restricted to its pinned XDF and source image. "
+                "Each built-in Honda provider is restricted to its pinned XDF and source image. "
                 "Local plugins run in fresh resource-limited, audit-guarded subprocesses; "
                 "they remain local code, and self-verification does not prove "
                 "correctness on physical ECU hardware."
@@ -2101,6 +2141,7 @@ ROUTES_POST = {
     "/api/procedures/abort": "post_procedure_abort",
     "/api/desktop/raise": "post_desktop_raise",
     "/api/desktop/save": "post_desktop_save",
+    "/api/desktop/save-binary": "post_desktop_save_binary",
     "/api/desktop/print": "post_desktop_print",
     "/api/desktop/open-external": "post_desktop_open_external",
     "/api/desktop/open-folder": "post_desktop_open_folder",
@@ -2185,6 +2226,8 @@ def make_handler(workstation: Workstation, *, guard: RequestGuard | None = None,
                 status, payload = 501, {"error": str(exc), "code": "no_driver"}
             except TransportError as exc:
                 status, payload = 502, {"error": str(exc), "code": "transport"}
+            except ProtocolError as exc:
+                status, payload = 502, {"error": str(exc), "code": "protocol"}
             except SecurityUnavailable as exc:
                 status, payload = 501, {"error": str(exc), "code": "no_key_provider"}
             except (ProgrammingError, FirmwareError) as exc:

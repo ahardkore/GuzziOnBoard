@@ -35,6 +35,8 @@ opened.
 | Triumph Daytona 675 2012 OBD | Read-only supported mode 01 PIDs and stored mode 03 codes over K-Line; author-tested source, but this implementation has only synthetic tests; source gauge formulas are not dash-verified |
 | Multi-brand offline research | Honda CBR600RR 2005, Kawasaki ER-6n 2006, Suzuki SV650AK7 2007, Triumph Daytona 675 2012, BMW R1300GS CAN candidates, and generic J1850 VPW CRC research for Harley-Davidson; these offline tools never connect or transmit |
 | CFMoto MSE6 checksum research | Local record inspection for source-reported examples; factory-image mismatches are documented; no repair, identification or programming |
+| Harley Delphi offline region workspace | Source-described 160 KiB calibration → 16 KiB region extraction, comparison and replacement in a new research copy, with local SHA-256 and non-overwriting desktop export. Not ECU identification, checksum repair or programming; see `docs/HARLEY_TUNING.md` |
+| Harley capture research | J1850 telemetry/identity fragments/DTC candidates and separate best-effort HDLAN CAN candidates, offline only; see `docs/HARLEY_TUNING.md` |
 | Yamaha MT checksum research | Offline inspection of a user-supplied image only; no checksum repair, ECU identification or programming |
 | Ducati Mitsubishi CAN broadcast research | Optional offline decoder for an explicitly selected Ducati profile; no Guzzi compatibility or live capture claimed |
 | Manual shim worksheet | Offline arithmetic with user-entered clearances and mechanism direction; no vehicle specs supplied |
@@ -517,6 +519,14 @@ The refreshed browser/desktop workspace and its read-only timeline are described
   things a signed update may never do.
 - `docs/7SM_WORKFLOW.md` — ride-by-wire identification and learning workflow.
 
+### ECU part-number research
+
+Tools → **ECU number & bike research** compares part, hardware and software
+identifiers against a small attributed local reference set or a user-supplied
+JSON list. It can prepare opt-in MotoBinFiles search links; it does not upload
+images or automatically select a vehicle. See [ECU number research](docs/ECU_NUMBER_RESEARCH.md)
+for sources, privacy and matching limitations.
+
 ## Credits and disclaimer
 
 This project stands on the reverse-engineering work of the GuzziDiag / IAWDiag
@@ -547,3 +557,15 @@ deployed build's exact corresponding source has been published. Before
 shipping or hosting a modified build, publish its matching source and update
 that link or provide another compliant source offer. No release or matching
 source archive has been published by these local changes.
+
+Harley J1850 owners can select the ECU-only HarleyDroid profile and an ELM327
+serial adapter for limited read-only identity, broadcast telemetry and DTC
+reads; this new integration has synthetic tests only. Compatibility and
+temperature scaling vary. Harley ECU memory reading, flashing, matched map
+definitions and calibration checksum correction are not yet implemented. See
+[Harley research and setup](docs/HARLEY_TUNING.md).
+
+See [the supplied source review](docs/USER_SOURCE_REVIEW.md) for additional
+Honda, Suzuki, Harley, Yamaha, aftermarket ECU and definition resources.
+The CB500/CBR500 MGZ-A03 offline builder is locked to a particular source image
+and adapted XDF; it does not enable Honda ECU communication or flashing.

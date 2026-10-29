@@ -11,7 +11,8 @@
   "andreibaw/Honda_K-Line_KWP2000, commit f3bd42ff438e840e4da3802dd5038a195f3d67be: author-tested 2005 Honda CBR600RR; offline response research only",
   "https://github.com/gabrielerandazzo/iKawa/tree/79eb9049d13037be6fd91b8a1d1acd164ca70104: Kawasaki ER-6n 2006 author-tested read-only KDS reference",
   "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce: Suzuki SV650AK7 2007 author-tested reference, offline research only",
-  "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32: Triumph Daytona 675 2012 author-tested read-only OBD reference"
+  "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32: Triumph Daytona 675 2012 author-tested read-only OBD reference",
+  "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952: CB500F / CBR500R 2013–2016 MGZ-A03 offline reference"
  ],
  "vehicles": [
   {
@@ -1356,6 +1357,24 @@
    "ecu": "honda_cbr1000rr_2012_us",
    "confidence": "inferred",
    "notes": "HondaECU repository: 2012 US XDF; source image 38770-MGP-A01 2012–2013. Offline build is locked to the exact source and definition; no live Honda sessions or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB500F",
+   "year_from": 2013,
+   "year_to": 2016,
+   "ecu": "honda_cb500_mgz_a03",
+   "confidence": "inferred",
+   "notes": "HondaECU lists MGZ-A03 for this model range; offline image build accepts only exact MGZ-A03 stock image and adapted XDF. No live diagnostics or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR500R",
+   "year_from": 2013,
+   "year_to": 2016,
+   "ecu": "honda_cb500_mgz_a03",
+   "confidence": "inferred",
+   "notes": "HondaECU lists MGZ-A03 for this model range; offline image build accepts only exact MGZ-A03 stock image and adapted XDF. No live diagnostics or programming."
   }
  ]
 }

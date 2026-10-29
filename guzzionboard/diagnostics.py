@@ -17,6 +17,7 @@ from .catalog import Catalog, EcuProfile, Parameter, load_catalog
 from .protocol.legacy_iaw import LegacyIAWSession
 from .protocol.kawasaki_er6n import KawasakiER6nSession, decode_kawasaki_value
 from .protocol.triumph_daytona import TriumphDaytonaSession
+from .protocol.harley_j1850 import HarleyJ1850Session
 from .protocol.kwp2000 import (
     KWP2000Session,
     NegativeResponse,
@@ -112,7 +113,7 @@ class DiagnosticsService:
     # -- lifecycle --------------------------------------------------------
     @property
     def connected(self) -> bool:
-        return self.session is not None and self.connection is not None
+        return self.session is not None and self.connection is not None and self.connection.is_open
 
     def connect(self, *, init_method: str | None = None) -> InitResult:
         with self._lock:
@@ -135,7 +136,9 @@ class DiagnosticsService:
 
             method = init_method or self.profile.kline.get("init", "fast")
             exact_method = self.profile.session.get("protocol")
-            if exact_method in ("kawasaki-er6n", "triumph-daytona-2012") and method != exact_method:
+            if exact_method == "harley-j1850-harleydroid" and (self.transport.name != "elm_j1850" or not self.transport.is_physical or self.gate.mode.value != "read_only"):
+                raise TransportUnavailable("Harley J1850 requires the ELM serial transport and read-only mode")
+            if exact_method in ("kawasaki-er6n", "triumph-daytona-2012", "harley-j1850-harleydroid") and method != exact_method:
                 raise TransportUnavailable(f"{self.profile.family} requires its profile-default initialization")
             self.connection = self.transport.open()
             try:
@@ -211,6 +214,12 @@ class DiagnosticsService:
                     self.connection = None
                     self.session = None
                     raise
+            elif self.profile.session.get("protocol") == "harley-j1850-harleydroid":
+                if self.init_result.protocol != "j1850-vpw" or not self.init_result.handshake_complete:
+                    self.connection.close()
+                    self.connection = None
+                    raise ProtocolError("Harley J1850 requires the ELM VPW initialization")
+                self.session = HarleyJ1850Session(self.connection, on_frame=self.log.frame)
             elif self.profile.session.get("protocol") == "triumph-daytona-2012":
                 try:
                     if (self.init_result.protocol != "iso9141-2" or not self.init_result.handshake_complete
@@ -294,8 +303,8 @@ class DiagnosticsService:
             # so a stale string from ECU A can never vouch for ECU B.
             self.gate.state.ecu_hardware = ""
 
-    def _require(self) -> KWP2000Session | LegacyIAWSession:
-        if self.session is None:
+    def _require(self) -> KWP2000Session | LegacyIAWSession | HarleyJ1850Session:
+        if not self.connected:
             raise NotConnected("not connected to an ECU")
         return self.session
 
@@ -349,7 +358,13 @@ class DiagnosticsService:
             spec = self.profile.identification
             fields = {}
 
-            if isinstance(session, LegacyIAWSession):
+            if isinstance(session, HarleyJ1850Session):
+                # A failed re-identification must not leave prior ECU evidence active.
+                self.identity = None
+                self.gate.state.identified = False
+                self.gate.state.ecu_hardware = ""
+                fields, raw = session.read_identity()
+            elif isinstance(session, LegacyIAWSession):
                 chunks = []
                 wake = self.init_result.response if self.init_result else b""
                 if wake and spec.get("include_wakeup", True):
@@ -400,6 +415,8 @@ class DiagnosticsService:
     # -- live data --------------------------------------------------------
     def read_parameter(self, param: Parameter) -> Sample:
         session = self._require()
+        if isinstance(session, HarleyJ1850Session):
+            return self.read_parameters([param.key])[0]
         try:
             if isinstance(session, LegacyIAWSession):
                 raw = session.query_many(param.request_ids or (param.local_id,))
@@ -457,6 +474,27 @@ class DiagnosticsService:
                 params = self.profile.default_parameters or self.profile.live_parameters
             else:
                 params = [self.profile.parameter(k) for k in keys]
+            session = self._require()
+            if isinstance(session, HarleyJ1850Session):
+                snapshot = session.read_snapshot()
+                samples = []
+                for param in params:
+                    raw = snapshot.get(param.local_id)
+                    if raw is None:
+                        sample = Sample(param.key, param.name, param.local_id, b"", None, param.unit,
+                                        error="No matching CRC-valid broadcast in this monitor window")
+                    else:
+                        raw_value = decode_raw_value(raw, offset=param.offset, length=param.length,
+                                                     endian=param.endian, signed=param.signed)
+                        value = apply_scaling(raw_value, scale=param.scale, bias=param.bias, recip=param.recip)
+                        value = round(value, param.digits) if param.digits else int(round(value))
+                        sample = Sample(param.key, param.name, param.local_id, raw, value, param.unit)
+                        self.log.sample(param.key, param.local_id, raw, value, param.unit)
+                        self._update_inferred_state(param.key, value, "")
+                    self.last_samples[param.key] = sample
+                    samples.append(sample)
+                self._touch()
+                return samples
             return [self.read_parameter(p) for p in params]
 
     def _update_inferred_state(self, key: str, value, text: str) -> None:
@@ -485,6 +523,12 @@ class DiagnosticsService:
                     f"{self.profile.family}: fault-memory request is not validated"
                 )
             session = self._require()
+            if isinstance(session, HarleyJ1850Session):
+                result = session.read_dtcs()
+                self._touch()
+                self.log.action("read_dtcs", {"count": len(result["dtcs"]), "format": result["format"],
+                                               "modules": result["modules"], "dtcs": result["dtcs"]})
+                return result
             if isinstance(session, TriumphDaytonaSession):
                 dtcs = session.read_stored_codes()
                 self._touch()

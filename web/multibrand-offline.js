@@ -8,6 +8,9 @@
  * commit d37e96718f5cd82ebde3297c1181c687a922ea32.
  * BMW R1300GS: adapted from EasierCan, Copyright (c) 2026 HagayBT, MIT,
  * commit a4c37ceabeea57bc7e97b51da345dd7b84e21596.
+ * Harley J1850 candidates adapted from HarleyDroid EVO J1850.kt and README,
+ * Copyright (C) 2010–2012 Stelian Pop and (C) 2026 Quickosss,
+ * GPL-3.0-or-later, commit 668b63efc05977eb65cb8e84e597ae2205355d4c.
  * J1850 VPW CRC adapted from vpw-sniffer, Copyright (c) 2026 bbutka,
  * MIT, commit 37aa6f974615154419bc28eb9cf9f9cfb804ade0. No bike validation.
  * No hardware or commands are included. See docs/EXTERNAL_MOTORCYCLE_RESEARCH.md
@@ -125,6 +128,44 @@ function researchVpw(bytes) {
   return ['J1850 CRC matches. Payload is not decoded; source is not validated on a motorcycle.'];
 }
 
+// The source describes trial-and-error J1850 frames, notably Sportster.
+// Decode a single complete CRC-valid frame only; never combine identity
+// fragments across captures, infer fault status, or send ECU commands.
+function researchHarleyJ1850(bytes) {
+  researchVpw(bytes);
+  const b = bytes.slice(0, -1), prefix = b.slice(0, 4).map((v) => v.toString(16).padStart(2, '0')).join('');
+  const word = () => b[4] * 256 + b[5];
+  if (prefix === '281b1002' && b.length === 6) return [`Engine speed: ${word() / 4} rpm`];
+  if (prefix === '48291002' && b.length === 6) return [`Road speed: ${word() / 128} km/h`];
+  if (prefix === 'a8491010' && b.length === 5) return [`Engine temperature candidate: ${b[4] - 40} °C (raw ${b[4]}; source descriptions differ)`];
+  if (prefix === 'a83b1003' && b.length === 5) return [`Gear raw byte: ${b[4]} (source documentation and code differ; do not infer gear)`];
+  if (b.length === 4 && b[0] === 0x48 && b[1] === 0x3b && b[2] === 0x40 && (b[3] & 0x5d) === 0) {
+    const neutral = b[3] === 0x20 ? 'false' : b[3] === 0xa0 ? 'true' : 'unknown';
+    return [`Neutral candidate: ${neutral} · clutch bit candidate: ${Boolean(b[3] & 0x80)} · raw status 0x${b[3].toString(16).padStart(2, '0')}`];
+  }
+  if (prefix === '48da4039' && b.length === 5 && b[4] <= 3) return [`Turn signal candidate: ${['off', 'right', 'left', 'both'][b[4]]}`];
+  if ((prefix === '68881003' || prefix === '68881083') && b.length === 4) return [`Check-engine lamp candidate: ${Boolean(b[3] & 0x80)}`];
+  if ((prefix === 'a8691006' || prefix === 'a8691086') && b.length === 6) return [`Odometer pulse counter: ${word()} · raw counter, not absolute odometer · wrap flag: ${Boolean(b[3] & 0x80)}`];
+  if ((prefix === 'a883100a' || prefix === 'a883108a') && b.length === 6) return [`Fuel-use pulse counter: ${word()} · raw counter, not total fuel · wrap flag: ${Boolean(b[3] & 0x80)}`];
+  if ((prefix === 'a8836112' || prefix === 'a8836192') && b.length === 5) return [`Fuel-gauge candidate: ${b[4] & 15} / 15 · low-fuel bit: ${Boolean(b[3] & 0x80)}`];
+  if (b.length === 6 && b[0] === 0x6c && b[1] === 0xf1 && [0x10, 0x40, 0x60].includes(b[2]) && b[3] === 0x59) {
+    const module = { 16: 'ECM', 64: 'ABS', 96: 'TSM' }[b[2]];
+    if (!b[4] && !b[5]) return [`${module} DTC payload 0000 (does not establish absence of faults).`];
+    const code = 'PCBU'[b[4] >> 6] + ((b[4] >> 4) & 3).toString(16) + (b[4] & 15).toString(16) + b[5].toString(16).padStart(2, '0');
+    return [`${module} DTC candidate: ${code.toUpperCase()} · current/historic status not determined (source interpretations differ)`];
+  }
+  if (prefix === '0cf1107c' && b.length >= 6) {
+    const id = b[4], length = { 1: 6, 2: 6, 3: 6, 4: 6, 11: 1, 15: 6, 16: 6, 17: 5 }[id];
+    if (length && b.length === 5 + length) {
+      if (id === 11) return [`ECM software level candidate: ${b[5]}`];
+      const fragment = b.slice(5).map((v) => v >= 32 && v <= 126 ? String.fromCharCode(v) : '�').join('');
+      const what = id <= 2 ? 'ECM part number' : id <= 4 ? 'ECM calibration ID' : 'VIN';
+      return [`${what} fragment (block 0x${id.toString(16)}): ${fragment} · not reassembled`];
+    }
+  }
+  return ['CRC matches; this frame is not decoded by the selected profile.'];
+}
+
 function decodeMultiResearch(profile, line) {
   if (profile === 'bmw_r1300gs') return researchBmw(line);
   const bytes = researchHex(line);
@@ -132,6 +173,7 @@ function decodeMultiResearch(profile, line) {
   if (profile === 'suzuki_sv650ak7') return researchSuzuki(bytes);
   if (profile === 'triumph_daytona') return researchTriumph(bytes);
   if (profile === 'harley_vpw') return researchVpw(bytes);
+  if (profile === 'harley_j1850_harleydroid') return researchHarleyJ1850(bytes);
   throw new Error('Choose an exact research profile.');
 }
 

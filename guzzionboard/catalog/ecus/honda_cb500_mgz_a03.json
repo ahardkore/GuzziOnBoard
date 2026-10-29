@@ -1,0 +1,30 @@
+{
+  "id": "honda_cb500_mgz_a03",
+  "family": "CB500-MGZ-A03",
+  "display_name": "Honda CB500 / CBR500 MGZ-A03 (offline tuning only)",
+  "transport": "kline",
+  "confidence": "inferred",
+  "years": "2013-2016",
+  "notes": "HondaECU identifies MGZ-A03 for CB500F / CBR500R 2013–2016. Offline image build accepts only the exact pinned source image and adapted XDF. Image hashes do not identify a physical ECU.",
+  "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented.",
+    "simulator_supported": false
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Offline image editing does not implement ECU programming."
+  },
+  "capabilities": [],
+  "sources": [
+    "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}

@@ -356,6 +356,11 @@ class Workstation:
                 f"{profile.family}: {reason} The safety boundary stopped here: "
                 "no transport was constructed, no port was opened, and no request was sent."
             )
+        if kind == "elm_j1850":
+            if profile.session.get("protocol") != "harley-j1850-harleydroid":
+                raise TransportUnavailable("ELM J1850 is restricted to the HarleyDroid profile")
+            from .transports.elm_j1850 import ElmJ1850Transport
+            return ElmJ1850Transport(self.selection.device)
         if kind == "kline":
             from .transports.kline import KLineTransport
 
@@ -412,6 +417,13 @@ class Workstation:
                 {"id": "kline", "name": "K-Line (USB serial)", "available": False,
                  "detail": str(exc).splitlines()[0]}
             )
+        try:
+            import serial  # noqa: F401
+            found.append({"id": "elm_j1850", "name": "Harley J1850 (ELM327 serial)",
+                          "available": True, "detail": "ELM327 serial at 38400 baud; read-only HarleyDroid profile only."})
+        except ImportError:
+            found.append({"id": "elm_j1850", "name": "Harley J1850 (ELM327 serial)",
+                          "available": False, "detail": "pyserial is not installed (pip install -e '.[hardware]')."})
         try:
             import can  # noqa: F401
 
@@ -474,6 +486,15 @@ class Workstation:
                 return self.status()
 
             profile = self.selection.profile
+            if profile.session.get("protocol") == "harley-j1850-harleydroid":
+                if self.selection.entry is not None:
+                    raise TransportUnavailable("Harley J1850 requires an explicit ECU-only selection; no model/year fitment is cataloged")
+                if self.selection.transport_kind != "elm_j1850" or mode != "read_only":
+                    raise TransportUnavailable("Harley J1850 requires the ELM327 serial transport in read-only mode")
+                if not self.selection.device.strip():
+                    raise TransportUnavailable("Harley J1850 requires an explicit ELM327 serial device")
+            elif self.selection.transport_kind == "elm_j1850":
+                raise TransportUnavailable("ELM J1850 is restricted to the HarleyDroid profile")
             if profile.session.get("protocol") == "kawasaki-er6n":
                 if (self.selection.entry is None or self.selection.make.casefold() != "kawasaki"
                         or self.selection.model.casefold() != "er-6n" or self.selection.year != 2006):

@@ -949,5 +949,105 @@
     "imported_utc": "2026-10-29",
     "verified_parse": true,
     "license": "GPL-3.0 repository license; see LICENSES/HondaECU-GPL-3.0.txt"
+  },
+  "honda/38770-MEL.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CBR1000RR_MEL_2006-2007/38770-MEL.xdf",
+    "sha256": "7a0a9acd5e721d534f79a44e4796bb1fe42441fbe1e16a5ee948e1718e4dfedf",
+    "title": "",
+    "author": "HondaECU contributors (repository-level attribution)",
+    "version": "",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository)",
+    "note": "Source folder names a model/year; inspect exact software and checksum. Research preview only; no build or ECU programming is enabled."
+  },
+  "honda/38770-MGZ.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CBR500R_MGZ_2013-2016/38770-MGZ.xdf",
+    "sha256": "9679717ea6fd44a8fda99e1bf161976a9a24d2f1dd5c30d8ee35cc9285329364",
+    "title": "",
+    "author": "HondaECU contributors (repository-level attribution)",
+    "version": "",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository)",
+    "note": "Source folder names a model/year; inspect exact software and checksum. Research preview only; no build or ECU programming is enabled."
+  },
+  "honda/38770-MJW.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CBR500R_MJW_2017-2018/38770-MJW.xdf",
+    "sha256": "c47afb4a22038150d9f9b04c285e5702b20116bccda74636c87f55a5bb16814d",
+    "title": "",
+    "author": "HondaECU contributors (repository-level attribution)",
+    "version": "",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository)",
+    "note": "Source folder names a model/year; inspect exact software and checksum. Research preview only; no build or ECU programming is enabled."
+  },
+  "honda/38770-KYK-D12.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CRF110F_KYK_2019/38770-KYK-D12.xdf",
+    "sha256": "0849ebc1173d206dc55ca1ed6ec614e7eb8477cdb9c6b899aa4316c059ac384d",
+    "title": "",
+    "author": "HondaECU contributors (repository-level attribution)",
+    "version": "",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository)",
+    "note": "Source folder names a model/year; inspect exact software and checksum. Research preview only; no build or ECU programming is enabled."
+  },
+  "honda/38770-MKE-DataSettings.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CRF450R_MKE_2017-2019/38770-MKE-DataSettings.xdf",
+    "sha256": "9c26e69f09bfbec507736c8e9b65b0e81fcab3beaedfb38a0c1f9916103590d6",
+    "title": "",
+    "author": "HondaECU contributors (repository-level attribution)",
+    "version": "",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository)",
+    "note": "Source folder names a model/year; inspect exact software and checksum. Research preview only; no build or ECU programming is enabled."
+  },
+  "honda/38770-K26-911.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/MSX125_K26_2013-2016/38770-K26-911.xdf",
+    "sha256": "92bafa58e80e86092aac05e1849c0a478fc7ab96406de20dbd686462443590ee",
+    "title": "",
+    "author": "HondaECU contributors (repository-level attribution)",
+    "version": "",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository)",
+    "note": "Source folder names a model/year; inspect exact software and checksum. Research preview only; no build or ECU programming is enabled."
+  },
+  "honda/38770-K26-B13.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/MSX125_K26_2016-2019/38770-K26-B13.xdf",
+    "sha256": "0843dfa6f65ee9756bd5a860405fce48ed784a99e5502d4398911e518f4df95d",
+    "title": "",
+    "author": "HondaECU contributors (repository-level attribution)",
+    "version": "",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository)",
+    "note": "Source folder names a model/year; inspect exact software and checksum. Research preview only; no build or ECU programming is enabled."
+  },
+  "honda/38770-K26-C31.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/MSX125_K26_2016-2019/38770-K26-C31.xdf",
+    "sha256": "c9f20897170bfe1bd5638e9c3e77d3c0e4f50ff25f368d115c683b744fcce6a6",
+    "title": "",
+    "author": "HondaECU contributors (repository-level attribution)",
+    "version": "",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository)",
+    "note": "Source folder names a model/year; inspect exact software and checksum. Research preview only; no build or ECU programming is enabled."
+  },
+  "honda/38770-K0F-A01.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/Z125M_K0F_2019/38770-K0F-A01.xdf",
+    "sha256": "6213d2281f9e519d12a71fedc397ed478f9e74cc72afce6eeef60dd7ba6864b1",
+    "title": "",
+    "author": "HondaECU contributors (repository-level attribution)",
+    "version": "",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository)",
+    "note": "Source folder names a model/year; inspect exact software and checksum. Research preview only; no build or ECU programming is enabled."
+  },
+  "honda/CB500_MGZ_A03_gob.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CBR500R_MGZ_2013-2016/38770-MGZ.xdf",
+    "sha256": "8a40a493f0766bab53dfa74d4a34d4a473e126011eb770553ece598d88f61426",
+    "title": "CB500F / CBR500R MGZ-A03 research adaptation",
+    "author": "HondaECU contributors; adapted by GuzziOnBoard",
+    "version": "GuzziOnBoard 1",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository)",
+    "note": "Changed missing-item byte-order default from little to big based on observed 800–9300 RPM axis in source A03 image; added checksum-provider declaration. No hardware validation."
   }
 }

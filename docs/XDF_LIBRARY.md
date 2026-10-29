@@ -235,3 +235,46 @@ ECU identity; independently confirm your hardware and configuration. No Honda
 read, write, flashing, live session, or hardware-test claim is enabled. The
 static hosted demo can render/research-preview definitions but cannot execute
 the workstation checksum provider or create an ECU-ready output.
+
+## Honda CB500F / CBR500R MGZ-A03: scoped offline build
+
+[HondaECU-1, commit `b59ae98baf092def23d7c34d5ef5f43bd6aba952`](https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952)
+provides the MGZ definition and lists `38770-MGZ-A03` for CB500F/CBR500R
+2013–2016 with checksum byte `0x3FFF8`. The repo is GPL-3.0; see
+`LICENSES/HondaECU-GPL-3.0.txt`. No original ECU image is distributed here.
+The source image inspected has SHA-256
+`4b402f033a03fa3898d3bd016ae73209884e32706a98ca646f78b29b526d3259`.
+A hash match does not prove the image or its owner has a compatible ECU.
+
+The source XDF's `DEFAULTS lsbfirst="1"` combined with absent per-item byte
+order produces RPM-axis values 8195, 59395, … from the source A03 image.
+Interpreting those data as big-endian instead yields 800, 1000, 1100, …,
+and plausible-looking TPS axes and table values. This is an observed mismatch,
+not proof that every table is correct. We preserve the original as
+`38770-MGZ.xdf` (research-only), and separately ship
+`CB500_MGZ_A03_gob.xdf`, changing the inherited byte-order default to big-endian,
+adding a title and declaring a GuzziOnBoard checksum-provider requirement.
+Explicit item-level flags are untouched. The adapted XDF is **not** a universal
+MGZ definition; compatibility beyond the exact sample has not been established.
+The added declaration is not a TunerPro checksum plug-in.
+
+Select Honda CB500F or CBR500R 2013–2016, load the *exact* original A03 image,
+select the adapted XDF and the explicitly selected **Honda CB500 / CBR500
+MGZ-A03 checksum** provider, then preview and build a new offline file with
+the existing evidence and acknowledgement gates. The provider takes the
+8-bit additive inverse of all other image bytes, writes only `0x3FFF8` and
+verifies the whole-image sum is zero. It refuses any different source or XDF
+hash, image size, address base, checksum title or edit overlapping the stored
+checksum. The real source-image offline test changed one cell's low byte at
+`0x287B5` from `D7` to `D8` and the checksum from `7E` to `7D`; no other bytes
+changed, and the resulting sum was zero. This is an encoding/checksum test,
+not evidence that the altered calibration is safe or flash-ready.
+
+Nine original HondaECU-1 XDFs, including MEL, MGZ, MJW, KYK, MKE, K26 and K0F,
+are also bundled unmodified as **research only**. Folder names and labels are
+source claims, not universal software compatibility. Some source region sizes
+are inconsistent with image sizes; K26-C31 has two unsupported column-major
+strided items and MKE DataSettings has two unsupported header items. XDF flags
+and patches are now listed as unsupported and are never applied. No
+checksum is declared in these originals; absence is not proof that a checksum is
+unneeded. Rendering and research preview are allowed, image builds are blocked.

@@ -458,3 +458,110 @@ test('desktop selects the 2012 US Honda for offline maps without opening a sessi
   expect(status.selection.ecu.id).toBe('honda_cbr1000rr_2012_us');
   expect(page.failures.filter((error) => !/server responded with a status of 409/.test(error))).toEqual([]);
 });
+
+test('Harley region export uses desktop host and preserves the original', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  const calibration = Buffer.alloc(0x28000, 0x41);
+  calibration[0x1c000] = 0x12;
+  calibration[0x1ffff] = 0x34;
+  await page.locator('#harleyRegionConfirm').check();
+  await page.locator('#harleyRegionFirst').setInputFiles({ name: 'local.bin', mimeType: 'application/octet-stream', buffer: calibration });
+  await page.locator('#harleyRegionInspect').click();
+  await expect(page.locator('#harleyRegionOut')).toContainText('160 KiB calibration');
+  await page.locator('#harleyRegionSave').click();
+  await expect(page.locator('#harleyRegionOut')).toContainText('Saved research copy:');
+  const output = await page.locator('#harleyRegionOut').textContent();
+  const path = output.split('Saved research copy: ')[1].trim();
+  expect(path.startsWith(EXPORTS)).toBe(true);
+  expect(readFileSync(path)).toEqual(calibration.subarray(0x1c000, 0x20000));
+  expect(calibration[0x1c000]).toBe(0x12);
+  expect(page.failures).toEqual([]);
+});
+
+test('desktop Harley capture profiles and research calibration copy', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="discovery"]').click();
+  await page.locator('#canlogText').locator('..').locator('summary').click();
+  await page.locator('#canlogDecoder').selectOption('harley_hdlan_community');
+  await page.locator('#canlogText').fill('1.0 R11 521 00 64 00 00 00 00 00 00');
+  await page.locator('#canlogPasteBtn').click();
+  await expect(page.locator('#canlogOut')).toContainText('speed_kmh_candidate: 100');
+  await page.locator('[data-view="tools"]').click();
+  await page.locator('#multiResearchProfile').selectOption('harley_j1850_harleydroid');
+  await page.locator('#multiResearchFrames').fill('28 1B 10 02 0F A0 D7');
+  await page.locator('#multiResearchDecode').click();
+  await expect(page.locator('#multiResearchOut')).toContainText('Engine speed: 1000 rpm');
+  const base = Buffer.alloc(0x28000, 0x32), tune = Buffer.alloc(0x4000, 0x47);
+  await page.locator('#harleyRegionFirst').setInputFiles({ name: 'base.bin', mimeType: 'application/octet-stream', buffer: base });
+  await page.locator('#harleyRegionSecond').setInputFiles({ name: 'tune.bin', mimeType: 'application/octet-stream', buffer: tune });
+  await page.locator('#harleyRegionConfirm').check();
+  await page.locator('#harleyRegionReplaceConfirm').check();
+  await page.locator('#harleyRegionInspect').click();
+  await page.locator('#harleyRegionBuild').click();
+  await expect(page.locator('#harleyRegionOut')).toContainText('No checksum repaired');
+  const outputText = await page.locator('#harleyRegionOut').textContent();
+  const path = outputText.split('Saved research copy: ')[1].split('\n')[0];
+  const built = readFileSync(path);
+  expect(built.subarray(0, 0x1c000)).toEqual(base.subarray(0, 0x1c000));
+  expect(built.subarray(0x1c000, 0x20000)).toEqual(tune);
+  expect(built.subarray(0x20000)).toEqual(base.subarray(0x20000));
+  expect(page.failures).toEqual([]);
+});
+
+test('Harley J1850 setup and missing fault replies are shown honestly', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForSelector('#ecuOverride option[value="harley_j1850_harleydroid"]', {state: 'attached'});
+  await page.selectOption('#modelSelect', '');
+  await page.getByText('Override: pick an ECU family directly').click();
+  await page.selectOption('#ecuOverride', 'harley_j1850_harleydroid');
+  const elm = page.locator('input[name="transport"][value="elm_j1850"]');
+  // pyserial is optional in the desktop test host.
+  if (await elm.isEnabled()) await elm.check();
+  else await elm.evaluate(el => { el.checked = true; el.dispatchEvent(new Event('change', {bubbles: true})); });
+  await expect(page.locator('#elmFields')).toContainText('38400 baud');
+  await expect(page.locator('#elmFields')).toContainText('not hardware-tested');
+  await page.route('**/api/dtcs', route => route.fulfill({ json: {
+    format: 'harley-j1850', dtcs: [], context: {}, note: 'Missing responses do not mean no faults.',
+    modules: { ECM: {responded: true}, ABS: {responded: false}, TSM: {responded: false} },
+    clear: {allowed: false, checks: [{name: 'capability', passed: false, detail: 'read only'}]}
+  }}));
+  await page.evaluate(() => readDtcs());
+  await expect(page.locator('#dtcSummary')).toHaveText(/missing modules are unknown/);
+  await expect(page.locator('#faultList')).toContainText('ABS: no verified response');
+  await expect(page.locator('#faultList')).toContainText('ECM: responded');
+  await expect(page.locator('#faultList')).not.toContainText('clean fault memory');
+  await expect(page.locator('#clearGate')).toContainText('read only');
+});
+
+test('desktop selects scoped Honda MGZ-A03 offline builder and flags source XDFs', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+  await page.selectOption('#makeSelect', 'Honda');
+  await page.selectOption('#modelSelect', 'CBR500R');
+  await page.selectOption('#yearSelect', '2014');
+  await page.locator('#selectOfflineBtn').click();
+  await expect(page.locator('#xdfSelect')).toHaveValue('CB500_MGZ_A03_gob.xdf');
+  await expect(page.locator('#xdfFitNote')).toContainText('ECU identity not established');
+  await expect(page.locator('#xdfFitNote')).toContainText('exact MGZ-A03 original-image SHA-256');
+  await expect(page.locator('#mapChecksumProvider option[value="honda-cb500-mgz-a03-v1"]')).toHaveCount(1);
+  await page.locator('#xdfOnlyFitting').uncheck();
+  await page.selectOption('#xdfSelect', '38770-MGZ.xdf');
+  await expect(page.locator('#xdfFitNote')).toContainText('Research only: image builds are blocked');
+  await expect(page.locator('#xdfFitNote')).toContainText('default endian conflicts with A03');
+  const status = await page.evaluate(async () => (await fetch('/api/status')).json());
+  expect(status.connected).toBe(false);
+  expect(status.selection.ecu.id).toBe('honda_cb500_mgz_a03');
+});
+
+test('desktop ECU identifier research is local and does not change vehicle selection', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  const before = await page.evaluate(async () => (await (await fetch('/api/status')).json()).selection);
+  await page.locator('#ecuPart').fill('38770-MGZ-A03');
+  await page.locator('#ecuLookupBtn').click();
+  await expect(page.locator('#ecuLookupOut')).toContainText('Honda CBR500R / CB500F');
+  await expect(page.locator('#ecuLookupOut')).toContainText('Software: 0101250501 (not supplied)');
+  const after = await page.evaluate(async () => (await (await fetch('/api/status')).json()).selection);
+  expect(after).toEqual(before);
+});

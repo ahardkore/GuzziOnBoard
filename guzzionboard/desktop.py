@@ -394,6 +394,27 @@ class ExportDesk:
             ),
         }
 
+    def write_binary(self, name: str, data: bytes) -> dict:
+        """Save a bounded binary export without replacing an existing file."""
+        if not isinstance(data, bytes) or len(data) > 1024 * 1024:
+            raise ValueError("binary export must be bytes and no larger than 1 MiB")
+        for _ in range(1000):
+            path = resources.unique_path(self.directory, name)
+            try:
+                with path.open("xb") as output:
+                    try:
+                        output.write(data)
+                        output.flush()
+                        os.fsync(output.fileno())
+                    except Exception:
+                        path.unlink(missing_ok=True)
+                        raise
+                return {"name": path.name, "path": str(path), "dir": str(path.parent),
+                        "bytes": len(data), "note": "Binary export saved without overwriting."}
+            except FileExistsError:
+                continue
+        raise ValueError("could not find a free export name")
+
     def write_print_view(self, html: str) -> Path:
         """A standalone snapshot of the current view, ready to print."""
         name = f"guzzionboard-view-{time.strftime('%Y%m%d-%H%M%S')}.html"
@@ -462,6 +483,9 @@ class DesktopBridge:
     # -- files -----------------------------------------------------------
     def save_text(self, name: str, content: str) -> dict:
         return self.desk.write_text(name, content)
+
+    def save_binary(self, name: str, data: bytes) -> dict:
+        return self.desk.write_binary(name, data)
 
     def print_view(self, html: str) -> dict:
         """Save the current view and print it from a real browser.

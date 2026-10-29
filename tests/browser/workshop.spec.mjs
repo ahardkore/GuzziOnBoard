@@ -139,14 +139,18 @@ test('Honda decoder is offline, rejects bad checksums and preserves raw bytes', 
     .map((b) => b.toString(16).padStart(2, '0')).join(' ');
   const sensor = frame([2, 22, 0x71, 0x10, 0x2a, 0x30, 0xd4, 0x87, 0x2c, 0x87, 0x9f, 0x3c, 0xe0, 0x5d, 0xff, 0xff, 0x8e, 0x7a, 0x12, 0x0a, 0x80]);
   const status = frame([2, 10, 0x71, 0xd1, 1, 0, 0, 0, 1]);
+  const crf = frame([2, 25, 0x71, 0x11, 0x0f, 0xa0, 0x1b, 0x20, 0x9e, 0x3d, 0x9e, 0x3d, 0x93, 0x64, 0xff, 0xff, 0x69, 0, 0, 0, 0x80, 0x57, 0x28, 0x80]);
   const badExample = '02 0A 71 D1 00 00 00 00 01 22';
   const badSensors = '02 16 71 10 2A 30 D4 87 2C 87 9F 3C E0 5D FF FF 8E 7A 12 0A 80 52';
-  await page.locator('#hondaFrames').fill([sensor, status, badExample, badSensors, '<img src=x>'].join('\n'));
+  await page.locator('#hondaFrames').fill([sensor, status, crf, badExample, badSensors, '<img src=x>'].join('\n'));
   await page.locator('#hondaDecode').click();
   const out = page.locator('#hondaOut');
   await expect(out).toContainText('RPM: 10800 rpm');
   await expect(out).toContainText('TPS: 84.375 %');
   await expect(out).toContainText('neutral or clutch');
+  await expect(out).toContainText('Table 11 · CRF250L source candidate values');
+  await expect(out).toContainText('RPM: 4000 rpm');
+  await expect(out).toContainText('Battery: 10.5 V');
   await expect(out).toContainText(sensor);
   await expect(out).toContainText('Checksum mismatch; not decoded.');
   await expect(out).toContainText('Use complete space-separated hex bytes only.');
@@ -353,4 +357,215 @@ test('hosted garage offers the Honda XDF for offline research, not a Honda simul
   await expect(page.locator('#mapChecksumProvider option[value="honda-cbr1000rr-2012-us-a01-v1"]')).toHaveCount(0);
   await page.locator('[data-view="garage"]').click();
   await expect(page.locator('#connectBtn')).toBeDisabled();
+});
+
+test('Harley Delphi region workspace compares local files and exports only the described slice', async ({ page }) => {
+  await openTools(page);
+  const calibration = Buffer.alloc(0x28000, 0xa5);
+  const region = Buffer.from(calibration.subarray(0x1c000, 0x20000));
+  region[0] = 0x01; region[1] = 0x02; region[0x3fff] = 0x03;
+  await page.locator('#harleyRegionFirst').setInputFiles({ name: 'calibration.bin', mimeType: 'application/octet-stream', buffer: calibration });
+  await page.locator('#harleyRegionSecond').setInputFiles({ name: 'modified.bin', mimeType: 'application/octet-stream', buffer: region });
+  await page.locator('#harleyRegionInspect').click();
+  await expect(page.locator('#harleyRegionOut')).toContainText('Confirm you intend');
+  await page.locator('#harleyRegionConfirm').check();
+  await page.locator('#harleyRegionInspect').click();
+  await expect(page.locator('#harleyRegionOut')).toContainText('Changed bytes: 3');
+  await expect(page.locator('#harleyRegionOut')).toContainText('0x0–0x1 (2 bytes)');
+  await expect(page.locator('#harleyRegionOut')).toContainText('0x3FFF–0x3FFF (1 bytes)');
+  await expect(page.locator('#harleyRegionOut')).toContainText(createHash('sha256').update(calibration).digest('hex'));
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#harleyRegionSave').click();
+  const download = await downloadPromise;
+  const { readFileSync } = await import('node:fs');
+  expect(readFileSync(await download.path())).toEqual(calibration.subarray(0x1c000, 0x20000));
+  expect(download.suggestedFilename()).toMatch(/^harley-region-research-[0-9a-f]{12}\.bin$/);
+  await page.locator('#harleyRegionFirst').setInputFiles({ name: 'container.ori', mimeType: 'application/octet-stream', buffer: calibration });
+  await expect(page.locator('#harleyRegionSave')).toBeDisabled();
+  await expect(page.locator('#harleyRegionOut')).toBeEmpty();
+  await page.locator('#harleyRegionInspect').click();
+  await expect(page.locator('#harleyRegionOut')).toContainText('.ori containers are not raw');
+  await page.locator('#harleyRegionFirst').setInputFiles({ name: 'short.bin', mimeType: 'application/octet-stream', buffer: Buffer.alloc(7) });
+  await page.locator('#harleyRegionInspect').click();
+  await expect(page.locator('#harleyRegionOut')).toContainText('Expected exactly 160 KiB');
+  await page.locator('#harleyRegionClear').click();
+  await expect(page.locator('#harleyRegionOut')).toBeEmpty();
+  await expect(page.locator('#harleyRegionConfirm')).not.toBeChecked();
+});
+
+test('Harley comparison caps displayed ranges and compares only tune bytes', async ({ page }) => {
+  await openTools(page);
+  const result = await page.evaluate(() => {
+    const first = new Uint8Array(0x28000), second = new Uint8Array(0x28000);
+    second[0] = 22; // outside the slice
+    for (let i = 0; i < 100; i += 2) second[0x1c000 + i] = 1;
+    return HarleyRegion.compare(first, second);
+  });
+  expect(result.changedBytes).toBe(50);
+  expect(result.ranges).toHaveLength(40);
+  expect(result.truncated).toBe(true);
+});
+
+test('Harley inspection cannot restore stale results after clearing inputs', async ({ page }) => {
+  await openTools(page);
+  await page.evaluate(() => {
+    const original = File.prototype.arrayBuffer;
+    File.prototype.arrayBuffer = async function () {
+      if (this.name === 'slow.bin') await new Promise((resolve) => { window.finishHarleyRead = resolve; });
+      return original.call(this);
+    };
+  });
+  await page.locator('#harleyRegionConfirm').check();
+  await page.locator('#harleyRegionFirst').setInputFiles({ name: 'slow.bin', mimeType: 'application/octet-stream', buffer: Buffer.alloc(0x28000) });
+  await page.locator('#harleyRegionInspect').click();
+  await page.waitForFunction(() => typeof window.finishHarleyRead === 'function');
+  await page.locator('#harleyRegionClear').click();
+  await page.evaluate(() => window.finishHarleyRead());
+  await page.waitForTimeout(100);
+  await expect(page.locator('#harleyRegionOut')).toBeEmpty();
+  await expect(page.locator('#harleyRegionSave')).toBeDisabled();
+});
+
+test('Harley J1850 capture decoder handles source vectors and rejects bad CRCs', async ({ page }) => {
+  await openTools(page);
+  // Synthetic vectors; CRC construction is not a hardware-validation claim.
+  function vpw(payload) {
+    let crc = 0xff;
+    for (const byte of payload) {
+      crc ^= byte;
+      for (let bit = 0; bit < 8; bit++) crc = ((crc << 1) ^ ((crc & 0x80) ? 0x1d : 0)) & 255;
+    }
+    return [...payload, crc ^ 255].map((n) => n.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+  }
+  await page.locator('#multiResearchProfile').selectOption('harley_j1850_harleydroid');
+  await page.locator('#multiResearchFrames').fill([
+    '28 1B 10 02 0F A0 D7', '48 29 10 02 32 00 0F',
+    vpw([0xa8, 0x49, 0x10, 0x10, 120]),
+    vpw([0x6c, 0xf1, 0x10, 0x59, 0x01, 0x34]),
+    vpw([0x6c, 0xf1, 0x40, 0x59, 0x41, 0x51]),
+    vpw([0x6c, 0xf1, 0x40, 0x59, 0x51, 0x51]),
+    vpw([0x6c, 0xf1, 0x60, 0x59, 0xd0, 0x64]),
+    vpw([0x0c, 0xf1, 0x10, 0x7c, 0x03, 0x41, 0x42, 0x43, 0x31, 0x32, 0x33]),
+    vpw([0x28, 0x1b, 0x10, 0x02, 0x0f]), // CRC byte must not become data
+    '28 1B 10 02 0F A0 00',
+  ].join('\n'));
+  await page.locator('#multiResearchDecode').click();
+  const out = page.locator('#multiResearchOut');
+  await expect(out).toContainText('Engine speed: 1000 rpm');
+  await expect(out).toContainText('Road speed: 100 km/h');
+  await expect(out).toContainText('Engine temperature candidate: 80 °C');
+  await expect(out).toContainText('ECM DTC candidate: P0134');
+  await expect(out).toContainText('ABS DTC candidate: C0151');
+  await expect(out).toContainText('ABS DTC candidate: C1151');
+  await expect(out).toContainText('TSM DTC candidate: U1064');
+  await expect(out).toContainText('ECM calibration ID fragment (block 0x3): ABC123');
+  await expect(out).toContainText('current/historic status not determined');
+  await expect(out).toContainText('this frame is not decoded');
+  await expect(out).toContainText('CRC mismatch');
+});
+
+test('Harley HDLAN community decoder is available in hosted capture analysis', async ({ page }) => {
+  await page.goto('/web/index.html');
+  await page.locator('[data-view="discovery"]').click();
+  await page.locator('#canlogText').locator('..').locator('summary').click();
+  await page.locator('#canlogDecoder').selectOption('harley_hdlan_community');
+  await page.locator('#canlogText').fill('1.0 R11 521 00 64 00 00 00 00 00 00\n2.0 R11 5C1 1D 74 00 00');
+  await page.locator('#canlogPasteBtn').click();
+  await expect(page.locator('#canlogOut')).toContainText('Harley HDLAN community decoder');
+  await expect(page.locator('#canlogOut')).toContainText('speed_kmh_candidate: 100');
+  await expect(page.locator('#canlogOut')).toContainText('rpm_candidate: 1885');
+  await expect(page.locator('#canlogOut')).toContainText('tentative');
+});
+
+test('Harley research calibration copy replaces only the explicitly selected region', async ({ page }) => {
+  await openTools(page);
+  const original = Buffer.alloc(0x28000, 0x64), replacement = Buffer.alloc(0x4000, 0x17);
+  await page.locator('#harleyRegionFirst').setInputFiles({ name: 'base.bin', mimeType: 'application/octet-stream', buffer: original });
+  await page.locator('#harleyRegionSecond').setInputFiles({ name: 'replacement.bin', mimeType: 'application/octet-stream', buffer: replacement });
+  await page.locator('#harleyRegionConfirm').check();
+  await page.locator('#harleyRegionInspect').click();
+  await expect(page.locator('#harleyRegionBuild')).toBeDisabled();
+  await page.locator('#harleyRegionReplaceConfirm').check();
+  await expect(page.locator('#harleyRegionBuild')).toBeDisabled();
+  await page.locator('#harleyRegionInspect').click();
+  await expect(page.locator('#harleyRegionBuild')).toBeEnabled();
+  const event = page.waitForEvent('download');
+  await page.locator('#harleyRegionBuild').click();
+  const download = await event;
+  const { readFileSync } = await import('node:fs');
+  const output = readFileSync(await download.path());
+  expect(output.subarray(0, 0x1c000)).toEqual(original.subarray(0, 0x1c000));
+  expect(output.subarray(0x1c000, 0x20000)).toEqual(replacement);
+  expect(output.subarray(0x20000)).toEqual(original.subarray(0x20000));
+  expect(original[0x1c000]).toBe(0x64);
+  await expect(page.locator('#harleyRegionOut')).toContainText(createHash('sha256').update(output).digest('hex'));
+  await expect(page.locator('#harleyRegionOut')).toContainText('No checksum repaired');
+});
+
+test('hosted MGZ-A03 selection stays offline and raw Honda definitions are research-only', async ({ page }) => {
+  await page.goto('/web/index.html');
+  await page.selectOption('#makeSelect', 'Honda');
+  await page.selectOption('#modelSelect', 'CBR500R');
+  await page.selectOption('#yearSelect', '2014');
+  await page.locator('#selectOfflineBtn').click();
+  await expect(page.locator('#xdfSelect')).toHaveValue('CB500_MGZ_A03_gob.xdf');
+  await expect(page.locator('#xdfFitNote')).toContainText('ECU identity not established');
+  await expect(page.locator('#mapChecksumProvider option[value="honda-cb500-mgz-a03-v1"]')).toHaveCount(0);
+  const catalog = await page.evaluate(async () => (await fetch('/api/maps')).json());
+  const original = catalog.xdfs.find(x => x.filename === '38770-MGZ.xdf');
+  expect(original.research_only).toBe(true);
+  await page.locator('[data-view="garage"]').click();
+  await expect(page.locator('#connectBtn')).toBeDisabled();
+});
+
+test('ECU lookup compares independent identifiers locally and only prepares explicit external searches', async ({ page }) => {
+  await openTools(page);
+  const external = [];
+  page.on('request', request => { if (request.url().startsWith('https://motobinfiles.com')) external.push(request.url()); });
+  await page.locator('#ecuPart').fill('38770 mgz a03');
+  await page.locator('#ecuHardware').fill('MGZA401');
+  await page.locator('#ecuSoftware').fill('wrong');
+  await page.locator('#ecuLookupBtn').click();
+  await expect(page.locator('#ecuLookupOut')).toContainText('Honda CBR500R / CB500F, 2013–2015');
+  await expect(page.locator('#ecuLookupOut')).toContainText('Software: 0101250501 (DIFFERENT — review)');
+  await expect(page.locator('#ecuLookupOut')).toContainText('exact normalized match');
+  await expect(page.locator('#ecuLookupExternal a').first()).toHaveAttribute('href', 'https://motobinfiles.com/?s=38770%20mgz%20a03&post_type=product');
+  expect(external).toEqual([]);
+  await page.locator('#ecuSoftware').fill('0101250501');
+  await expect(page.locator('#ecuLookupOut')).toBeEmpty();
+  await page.locator('#ecuLookupBtn').click();
+  await expect(page.locator('#ecuLookupOut')).toContainText('Software: 0101250501 (exact normalized match)');
+  await page.locator('#ecuLookupClear').click();
+  await page.locator('#ecuPart').fill('B2RIB');
+  await page.locator('#ecuLookupBtn').click();
+  await expect(page.locator('#ecuLookupOut')).toContainText('Factory Race ECM');
+  await page.locator('#ecuLookupClear').click();
+  await page.locator('#ecuHardware').fill('F01RB0D7BS');
+  await page.locator('#ecuLookupBtn').click();
+  await expect(page.locator('#ecuLookupOut')).toContainText('CF Moto CForce 500');
+  await expect(page.locator('#ecuLookupOut')).toContainText('Software: XC0105AED4 (not supplied)');
+  await page.locator('#ecuLookupClear').click();
+  await page.locator('#ecuPart').fill('<script>');
+  await page.locator('#ecuLookupBtn').click();
+  await expect(page.locator('#ecuLookupOut')).toContainText('Enter at least one identifier');
+  await expect(page.locator('#ecuLookupExternal a')).toHaveCount(0);
+});
+
+test('ECU lookup accepts bounded local references as text and never promotes them to selection', async ({ page }) => {
+  await openTools(page);
+  await page.locator('#ecuLookup summary').click();
+  const records = { records: [{ part: 'A-123', vehicle: '<img src=x onerror=alert(1)>', source: '<script>fake</script>' }] };
+  await page.locator('#ecuLookupFile').setInputFiles({ name: 'my.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(records)) });
+  await expect(page.locator('#ecuLookupFileStatus')).toContainText('1 local record(s) loaded');
+  await page.locator('#ecuPart').fill('a123');
+  await page.locator('#ecuLookupBtn').click();
+  await expect(page.locator('#ecuLookupOut')).toContainText('<img src=x onerror=alert(1)>');
+  await expect(page.locator('#ecuLookupOut')).toContainText('<script>fake</script>');
+  await expect(page.locator('#ecuLookupOut img, #ecuLookupOut script')).toHaveCount(0);
+  await page.locator('#ecuLookupFile').setInputFiles({ name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{"records":[{"part":"A-123"}]}') });
+  await expect(page.locator('#ecuLookupFileStatus')).toContainText('Not loaded');
+  await page.locator('#ecuLookupBtn').click();
+  await expect(page.locator('#ecuLookupOut')).toContainText('0 local candidate(s)');
+  await page.locator('#ecuLookupFileClear').click();
+  await expect(page.locator('#ecuLookupFileStatus')).toContainText('No local list loaded');
 });

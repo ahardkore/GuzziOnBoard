@@ -1,0 +1,22 @@
+{
+  "id": "harley_j1850_harleydroid",
+  "family": "Harley-Davidson J1850 VPW (HarleyDroid)",
+  "display_name": "Harley J1850 / HarleyDroid (read-only, ECU-only)",
+  "transport": "elm_j1850",
+  "confidence": "unknown",
+  "years": "model/year varies",
+  "notes": "HarleyDroid documents J1850 diagnostic requests and broadcast signals discovered on Harley motorcycles, notably Sportster. Exact model/year compatibility varies. This GuzziOnBoard integration has synthetic tests only and has not been tested on a motorcycle. ELM327 serial at 38400 baud, read-only; no flash, fault clear or service commands.",
+  "session": {"protocol": "harley-j1850-harleydroid", "physical_supported": true, "simulator_supported": false,
+    "physical_evidence_note": "HarleyDroid uses J1850 VPW via ELM327 on Harley bikes, notably Sportster. This integration is not hardware-tested."},
+  "kline": {"init": "harley-j1850-harleydroid"},
+  "identification": {"available": true},
+  "memory": {"read_supported": false, "write_supported": false, "write_blocked_reason": "HarleyDroid diagnostic queries do not implement ECU calibration reading or programming."},
+  "capabilities": ["identify", "live", "dtc_read"],
+  "sources": ["https://github.com/QuickosssLabs/HarleyDroidEVO/tree/668b63efc05977eb65cb8e84e597ae2205355d4c"],
+  "parameters": [
+    {"key": "rpm", "name": "Engine speed (J1850)", "local_id": 1, "unit": "rpm", "length": 2, "scale": 0.25, "digits": 0, "default": true, "confidence": "inferred"},
+    {"key": "speed", "name": "Road speed (J1850)", "local_id": 2, "unit": "km/h", "length": 2, "scale": 0.0078125, "digits": 1, "default": true, "confidence": "inferred"},
+    {"key": "engine_temp", "name": "Engine temperature (source candidate)", "local_id": 3, "unit": "°C", "length": 1, "bias": -40, "digits": 0, "default": true, "confidence": "inferred"}
+  ],
+  "actuators": [], "routines": []
+}

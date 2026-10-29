@@ -670,7 +670,7 @@ async function loadCatalog() {
 
 function vehiclesOf(make) {
   return (state.catalog.vehicles || []).filter((vehicle) =>
-    vehicle.make === make && (!isHostedDemo() || ['5am', 'honda_cbr1000rr_2012_us'].includes(vehicle.ecu)));
+    vehicle.make === make && (!isHostedDemo() || ['5am', 'honda_cbr1000rr_2012_us', 'honda_cb500_mgz_a03'].includes(vehicle.ecu)));
 }
 
 function fillModels() {
@@ -778,6 +778,7 @@ function onTransportChange() {
   $('#deviceField').hidden = !physical;
   $('#checklistBox').hidden = !physical;
   $('#klineFields').hidden = kind !== 'kline';
+  $('#elmFields').hidden = kind !== 'elm_j1850';
   $('#canFields').hidden = !['can', 'cansim'].includes(kind);
   $('#deviceInput').placeholder = kind === 'can' ? 'can0' : '/dev/ttyUSB0';
   if (['can', 'cansim'].includes(kind) && !$('#canTxId').value) {
@@ -969,7 +970,9 @@ async function connect() {
       await infoDialog(
         'Diagnostic link connected',
         guideBody(
-          'The ECU is online and the workstation will keep the session alive.',
+          selection.ecu?.id === 'harley_j1850_harleydroid'
+            ? 'The ELM adapter is configured. A successful identity or live response is needed to confirm communication; the workstation does not send keepalives for this profile.'
+            : 'The ECU is online and the workstation will keep the session alive.',
           [
             'Leave the ignition key ON.',
             'Keep the engine stopped until a test explicitly asks you to start it.',
@@ -1606,11 +1609,14 @@ async function readDtcs() {
   $('#faultBadge').textContent = list.length;
   $('#faultBadge').classList.toggle('hidden', !list.length);
   $('#dtcSummary').textContent = list.length
-    ? `${list.length} code${list.length > 1 ? 's' : ''} in memory`
+    ? `${list.length} code${list.length > 1 ? 's' : ''} reported`
+    : data.format === 'harley-j1850' ? 'No codes reported by responding modules; missing modules are unknown.'
     : data.format === 'obd-stored' ? 'No stored codes reported (pending codes not read).' : 'Fault memory is clean.';
 
   const context = Object.entries(data.context || {});
   const obdHtml = data.format === 'obd-stored' ? `<div class="gate blocked">${esc(data.note || 'Stored codes only.')}</div>` : '';
+  const harleyHtml = data.format === 'harley-j1850' ? `<div class="gate blocked">${esc(data.note || '')}
+    ${Object.entries(data.modules || {}).map(([name, module]) => `<span class="tag">${esc(name)}: ${module.responded ? 'responded' : 'no verified response'}</span>`).join(' ')}</div>` : '';
   const legacyHtml = data.format === 'legacy-fault-bitfields'
     ? `<div class="gate blocked"><b>Legacy raw fault flags.</b> ${esc(data.note || '')}
        ${(data.registers || []).map((r) =>
@@ -1625,7 +1631,7 @@ async function readDtcs() {
        ).join(' ')}</div>`
     : '';
 
-  $('#faultList').innerHTML = obdHtml + legacyHtml + contextHtml + (list.length ? list.map((d) => `
+  $('#faultList').innerHTML = obdHtml + harleyHtml + legacyHtml + contextHtml + (list.length ? list.map((d) => `
     <article class="fault ${d.warning_indicator ? 'warn' : ''}">
       <div class="fault-code">${esc(d.code)}</div>
       <div class="fault-info">
@@ -1635,8 +1641,8 @@ async function readDtcs() {
       </div>
       <div class="fault-status ${d.status}">${esc(d.status)}</div>
     </article>`).join('')
-    : `<article class="panel empty"><div class="empty-icon">✓</div>
-       <h3>No diagnostic trouble codes</h3><p>${data.format === 'obd-stored' ? 'No stored codes reported; pending codes were not read.' : 'The ECU reports a clean fault memory.'}</p></article>`);
+    : `<article class="panel empty"><div class="empty-icon">${data.format === 'harley-j1850' ? '?' : '✓'}</div>
+       <h3>No diagnostic trouble codes reported</h3><p>${data.format === 'harley-j1850' ? 'Only verified responses were examined; missing modules and fault status remain unknown.' : data.format === 'obd-stored' ? 'No stored codes reported; pending codes were not read.' : 'The ECU reports a clean fault memory.'}</p></article>`);
 
   state.clearDecision = data.clear;
   renderGate(data.clear, $('#clearGate'));
@@ -2938,7 +2944,7 @@ const mapChangeLocation = (change) => change.kind === 'table'
 function benchFamilies() {
   const family = (maps.vehicle?.ecu_family
     || state.status?.vehicle?.ecu?.family || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const tokens = family.match(/(CBR1000RR2012US|MIUG3|MIU1|MBC1|5AM2|5AM|16M|15RC|15M|15P|59M|7SM|5SM|5DM|11MP|P7|P8)/g) || [];
+  const tokens = family.match(/(CBR1000RR2012US|CB500MGZA03|MIUG3|MIU1|MBC1|5AM2|5AM|16M|15RC|15M|15P|59M|7SM|5SM|5DM|11MP|P7|P8)/g) || [];
   // "IAW 5AM / 5AM2" and "MIU G3" both have to land on the catalog's ids.
   return [...new Set(tokens.map((t) => (t === '5AM2' ? '5AM' : t)))];
 }
@@ -3021,7 +3027,9 @@ function renderXdfFitNote() {
   const headline = fits === true
     ? (entry.family === 'CBR1000RR-2012-US'
       ? 'Matches the selected 2012 US Honda profile; ECU identity not established'
-      : `Matches the ${benchFamilies().join('/')} on the bench`)
+      : entry.family === 'CB500-MGZ-A03'
+        ? 'Matches the selected Honda MGZ-A03 profile; ECU identity not established'
+        : `Matches the ${benchFamilies().join('/')} on the bench`)
     : (fits === false
       ? `Not for this motorcycle — this is a ${esc(entry.family || 'different')} `
         + `definition and the bench ECU is ${esc(benchFamilies().join('/'))}`
@@ -3032,6 +3040,8 @@ function renderXdfFitNote() {
       entry.version ? ` · v${esc(entry.version)}` : ''}</p>
     ${bikes.length ? `<p class="small">Published for: ${bikes.map(esc).join(' · ')}</p>` : ''}
     ${entry.family === 'CBR1000RR-2012-US' ? '<p class="small">Offline build also requires the pinned XDF and exact A01 original-image SHA-256. No Honda programming is provided.</p>' : ''}
+    ${entry.family === 'CB500-MGZ-A03' ? '<p class="small">Offline build requires the pinned adapted XDF and exact MGZ-A03 original-image SHA-256. Adapted byte order is inferred; no Honda programming is provided.</p>' : ''}
+    ${entry.research_only ? '<p class="small">Research only: image builds are blocked. Source byte order, region sizes and checksum handling require review.</p>' : ''}
     ${fits === false ? '<p class="small">Rendering it is read-only and harmless, but the '
       + 'table names and addresses will not describe your ECU. Do not tune from it.</p>' : ''}
   </div>`;
@@ -3957,8 +3967,10 @@ function renderMapBuildState() {
   $('#mapClearChangesBtn').disabled = !changes.length;
   $('#mapResearchPreviewBtn').disabled = !changes.length || !source || !maps.render?.xdf?.sha256;
   $('#mapExportProjectBtn').disabled = !source || !maps.render?.xdf?.sha256;
+  const renderedName = String(maps.render?.xdf?.path || '').split(/[\\/]/).pop();
+  const researchOnly = !!maps.byFile[renderedName]?.research_only;
   $('#mapBuildBtn').disabled = !changes.length || !source || !packageMatches
-    || !checksumSelectionCompatible();
+    || researchOnly || !checksumSelectionCompatible();
 }
 
 async function stageMapEdit(button) {
@@ -4912,8 +4924,8 @@ function renderCanlog(result) {
     ${result.byte_stats.groups.map((group) => `<h4>${esc(group.id)} · ${group.extended ? '29-bit' : '11-bit'} · ${esc(group.direction)}</h4>
       <p class="small">${group.frames} frame(s) · lengths ${esc(group.lengths.join(', '))} · ${group.skipped_frames} empty or oversized frame(s) skipped</p>
       <div class="table-wrap"><table><thead><tr><th>Byte (1-based)</th><th>Samples</th><th>Min</th><th>Max</th><th>Changes</th><th>Observed varying bits</th></tr></thead><tbody>${group.bytes.map((byte) => `<tr><td>${byte.index}</td><td>${byte.samples}</td><td>${hexByte(byte.minimum)}</td><td>${hexByte(byte.maximum)}</td><td>${byte.changes}</td><td>${hexByte(byte.varying_mask)}</td></tr>`).join('')}</tbody></table></div>`).join('')}</details>` : '';
-  const decoded = result.decoder ? `<div class="gate-card warn"><h4>Ducati Mitsubishi research decoder · offline only</h4>
-    <p class="small">Not vehicle identification or a Guzzi profile. Verify each signal against the exact vehicle and raw data. ${result.decoder.recognized_frames} matching frame(s); ${result.decoder.invalid_length_frames} invalid-length and ${result.decoder.ignored_tx_frames} transmitted frame(s) ignored; ${result.decoder.omitted_events} additional events omitted. Unknown directions may include transmitted frames.</p>
+  const decoded = result.decoder ? `<div class="gate-card warn"><h4>${result.decoder.profile === 'harley_hdlan_community' ? 'Harley HDLAN community decoder (best-effort)' : 'Ducati Mitsubishi research decoder'} · offline only</h4>
+    <p class="small">${result.decoder.profile === 'harley_hdlan_community' ? 'Not vehicle identification. HDLAN RPM and layouts are tentative in the source.' : 'Not vehicle identification or a Guzzi profile.'} Verify each signal against the exact vehicle and raw data. ${result.decoder.recognized_frames} matching frame(s); ${result.decoder.invalid_length_frames} invalid-length and ${result.decoder.ignored_tx_frames} transmitted frame(s) ignored; ${result.decoder.omitted_events} additional events omitted. Unknown directions may include transmitted frames.</p>
     <div class="table-wrap"><table><thead><tr><th>Time (s)</th><th>ID / direction</th><th>Raw bytes</th><th>Candidate values</th></tr></thead><tbody>${result.decoder.events.map((event) => `<tr><td>${esc(event.timestamp)}</td><td>${esc(event.id)} / ${esc(event.direction)}</td><td><code>${esc(event.raw)}</code></td><td>${Object.entries(event.values).map(([key, value]) => `${esc(key)}: ${esc(value)}`).join(' · ')}</td></tr>`).join('')}</tbody></table></div></div>` : '';
   const head = `
     <div class="gate-card ${result.diagnostic_traffic_found ? 'ok' : 'warn'}">

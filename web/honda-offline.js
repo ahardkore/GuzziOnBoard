@@ -5,6 +5,12 @@
  * code from the original; strict response framing, length and checksum checks.
  * Distributed with LICENSES/Honda-KLine-GPL-3.0.txt; NO WARRANTY.
  */
+/* Table 11 candidate layout adapted from sophienyaa/Honda-Motorcycle-ECU-Tools,
+ * MIT license: LICENSES/Honda-Motorcycle-ECU-Tools-MIT.txt.
+ * Source: https://github.com/sophienyaa/Honda-Motorcycle-ECU-Tools/tree/84c203736dcea4ef1b436bfc4d36eca73d897110
+ * The source uses integer arithmetic; this decoder displays the fractional
+ * arithmetic implied by its formulas and marks this distinction explicitly.
+ */
 'use strict';
 
 function decodeHondaResponse(line) {
@@ -30,6 +36,17 @@ function decodeHondaResponse(line) {
       `Battery: ${b[16] / 10} V · speed: ${b[17]} km/h`,
     ];
   }
+  if (b[3] === 0x11 && b.length === 25) {
+    return [
+      'Table 11 · CRF250L source candidate values (fractional formulas; source code truncates)',
+      `RPM: ${(b[4] << 8) | b[5]} rpm`,
+      `TPS: ${b[7] / 16} % · TPS voltage: ${b[6] * 5 / 256} V`,
+      `Coolant: ${b[9] - 40} °C · coolant voltage: ${b[8] * 5 / 256} V`,
+      `Intake air: ${b[11] - 40} °C · intake voltage: ${b[10] * 5 / 256} V`,
+      `MAP: ${b[13]} kPa · MAP voltage: ${b[12] * 5 / 256} V`,
+      `Battery: ${b[16] / 10} V · speed: ${b[17]} km/h`,
+    ];
+  }
   if (b[3] === 0xd1 && b.length === 10) {
     const state = { 0: 'in gear', 1: 'neutral or clutch', 3: 'kickstand down' }[b[4]] || 'unknown';
     return [
@@ -38,7 +55,7 @@ function decodeHondaResponse(line) {
       `Engine-status byte: 0x${b[8].toString(16).padStart(2, '0')} (${b[8] === 1 ? 'source interprets as running' : 'not interpreted'})`,
     ];
   }
-  throw new Error('Only table 10 (22 bytes) and D1 (10 bytes) are supported.');
+  throw new Error('Only table 10 (22 bytes), CRF250L table 11 (25 bytes), and D1 (10 bytes) are supported.');
 }
 
 const hondaInput = document.getElementById('hondaFrames');

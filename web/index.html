@@ -126,6 +126,7 @@
           <span>Device</span>
           <input id="deviceInput" placeholder="/dev/ttyUSB0">
         </label>
+        <p id="elmFields" class="muted small" hidden>For the ECU-only Harley J1850 / HarleyDroid profile: enter the paired ELM327 serial port at 38400 baud and select read-only mode. Source reports Harley J1850 bikes, notably Sportster; model/year layouts vary. GuzziOnBoard has not hardware-tested this integration. Adapter setup alone does not identify an ECU.</p>
         <div id="klineFields" hidden>
           <label class="field">
             <span>K-Line handshake</span>
@@ -435,14 +436,35 @@
       with the same data those tools shipped, where it could be read out of them.</p>
     </article>
 
+    <article class="panel" id="ecuLookup">
+      <h2>ECU number &amp; bike research</h2>
+      <p class="muted small">Enter identifiers from the ECU label or identification report, not a VIN. Exact identifier matches are leads, not proof of fitment, software compatibility, checksum or flashing support. Hardware, software and part numbers are compared separately; do not substitute one for another.</p>
+      <div class="toolbar">
+        <label class="inline">ECU part number or ECM type <input id="ecuPart" maxlength="80" placeholder="e.g. 38770-MGZ-A03"></label>
+        <label class="inline">Hardware ID <input id="ecuHardware" maxlength="80" placeholder="e.g. MGZA401"></label>
+        <label class="inline">Software ID <input id="ecuSoftware" maxlength="80" placeholder="e.g. 0101250501"></label>
+      </div>
+      <div class="toolbar"><button class="btn" id="ecuLookupBtn">Compare locally</button><button class="btn small" id="ecuLookupClear">Clear</button></div>
+      <div id="ecuLookupOut" aria-live="polite"></div>
+      <p class="muted small">The bundled examples are a small, source-labelled starting set, not a complete catalog. A search link below is created only after comparison; opening it sends that identifier to MotoBinFiles. No binary is uploaded by this tool. MotoBinFiles' separate identifier service requests a file upload; use it only if you choose to share that file.</p>
+      <div id="ecuLookupExternal"></div>
+      <details><summary>Load a local reference list</summary>
+        <p class="small muted">Optional JSON file with <code>records</code>: each record has <code>part</code>, <code>hardware</code>, <code>software</code>, <code>vehicle</code>, and <code>source</code> strings. At least one identifier, a vehicle and a source are required. Results remain in this tab, are not saved or uploaded, and never change ECU selection or build gates. Only use data you have rights to use.</p>
+        <input type="file" id="ecuLookupFile" accept=".json,application/json" aria-label="ECU reference JSON">
+        <button class="btn small" id="ecuLookupFileClear">Remove local list</button>
+        <span id="ecuLookupFileStatus" class="small muted">No local list loaded.</span>
+      </details>
+      <p class="small muted">Other references (external links, no automatic lookup): <a href="https://www.ecmspy.com/supported.shtml" target="_blank" rel="noopener noreferrer">EcmSpy Buell ECM types</a> · <a href="https://tuneecu.net/AustrianCustomMapList.html" target="_blank" rel="noopener noreferrer">Austrian custom maps</a> · <a href="https://tuneecu.net/Twin_Custom_Tune_list.html" target="_blank" rel="noopener noreferrer">Triumph twin custom maps</a> · <a href="https://tuneecu.net/ObsoleteTune_List.html" target="_blank" rel="noopener noreferrer">Triumph obsolete 3/4-cylinder maps</a> · <a href="https://tuneecu.net/Twin_OEM_obsolete_Tune_list.html" target="_blank" rel="noopener noreferrer">Triumph twin obsolete maps</a>. Tune numbers are not ECU part numbers; custom tunes depend on bike configuration and require independent evaluation.</p>
+    </article>
+
     <article class="panel" id="hondaOffline">
-      <h2>Honda CBR600RR 2005 · offline response decoder</h2>
-      <p class="muted small">Paste complete Honda K-Line response frames, one hex frame per line. This experimental decoder uses a third-party implementation tested by its author on a 2005 CBR600RR; fitment and results have not been validated by GuzziOnBoard. It does not connect to a motorcycle, send requests, or upload data. Other models and years are not supported. Do not use results for safety decisions.</p>
+      <h2>Honda K-Line · offline response decoder</h2>
+      <p class="muted small">Paste complete Honda K-Line response frames, one hex frame per line. This experimental decoder uses a third-party implementation tested by its author on a 2005 CBR600RR; fitment and results have not been validated by GuzziOnBoard. It does not connect to a motorcycle, send requests, or upload data. The table 11 candidate is separately based on a CRF250L project. Models, sensors and layouts can vary. Do not use results for safety decisions.</p>
       <label class="field"><span>Response bytes (hex, space-separated)</span>
         <textarea id="hondaFrames" rows="4" maxlength="16000" placeholder="02 16 71 10 ..."></textarea></label>
       <div class="toolbar"><button class="btn" id="hondaDecode">Decode locally</button><button class="btn small" id="hondaClear">Clear</button></div>
       <pre id="hondaOut" class="small" aria-live="polite"></pre>
-      <p class="muted small">Accepts checksum-valid table 10 (22 bytes) and D1 (10 bytes) responses only. Unknown bytes remain in the original frame. See <a href="https://github.com/andreibaw/Honda_K-Line_KWP2000" target="_blank" rel="noopener">source and limitations</a>.</p>
+      <p class="muted small">Accepts checksum-valid table 10 (22 bytes) and D1 (10 bytes) from the <a href="https://github.com/andreibaw/Honda_K-Line_KWP2000" target="_blank" rel="noopener">CBR600RR source</a>, plus table 11 (25 bytes) from the <a href="https://github.com/sophienyaa/Honda-Motorcycle-ECU-Tools" target="_blank" rel="noopener">CRF250L source</a>. The CRF source truncates some integer arithmetic; displayed fractions reflect its formulas, not its truncation. Unknown bytes remain in the original frame.</p>
     </article>
 
     <article class="panel" id="multiResearch">
@@ -455,6 +477,7 @@
         <option value="triumph_daytona">Triumph Daytona 675 2012 · ISO 9141 (daytona-kline)</option>
         <option value="bmw_r1300gs">BMW R1300GS · CAN (EasierCan; year unspecified)</option>
         <option value="harley_vpw">Harley-Davidson Touring 2008 · J1850 VPW CRC research (not bike-validated)</option>
+        <option value="harley_j1850_harleydroid">Harley-Davidson J1850 · HarleyDroid capture decoder</option>
       </select></label>
       <p class="muted small">For K-Line and J1850 paste full space-separated hex bytes including checksum/CRC. For BMW CAN use <code>10C#0011223344556677</code> per line (11-bit data frames only); direction is unknown. Up to 100 frames. Raw bytes are preserved in results.</p>
       <label class="field"><span>Frames</span><textarea id="multiResearchFrames" rows="5" maxlength="16000" placeholder="Paste one complete frame per line"></textarea></label>
@@ -469,10 +492,22 @@
       <ul class="small">
         <li><a href="https://github.com/NetworkDir/moto-ecu-checksum/tree/43ccc5f3663e2a175b7217f802bc302830e6862b" target="_blank" rel="noopener">CFMoto / Yamaha / Honda checksum research</a> — source-reported software-specific examples; some running CFMoto factory images fail its checks. A separate local-only Yamaha checksum research check is below; no repair is enabled.</li>
         <li><a href="https://github.com/kelvinvalencio/cbr250rr-ecu-binary-definition/tree/8be351c718205843c842c7abe62eafa51bdac218" target="_blank" rel="noopener">Honda CBR250RR binary definition</a> — no detected license and uncertain scaling; not bundled.</li>
-        <li><a href="https://github.com/tientuk3/DensoToXDF" target="_blank" rel="noopener">Suzuki / Kawasaki Denso XDF generator</a> — no detected license; generated offsets and fitment are unverified. Not bundled.</li>
+        <li><a href="https://github.com/tientuk3/DensoToXDF" target="_blank" rel="noopener">Suzuki / Kawasaki Denso XDF generator</a> — source lists supported ECUs; no license detected, so code and definitions are not bundled.</li>
         <li><a href="https://github.com/aaronlumen/Performance-Harley-Davidson-Tuning" target="_blank" rel="noopener">Harley-Davidson tuning collection</a> — GPL repository, but specific bike, software, provenance and road legality must be established. No tunes imported.</li>
       </ul>
       <p class="muted small">You can inspect a user-supplied XDF and image using the existing Maps workflow. The current build gate does not authorize unknown ECU families, and research references do not enable writing.</p>
+    </article>
+
+    <article class="panel" id="harleyRegion">
+      <h2>Harley Delphi · offline calibration-region workspace</h2>
+      <p class="muted small">For the Delphi layout described by HarleyECUTool (approximately 2014–2020). Inspect a local 160 KiB calibration or 16 KiB tune, compare two regions, or export the 16 KiB region as a new research file. This does not identify the motorcycle, decode maps, verify or repair calibration checksums, or flash an ECU. Source-to-bike fitment must be checked separately.</p>
+      <label class="inline"><input type="checkbox" id="harleyRegionConfirm"> I intend to use the source-described Delphi memory layout</label>
+      <label class="field"><span>First raw calibration or tune</span><input type="file" id="harleyRegionFirst" accept=".bin,application/octet-stream"></label>
+      <label class="field"><span>Second raw calibration or tune (optional)</span><input type="file" id="harleyRegionSecond" accept=".bin,application/octet-stream"></label>
+      <label class="inline"><input type="checkbox" id="harleyRegionReplaceConfirm"> The second file is a 16 KiB replacement for the first calibration; I understand the output is for research, not flashing</label>
+      <div class="toolbar"><button class="btn" id="harleyRegionInspect">Inspect / compare locally</button><button class="btn" id="harleyRegionSave" disabled>Export 16 KiB research region</button><button class="btn" id="harleyRegionBuild" disabled>Build research calibration copy</button><button class="btn small" id="harleyRegionClear">Clear</button></div>
+      <pre id="harleyRegionOut" class="small" aria-live="polite"></pre>
+      <p class="muted small">The published mapping is one source's layout, not a universal Harley definition. Files remain local; exported bytes are not verified or flash-ready. <a href="https://github.com/rob9206/lawflo/tree/6255518dc9118d960efa42d6d9dc975926bbd579/ZOOSH_ECU-main/HarleyECUTool" target="_blank" rel="noopener">Source and scope</a>; see <code>docs/HARLEY_TUNING.md</code>.</p>
     </article>
 
     <article class="panel" id="yamahaResearch">
@@ -710,7 +745,7 @@
       </details>
       <div class="toolbar">
         <label class="inline">Filter IDs (hex, optional) <input id="canlogFilter" type="text" placeholder="7E0, 7E8" size="24"></label>
-        <label class="inline">Offline decoder <select id="canlogDecoder"><option value="">None</option><option value="ducati_panigale_mitsubishi">Ducati Mitsubishi (research only)</option></select></label>
+        <label class="inline">Offline decoder <select id="canlogDecoder"><option value="">None</option><option value="ducati_panigale_mitsubishi">Ducati Mitsubishi (research only)</option><option value="harley_hdlan_community">Harley HDLAN community (best-effort)</option></select></label>
         <label class="inline"><input id="canlogByteStats" type="checkbox"> Summarize raw byte changes</label>
       </div>
       <div class="toolbar" id="canlogFileControls">
@@ -718,7 +753,7 @@
         <button class="btn primary" id="canlogBtn">Analyse capture</button>
       </div>
       <p class="muted small">Raw byte statistics require an ID filter. Use a single-bus capture: bus/interface is not retained. Values are observations, not decoded signals or proof of vehicle compatibility.</p>
-      <p class="muted small">The optional Ducati decoder is only for matching Mitsubishi Ducati captures; it is not a Guzzi profile, vehicle identification, or permission to transmit. Check the raw bytes and exact vehicle independently.</p>
+      <p class="muted small">The optional Ducati and Harley decoders use different source-described layouts and do not identify a vehicle or authorize transmission. HarleyDroid EVO describes its HDLAN mappings as best-effort and model/year-dependent, with tentative RPM. Check raw bytes against the exact vehicle.</p>
       <details class="advanced">
         <summary>or paste a few lines</summary>
         <textarea id="canlogText" rows="5" placeholder="(1700000000.123456) can0 7E0#023E00AAAAAAAAAA" spellcheck="false"></textarea>
@@ -1069,9 +1104,11 @@
 <script src="atlas-interpolation.js"></script>
 <script src="app.js"></script>
 <script src="workshop.js"></script>
+<script src="ecu-lookup.js"></script>
 <script src="honda-offline.js"></script>
 <script src="multibrand-offline.js"></script>
 <script src="yamaha-checksum.js"></script>
 <script src="cfmoto-checksum.js"></script>
+<script src="harley-tuning.js"></script>
 </body>
 </html>

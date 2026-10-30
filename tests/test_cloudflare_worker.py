@@ -46,3 +46,20 @@ def test_worker_signs_read_report_for_desktop(shared, monkeypatch):
 def test_worker_catalog_matches_app():
     subprocess.run([os.sys.executable, str(ROOT / 'scripts/build_cloudflare_catalog.py'), '--check'],
                    cwd=ROOT, check=True, timeout=30)
+
+
+def test_workers_build_configuration_deploys_relay_not_website():
+    import tomllib
+    from uuid import UUID
+    config = tomllib.loads((ROOT / 'cloudflare/wrangler.build.toml').read_text())
+    assert config['name'] == 'guzzionboard-validation'
+    assert config['main'] == 'worker.mjs'
+    assert config['keep_vars'] is True
+    assert config['preview_urls'] is False
+    assert 'assets' not in config
+    assert config['d1_databases'] == [{
+        'binding': 'DB', 'database_name': 'guzzionboard',
+        'database_id': '66e69f17-cf5b-4728-b07b-6eb365be587f',
+    }]
+    assert str(UUID(config['d1_databases'][0]['database_id'])) == config['d1_databases'][0]['database_id']
+    assert not (set(config.get('vars', {})) & {'GOB_SIGNING_SEED', 'GOB_VALIDATION_TOKEN'})

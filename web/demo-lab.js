@@ -2654,7 +2654,7 @@
       }),
       groups: groupXdfs(xdfIndex()),
       vehicle: mapsVehicle(),
-      base_map: baseMapStatus('flash'),
+      base_map: (WS.sessionProfile || WS.selection.profile) ? baseMapStatus('flash') : null,
       build: {
         available: true,
         acknowledgement: 'I understand modified maps can damage the engine and accept responsibility',

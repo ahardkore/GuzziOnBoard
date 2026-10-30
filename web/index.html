@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GuzziOnBoard — diagnostic workstation</title>
+<title>GuzziOnBoard — motorcycle workshop workstation</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🏍️</text></svg>">
 </head>
@@ -14,7 +14,7 @@
     <div class="brand-mark">GO</div>
     <div>
       <strong>Guzzi<span>OnBoard</span></strong>
-      <small id="appVersion">diagnostic workstation</small>
+      <small id="appVersion">motorcycle workstation</small>
     </div>
   </div>
 
@@ -114,7 +114,7 @@
         <p class="muted small">Selects the vehicle without opening a diagnostic session. Disconnect any active session first.</p>
         <details class="advanced">
           <summary>Override: pick an ECU family directly</summary>
-          <p class="muted small">With a selected model and year, only a cataloged matching ECU is accepted and the vehicle confidence still applies. Clear the model for an ECU-only bench selection.</p>
+          <p class="muted small">With a selected model and year, only a cataloged matching ECU is accepted and the vehicle confidence still applies. Clear the model for an ECU-only bench selection. The generic OBD-II CAN option is always ECU-only, not a vehicle match.</p>
           <select id="ecuOverride"><option value="">— use the model lookup —</option></select>
         </details>
       </article>
@@ -137,9 +137,11 @@
               <option value="slow">KWP2000 slow — 5-baud keyword handshake</option>
             </select>
           </label>
-          <p class="muted small">Use the profile default first. Auto waits 2.6 seconds after a failed fast attempt before slow init, so older ECUs do not mistake the fallback for the rest of a partial 5-baud address.</p>
+          <p class="muted small">Use the profile default first. The Honda CB500F DashBle entry is an explicit ECU-only option: its source does not specify the bike year or ECU and the integration is not hardware-tested. Auto waits 2.6 seconds after a failed fast attempt before slow init, so older ECUs do not mistake the fallback for the rest of a partial 5-baud address.</p>
         </div>
         <div id="canFields" hidden>
+          <p class="muted small">Harley Delphi CAN identity research is ECU-only, requires 500 kbit/s and fixed 0x7E0/0x7E8; enter an explicit SocketCAN channel (e.g. can0) or PCAN channel (e.g. PCAN_USBBUS1). This attempts tester-present, five raw identity DIDs and four raw source-observed DIDs; a response does not verify fitment and the source may require authentication. No ECU memory, security, or programming is provided.</p>
+          <p class="muted small">Generic OBD-II 11-bit CAN is an explicit ECU-only option, not a claim of compatibility with the selected motorcycle. It needs a compatible CAN interface and correctly wired adapter, 500 kbit/s and a physical OBD ECU ID pair; this integration has not been hardware-tested. It reads supported standard live PIDs and emission-related stored faults, not ECU memory.</p>
           <label class="field">
             <span>Request id (tester &rarr; ECU)</span>
             <input id="canTxId" placeholder="not validated">
@@ -148,7 +150,7 @@
             <span>Response id (ECU &rarr; tester)</span>
             <input id="canRxId" placeholder="not validated">
           </label>
-          <p class="muted small">These IDs are for virtual CAN rehearsal or a future evidence-backed profile. Physical MIU G4 and 11MP sessions are blocked before the adapter opens: generic <code>0x7E0/0x7E8</code> IDs are not treated as Piaggio protocol evidence.</p>
+          <p class="muted small">Physical MIU G4 and 11MP sessions are blocked before the adapter opens: generic <code>0x7E0/0x7E8</code> IDs are not treated as Piaggio protocol evidence. The opt-in generic OBD profile accepts only physical OBD request/response pairs; its default pair is not proof of compatibility.</p>
         </div>
         <label class="field" id="sessionModeField">
           <span>Session mode</span>
@@ -438,23 +440,32 @@
 
     <article class="panel" id="ecuLookup">
       <h2>ECU number &amp; bike research</h2>
-      <p class="muted small">Enter identifiers from the ECU label or identification report, not a VIN. Exact identifier matches are leads, not proof of fitment, software compatibility, checksum or flashing support. Hardware, software and part numbers are compared separately; do not substitute one for another.</p>
+      <p class="muted small">Enter identifiers from the ECU label or identification report, not a VIN. Exact identifier matches are leads, not proof of fitment, software compatibility, checksum or flashing support. Hardware, software, part numbers and source reference codes are compared separately; a source code is not assumed to be a software ID.</p>
       <div class="toolbar">
         <label class="inline">ECU part number or ECM type <input id="ecuPart" maxlength="80" placeholder="e.g. 38770-MGZ-A03"></label>
         <label class="inline">Hardware ID <input id="ecuHardware" maxlength="80" placeholder="e.g. MGZA401"></label>
         <label class="inline">Software ID <input id="ecuSoftware" maxlength="80" placeholder="e.g. 0101250501"></label>
+        <label class="inline">Source reference code <input id="ecuReference" maxlength="80" placeholder="e.g. TMQ2KQE1"></label>
       </div>
       <div class="toolbar"><button class="btn" id="ecuLookupBtn">Compare locally</button><button class="btn small" id="ecuLookupClear">Clear</button></div>
       <div id="ecuLookupOut" aria-live="polite"></div>
       <p class="muted small">The bundled examples are a small, source-labelled starting set, not a complete catalog. A search link below is created only after comparison; opening it sends that identifier to MotoBinFiles. No binary is uploaded by this tool. MotoBinFiles' separate identifier service requests a file upload; use it only if you choose to share that file.</p>
       <div id="ecuLookupExternal"></div>
       <details><summary>Load a local reference list</summary>
-        <p class="small muted">Optional JSON file with <code>records</code>: each record has <code>part</code>, <code>hardware</code>, <code>software</code>, <code>vehicle</code>, and <code>source</code> strings. At least one identifier, a vehicle and a source are required. Results remain in this tab, are not saved or uploaded, and never change ECU selection or build gates. Only use data you have rights to use.</p>
+        <p class="small muted">Optional JSON file with <code>records</code>: each record has <code>part</code>, <code>hardware</code>, <code>software</code>, optional <code>reference</code>, <code>vehicle</code>, and <code>source</code> strings. A reference is an unclassified code paired with an ECU part by its source. At least one identifier, a vehicle and a source are required. Results remain in this tab, are not saved or uploaded, and never change ECU selection or build gates. Only use data you have rights to use.</p>
         <input type="file" id="ecuLookupFile" accept=".json,application/json" aria-label="ECU reference JSON">
         <button class="btn small" id="ecuLookupFileClear">Remove local list</button>
         <span id="ecuLookupFileStatus" class="small muted">No local list loaded.</span>
       </details>
       <p class="small muted">Other references (external links, no automatic lookup): <a href="https://www.ecmspy.com/supported.shtml" target="_blank" rel="noopener noreferrer">EcmSpy Buell ECM types</a> · <a href="https://tuneecu.net/AustrianCustomMapList.html" target="_blank" rel="noopener noreferrer">Austrian custom maps</a> · <a href="https://tuneecu.net/Twin_Custom_Tune_list.html" target="_blank" rel="noopener noreferrer">Triumph twin custom maps</a> · <a href="https://tuneecu.net/ObsoleteTune_List.html" target="_blank" rel="noopener noreferrer">Triumph obsolete 3/4-cylinder maps</a> · <a href="https://tuneecu.net/Twin_OEM_obsolete_Tune_list.html" target="_blank" rel="noopener noreferrer">Triumph twin obsolete maps</a>. Tune numbers are not ECU part numbers; custom tunes depend on bike configuration and require independent evaluation.</p>
+    </article>
+
+    <article class="panel" id="sharedEcuResearch">
+      <h2>Shared ECU family cross-reference</h2>
+      <p class="muted small">Explore motorcycle entries mapped to the same catalog ECU profile across makes, alongside XDFs labelled for the related family. Entries and years are source-based leads, not proof of the same part number, hardware revision, software or interchangeable maps. Family similarity does not enable tuning or alter any safety gate.</p>
+      <div class="toolbar"><button class="btn" id="sharedEcuLoad">Load catalog cross-reference</button><label class="inline">ECU profile <select id="sharedEcuFamily" disabled><option value="">— load and choose —</option></select></label></div>
+      <div id="sharedEcuOut" aria-live="polite"></div>
+      <p class="muted small">This uses the application's existing vehicle and XDF catalogs. Review the <a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/guzzionboard/catalog/vehicles.json" target="_blank" rel="noopener noreferrer">vehicle catalog source list</a> (not attribution for each individual entry) and <a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/guzzionboard/xdfs/PROVENANCE.json" target="_blank" rel="noopener noreferrer">XDF provenance</a>. A model may have multiple fitments in the same year. XDF family labels are discovery leads only; check the source, part number, software, layout and checksum independently.</p>
     </article>
 
     <article class="panel" id="hondaOffline">
@@ -490,12 +501,25 @@
       <h2>Multi-brand tuning research</h2>
       <p class="muted small">Research links are not supported tuning definitions. No maps, firmware, write commands or checksum repair are bundled for these bikes. A matching ECU, exact software, definition, checksum and legal use must be independently verified; a passing checksum alone does not establish fitment or safety.</p>
       <ul class="small">
-        <li><a href="https://github.com/NetworkDir/moto-ecu-checksum/tree/43ccc5f3663e2a175b7217f802bc302830e6862b" target="_blank" rel="noopener">CFMoto / Yamaha / Honda checksum research</a> — source-reported software-specific examples; some running CFMoto factory images fail its checks. A separate local-only Yamaha checksum research check is below; no repair is enabled.</li>
+        <li><a href="https://github.com/NetworkDir/moto-ecu-checksum/tree/43ccc5f3663e2a175b7217f802bc302830e6862b" target="_blank" rel="noopener">CFMoto / Yamaha / Honda checksum research</a> — source-reported software-specific examples; some running CFMoto factory images fail its checks. Separate Yamaha and Bajaj research-copy checksum tools are below; neither authorizes programming.</li>
         <li><a href="https://github.com/kelvinvalencio/cbr250rr-ecu-binary-definition/tree/8be351c718205843c842c7abe62eafa51bdac218" target="_blank" rel="noopener">Honda CBR250RR binary definition</a> — no detected license and uncertain scaling; not bundled.</li>
         <li><a href="https://github.com/tientuk3/DensoToXDF" target="_blank" rel="noopener">Suzuki / Kawasaki Denso XDF generator</a> — source lists supported ECUs; no license detected, so code and definitions are not bundled.</li>
         <li><a href="https://github.com/aaronlumen/Performance-Harley-Davidson-Tuning" target="_blank" rel="noopener">Harley-Davidson tuning collection</a> — GPL repository, but specific bike, software, provenance and road legality must be established. No tunes imported.</li>
       </ul>
       <p class="muted small">You can inspect a user-supplied XDF and image using the existing Maps workflow. The current build gate does not authorize unknown ECU families, and research references do not enable writing.</p>
+    </article>
+
+    <article class="panel" id="jukenResearch">
+      <h2>BRT Juken 5 · offline map-block research</h2>
+      <p class="muted small">Inspect a user-supplied 10,248-byte raw core block locally using an independently published layout. The source explicitly says it has not tested the protocol or bulk decoding on real hardware; a file of this size does not prove Juken fitment, ECU identity, map encoding, orientation or scaling. No ECU is contacted, no firmware is generated, and results are not flash-ready.</p>
+      <input type="file" id="jukenImage" aria-label="Juken raw core block">
+      <div class="toolbar"><button class="btn" id="jukenInspect">Inspect locally</button><button class="btn small" id="jukenClear">Clear</button></div>
+      <label class="field"><span>Table to export as linear raw values</span><select id="jukenTable" disabled>
+        <option>FuelBase</option><option>InjTmg</option><option>IgnTmg</option><option>FuelCor1</option><option>FuelCorTB1</option>
+      </select></label>
+      <button class="btn small" id="jukenCsv" disabled>Export raw research CSV</button>
+      <pre id="jukenOut" class="small" aria-live="polite"></pre>
+      <p class="muted small">CSV preserves linear cell indices; TPS/RPM orientation and units are not asserted. No file is uploaded or modified. <a href="https://github.com/cfbird/juken5/tree/8585b94715e5db01eb37bdd81c7b0a0a91c1d739" target="_blank" rel="noopener">Source, MIT license and limitations</a>.</p>
     </article>
 
     <article class="panel" id="harleyRegion">
@@ -512,15 +536,27 @@
 
     <article class="panel" id="yamahaResearch">
       <h2>Yamaha MT image checksum · offline research</h2>
-      <p class="muted small">Inspect a user-supplied, plain binary image locally. This research check follows one third-party Yamaha MT word-sum layout; GuzziOnBoard has not validated it against a real image or motorcycle. It does not edit, save or upload the file. A match does <b>not</b> prove identity, software compatibility, signature validity, calibration safety or legal road use. Never use the result as authorization to flash.</p>
+      <p class="muted small">Inspect a user-supplied, plain binary image locally. This research check follows one third-party Yamaha MT word-sum layout; GuzziOnBoard has not validated it against a real image or motorcycle. Inspection does not edit or upload the file; an optional, explicitly confirmed research export can repair the checksum in a new copy. A match does <b>not</b> prove identity, software compatibility, signature validity, calibration safety or legal road use. Never use the result as authorization to flash.</p>
       <label class="field"><span>Exact variant claimed by the source</span><select id="yamahaVariant">
         <option value="">— choose a size/model scope —</option>
         <option value="mt_1m">1 MiB · source lists MT-25 2019, MT-07 2014–16 or 2021, MT-09 SP 2019</option>
         <option value="mt07_2020">896 KiB · MT-07 2020 only (source report)</option>
       </select></label>
       <div class="toolbar"><input type="file" id="yamahaImage" aria-label="Yamaha binary image"><button class="btn" id="yamahaInspect">Inspect locally</button><button class="btn small" id="yamahaClear">Clear</button></div>
+      <label class="check"><input type="checkbox" id="yamahaRepairConfirm"> I selected the applicable source-described layout and understand the checksum-corrected copy is for research, not flashing</label>
+      <button class="btn" id="yamahaRepairSave" disabled>Export checksum-corrected research copy</button>
       <pre id="yamahaOut" class="small" aria-live="polite"></pre>
       <p class="muted small">The selection is a user claim, not an ECU match. Unsupported lengths, nonmatching trailer structure and files with external headers are refused. SHA-256 is shown when available. Source and limitations are documented in <a href="https://github.com/NetworkDir/moto-ecu-checksum/tree/43ccc5f3663e2a175b7217f802bc302830e6862b" target="_blank" rel="noopener">moto-ecu-checksum</a>.</p>
+    </article>
+
+    <article class="panel" id="bajajChecksum">
+      <h2>Bajaj RS200 · Dell'Orto checksum research</h2>
+      <p class="muted small">For the source-reported 2024 RS200 <code>JL351458010651</code> calibration family only. Inspect a user-supplied 768 KiB raw image locally and, after confirmation, export a new copy with one 16-bit checksum updated. The source reports agreement with a commercial correction tool for three calibrations; our exact label-at-offset gate and integration have only synthetic tests. No ECU connection or flashing is provided. A signature/ID match does not prove fitment or a safe calibration.</p>
+      <input type="file" id="bajajImage" aria-label="Bajaj RS200 binary image">
+      <label class="check"><input type="checkbox" id="bajajConfirm"> I intend to inspect this source-described RS200 layout and understand the output is research only, not flash-ready</label>
+      <div class="toolbar"><button class="btn" id="bajajInspect">Inspect locally</button><button class="btn" id="bajajSave" disabled>Export checksum-corrected research copy</button><button class="btn small" id="bajajClear">Clear</button></div>
+      <pre id="bajajOut" class="small" aria-live="polite"></pre>
+      <p class="muted small">Checks only one reported calibration checksum; other checksums and signatures may exist. No firmware or definitions are bundled. <a href="https://github.com/NetworkDir/moto-ecu-checksum/tree/43ccc5f3663e2a175b7217f802bc302830e6862b" target="_blank" rel="noopener">Source and reported tests</a>.</p>
     </article>
 
     <article class="panel" id="cfmotoChecksum">
@@ -761,6 +797,27 @@
           <span class="muted small">candump, SavvyCAN CSV or CRTD — auto-detected</span></div>
       </details>
       <div id="canlogOut"></div>
+    </article>
+
+    <article class="panel" id="harleyLiveCan">
+      <h2>Harley HDLAN · live CAN observation</h2>
+      <p class="muted small">Observe candidate broadcast values from an already configured Linux SocketCAN interface. Community mappings are best-effort and vary by model/year; RPM is especially tentative. No ECU diagnostic request, identification, DTC, memory read or tuning is provided. Never use these values for riding or safety decisions. This application sends no CAN frames, but a normal CAN controller may acknowledge traffic; configure hardware listen-only mode separately if required.</p>
+      <label class="field"><span>Observation source (not automatic vehicle identification)</span><select id="harleyLiveProfile"><option value="community">HarleyDroid HDLAN community candidates</option><option value="sportster_2017">2017 XL1200X Sportster · source-described raw frames</option></select></label>
+      <label class="field"><span>Existing SocketCAN interface (bitrate configured in the OS)</span><input id="harleyLiveChannel" value="can0" maxlength="15"></label>
+      <label class="check"><input type="checkbox" id="harleyLiveConfirm"> I confirmed the adapter, wiring, bus configuration and research-only limitations</label>
+      <div class="toolbar"><button class="btn" id="harleyLiveStart">Start observation</button><button class="btn small" id="harleyLiveStop" disabled>Stop</button></div>
+      <pre id="harleyLiveOut" class="small" aria-live="polite">Not observing.</pre>
+      <p class="muted small">The current two-second window only is shown; absent values are not reused. The hosted demo cannot access CAN hardware. <a href="https://github.com/QuickosssLabs/HarleyDroidEVO/tree/668b63efc05977eb65cb8e84e597ae2205355d4c" target="_blank" rel="noopener">Community mapping source</a>.</p>
+    </article>
+
+    <article class="panel" id="yamahaLiveKline">
+      <h2>Yamaha MT-03 660 (2010) · dashboard-stream observation</h2>
+      <p class="muted small">Observe one two-second window of the existing dashboard/ECU K-Line stream using a Linux FTDI KKL adapter at 16064 baud. The source reports testing on this model; this integration has synthetic tests only. Disconnect any active ECU session first. No requests, wake-up, fault clearing, memory access or writes are sent. Checksum-based synchronization is heuristic and can match unrelated bytes. Do not use results for riding or safety decisions. Opening an adapter may change its electrical control lines: verify wiring and a suitable receive-capable interface before connecting.</p>
+      <label class="field"><span>Explicit FTDI serial device</span><input id="yamahaLivePort" value="/dev/ttyUSB0" maxlength="255"></label>
+      <label class="check"><input type="checkbox" id="yamahaLiveConfirm"> I selected the source-described bike, verified wiring and understand these are unverified candidates</label>
+      <button class="btn" id="yamahaLiveObserve">Observe two seconds</button>
+      <pre id="yamahaLiveOut" class="small" aria-live="polite">Not observing.</pre>
+      <p class="muted small">Speed, temperature and status remain raw bytes; no fault-code inference. No previous value is retained when the current window has no candidate. <a href="https://github.com/smiddelkoop/yamaha-kline-ubuntu/tree/0f7fef82d1987923198b53ffa001d09ed1ceae4e" target="_blank" rel="noopener">Source and limitations</a>. Hosted demo cannot access serial hardware.</p>
     </article>
 
     <article class="panel">
@@ -1105,10 +1162,15 @@
 <script src="app.js"></script>
 <script src="workshop.js"></script>
 <script src="ecu-lookup.js"></script>
+<script src="ecu-crossref.js"></script>
 <script src="honda-offline.js"></script>
 <script src="multibrand-offline.js"></script>
 <script src="yamaha-checksum.js"></script>
+<script src="bajaj-checksum.js"></script>
 <script src="cfmoto-checksum.js"></script>
 <script src="harley-tuning.js"></script>
+<script src="juken-research.js"></script>
+<script src="harley-live-can.js"></script>
+<script src="yamaha-live-kline.js"></script>
 </body>
 </html>

@@ -1,0 +1,30 @@
+{
+  "id": "kawasaki_ninja650_2023_2026",
+  "family": "Kawasaki Ninja 650 / EX650 research (2023–2026)",
+  "display_name": "Kawasaki Ninja 650 / EX650 2023–2026 (research only)",
+  "transport": "can",
+  "confidence": "unknown",
+  "years": "2023–2026",
+  "notes": "Commercial listing reports candidate ECU part numbers for this model/year range; exact year, market, ECU part and software require independent verification. This profile does not establish ECU identity, tune compatibility, communications, checksum or programming.",
+  "session": {
+    "protocol": "research-only",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_blocked_reason": "The exact ECU diagnostic and programming application is not implemented; no physical requests are permitted."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No applicable memory protocol, validated definition, checksum or recovery path is integrated."
+  },
+  "capabilities": [],
+  "sources": [
+    "https://www.woolichracing.com/products/kawasaki/ninja-650-ex650/2026/2026-kawasaki-ninja-650-ex650-ecu-flashing.aspx"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}

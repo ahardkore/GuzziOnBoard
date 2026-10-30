@@ -254,7 +254,7 @@ test('desktop host provides local manual search and a source-aware service works
   expect(page.failures).toEqual([]);
 });
 
-test('Honda research is selectable but cannot open a physical or simulated session', async ({ page }) => {
+test('Honda live profile is selectable but cannot use service or simulator sessions', async ({ page }) => {
   await page.goto('/');
   // Earlier desktop tests share the workstation; start with no active session.
   await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
@@ -262,7 +262,7 @@ test('Honda research is selectable but cannot open a physical or simulated sessi
   await page.selectOption('#makeSelect', 'Honda');
   await page.selectOption('#modelSelect', 'CBR600RR');
   await page.selectOption('#yearSelect', '2005');
-  await expect(page.locator('#resolveResult')).toContainText('offline research only');
+  await expect(page.locator('#resolveResult')).toContainText('read-only K-Line');
   const result = await page.evaluate(async () => {
     const post = async (url, body) => {
       const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -272,7 +272,7 @@ test('Honda research is selectable but cannot open a physical or simulated sessi
     return {
       mismatch: await post('/api/select', { ...vehicle, ecu: '5am', transport: 'kline' }),
       physical: await post('/api/select', { ...vehicle, transport: 'kline' }),
-      physicalConnect: await post('/api/connect', { mode: 'read_only' }),
+      physicalConnect: await post('/api/connect', { mode: 'service' }),
       simulator: await post('/api/select', { ...vehicle, transport: 'simulator' }),
       simulatorConnect: await post('/api/connect', { mode: 'simulator' }),
       existing: await post('/api/select', { make: 'Moto Guzzi', model: 'Griso 1200 8V', year: 2012, transport: 'simulator' }),
@@ -285,10 +285,10 @@ test('Honda research is selectable but cannot open a physical or simulated sessi
   expect(result.mismatch.body.error).toContain('not cataloged');
   expect(result.physical.status).toBe(200);
   expect(result.physicalConnect.status).toBe(501);
-  expect(result.physicalConnect.body.error).toContain('no port was opened');
+  expect(result.physicalConnect.body.error).toContain('read-only mode');
   expect(result.simulator.status).toBe(200);
   expect(result.simulatorConnect.status).toBe(501);
-  expect(result.simulatorConnect.body.error).toContain('no matching simulator');
+  expect(result.simulatorConnect.body.error).toContain('read-only mode');
   expect(result.existing.status).toBe(200);
   expect(result.existingConnect.status).toBe(200);
   expect(result.relabel.status).toBe(400);
@@ -564,4 +564,269 @@ test('desktop ECU identifier research is local and does not change vehicle selec
   await expect(page.locator('#ecuLookupOut')).toContainText('Software: 0101250501 (not supplied)');
   const after = await page.evaluate(async () => (await (await fetch('/api/status')).json()).selection);
   expect(after).toEqual(before);
+});
+
+test('desktop cross-reference and Yamaha checksum export remain offline and scoped', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  const selectionBefore = await page.evaluate(async () => (await (await fetch('/api/status')).json()).selection);
+  await page.locator('#sharedEcuLoad').click();
+  await page.locator('#sharedEcuFamily').selectOption('5am');
+  await expect(page.locator('#sharedEcuOut')).toContainText('Ducati');
+  await expect(page.locator('#sharedEcuOut')).toContainText('Moto Guzzi');
+  const selectionAfter = await page.evaluate(async () => (await (await fetch('/api/status')).json()).selection);
+  expect(selectionAfter).toEqual(selectionBefore);
+  const input = Buffer.alloc(0xe0000);
+  input.write('ABCDY123', input.length - 16, 'ascii');
+  input[input.length - 6] = 0x64; input[input.length - 5] = 0x02;
+  await page.locator('#yamahaVariant').selectOption('mt07_2020');
+  await page.locator('#yamahaImage').setInputFiles({ name: 'synthetic.bin', mimeType: 'application/octet-stream', buffer: input });
+  await page.locator('#yamahaRepairConfirm').check();
+  await page.locator('#yamahaInspect').click();
+  await expect(page.locator('#yamahaRepairSave')).toBeEnabled();
+  const before = new Set(readdirSync(EXPORTS));
+  await page.locator('#yamahaRepairSave').click();
+  await expect(page.locator('#yamahaOut')).toContainText('Saved research copy:');
+  const path = await waitForExport(/^yamaha-mt-checksum-research-.*\.bin$/);
+  const filename = readdirSync(EXPORTS).find(name => name.startsWith('yamaha-mt-checksum-research-') && !before.has(name));
+  expect(filename).toBeTruthy();
+  const output = readFileSync(join(EXPORTS, filename));
+  let sum = 0, changes = [];
+  for (let i = 0; i < output.length; i++) if (output[i] !== input[i]) changes.push(i);
+  for (let i = 0; i < output.length; i += 2) sum = (sum + output.readUInt16BE(i)) & 0xffff;
+  expect(sum).toBe(0xe81f);
+  expect(changes.length).toBeGreaterThan(0);
+  expect(changes.every(i => i === input.length - 8 || i === input.length - 7)).toBe(true);
+});
+
+test('desktop exports Bajaj research checksum copy without changing its input', async ({ page }) => {
+  await page.goto('/'); await page.locator('[data-view="tools"]').click();
+  const input = Buffer.alloc(0xc0000);
+  input.write('JL351458010651', 0x80000, 'ascii');
+  input.write('DellOrto 32bit Engine Management System', 0x100, 'ascii');
+  await page.locator('#bajajImage').setInputFiles({ name: 'synthetic.bin', mimeType: 'application/octet-stream', buffer: input });
+  await page.locator('#bajajConfirm').check(); await page.locator('#bajajInspect').click();
+  await expect(page.locator('#bajajSave')).toBeEnabled();
+  const before = new Set(readdirSync(EXPORTS)); await page.locator('#bajajSave').click();
+  await expect(page.locator('#bajajOut')).toContainText('Saved research copy:');
+  const name = readdirSync(EXPORTS).find(n => n.startsWith('bajaj-rs200-checksum-research-') && !before.has(n));
+  expect(name).toBeTruthy(); const output = readFileSync(join(EXPORTS, name));
+  let sum = 0; for (let i = 0x80000; i < 0x921fe; i++) sum = (sum + output[i]) & 0xffff;
+  expect(output.readUInt16BE(0x921fe)).toBe((~sum) & 0xffff);
+  expect(input.readUInt16BE(0x921fe)).toBe(0);
+});
+
+test('desktop exposes Ninja 7 Hybrid read-only CAN and refuses address overrides', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+  await page.selectOption('#makeSelect', 'Kawasaki');
+  await page.selectOption('#modelSelect', 'Ninja 7 Hybrid');
+  await page.selectOption('#yearSelect', '2024');
+  await expect(page.locator('#resolveResult')).toContainText('read-only CAN');
+  const result = await page.evaluate(async () => {
+    const post = async (url, body) => {
+      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      return { status: r.status, body: await r.json() };
+    };
+    return {
+      select: await post('/api/select', { make: 'Kawasaki', model: 'Ninja 7 Hybrid', year: 2024, transport: 'can', can_tx_id: '0x7e0' }),
+      connect: await post('/api/connect', { mode: 'read_only' }),
+    };
+  });
+  expect(result.select.body.ecu.id).toBe('kawasaki_ninja7_hybrid');
+  expect(result.select.body.ecu.effective_capabilities).toEqual(['identify', 'live', 'dtc_read']);
+  expect(result.connect.status).toBe(501);
+  expect(result.connect.body.error).toContain('source-scoped CAN IDs');
+  expect(page.failures.filter((error) => !/server responded with a status of 501/.test(error))).toEqual([]);
+});
+
+test('Ninja 7 fault display keeps unconfirmed status and zero-code scope explicit', async ({ page }) => {
+  await page.goto('/');
+  let dtcs = [];
+  await page.route('**/api/dtcs', route => route.fulfill({ json: {
+    format: 'kawasaki-ninja7', dtcs, context: {},
+    note: 'Source confirmed a zero-DTC response; nonzero records and status interpretation remain candidates.',
+    clear: { allowed: false, checks: [] },
+  }}));
+  await page.evaluate(() => readDtcs());
+  await expect(page.locator('#dtcSummary')).toContainText('other fault states are unknown');
+  await expect(page.locator('#faultList')).not.toContainText('clean fault memory');
+  dtcs = [{code: 'P0123', status_byte: 0x20, status: 'uninterpreted', kind: 'uninterpreted',
+    warning_indicator: null, description: 'Source-described DTC layout; nonzero records not confirmed'}];
+  await page.evaluate(() => readDtcs());
+  await expect(page.locator('#faultList')).toContainText('P0123');
+  await expect(page.locator('#faultList')).toContainText('status byte 0x20');
+  await expect(page.locator('#faultList')).toContainText('nonzero records and status interpretation remain candidates');
+  expect(page.failures).toEqual([]);
+});
+
+test('desktop exposes separate research-only 2026 Kawasaki ZX-6R and 650 models', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+  await page.selectOption('#makeSelect', 'Kawasaki');
+  for (const model of ['Ninja ZX-6R (636)', 'Ninja 650 / EX650', 'Z650']) {
+    await page.selectOption('#modelSelect', model);
+    await page.selectOption('#yearSelect', '2026');
+    await expect(page.locator('#resolveResult')).toContainText('research only');
+    await expect(page.locator('#resolveResult')).toContainText('No physical diagnostics');
+  }
+  await expect(page.locator('#resolveResult')).toContainText('2023–2025');
+  await expect(page.locator('#resolveResult')).toContainText('2023–2026');
+});
+
+test('generic OBD CAN uses explicit ECU-only selection and explains its limits', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForSelector('#ecuOverride option[value="generic_obd_can_11bit"]', {state: 'attached'});
+  await page.getByText('Override: pick an ECU family directly').click();
+  await page.selectOption('#ecuOverride', 'generic_obd_can_11bit');
+  const can = page.locator('input[name="transport"][value="can"]');
+  if (await can.isEnabled()) await can.check();
+  else await can.evaluate(el => { el.checked = true; el.dispatchEvent(new Event('change', {bubbles: true})); });
+  await expect(page.locator('#canFields')).toContainText('not ECU memory');
+  const request = await page.evaluate(() => selectionRequest());
+  expect(request.ecu).toBe('generic_obd_can_11bit');
+  expect(request.transport).toBe('can');
+  expect(request).not.toHaveProperty('model');
+  expect(request).not.toHaveProperty('year');
+});
+
+test('desktop exposes scoped Versys and GSX-R live profiles without memory or simulator claims', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+  for (const [make, model, year, name, id] of [
+    ['Kawasaki', 'Versys 650', '2012', 'read-only KDS', 'kawasaki_versys650_2012'],
+    ['Suzuki', 'GSX-R600', '2011', 'read-only SDS', 'suzuki_gsxr600_2011'],
+  ]) {
+    await page.selectOption('#makeSelect', make);
+    await page.selectOption('#modelSelect', model);
+    await page.selectOption('#yearSelect', year);
+    await expect(page.locator('#resolveResult')).toContainText(name);
+    const selected = await page.evaluate(async ({ make, model, year }) => {
+      const r = await fetch('/api/select', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ make, model, year: Number(year), transport: 'simulator' }) });
+      return r.json();
+    }, { make, model, year });
+    expect(selected.ecu.id).toBe(id);
+    expect(selected.ecu.capabilities).toEqual(['live']);
+    expect(selected.ecu.session.simulator_supported).toBe(false);
+    expect(selected.ecu.memory.read_supported).toBe(false);
+  }
+});
+
+test('Honda CB500F DashBle override remains ECU-only with source limits', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForSelector('#ecuOverride option[value="honda_cb500f_dashble"]', {state: 'attached'});
+  await page.getByText('Override: pick an ECU family directly').click();
+  await page.selectOption('#ecuOverride', 'honda_cb500f_dashble');
+  const kline = page.locator('input[name="transport"][value="kline"]');
+  if (await kline.isEnabled()) await kline.check();
+  else await kline.evaluate(el => { el.checked = true; el.dispatchEvent(new Event('change', {bubbles: true})); });
+  await expect(page.locator('#klineFields')).toContainText('source does not specify the bike year');
+  const request = await page.evaluate(() => selectionRequest());
+  expect(request.ecu).toBe('honda_cb500f_dashble');
+  expect(request.transport).toBe('kline');
+  expect(request).not.toHaveProperty('model');
+  expect(request).not.toHaveProperty('year');
+});
+
+test('experimental Honda research read requires its own acknowledgement', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="firmware"]').click();
+  await page.evaluate(() => renderMemoryCapabilities({
+    capabilities: { ecu: 'honda_cb500f_dashble', family: 'Honda', protocol: 'Honda K-Line',
+      research_read_only: true, read_supported: true, write_supported: false,
+      regions: {flash: {size: 262144}} }, base_map: {intact: false}, checkpoints: {}
+  }));
+  await expect(page.locator('#memCaps')).toContainText('experimental MGZ-A03 only');
+  await expect(page.locator('#memCaps')).toContainText('unverified on hardware');
+  await expect(page.locator('#backupBtn')).toBeDisabled();
+  await expect(page.locator('#baseMapSaveBtn')).toBeDisabled();
+  await expect(page.locator('#baseMapFileBtn')).toBeDisabled();
+  let reads = 0; let body;
+  await page.route('**/api/memory/read', async (route) => {
+    reads++; body = route.request().postDataJSON();
+    await route.fulfill({status: 202, contentType: 'application/json', body: '{}'});
+  });
+  await page.locator('#readBtn').click();
+  await expect(page.locator('#modalTitle')).toHaveText('Experimental MGZ-A03 research read');
+  await expect(page.locator('#modalBody')).toContainText('not a verified backup');
+  await page.locator('#modalCancel').click();
+  expect(reads).toBe(0);
+  await page.locator('#readBtn').click();
+  await page.locator('#modalConfirm').click();
+  await expect.poll(() => reads).toBe(1);
+  expect(body).toEqual({region: 'flash', confirm_research_read: true});
+});
+
+test('Juken raw map research is available inside the desktop host', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  const buffer = Buffer.alloc(10248); buffer.writeInt16LE(-53, 0);
+  await page.locator('#jukenImage').setInputFiles({ name: 'raw.bin', mimeType: 'application/octet-stream', buffer });
+  await page.locator('#jukenInspect').click();
+  await expect(page.locator('#jukenOut')).toContainText('FuelBase · offset 0x0 · 1281 values · min -53');
+  await expect(page.locator('#jukenOut')).toContainText('Not a full ECU dump');
+});
+
+test('Harley live CAN observation is confirmed, bounded and clears stale values', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="discovery"]').click();
+  let calls = 0; let requests = [];
+  await page.route('**/api/tools/harley-hdlan-listen', async (route) => {
+    calls++; requests.push(route.request().postDataJSON());
+    const events = calls === 1 ? [{id: '0x521', raw: '0028', values: {speed_kmh_candidate: 40}}] : [];
+    await route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({events, frames_received: events.length, invalid_length_frames: 0})});
+  });
+  await page.locator('#harleyLiveStart').click();
+  await expect(page.locator('#harleyLiveOut')).toContainText('Confirm the bus');
+  expect(calls).toBe(0);
+  await page.locator('#harleyLiveConfirm').check();
+  await page.locator('#harleyLiveStart').click();
+  await expect(page.locator('#harleyLiveOut')).toContainText('speed_kmh_candidate: 40');
+  await expect(page.locator('#harleyLiveOut')).toContainText('No recognized values in this window.');
+  expect(requests[0]).toEqual({channel: 'can0', profile: 'community', confirm: true});
+  await page.locator('#harleyLiveStop').click();
+  await expect(page.locator('#harleyLiveOut')).toHaveText('Observation stopped.');
+  await expect(page.locator('#harleyLiveStart')).toBeEnabled();
+  await expect(page.locator('#harleyLiveStop')).toBeDisabled();
+});
+
+test('Yamaha MT-03 observer requires explicit confirmation and never reuses old data', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="discovery"]').click();
+  let calls = 0; let bodies = [];
+  await page.route('**/api/tools/yamaha-mt03-listen', async (route) => {
+    calls++; bodies.push(route.request().postDataJSON());
+    const latest = calls === 1 ? {raw:'012900802ED7', rpm_candidate:2050, speed_byte_raw:0, status_byte_raw:128, temperature_byte_raw:46} : null;
+    await route.fulfill({status: 200, contentType:'application/json', body:JSON.stringify({latest, bytes_received:6, candidate_frames:latest ? 1 : 0})});
+  });
+  await page.locator('#yamahaLiveObserve').click();
+  await expect(page.locator('#yamahaLiveOut')).toContainText('Confirm the bike');
+  expect(calls).toBe(0);
+  await page.locator('#yamahaLiveConfirm').check();
+  await page.locator('#yamahaLiveObserve').click();
+  await expect(page.locator('#yamahaLiveOut')).toContainText('RPM candidate: 2050');
+  expect(bodies[0]).toEqual({port: '/dev/ttyUSB0', confirm: true});
+  await page.locator('#yamahaLiveObserve').click();
+  await expect(page.locator('#yamahaLiveOut')).toContainText('No candidate frame in this window');
+  await page.locator('#yamahaLivePort').fill('/dev/ttyUSB1');
+  await page.locator('#yamahaLivePort').blur();
+  await expect(page.locator('#yamahaLiveConfirm')).not.toBeChecked();
+});
+
+test('Harley Delphi CAN override remains ECU-only and explains live identity scope', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForSelector('#ecuOverride option[value="harley_delphi_can_uds"]', {state: 'attached'});
+  await page.getByText('Override: pick an ECU family directly').click();
+  await page.selectOption('#ecuOverride', 'harley_delphi_can_uds');
+  const can = page.locator('input[name="transport"][value="can"]');
+  if (await can.isEnabled()) await can.check();
+  else await can.evaluate(el => { el.checked = true; el.dispatchEvent(new Event('change', {bubbles:true})); });
+  await expect(page.locator('#canFields')).toContainText('five raw identity DIDs');
+  await expect(page.locator('#canFields')).toContainText('No ECU memory');
+  const request = await page.evaluate(() => selectionRequest());
+  expect(request.ecu).toBe('harley_delphi_can_uds');
+  expect(request.transport).toBe('can');
+  expect(request).not.toHaveProperty('model');
+  expect(request).not.toHaveProperty('year');
 });

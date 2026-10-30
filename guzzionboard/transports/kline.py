@@ -251,6 +251,10 @@ class KLineTransport(Transport):
             "legacy-16m": "legacy-iaw-16m",
             "legacy-iaw-direct": "legacy-iaw-direct",
             "kawasaki-er6n": "kawasaki-er6n",
+            "honda-cbr600rr-2005": "honda-cbr600rr-2005",
+            "honda-cb500f-dashble": "honda-cb500f-dashble",
+            "aster-versys-2012": "aster-versys-2012",
+            "aster-gsxr600-2011": "aster-gsxr600-2011",
             "triumph-daytona-2012": "triumph-daytona-2012",
         }
         selected = aliases.get(str(method).strip().lower())
@@ -269,6 +273,11 @@ class KLineTransport(Transport):
                     break
             result.attempts = attempts
             return result
+        if selected in ("honda-cbr600rr-2005", "honda-cb500f-dashble"):
+            return self._honda_init(connection, selected)
+        if selected in ("aster-versys-2012", "aster-gsxr600-2011"):
+            return self._fast_init(connection, target=0x11 if selected == "aster-versys-2012" else 0x12,
+                                   source=0xF1, functional=False, paced=True, idle=1.0)
         if selected == "kawasaki-er6n":
             return self._fast_init(connection, target=0x11, source=0xF1,
                                    functional=False, paced=True)
@@ -317,6 +326,27 @@ class KLineTransport(Transport):
         attempts.append(f"slow: {result.detail}")
         result.attempts = attempts
         return result
+
+    def _honda_init(self, connection: KLineConnection, method: str) -> InitResult:
+        """Source-specific 70 ms wake, not ISO 14230 fast init."""
+        port = connection.port
+        port.break_condition = True
+        try:
+            time.sleep(0.070)
+        finally:
+            port.break_condition = False
+        time.sleep(0.130 if method == "honda-cb500f-dashble" else 0.120)
+        wake = bytes.fromhex("fe 04 ff ff")
+        connection.write(wake)
+        time.sleep(0.050 if method == "honda-cb500f-dashble" else 0.200)
+        request = bytes.fromhex("72 05 00 f0 99")
+        connection.write(request)
+        response = connection.read_bytes(4, 1.0)
+        ok = response == bytes.fromhex("02 04 00 fa")
+        return InitResult(ok=ok, method=method, baud=self.baud,
+                          protocol="honda-cbr600rr", handshake_complete=ok,
+                          detail="Honda initialization " + ("accepted" if ok else "response mismatch"),
+                          request=request, response=response, prelude=(wake,))
 
     def _legacy_iaw_16m_init(
         self,
@@ -420,12 +450,13 @@ class KLineTransport(Transport):
         source: int = 0xF1,
         functional: bool = True,
         paced: bool = False,
+        idle: float = W5_IDLE_S,
     ) -> InitResult:
         """Idle, send the 25/25 ms wake pattern, then validate 0xC1."""
         port = connection.port
         port.break_condition = False
         port.reset_input_buffer()
-        time.sleep(W5_IDLE_S)
+        time.sleep(idle)
 
         # Schedule the two edges against one clock.  Chaining two relative
         # sleeps lets scheduler delay accumulate and can move tWUP outside its

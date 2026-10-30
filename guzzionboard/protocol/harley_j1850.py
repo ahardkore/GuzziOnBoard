@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 
 from .kwp2000 import ProtocolError
+from ..harley_dtc_descriptions import DESCRIPTIONS
 
 
 def _crc(payload: bytes) -> int:
@@ -120,7 +121,8 @@ class HarleyJ1850Session:
                 if not (a or b):
                     continue
                 code = f"{'PCBU'[a >> 6]}{(a >> 4) & 3}{a & 15:X}{b:02X}"
-                dtcs.append({"code": code, "description": "", "status_byte": None,
+                description = DESCRIPTIONS.get(code)
+                dtcs.append({"code": code, "description": (f"HarleyDroid reference (fitment unverified): {description}" if description else ""), "status_byte": None,
                              "kind": f"{name} response", "status": "unknown", "warning_indicator": False})
         return {"dtcs": dtcs, "format": "harley-j1850", "modules": modules, "context": {},
                 "note": "Only responding ECM/ABS/TSM modules are represented. Current/historic status and warning-lamp state were not determined; missing responses do not mean no faults."}

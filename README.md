@@ -1,571 +1,188 @@
 # GuzziOnBoard
 
-A safety-first multi-make diagnostic workstation and evidence catalog, with
-Moto Guzzi, Ducati and Aprilia fitments, Kawasaki ER-6n and Triumph Daytona 675 read-only diagnostics, Honda and Suzuki offline research, and scoped Honda offline tuning. Only family-specific operations supported by recovered wire
-evidence are enabled; incomplete ECU profiles are blocked before hardware is
-opened.
+**A multi-brand motorcycle diagnostics, calibration research and workshop workstation.**
 
-> **Status: working software, unproven on a motorcycle and installer-tested
-> rather than hand-installed.**
-> The protocol stack, capability catalog, safety gate, memory/programming
-> stack and UI are real and tested. The hardware transports are written but
-> have **not** been validated against a bike. ECU writing is fully implemented
-> against the documented 5am_util sequence and simulator-tested, and ships the
-> 5AM key algorithm transcribed from that tool's source — but the key is not
-> bench-confirmed on a Guzzi-fit ECU, so writing stays gated on hardware. See
-> `docs/PROGRAMMING.md` and `docs/PRIOR_ART.md`.
+GuzziOnBoard brings a motorcycle garage, diagnostic sessions, ECU map tools and
+workshop utilities into one open-source application. It started with Moto Guzzi
+and now includes information and workflows for other makes, including Ducati,
+Aprilia, Honda, Kawasaki, Triumph, Suzuki, BMW and Harley-Davidson. Coverage is
+specific to the ECU, software and operation—not a promise of full support for
+every motorcycle from those manufacturers.
 
----
+[Try the browser demo](https://ahardkore.github.io/GuzziOnBoard/web/index.html) ·
+[Visit the project site](https://ahardkore.github.io/GuzziOnBoard/) ·
+[Desktop releases](https://github.com/ahardkore/GuzziOnBoard/releases) ·
+[Documentation](#documentation)
 
-## What it actually does today
+> **Know the limits before connecting.** The hosted demo is simulated and
+> cannot connect to a motorcycle. GuzziOnBoard's hardware integrations have
+> not been validated by this project on a physical motorcycle. A supported
+> source, a catalog entry or a matching identifier is not proof of compatibility.
+> Physical ECU writing remains blocked pending the required evidence and bench
+> confirmation. No OEM firmware is included.
 
-| Area | State |
-|---|---|
-| KWP2000 / ISO 14230 application + data link layer | Implemented and unit tested |
-| ISO-TP (ISO 15765-2) segmentation for CAN bikes | Implemented and unit tested |
-| Simulated ECU **speaking the real wire protocol** | Implemented; drives the whole stack |
-| Capability catalog: 11 existing controller profiles plus Kawasaki and Triumph read-only profiles, two research placeholders and one Honda offline-tuning profile, 123 model variants across Moto Guzzi, Ducati, Aprilia, Honda, Kawasaki, Suzuki and Triumph, 1992–2026 — includes the Aprilia Mana CVT TCU | Implemented, data-driven |
-| K-Line transport (validated fast init + validated 5-baud keyword handshake, standards-safe auto fallback, echo cancelling) | Written and unit tested, **untested on hardware** |
-| CAN transport (python-can + ISO-TP) | Written; physical ECU profiles remain blocked because family-specific identifiers and application protocols were not recovered |
-| ECU identification, live data, DTC read/clear | Implemented and exposed only where the family catalog declares the evidence-backed capability |
-| Make / model / year vehicle selection (Moto Guzzi, Ducati, Aprilia, Kawasaki, Triumph, Honda and Suzuki offline entries) | Existing cross-brand mappings are read-only; the Kawasaki ER-6n 2006 and Triumph Daytona 675 2012 offer source-reported read-only diagnostics; Honda and Suzuki offline entries block physical and simulator sessions |
-| CAN request/response identifiers configurable for virtual rehearsal and capture analysis | Implemented; no generic pair is presented as a motorcycle default |
-| CAN capture analysis: find the id pair from a passive sniff (candump / SavvyCAN / CRTD) | Implemented; read-only by construction, with optional filtered raw-byte statistics |
-| Kawasaki ER-6n 2006 KDS | Read-only live data over a K-Line adapter, based on an author-tested source; this implementation is not hardware-tested, and has no ECU identification, DTCs, controls, memory or simulator |
-| Triumph Daytona 675 2012 OBD | Read-only supported mode 01 PIDs and stored mode 03 codes over K-Line; author-tested source, but this implementation has only synthetic tests; source gauge formulas are not dash-verified |
-| Multi-brand offline research | Honda CBR600RR 2005, Kawasaki ER-6n 2006, Suzuki SV650AK7 2007, Triumph Daytona 675 2012, BMW R1300GS CAN candidates, and generic J1850 VPW CRC research for Harley-Davidson; these offline tools never connect or transmit |
-| CFMoto MSE6 checksum research | Local record inspection for source-reported examples; factory-image mismatches are documented; no repair, identification or programming |
-| Harley Delphi offline region workspace | Source-described 160 KiB calibration → 16 KiB region extraction, comparison and replacement in a new research copy, with local SHA-256 and non-overwriting desktop export. Not ECU identification, checksum repair or programming; see `docs/HARLEY_TUNING.md` |
-| Harley capture research | J1850 telemetry/identity fragments/DTC candidates and separate best-effort HDLAN CAN candidates, offline only; see `docs/HARLEY_TUNING.md` |
-| Yamaha MT checksum research | Offline inspection of a user-supplied image only; no checksum repair, ECU identification or programming |
-| Ducati Mitsubishi CAN broadcast research | Optional offline decoder for an explicitly selected Ducati profile; no Guzzi compatibility or live capture claimed |
-| Manual shim worksheet | Offline arithmetic with user-entered clearances and mechanism direction; no vehicle specs supplied |
-| Service interval worksheet | User-anchored km/date arithmetic; five bundled CC BY-SA Honda, KTM, Royal Enfield and Suzuki templates plus local JSON import; fitment and intervals need manual review |
-| Local manual-text search | Literal search of a user-supplied UTF-8 text export, source hash and excerpts; no PDF extraction or AI answers |
-| **Virtual CAN rehearsal**: the whole ISO-TP path (segmentation, flow control, reassembly) against the simulated ECU | Implemented (needs `.[hardware]` extra; the pair you set is the pair it speaks) |
-| Remembers the garage, transport, paths and XDF choices between sessions | Implemented (browser-local) |
-| Print / save any view as PDF; maps export as standalone HTML | Implemented |
-| Actuator tests, TPS reset, adaptation resets | Implemented, gated by confidence + safety |
-| Read-only local-identifier discovery sweep | Implemented |
-| Session recording (raw frames + decoded samples) | Implemented |
-| Read-only live timeline | Up to four independently scaled channels from the current connection, with gaps for missing values and explicit units; visual workspace and compact layout are shared with the desktop app. |
-| Report export (text + JSON) | Implemented |
-| ECU memory **read** | Implemented; 5AM path grounded in a verified capture |
-| Backup with two-read verification | Implemented |
-| Firmware image validation (size, vector table, entropy, HW family) | Implemented |
-| **Maps & tables**: XDF render/validation, 2D/3D editor, named diff, log overlay, and evidence-backed builder | Implemented; 95 XDFs (3880 tables) ship with the repo. Includes searchable tables, rectangular keyboard editing, smoothing/blending, editable embedded axes, explicitly configured live-channel/scale/offset tracing (no name/unit guessing), wideband-delay-aligned timestamp analysis with settling/rate/minimum-dwell filters, bounded AFR proposals, isolated checksum-plugin workers, and unendorsed package registries. Builds prefer the protected base map, require traceable evidence plus typed liability acknowledgement, and always create a new image with a complete manifest. Physical ECU/dyno validation remains pending evidence. |
-| ECU memory **write / erase / program / verify** | Full flow **runs against the simulated ECU** (backup → validate → token → write → read-back verify, honestly labelled); the `hardware-family` gate check refuses any cross-family image before a frame moves (app and demo); gated on hardware pending a bench-confirmed key |
-| Interrupted-write checkpoints and recovery guidance | Implemented |
-| SecurityAccess seed/key plumbing + key-provider plugins | Implemented; the shipped 5AM key is unverified — armable per session via explicit, audited opt-in |
-| Adapter pre-flight incl. FTDI latency timer and the vendored WHQL driver bundle in its fix guidance | Implemented |
-| J2534 driver inventory | Read-only Windows registry inspection of 32/64-bit driver registrations; no DLL is loaded, no J2534 transport or hardware validation yet. See `docs/J2534_AND_PROJECTS.md` |
-| Portable map projects | Schema 3 locks source image, XDF content, layout revision and address base; log settings restore only against the same CSV hash. Plans do not contain firmware/logs or bypass build safety gates. Schema 1 and 2 projects must be recreated and reviewed. |
-| Gearing / road-speed calculator with the reference tool's full 58-model ratio table (Tools view presets, tyre/final-drive/custom ratios + API), CSV + JSON log export | Implemented |
-| Zeitronix ZT-2 CSV → LogWorks DIF conversion — the reference tool's documented factor-4 timeline error corrected, its exact output one toggle away (paste/convert/download in the Tools view + API) | Implemented |
-| Bench RPM trigger-signal generator — crank/cam WAV, wheel geometry transcribed from the reference tool's own config files; presets, custom wheels and `.rbt`-style batch ramps in the Tools view + API | Implemented |
-| Fault read with workstation-observed context ("what was live when we looked") | Implemented; honestly *not* an ECU freeze frame |
-| Session comparison (two recordings, channel by channel) | Implemented |
-| **Desktop application** — installed via a proper installer, launched as an application, no browser and no URL to remember | Implemented: a native window (pywebview: WebView2/WKWebView/WebKitGTK) on the same loopback workstation, with saved files going to a real folder, printing through a real print dialog, and one instance per machine. Windows gets an Inno Setup installer (per-user, with uninstaller and shortcuts), and macOS a `.app`; both carry their window engine. Linux gets a folder build with a per-user `install.sh` and **no window engine yet**, so there the app serves the workstation and opens your browser (a source install with PyGObject + WebKitGTK does open a window). Anywhere the window cannot start, the app says why and falls back to the browser. CI builds all three, runs the *built* artifact's self-test, and on Windows installs the setup, launches the installed application and uninstalls it again. See [`docs/DESKTOP.md`](docs/DESKTOP.md) |
-| Standalone browser engine simulator (`web/sim.html`) | Implemented; single self-contained page |
-| **Hosted workstation demo** — the real UI with a virtual motorcycle and ECU running in the browser (`web/demo-api.js` + `web/demo-lab.js`) | Implemented; every view works with labelled in-browser fixtures, including a virtual connector/adapter, memory, maps, sessions, reports, guided tests and tools. The demo's write path runs the same hardware-family gate as the installed app and keeps a wrong-family fixture on its virtual bench so the refusal can be watched. Real-bike transport choices are omitted entirely; only the installed app exposes hardware |
+## What you can do
 
-More than 500 tests cover framing, checksums, scaling, DTC decoding, handshake negotiation, the safety gate,
-image validation, XDF parsing/render/diff, the full read/backup/write/verify
-round trip (including the hardware-family brick gate, in the app and in the
-browser demo), fault injection, session comparison, the packaging entry points,
-the desktop shell (its request policy, host routes, export folder, single-
-instance record and installation self-test),
-the reference-tool inclusions (log conversion, bench signal, driver bundle,
-Mana TCU) and complete simulated sessions — plus `scripts/e2e_smoke.py`, a
-30-check full-capability sweep over the live HTTP API and Playwright tests that
-exercise the map editor through a real Chromium DOM.
+- **Explore diagnostics:** select a motorcycle or ECU profile, review the
+  evidence and available capabilities, and use supported identification, live
+  data, fault or service workflows where the selected profile permits them.
+- **Practice without a bike:** use the simulator for diagnostics, fault
+  injection, guided tests and a simulated backup/write/verify cycle. The
+  hosted workstation runs in the browser with labelled virtual fixtures and
+  offers no real-bike transport.
+- **Review calibration data:** render and compare bundled or user-supplied
+  TunerPro XDF definitions, inspect maps, stage edits, visualize tables and
+  analyze logs. Research-only definitions allow preview but block image builds.
+  Building an offline file is not the same as writing an ECU.
+- **Cross-reference ECU families:** browse model/year entries sharing a catalog
+  profile across makes, and source-labelled XDF families, without assuming the
+  exact part number or calibration is interchangeable.
+- **Investigate ECU numbers:** compare part, hardware and software identifiers
+  against a small attributed reference set or a local list. Optional
+  MotoBinFiles search links open only when requested; no ECU image is uploaded
+  by GuzziOnBoard.
+- **Work with captures and records:** inspect CAN and K-Line captures, use
+  offline multi-brand decoders, record and compare sessions, and produce
+  reports. Workshop tools include service-interval arithmetic, manual-text
+  search, gearing, log conversion and a bench signal generator.
+- **Use the desktop or browser interface:** the installed desktop shell and
+  local browser workstation share the same application. The static hosted
+  demo is useful for exploring the interface without installation.
 
-## Run it
+## Coverage: what is and isn't enabled
 
-### As a desktop application
+| Area | Current scope |
+| --- | --- |
+| Marelli profiles | A catalog of Moto Guzzi and selected Ducati/Aprilia applications, with capability and confidence gates. The 5AM path has published capture evidence; GuzziOnBoard's physical integration has not been validated on a bike. |
+| Kawasaki, Suzuki and Triumph | Source-informed read-only paths for the 2006 Kawasaki ER-6n, 2012 Versys 650, 2011 Suzuki GSX-R600, Ninja 7 Hybrid 2024+ (CAN), and 2012 Triumph Daytona 675. Sensor interpretations can be uncertain; the GuzziOnBoard integrations have synthetic tests, not physical validation. |
+| Kawasaki ZX-6R and 650 | 2024–2026 ZX-6R (636), 2023–2026 Ninja 650 and Z650 research entries and source-labelled ECU-number leads. The Z650 vendor year descriptions conflict. No live diagnostics or flashing are enabled for these entries. |
+| Harley-Davidson | ECU-only, read-only J1850/ELM327 and Delphi CAN identity/raw-DID research profiles, plus offline J1850 and best-effort HDLAN capture analysis. Linux SocketCAN can also observe source-scoped Harley HDLAN broadcasts without application CAN transmissions. These live integrations are synthetic-tested only; it does not provide fault clearing, memory reading or flashing. Delphi region comparison/export is research only. |
+| Honda | Source-scoped, synthetic-tested read-only K-Line live data for the 2005 CBR600RR and an ECU-only CB500F DashBle option (source year/ECU unspecified), with unverified raw ECM ID candidates. An explicitly confirmed experimental MGZ-A03-only image-read attempt is available, but has no hardware validation and cannot create a verified backup; other Honda profiles use offline K-Line response decoding and XDF research. Two narrowly scoped offline checksum builders cover exact Honda CBR1000RR A01 and CB500/CBR500R MGZ-A03 source-image/XDF combinations. The MGZ byte order is inferred; neither builder identifies an ECU or enables flashing. |
+| Other research | A source-scoped Linux Yamaha MT-03 660 (2010) K-Line dashboard-stream observer, selected Suzuki and BMW capture decoders, CFMoto checksum inspection, and scoped Yamaha MT and Bajaj RS200 checksum-corrected research copies are offline research—not universal diagnostic or tuning support. The checksum integrations have only synthetic tests in this project and do not authorize flashing. |
+| CAN and J2534 | Passive capture analysis and virtual CAN rehearsal are available. An opt-in ECU-only generic OBD-II 11-bit CAN profile reads supported standard live PIDs, stored emissions codes and optional Mode 09 VIN/calibration IDs on ECUs that answer it; it is not a vehicle fitment claim and has synthetic/virtual tests only. It cannot read ECU images. Physical MIU G4/11MP sessions remain blocked; J2534 is driver inventory only, not a transport. |
 
-Download the installer from the
-[releases page](https://github.com/ahardkore/GuzziOnBoard/releases), run it,
-and start **GuzziOnBoard** from the Start menu (or drag the `.app` to
-Applications, or run `install.sh` on Linux). It opens in its own window: the
-same workstation, with saved files landing in your Downloads folder, printing
-through a real print dialog, one instance per machine, and nothing to keep
-running in a terminal. A portable `.zip` is published next to the installer for
-machines where nothing may be installed.
+The catalog describes **individual** ECU profiles and their permitted actions.
+Vehicle selection, shared ECU families, file sizes and hashes do not by themselves
+establish fitment, a safe tune, or permission to program. See
+[physical validation](docs/PHYSICAL_VALIDATION.md),
+[Harley scope](docs/HARLEY_TUNING.md), and the
+[XDF library](docs/XDF_LIBRARY.md) for the details.
 
-If you have the source, building it is:
+## Get started
+
+### Try the browser demo
+
+Open the [hosted workstation](https://ahardkore.github.io/GuzziOnBoard/web/index.html),
+select a simulator-supported bike in **Garage**, and connect. The demo runs
+locally in the page; its virtual motorcycle, adapter and memory operations are
+simulated. Local research tools can process files you choose in the browser.
+It cannot communicate with real hardware or run the desktop checksum providers.
+
+### Install the desktop app
+
+Find the available platform builds on the
+[releases page](https://github.com/ahardkore/GuzziOnBoard/releases). Releases
+may lag the current source branch. Windows, macOS and Linux packaging differ;
+Linux builds may open the system browser if a window engine is unavailable.
+See [Desktop setup](docs/DESKTOP.md) for installation, exports, troubleshooting
+and the installation self-test.
+
+### Run from source
+
+Python 3.11 or newer is required. From a checkout:
 
 ```bash
-pip install -e '.[desktop,build]'
-python packaging/build.py --installer      # dist/GuzziOnBoard-<version>-setup.exe
-python packaging/build.py --portable-zip   # no installer needed
-```
-
-`guzzionboard-desktop` also runs the window straight from a checkout, and
-`guzzionboard-desktop --selftest` checks an installation without a motorcycle.
-The full story — what the window adds, where files go, the loopback/token
-policy that keeps other pages away from the ECU, troubleshooting — is in
-[`docs/DESKTOP.md`](docs/DESKTOP.md).
-
-### From a checkout, in a browser
-
-Only Python 3.11+ is needed for simulator mode.
-
-```bash
-python3 run_server.py              # same as: guzzionboard
-```
-
-`pip install -e .` installs a `guzzionboard` command with a proper
-`--help` (`--host`, `--port`, `--no-record`, `--desktop`, `--selftest`,
-`--version`).
-
-Pick a motorcycle in **Garage** (try `Griso 1200 8V` / `2012`), connect in
-simulator mode, and the rest of the workstation comes alive.
-
-### Without installing anything
-
-The project site hosts two demos, both static:
-
-* **<https://ahardkore.github.io/GuzziOnBoard/web/index.html>** — the
-  workstation UI itself, with the simulated ECU running in the page. Two
-  scripts stand in for the Python backend:
-  * `web/demo-api.js` answers the conversational half of `/api` — garage,
-    connect, identify, live data, fault codes, service actions, discovery,
-    the simulated bike — from a catalog exported by
-    `scripts/build_demo_data.py` plus ports of the engine model and the
-    safety gate.
-  * `web/demo-lab.js` simulates the half that needs files, a dump or a long
-    job: ECU memory (read, backup, validate, write, verify against an image
-    synthesised in the tab), maps and tables (the bundled TunerPro XDFs,
-    parsed by a port of `maps.py` that the test suite proves byte-identical
-    to the Python one), session recording/replay/export/comparison, the
-    report, guided tests, and the workshop tools (gearing, Zeitronix→DIF,
-    the bench RPM WAV, CAN and K-Line capture analysis).
-
-  Everything simulated says so, in the payload and on the page, and the two
-  compressions are stated wherever they apply: a twenty-minute flash read
-  takes about three seconds, and a ten-second observation window in a guided
-  test takes about one. The hosted page offers no real-bike transport choice;
-  connector and adapter steps use labelled virtual fixtures, while browser
-  permissions for serial, USB, CAN, and local files are never requested. When
-  *this* server serves the page, both demo scripts stand down and the complete
-  hardware UI returns: `run_server.py` marks the body `data-backend="live"`.
-* **<https://ahardkore.github.io/GuzziOnBoard/web/sim.html>** — a
-  self-contained page with just the engine model: start it, rev it, inject
-  faults, watch the safety gate refuse.
-
-Regenerate the demo catalog after any catalog change:
-
-```bash
-python3 scripts/build_demo_data.py          # writes web/demo-data.json
-python3 scripts/build_demo_data.py --check  # CI-style staleness check
-```
-
-For real hardware:
-
-```bash
-pip install -e '.[hardware]'       # pyserial + python-can
 python3 run_server.py
 ```
 
-### Named maps from a dump
+Open `http://127.0.0.1:8000`, choose a simulator-supported motorcycle such as
+**Moto Guzzi → Griso 1200 8V → 2012**, and connect in simulator mode. The
+server binds to localhost by default.
 
-The **Firmware → Maps & tables** panel renders a dump as named fuel and
-ignition tables using TunerPro XDF definitions — the same files the GuzziDiag
-ecosystem uses. 95 definitions ship under `guzzionboard/xdfs/` (3880 tables
-across Honda, Moto Guzzi, Ducati, Aprilia, Piaggio, Morini, Gilera, GasGas, BMW,
-Husqvarna, Malaguti and Scomadi) so common families work with nothing to
-download; see `docs/XDF_LIBRARY.md` for what's included, its third-party
-provenance, and how to vendor more with `scripts/import_xdfs.py`. The
-original archive zips are mirrored unmodified in `vendor/guzzidiag/`. Anything not yet bundled can still be dropped in by
-hand, exactly as before:
+For the desktop shell or optional hardware transport dependencies:
 
 ```bash
-mkdir -p ~/.guzzionboard/xdfs && cp ~/Downloads/*5AM*.xdf ~/.guzzionboard/xdfs/
+python3 -m pip install -e '.[desktop]'   # desktop window, where supported
+python3 -m pip install -e '.[hardware]'  # pyserial and python-can
+guzzionboard-desktop                     # or: guzzionboard --desktop
+guzzionboard-desktop --selftest         # installation check
 ```
 
-A file you drop in here overrides a bundled one of the same filename, so you
-can correct or update a definition without touching the repo.
+Installing hardware dependencies does not enable unsupported protocols or
+validate an adapter. Check the exact profile, wiring, operating conditions and
+capability gates before connecting.
 
-The chooser is grouped **by motorcycle**, not by the title the definition's
-author happened to type: definitions for the ECU family on the bench are
-listed first, everything else appears under the bikes it was actually
-published for and is marked as not matching (with a confirmation before it is
-rendered). Picking a map from the wrong family does not give slightly wrong
-numbers — it reads a different calibration layout at the same addresses.
+## Working with maps
 
-Then point the panel at an image (a previous read lands in
-`~/.guzzionboard/images/`) and render, or diff it against a second image —
-every changed cell is reported by table name and axis value, not raw offset.
-A region read of a full-device XDF is handled automatically (address base
-0x4000, detected and reported). Rendering and comparison are strictly
-read-only.
+In **ECU memory → Maps & tables**, select the applicable definition and a
+user-supplied image. Review the displayed fitment, address base, table layout,
+unsupported items and checksum requirements before interpreting values. XDF
+files are third-party definitions, not firmware; their presence does not prove
+they match a particular image. Local XDFs can also be placed in
+`~/.guzzionboard/xdfs/`.
 
-### Evidence-backed map builds
+The editor supports staged cells, axes, comparisons, portable projects and
+review-only log-derived proposals. Where an offline build is allowed, the
+workflow requires evidence, a reviewed preview and applicable checksum
+handling. Honda's built-in providers are explicitly selected and locked to
+specific source images and definitions. Research-only XDFs cannot build
+images. None of these steps enables a physical write or validates the tune.
+See [XDF library and Honda limitations](docs/XDF_LIBRARY.md),
+[checksum providers](docs/CHECKSUM_PLUGINS.md), and
+[programming gates](docs/PROGRAMMING.md).
 
-The same panel has an intentionally separate **Advanced** builder. Prefer
-**Load protected base map**: this opens the immutable, re-hashed vault copy
-already required by the programming gate. Click only the cells or constants
-covered by a recommendation, then attach the recommendation's title, HTTP(S)
-source, applicability rationale, and (optionally) its exact excerpt. The app
-ships no generic “stage 1” numbers—fuel, ignition, lambda, idle and limiter
-changes are motorcycle- and configuration-specific, so an unattributed value
-is not a recommendation.
+## Safety and privacy
 
-Every build requires typing:
+- Do not operate diagnostic or tuning controls while riding. Use suitable
+  ventilation, stable power, the correct wiring and qualified supervision.
+- Review each capability's evidence and the exact ECU hardware/software; stop
+  on unexpected identity, communication, power or checksum results.
+- Physical flashing is blocked in this build. The simulator's successful write
+  does not change that. Back up and independently verify original data before
+  any future ECU programming.
+- Research tools process selected files locally. External links, including
+  identifier searches, are optional and send information to the destination
+  when opened. Avoid putting VINs or other personal data in search queries.
+- Backups, session logs and calibration files may contain sensitive or
+  proprietary data. Keep them out of public repositories unless authorized.
 
-```
-I understand modified maps can damage the engine and accept responsibility
-```
-
-The editor provides heat-mapped tables, rectangular Shift-selection, keyboard
-navigation, set/add/percentage transforms, row/column interpolation, weighted
-surface smoothing, bilinear blending, TSV copy/paste, 50-level undo/redo, and
-portable `.tune.json` projects. Every table has dynamically refreshed SVG 2D
-row profiles and a projected 3D surface. Image-backed embedded axes are editable
-with the same raw-value lock; static XDF labels are not. Axes that link to a
-legend table (`<embedinfo linkobjid>`, as the 5AM engine-temperature rows do)
-are labelled with that legend's engineering values, read through the legend's
-own equation — so those rows read `0…105`, not `0…15` — and a legend that
-defines fewer labels than its axis is reported above the table instead of
-padded with invented values. Live tracing never
-infers a channel from an axis name or unit: each table stores explicit X/Y
-channel keys plus scale and offset (`axis = channel × scale + offset`) in browser
-preferences and portable projects. A nearest cell is highlighted read-only only
-when both mapped, validated channels are polled and both transformed values are
-inside the declared axes; up to four surrounding cells expose bilinear
-interpolation weights in the diagnostics. Out-of-range values do not falsely pin
-an edge cell.
-
-Projects are plans, not images: import verifies the source SHA-256, XDF filename,
-layout revision and every expected raw cell. Schema 1 and 2 projects must be recreated
-and reviewed: the previous parser could misinterpret per-item XDF layout flags. Before the liability confirmation, the server
-quantizes the complete plan and returns the exact stored values and named diff
-without writing a file. The accepted preview gets its own SHA-256, and the build
-is refused if that reviewed plan changes.
-
-The offline log tool imports CSV, requires separate measured- and target-AFR
-columns, bins only samples inside numeric table axes, requires a configurable
-sample count, rejects cells whose measured or target AFR variation exceeds the
-configured population-standard-deviation limit, and caps fuel proposals at 15%
-or less. With an explicit timestamp column it evaluates each measured AFR at
-`t` against linearly interpolated X/Y/target state at `t − configured wideband
-delay`; seconds and milliseconds are supported. State-only logger ticks remain
-interpolation anchors even when that tick has no wideband value. It rejects
-excessive timeline gaps, state that did not remain in the same cell for the
-configured settling window, optional X/Y rate-limit violations, and cells that
-do not span the configured minimum aligned dwell time. Timeline point,
-duplicate-timestamp, state-only-row, and skip diagnostics are reported.
-Without timestamps it explicitly reports row-synchronous analysis and cannot
-claim delay/transient alignment. It only creates a review overlay/proposal;
-staging and building still go through source locks, evidence, preview, and
-liability review. Mathematical AFR correction is not treated as proof that a
-chosen table controls fuel in those operating conditions.
-
-For additional makes, the desktop workstation can load a user-supplied XDF and
-preview staged edits against a local image even if fitment is not recognized.
-The research-only preview hashes the source and XDF, checks each raw value and
-quantizes/diffs in memory; it saves no image and does not apply a checksum or
-establish fitment. The ordinary build and programming gates remain separate.
-Hosted demo previews use synthetic images and bundled definitions only.
-
-**Important:** per-item XDF signedness, byte order and column-major layout are
-now honored. Earlier versions could misinterpret some definitions. Return to the
-original backup and independently review/recreate affected edits, previews and
-built files before any use; see `docs/XDF_LIBRARY.md`.
-
-A build never modifies its source and never enables ECU programming. It writes
-a new `.bin` plus sidecar under `~/.guzzionboard/images/`; the sidecar records
-the source and output SHA-256, exact XDF hash, evidence, acknowledgement,
-address base, each engineering/raw before-and-after value, and each byte
-offset. `expected_raw` acts as an optimistic lock, so edits rendered from one
-map cannot be silently applied to a different one. A non-base source needs a
-second explicit acknowledgement and a mismatched XDF can be viewed but cannot
-build.
-
-One built-in Honda CBR1000RR 2012 US / A01 checksum provider supports an
-exact source image and XDF only; see `docs/XDF_LIBRARY.md`. It is explicitly
-selected and runs in-process, not in the local-plugin sandbox. Other XDFs that
-declare checksums are refused unless the operator selects a compatible local
-plugin from `~/.guzzionboard/checksums/`. Plugins name the exact XDF checksum
-titles they support, update deterministically, verify their output, and have
-their version, source SHA-256, isolation mode, output hash, and exact changed byte
-ranges folded into the reviewed plan. Local plugin inspection and calculation run in fresh
-resource-limited, audit-guarded subprocesses with filesystem/network/process
-restrictions and independent-repeat checks. This is containment, not a perfect
-kernel sandbox; plugin self-verification is not core endorsement or physical-ECU
-proof.
-
-Likewise, `~/.guzzionboard/recommendations/` is a validated registry for
-source/XDF/raw-locked, evidence-carrying third-party recommendation packages.
-Preview and build re-load the selected package, require exact package/XDF hashes,
-motorcycle and hardware fitment, evidence, change count, raw locks and target
-values, then fold that provenance into the plan hash and sidecar. Manual edits
-break the package lock until it is restaged or detached. The app bundles zero
-tune packages or values and labels loaded packages user-supplied and unendorsed.
-See `docs/PHYSICAL_VALIDATION.md` for the real-ECU
-and dyno evidence protocol and machine-readable manifest schema. The repository
-currently bundles no physical-validation record. Validate and review the named
-diff before considering the ordinary, separately gated write workflow.
-
-Run the tests with:
+## Development and tests
 
 ```bash
-pip install -e '.[dev]' && pytest
+python3 -m pip install -e '.[hardware,dev]'
+python3 -m pytest -q
+python3 scripts/build_demo_data.py --check
 
-# maintainer side: generate a release key, review confirmations, sign a pack
-python3 scripts/build_protocol_update.py --generate-key release --key-dir ~/.guzzionboard/keys
-python3 scripts/build_protocol_update.py --confirmations ~/.guzzionboard/confirmations \
-    --reviewer "who reviewed it" --seed-file ~/.guzzionboard/keys/release.seed \
-    --out protocol-update.json --print-catalog-fragment
-
-# Real-browser map-editor suite
-npm install
+npm ci
 npm run test:browser
-# macOS/Windows only, if Chromium is not already installed:
-# npx playwright install chromium
+npm run test:browser:desktop
 ```
 
-The Playwright suite loads the static hosted workstation and drives the actual
-DOM: protected-base rendering, rectangular and keyboard selection, arithmetic,
-interpolation/smoothing/blending, clipboard paste/copy, axes, undo/redo, project
-round-trips, explicit live tracing, and timestamp-aligned log analysis.
-
-## Coverage
-
-ECU families in the catalog, with the confidence level that governs what the
-workstation will let you do:
-
-| Family | Years | Bus | Confidence | Representative models |
-|---|---|---|---|---|
-| IAW P8 | 1993–1997 | K-Line | inferred / blocked | Daytona 1000, Quota 1000, California III i.e. |
-| IAW 16M | 1996–2001 | legacy K-Line | documented / read-only | Sport 1100, V10 Centauro, Daytona RS |
-| IAW 15M | 1997–2002 | K-Line | inferred / blocked | California EV/Jackal/Stone, Quota 1100 ES, V11 Sport |
-| IAW 15RC | 2002–2012 | K-Line | inferred / blocked | V7 Classic, Nevada 750, Breva 750, California Vintage, Bellagio |
-| **IAW 5AM / 5AM2** | 2005–2016 | K-Line | **verified-capture** | All CARC: Griso, Norge, Breva 850–1200, Stelvio, 1200 Sport |
-| IAW 7SM | 2013–2021 | K-Line | inferred / identification only | California 1400, Audace, Eldorado, MGX-21, early V85 TT |
-| MIU G3 | 2012–2016 | K-Line | inferred / blocked | V7 (single throttle body), V7 II, V9 |
-| MIU G4 | 2017–2021 | CAN | unknown / blocked | V7 III, V7 850 |
-| Marelli 11MP | 2019–2026 | CAN | unknown / blocked | Later V85 TT, V100 Mandello |
-| Aprilia Mana CVT TCU | 2007–2016 | K-Line | inferred / blocked | Exact captured routine bytes are documented but not executable; the engine side is 5AM |
-
-**Confidence is enforced, not decorative.** A capability is available only
-when its family-specific wire definition supports it. Incomplete physical
-protocols fail before the adapter port opens; a generic K-Line, KWP, CAN, or
-ISO-TP resemblance is not enough.
-
-### The same ECUs in other makes — Ducati and Aprilia
-
-Ducati and Aprilia bought the same Magneti Marelli ECUs, and the GuzziDiag
-ecosystem has always tuned them all. The catalog now resolves those bikes to
-the shared families, with one deliberate limit:
-
-| Make | Families | Examples |
-|---|---|---|
-| Ducati | P8, 15M, 16M, 59M, 5AM | 748, 916, 996, 999, 749, Monster 620–1000, Multistrada, 848/1098/1198, ST2/ST3/ST4 |
-| Aprilia | 16M, 5AM, 7SM | RSV Mille, Tuono 1000, Falco, Caponord, Futura, Mana 850, RSV4 Factory |
-
-The Ducati and Aprilia entries ship as `inferred`: a documented model→ECU mapping
-does not prove that another make uses the same diagnostic identifiers or
-controls. The stricter vehicle/family boundary applies automatically. The
-workstation does not ask an owner to validate those assumptions on a customer
-motorcycle.
-
-The IAW 5AM is the fully mapped family. Legacy 16M now has evidence-bounded
-read-only identification, live registers, and raw fault flags. 7SM exposes only
-the identification exchange established by its published session log. The
-remaining families stay unavailable where the deep evidence search did not
-recover a complete transport and application definition; see
-[`docs/PROTOCOL_NOTES.md`](docs/PROTOCOL_NOTES.md).
-
-## Safety model
-
-Three independent layers, in order:
-
-1. **Capability + confidence.** A family must declare the capability *and*
-   carry a trustworthy definition. An incomplete physical protocol is blocked
-   before opening the adapter; inferred control operations are unavailable.
-2. **The safety gate** (`guzzionboard/safety.py`). Every control action is
-   evaluated against named preconditions — ECU identified, engine state
-   *observed* (not assumed), battery voltage within range, checklist accepted
-   — and a refusal tells you exactly which checks failed. Passing mints a
-   single-use, operation-bound, expiring token. On the write path the gate
-   also runs the **`hardware-family` check** on the concrete candidate image:
-   the family digit of the ECU's own `IAW..HWnnn` answer must match both the
-   provenance identity captured with the image and any hardware strings
-   embedded in its bytes. Flashing across hardware families — an HW1xx image
-   into an HW3xx ECU, the brick the 7SM documentation warns about in bold —
-   is refused before a single frame is transmitted, in the installed app and
-   in the hosted demo alike, and a confirmation token minted without the
-   image cannot smuggle a cross-family file through.
-3. **The frame guard.** The gate is installed as the KWP2000 session's
-   `write_guard`, so an unarmed state-changing service never reaches the
-   transport. You cannot bypass it by calling a service method directly.
-
-Additional properties:
-
-- **The UI guides physical state changes.** Modal, keyboard-accessible steps
-  tell the operator when to stop the engine with the kill switch, leave the key
-  on, start and idle the motorcycle, end the diagnostic session, turn the key
-  off, and connect stable power. The gate then re-reads RPM/battery where the
-  family supports those channels; clicking a prompt never bypasses a check.
-- **Actuator outputs are owned by this software.** IAW ECUs have no output
-  timer: once energised, an output stays on until something turns it off. Every
-  pulse has a catalog-clamped deadline, and outputs are released on expiry, on
-  disconnect, and when the session tears down.
-- **Nothing is inferred optimistically.** An unobserved engine state blocks an
-  engine-off operation; it is not treated as "probably stopped".
-- **Raw bytes are always kept** next to every decoded value, in the UI and in
-  the session log. If a scaling is wrong you can prove it.
-- **Programming is a gate, not a wall.** Writing an ECU is your right and the
-  code is complete, but it is opt-in: the operator must type an exact
-  acknowledgement, the catalog must declare a *verified* programming
-  definition for that family, and a two-read-verified backup must exist. A
-  **base map** must also be on file for that exact ECU and still hash to what
-  was recorded when it was saved — the original calibration, kept in
-  `~/.guzzionboard/basemaps/`, filed automatically by the first verified
-  backup and never overwritten by later ones. The
-  frame guard still refuses RequestDownload and WriteMemoryByAddress until all
-  of that holds. Flash *reads* are exempt from the opt-in, because the IAW
-  families read memory with TransferData and reading breaks nothing.
-- **A write that cannot be verified is a failed write.** The image is read
-  back and compared; a mismatch is reported as a failure even if the ECU
-  claimed success, and a checkpoint records how to recover.
-
-## Handshake research
-
-The K-Line and CAN-era alternatives were surveyed against ISO 14230 guidance,
-open implementations and published IAW session logs. The result is implemented,
-not just documented: complete fast/5-baud response validation, ISO 9141 keyword
-detection, a standards-safe 2.6-second automatic fallback, no duplicate
-StartCommunication, raw init-frame logging, and a Garage override for bench
-work. The evidence matrix — including why KWP1281, proprietary Honda wake-ups,
-UDS-over-CAN and DoIP are not silently treated as Marelli KWP2000 — is in
-[`docs/HANDSHAKE_PROTOCOLS.md`](docs/HANDSHAKE_PROTOCOLS.md).
-
-## Architecture
-
-```text
-web/                     UI (no framework, no build step)
-  └── guzzionboard/server.py        local JSON API + static files
-      └── guzzionboard/desktop.py   installed app: window, exports, instance record
-                                   (optional: the browser version is the same server)
-      └── workstation.py            selection, session, report
-          └── diagnostics.py        identify / live / DTC / actuators / discovery
-              ├── safety.py         preconditions, tokens, audit log
-              ├── catalog/          data-driven ECU + vehicle definitions
-              ├── protocol/         kwp2000.py, isotp.py
-              └── transports/       simulator.py, kline.py, can.py
-```
-
-Two modules sit beside that stack rather than inside it:
-`confirmations.py` freezes a real session into evidence, and
-`protocol_updates.py` turns a quorum of independent evidence into a signed,
-read-level-only catalog promotion — the same promotion the catalog route below
-commits to source. `signing.py` is the stdlib-only Ed25519 verifier those packs
-are checked against.
-
-The simulator is a *transport*, not a mock of the application layer: it accepts
-encoded frames, validates checksums, answers the catalog's identifiers, returns
-real negative response codes, and can inject dropped frames, corrupted
-checksums and `responsePending`. Simulated and real sessions therefore run
-identical code. Inside a simulated session the *write* capability is what the
-simulator has actually demonstrated — the whole flash cycle, including
-read-back verification — and is shown as such; hardware sessions still read
-the same red capability check the catalogue declares.
-
-## Protocol evidence policy
-
-Protocol confirmation is a project responsibility, not a setup step delegated
-to a customer — but evidence for the families nobody has captured yet has to
-come from the field, and the app does not accept "it works" as evidence. A
-session can be frozen into a confirmation bundle (the capture, claim digests
-and a catalog fingerprint, nothing uploaded), a claim needs a quorum of
-independent confirmations from distinct machines, and the result is either a
-signed pack an install applies against a key it pinned in advance or a
-committed catalog change in the next release. Both routes carry identical
-promotions, and neither can raise a family's overall confidence, enable
-writing, or widen what the safety gate allows. See
-[`docs/PROTOCOL_UPDATES.md`](docs/PROTOCOL_UPDATES.md).
-
-Discovery is exposed only on a family where the request service
-and scanned range are already established as non-mutating. Unknown ECUs are not
-probed. New support requires a primary definition, licensed open-source
-implementation, OEM technical document, or existing raw capture that fixes the
-transport, payload, response layout, and relevant safety conditions before the
-capability is enabled.
+Run the two Playwright suites sequentially: they share the test-results
+folder. After changing catalog data, regenerate the hosted snapshot with
+`python3 scripts/build_demo_data.py`. See
+[architecture](docs/ARCHITECTURE.md), [desktop packaging](packaging/README.md)
+and the [source review](docs/USER_SOURCE_REVIEW.md).
 
 ## Documentation
 
-The refreshed browser/desktop workspace and its read-only timeline are described in [`docs/ATLAS_INSPIRED_WORKSPACE.md`](docs/ATLAS_INSPIRED_WORKSPACE.md).
+| Topic | Guide |
+| --- | --- |
+| Desktop setup and exports | [Desktop application](docs/DESKTOP.md) |
+| ECU coverage, evidence and protocols | [Protocol notes](docs/PROTOCOL_NOTES.md) · [Physical validation](docs/PHYSICAL_VALIDATION.md) |
+| XDFs, maps and checksum providers | [XDF library](docs/XDF_LIBRARY.md) · [Checksum plugins](docs/CHECKSUM_PLUGINS.md) |
+| ECU number and vehicle research | [ECU number research](docs/ECU_NUMBER_RESEARCH.md) |
+| Harley diagnostics and Delphi research | [Harley tuning](docs/HARLEY_TUNING.md) |
+| Programming and recovery boundaries | [Programming](docs/PROGRAMMING.md) |
+| Workshop utilities and multi-brand sources | [Workshop tools](docs/WORKSHOP_REFERENCE_TOOLS.md) · [External research](docs/EXTERNAL_MOTORCYCLE_RESEARCH.md) · [Source review](docs/USER_SOURCE_REVIEW.md) |
+| Project design and contributions | [Architecture](docs/ARCHITECTURE.md) · [Prior art](docs/PRIOR_ART.md) |
 
-- `docs/ARCHITECTURE.md` — layer boundaries and the rules each layer obeys.
-- `docs/DESKTOP.md` — the installed application: installing, where files go,
-  what the window adds, the loopback/token policy, building, troubleshooting.
-- `docs/PROTOCOL_NOTES.md` — wire-level reference and provenance for every
-  claim in the catalog.
-- `docs/PROGRAMMING.md` — reading, backing up and writing ECU memory: the
-  verified 5AM sequence, image validation, the SecurityAccess gap and how to
-  supply a key provider, and the recovery model.
-- `docs/WORKSHOP_REFERENCE_TOOLS.md` — service intervals, local templates and manual-text search, including limitations and source terms.
-- `docs/EXTERNAL_MOTORCYCLE_RESEARCH.md` — external-source review, attribution, offline Ducati decoder and manual shim worksheet.
-- `docs/PRIOR_ART.md` — the other diagnostic programs worth studying, and
-  which one closes each open gap (key algorithm, CAN IDs, per-family
-  identifiers, transport validation).
-- `docs/USER_WORKFLOWS.md` — guided connect, live-data, TPS and actuator flows.
-- `docs/PROTOCOL_UPDATES.md` — how a capability one operator confirms on a
-  real motorcycle becomes every user's install: confirmation bundles,
-  quorum, signing keys, the two publication routes, and the exact list of
-  things a signed update may never do.
-- `docs/7SM_WORKFLOW.md` — ride-by-wire identification and learning workflow.
+## License and acknowledgements
 
-### ECU part-number research
-
-Tools → **ECU number & bike research** compares part, hardware and software
-identifiers against a small attributed local reference set or a user-supplied
-JSON list. It can prepare opt-in MotoBinFiles search links; it does not upload
-images or automatically select a vehicle. See [ECU number research](docs/ECU_NUMBER_RESEARCH.md)
-for sources, privacy and matching limitations.
-
-## Credits and disclaimer
-
-This project stands on the reverse-engineering work of the GuzziDiag / IAWDiag
-authors, the Guzzitek archive, and published IAW 5AM bus captures. It is not
-affiliated with Piaggio, Moto Guzzi, Magneti Marelli, or the GuzziDiag author.
-
-ECU diagnostics can injure you and ECU programming can brick an ECU or create
-an unsafe motorcycle. Nothing here has been validated against a real bike. If
-you connect it to a motorcycle, you are the test.
-
-## License and source
-
-The combined application includes an adaptation of interpolation code from
-[Atlas](https://github.com/jakka351/atlas), commit
-`91499280f20a81cabdd891c5e0ca70143bb8c800`, and is provided under
-**AGPL-3.0-only**; see `LICENSE` and `vendor/atlas/README.md`. The previous
-GuzziOnBoard MIT copyright and permission notice is preserved in
-`LICENSES/GuzziOnBoard-MIT.txt` for pre-existing material. Third-party data and
-components retain their own terms (see their provenance and notices), including the third-party offline decoder adaptations and their MIT/GPL notices under `LICENSES/`; this
-statement does not grant rights to them.
-
-AGPL does not require (or prohibit) contributing changes to Atlas upstream.
-Distributors of binaries must satisfy the applicable corresponding-source and
-notice requirements; operators of modified network-interactive versions must
-provide users access to the corresponding source as required by section 13.
-The project-source link in the UI is a starting point, not a guarantee that a
-deployed build's exact corresponding source has been published. Before
-shipping or hosting a modified build, publish its matching source and update
-that link or provide another compliant source offer. No release or matching
-source archive has been published by these local changes.
-
-Harley J1850 owners can select the ECU-only HarleyDroid profile and an ELM327
-serial adapter for limited read-only identity, broadcast telemetry and DTC
-reads; this new integration has synthetic tests only. Compatibility and
-temperature scaling vary. Harley ECU memory reading, flashing, matched map
-definitions and calibration checksum correction are not yet implemented. See
-[Harley research and setup](docs/HARLEY_TUNING.md).
-
-See [the supplied source review](docs/USER_SOURCE_REVIEW.md) for additional
-Honda, Suzuki, Harley, Yamaha, aftermarket ECU and definition resources.
-The CB500/CBR500 MGZ-A03 offline builder is locked to a particular source image
-and adapted XDF; it does not enable Honda ECU communication or flashing.
+GuzziOnBoard is licensed under [AGPL-3.0-only](LICENSE). Bundled third-party
+code, data and definitions have their own provenance and applicable terms; see
+[`LICENSES/`](LICENSES/), [`vendor/`](vendor/) and
+[`guzzionboard/xdfs/PROVENANCE.json`](guzzionboard/xdfs/PROVENANCE.json).
+Upstream contribution is not required, but applicable source-distribution and
+network-use obligations still apply. This independent project is not affiliated
+with the motorcycle or ECU manufacturers or the authors of GuzziDiag.

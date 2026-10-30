@@ -41,6 +41,7 @@ class InitResult:
     handshake_complete: bool = False
     request: bytes = b""
     response: bytes = b""
+    prelude: tuple[bytes, ...] = ()  # transmitted startup frames before request
 
 
 class Connection(abc.ABC):

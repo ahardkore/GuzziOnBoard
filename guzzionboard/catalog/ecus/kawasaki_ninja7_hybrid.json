@@ -1,0 +1,151 @@
+{
+  "id": "kawasaki_ninja7_hybrid",
+  "family": "Kawasaki Ninja 7 Hybrid KWP-on-CAN (source-reported)",
+  "display_name": "Kawasaki Ninja 7 Hybrid (read-only CAN)",
+  "transport": "can",
+  "confidence": "unknown",
+  "years": "2024+",
+  "notes": "Source reports Ninja 7 Hybrid 2024+ on one researched ECU. Source-described read-only KWP-on-CAN, synthetic integration tests only. Market and exact software compatibility are not established. No clears, controls, security access, ECU memory, tuning or simulator.",
+  "session": {
+    "protocol": "kawasaki-ninja7-can",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "kawasaki-can-hack reports real Ninja 7 Hybrid diagnostic observations; this integration is synthetic-tested only."
+  },
+  "identification": {
+    "available": true,
+    "option": 128
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No source-established ECU programming, checksum, recovery or security access."
+  },
+  "capabilities": [
+    "identify",
+    "live",
+    "dtc_read"
+  ],
+  "sources": [
+    "https://github.com/mgithens1/kawasaki-can-hack/tree/26820ddf88d682c7071b0825252c7fa0b82c709a"
+  ],
+  "parameters": [
+    {
+      "key": "load",
+      "name": "Engine load",
+      "local_id": 4,
+      "unit": "%",
+      "length": 1,
+      "scale": 0.39215686274509803,
+      "bias": 0,
+      "digits": 1,
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "map",
+      "name": "Intake air pressure",
+      "local_id": 5,
+      "unit": "kPa",
+      "length": 1,
+      "scale": 0.544,
+      "bias": 0,
+      "digits": 1,
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "coolant",
+      "name": "Coolant temperature",
+      "local_id": 6,
+      "unit": "°C",
+      "length": 1,
+      "scale": 1,
+      "bias": -40,
+      "digits": 0,
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "airtemp",
+      "name": "Intake air temperature",
+      "local_id": 7,
+      "unit": "°C",
+      "length": 1,
+      "scale": 1,
+      "bias": -40,
+      "digits": 0,
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "rpm",
+      "name": "Engine speed",
+      "local_id": 9,
+      "unit": "rpm",
+      "length": 2,
+      "scale": 0.25,
+      "bias": 0,
+      "digits": 0,
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "gear",
+      "name": "Gear / status",
+      "local_id": 11,
+      "unit": "",
+      "length": 1,
+      "scale": 1,
+      "bias": 0,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "speed",
+      "name": "Vehicle speed",
+      "local_id": 12,
+      "unit": "km/h",
+      "length": 1,
+      "scale": 1,
+      "bias": 0,
+      "digits": 0,
+      "default": true,
+      "confidence": "documented"
+    },
+    {
+      "key": "speed_alt",
+      "name": "Vehicle speed (two-byte candidate)",
+      "local_id": 13,
+      "unit": "km/h",
+      "length": 2,
+      "scale": 0.5,
+      "bias": 0,
+      "digits": 1,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "battery",
+      "name": "Battery voltage",
+      "local_id": 118,
+      "unit": "V",
+      "length": 1,
+      "scale": 0.125,
+      "bias": 0,
+      "digits": 2,
+      "default": true,
+      "confidence": "documented"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "can": {
+    "bitrate": 500000,
+    "tx_id": 1892,
+    "rx_id": 1862,
+    "interface": "socketcan"
+  }
+}

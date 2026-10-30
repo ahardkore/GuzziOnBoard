@@ -79,7 +79,16 @@ def test_unvalidated_family_transports_are_explicitly_blocked(catalog):
 def test_local_identifiers_are_unique_within_a_family(catalog):
     for profile in catalog.ecus.values():
         ids = [p.local_id for p in profile.parameters]
-        assert len(ids) == len(set(ids)), f"{profile.id} has duplicate local ids"
+        if profile.id == "suzuki_gsxr600_2011":
+            # Eight independent channels share one 21 08 sensor snapshot.
+            assert len(ids) == 8 and set(ids) == {0x08}
+        elif profile.id == "honda_cbr600rr_2005":
+            # Channels share the source-specific 71 10 and 71 D1 tables.
+            assert len(ids) == 9 and ids.count(0x10) == 7 and ids.count(0xD1) == 2
+        elif profile.id == "honda_cb500f_dashble":
+            assert len(ids) == 9 and ids.count(0x11) == 7 and ids.count(0xD1) == 2
+        else:
+            assert len(ids) == len(set(ids)), f"{profile.id} has duplicate local ids"
         keys = [p.key for p in profile.parameters]
         assert len(keys) == len(set(keys))
         act = [a.local_id for a in profile.actuators]

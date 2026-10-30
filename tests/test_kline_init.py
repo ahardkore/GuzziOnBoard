@@ -300,3 +300,53 @@ def test_iso9141_burst_restores_timeout_and_stops_on_gap():
     conn = KLineConnection(port=port)
     assert conn.read_iso9141_burst(0.8) == b'\x48\x6b\xd1\x41'
     assert port.timeout == 0.1
+
+
+@pytest.mark.parametrize("method,target", [("aster-versys-2012", 0x11), ("aster-gsxr600-2011", 0x12)])
+def test_aster_wakeup_idle_address_and_pacing(monkeypatch, method, target):
+    clock = _clock(monkeypatch)
+    response = encode_request([0xc1, 0xea, 0x8f], target=0xf1, source=target)
+    port = FakePort(response)
+    result = KLineTransport(baud=10400).initialize(
+        KLineConnection(port=port, echo=False, inter_byte_delay=0.005), method=method)
+    assert result.ok and result.request == bytes([0x81, target, 0xf1, 0x81, (0x81 + target + 0xf1 + 0x81) & 255])
+    assert 1.0 in clock.sleeps
+    assert all(len(part) == 1 for part in port.writes)
+
+
+def test_honda_wake_pulse_and_frames(monkeypatch):
+    clock = _clock(monkeypatch)
+    class HondaPort(FakePort):
+        def __init__(self):
+            super().__init__()
+            self.levels = []
+        def write(self, data):
+            self.writes.append(bytes(data))
+            if data == bytes.fromhex('72 05 00 f0 99'):
+                self.rx.extend(bytes.fromhex('02 04 00 fa'))
+            return len(data)
+    port = HondaPort()
+    connection = KLineConnection(port=port, echo=False, inter_byte_delay=0)
+    result = KLineTransport(baud=10400, inter_byte_delay=0).initialize(connection, method='honda-cbr600rr-2005')
+    assert result.ok and result.handshake_complete and result.protocol == 'honda-cbr600rr'
+    assert port.writes == [bytes.fromhex('fe 04 ff ff'), bytes.fromhex('72 05 00 f0 99')]
+    assert result.prelude == (port.writes[0],) and result.request == port.writes[1]
+    assert result.response == bytes.fromhex('02 04 00 fa')
+    assert clock.sleeps[:3] == [0.070, 0.120, 0.200]
+    assert not port.break_condition
+
+
+def test_cb500f_dashble_wake_timing(monkeypatch):
+    clock = _clock(monkeypatch)
+    class HondaPort(FakePort):
+        def write(self, data):
+            self.writes.append(bytes(data))
+            if data == bytes.fromhex('72 05 00 f0 99'):
+                self.rx.extend(bytes.fromhex('02 04 00 fa'))
+            return len(data)
+    port = HondaPort()
+    result = KLineTransport(baud=10400, inter_byte_delay=0).initialize(
+        KLineConnection(port=port, echo=False, inter_byte_delay=0), method='honda-cb500f-dashble')
+    assert result.ok and result.method == 'honda-cb500f-dashble'
+    assert port.writes == [bytes.fromhex('fe 04 ff ff'), bytes.fromhex('72 05 00 f0 99')]
+    assert clock.sleeps[:3] == [0.070, 0.130, 0.050]

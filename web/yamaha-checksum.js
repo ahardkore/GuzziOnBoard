@@ -2,8 +2,8 @@
  * NetworkDir/moto-ecu-checksum algorithms/yamaha-mt.js,
  * revision 43ccc5f3663e2a175b7217f802bc302830e6862b. Upstream README
  * states MIT but names no copyright holder; see LICENSES/Moto-ECU-checksum-MIT.txt.
- * Modified: local inspection only; no auto-detection, checksum repair, output
- * image, programming, ECU connection or claim of real-image validation.
+ * Modified: explicit model/size selection, inspection and an optional research
+ * copy with checksum repair; no auto-detection, ECU I/O or hardware validation.
  */
 'use strict';
 
@@ -31,14 +31,17 @@ function inspectYamahaMt(bytes, variant) {
 const yamahaFile = document.getElementById('yamahaImage');
 const yamahaVariant = document.getElementById('yamahaVariant');
 const yamahaOut = document.getElementById('yamahaOut');
-let yamahaGeneration = 0;
-function invalidateYamaha() { ++yamahaGeneration; yamahaOut.textContent = ''; }
+const yamahaConfirm = document.getElementById('yamahaRepairConfirm');
+const yamahaSave = document.getElementById('yamahaRepairSave');
+let yamahaGeneration = 0, yamahaCandidate = null;
+function invalidateYamaha() { ++yamahaGeneration; yamahaCandidate = null; yamahaSave.disabled = true; yamahaOut.textContent = ''; }
 yamahaFile.addEventListener('change', invalidateYamaha);
 yamahaVariant.addEventListener('change', invalidateYamaha);
-document.getElementById('yamahaClear').onclick = () => { invalidateYamaha(); yamahaFile.value = ''; yamahaVariant.value = ''; };
+yamahaConfirm.addEventListener('change', invalidateYamaha);
+document.getElementById('yamahaClear').onclick = () => { invalidateYamaha(); yamahaFile.value = ''; yamahaVariant.value = ''; yamahaConfirm.checked = false; };
 document.getElementById('yamahaInspect').onclick = async () => {
   const token = ++yamahaGeneration;
-  yamahaOut.textContent = '';
+  yamahaOut.textContent = ''; yamahaCandidate = null; yamahaSave.disabled = true;
   try {
     const file = yamahaFile.files?.[0];
     if (!file) throw new Error('Choose a local binary image.');
@@ -54,6 +57,45 @@ document.getElementById('yamahaInspect').onclick = async () => {
     }
     if (token !== yamahaGeneration) return;
     const hex4 = (x) => `0x${x.toString(16).toUpperCase().padStart(4, '0')}`;
-    yamahaOut.textContent = `${file.name} · ${file.size} bytes\nSHA-256: ${hash}\nTrailer characters: ${result.trailerId} (not proof of fitment)\nStored word at 0x${result.checksumOffset.toString(16).toUpperCase()}: ${hex4(result.stored)}\nObserved sum: ${hex4(result.observed)} · source target: ${hex4(result.target)}\n${result.matches ? 'Sum matches source target' : 'Sum does not match source target'} — research only; not flash or safety approval.`;
+    const corrected = (result.target - result.observed + result.stored) & 0xffff;
+    yamahaOut.textContent = `${file.name} · ${file.size} bytes\nSHA-256: ${hash}\nTrailer characters: ${result.trailerId} (not proof of fitment)\nStored word at 0x${result.checksumOffset.toString(16).toUpperCase()}: ${hex4(result.stored)}\nObserved sum: ${hex4(result.observed)} · source target: ${hex4(result.target)}\n${result.matches ? 'Sum matches source target' : 'Sum does not match source target'} — research only; not flash or safety approval.\nProposed checksum word: ${hex4(result.stored)} → ${hex4(corrected)}; no other bytes will change.`;
+    if (yamahaConfirm.checked && !result.matches && hash !== 'unavailable') {
+      const output = new Uint8Array(buffer.slice(0));
+      output[result.checksumOffset] = corrected >> 8;
+      output[result.checksumOffset + 1] = corrected & 255;
+      const verified = inspectYamahaMt(output, variant);
+      if (!verified.matches) throw new Error('Corrected copy failed checksum verification.');
+      const digest = await crypto.subtle.digest('SHA-256', output);
+      const outputHash = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+      if (token !== yamahaGeneration) return;
+      yamahaCandidate = { output, hash: outputHash };
+      yamahaOut.textContent += `\nOutput SHA-256: ${outputHash}\nSource remains unchanged. No signature or other checksum verified; not flash-ready.`;
+      yamahaSave.disabled = false;
+    }
   } catch (error) { if (token === yamahaGeneration) yamahaOut.textContent = `Not inspected: ${error.message}`; }
+};
+
+// Export is deliberately separate from inspection and writes only a new copy.
+yamahaSave.onclick = async () => {
+  const candidate = yamahaCandidate, token = yamahaGeneration;
+  if (!candidate || !yamahaConfirm.checked) return;
+  yamahaSave.disabled = true;
+  try {
+    const name = `yamaha-mt-checksum-research-${candidate.hash.slice(0, 12)}.bin`;
+    let message;
+    if (window.gobDesktop?.available) {
+      if (typeof window.gobDesktop.saveBinary !== 'function') throw new Error('The desktop host does not support binary exports.');
+      let text = '';
+      for (let i = 0; i < candidate.output.length; i += 8192) text += String.fromCharCode(...candidate.output.subarray(i, i + 8192));
+      const saved = await window.gobDesktop.saveBinary(name, btoa(text));
+      message = `Saved research copy: ${saved.path}`;
+    } else {
+      const url = URL.createObjectURL(new Blob([candidate.output], { type: 'application/octet-stream' }));
+      const link = document.createElement('a'); link.href = url; link.download = name; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      message = `Downloaded research copy: ${name}`;
+    }
+    if (token === yamahaGeneration) yamahaOut.textContent += `\n${message}`;
+  } catch (error) { if (token === yamahaGeneration) yamahaOut.textContent += `\nExport failed: ${error.message}`; }
+  finally { if (token === yamahaGeneration) yamahaSave.disabled = false; }
 };

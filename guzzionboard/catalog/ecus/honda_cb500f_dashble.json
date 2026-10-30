@@ -1,0 +1,156 @@
+{
+  "id": "honda_cb500f_dashble",
+  "family": "Honda CB500F DashBle table 11 (year unspecified)",
+  "display_name": "Honda CB500F DashBle (ECU-only, read-only K-Line)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "unspecified",
+  "notes": "Dash/DashBle report CB500F examples and show source captures but do not state model year, market, ECU or software. ECU-only opt-in, not fitment to the selected bike. GuzziOnBoard integration has synthetic tests only. Table 00 ECM ID is an unverified raw candidate; no memory, DTC, controls or simulator. An explicitly confirmed, experimental 256 KiB read is available only if the live ID matches MGZ-A03; not a verified backup.",
+  "session": {
+    "protocol": "honda-cb500f-dashble",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "Dash/DashBle show a CB500F capture; source year/ECU unspecified. This integration has only synthetic tests."
+  },
+  "identification": {
+    "available": true,
+    "note": "Unverified raw five-byte ECM ID candidate; not a confirmed part number or programming identity."
+  },
+  "memory": {
+    "read_supported": true,
+    "write_supported": false,
+    "write_blocked_reason": "No ECU flash writing is implemented for this profile.",
+    "research_read_only": true,
+    "hardware_note": "Experimental, source-derived MGZ-A03 read only. Exact live ECM ID required; security exchange is untested by GuzziOnBoard. A completed file is research-only, not a verified backup.",
+    "regions": {
+      "flash": {
+        "start": 0,
+        "size": 262144,
+        "block": 12,
+        "writable": false,
+        "note": "Source-reported MGZ-A03 only; unverified by GuzziOnBoard."
+      }
+    },
+    "programming": {
+      "protocol": "honda-mgz-a03-research",
+      "security": {
+        "required": false
+      }
+    }
+  },
+  "capabilities": [
+    "identify",
+    "live"
+  ],
+  "sources": [
+    "https://github.com/atoid/DashBle/tree/9c65818d13dde39b8d8203736b43109eb84a9651",
+    "https://github.com/atoid/Dash/tree/532d0f4fef1b2e11a15f1c6663fb5351757f87b8",
+    "https://github.com/WiseNoodle/honda-moto-ecu-suite/tree/85431bd831b2c50a640fac35dccf36c09df20c07",
+    "https://github.com/PhatDatPQ/eculib/tree/7921cc46551fd26d487ec778e8822ace4777899e"
+  ],
+  "parameters": [
+    {
+      "key": "rpm",
+      "name": "Engine speed (source candidate)",
+      "local_id": 17,
+      "unit": "rpm",
+      "length": 2,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "tps_raw",
+      "name": "Throttle sensor byte (source candidate)",
+      "local_id": 17,
+      "unit": "",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "coolant",
+      "name": "Coolant temperature (source candidate)",
+      "local_id": 17,
+      "unit": "°C",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "airtemp",
+      "name": "Intake temperature (source candidate)",
+      "local_id": 17,
+      "unit": "°C",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "map",
+      "name": "Manifold pressure (source candidate)",
+      "local_id": 17,
+      "unit": "kPa",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "battery",
+      "name": "Battery voltage (source candidate)",
+      "local_id": 17,
+      "unit": "V",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "speed",
+      "name": "Speed (source candidate)",
+      "local_id": 17,
+      "unit": "km/h",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "gear_status",
+      "name": "Gear / clutch status (source candidate)",
+      "local_id": 209,
+      "unit": "",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred",
+      "states": {
+        "0": "In gear (candidate)",
+        "1": "Neutral or clutch (candidate)",
+        "3": "Kickstand down (candidate)"
+      }
+    },
+    {
+      "key": "engine_status",
+      "name": "Engine status byte (source candidate)",
+      "local_id": 209,
+      "unit": "",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "honda-cb500f-dashble",
+    "inter_byte_delay": 0
+  }
+}

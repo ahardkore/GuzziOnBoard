@@ -1,499 +1,167 @@
 <!doctype html>
-<!-- GuzziOnBoard — GitHub Pages landing page (served from the repo root).
-     Self-contained: no CDN, no JS, no build step. The interactive workstation
-     itself is a local tool (python3 run_server.py) — this page is the front
-     door, plus links to the host-anywhere tour and engine-simulator demos. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
-<meta name="description" content="A safety-first multi-make motorcycle diagnostic workstation and evidence catalog, including Moto Guzzi, Ducati and Aprilia, with offline multi-brand research. KWP2000 over K-Line and CAN, live data, fault codes, verified backups, TunerPro XDF maps.">
-<title>GuzziOnBoard — safety-first motorcycle diagnostics</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🏍️</text></svg>">
+<meta name="theme-color" content="#f5f3ed">
+<meta name="description" content="GuzziOnBoard is an open-source, multi-brand motorcycle diagnostics, calibration research and workshop workstation. Explore the simulator or run the desktop app.">
+<title>GuzziOnBoard — Motorcycle diagnostics &amp; workshop tools</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%232a503d'/%3E%3Ctext x='20' y='26' text-anchor='middle' font-family='sans-serif' font-weight='bold' font-size='16' fill='white'%3EGO%3C/text%3E%3C/svg%3E">
 <style>
-:root {
-  --bg: #14161b; --panel: #1c1f26; --panel2: #22262f; --line: #31363f;
-  --ink: #e8eaee; --muted: #8b93a1; --accent: #d2492e; --accent2: #e06a4f;
-  --ok: #3fb27f; --warn: #d9a441; --bad: #d25050;
-  --mono: ui-monospace, Menlo, Consolas, monospace;
-}
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0; background: var(--bg); color: var(--ink);
-  font: 16px/1.6 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-a { color: var(--accent2); text-decoration: none; }
-a:hover { text-decoration: underline; }
-code, .mono { font-family: var(--mono); font-size: .92em; }
-.wrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
-.section { padding: 58px 0 8px; }
-h2 { font-size: 26px; letter-spacing: .2px; margin: 0 0 6px; }
-.sub { color: var(--muted); margin: 0 0 28px; max-width: 760px; }
-
-/* ---------- header ---------- */
-header.site {
-  position: sticky; top: 0; z-index: 10; backdrop-filter: blur(8px);
-  background: rgba(20,22,27,.88); border-bottom: 1px solid var(--line);
-}
-header.site .wrap { display: flex; align-items: center; gap: 18px; height: 60px; }
-.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); }
-.brand:hover { text-decoration: none; }
-.brand-mark {
-  width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center;
-  background: linear-gradient(135deg, var(--accent), #a33420);
-  font: 700 13px/1 var(--mono); color: #fff; letter-spacing: .5px;
-}
-.brand strong { font-size: 16px; }
-.brand small { display: block; color: var(--muted); font-size: 11px; margin-top: 1px; }
-nav.top { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
-nav.top a { color: var(--muted); font-size: 14px; padding: 7px 11px; border-radius: 7px; }
-nav.top a:hover { color: var(--ink); background: var(--panel2); text-decoration: none; }
-nav.top a.gh { color: var(--ink); border: 1px solid var(--line); margin-left: 6px; }
-nav.top a.gh:hover { border-color: var(--accent); }
-
-/* ---------- hero ---------- */
-.hero { padding: 74px 0 20px; display: flex; gap: 44px; align-items: center; flex-wrap: wrap; }
-.hero-copy { flex: 1 1 480px; }
-.overline { color: var(--accent2); font: 600 12px/1 var(--mono); letter-spacing: 2px; text-transform: uppercase; }
-h1 { font-size: clamp(30px, 4.6vw, 44px); line-height: 1.12; margin: 14px 0 16px; letter-spacing: -.5px; }
-h1 em { color: var(--accent2); font-style: normal; }
-.lede { color: var(--muted); font-size: 17.5px; max-width: 640px; }
-.lede strong { color: var(--ink); font-weight: 600; }
-.cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 26px 0 18px; }
-.btn {
-  display: inline-block; padding: 11px 20px; border-radius: 9px; font-weight: 600; font-size: 15px;
-  border: 1px solid var(--line); color: var(--ink); background: var(--panel2);
-}
-.btn:hover { text-decoration: none; border-color: var(--muted); }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-.btn.primary:hover { background: var(--accent2); border-color: var(--accent2); }
-.btn.ghost { background: transparent; }
-.status {
-  display: flex; gap: 10px; align-items: flex-start; max-width: 640px;
-  border: 1px solid #4a3d24; background: #241f14; border-radius: 10px; padding: 12px 14px;
-  font-size: 14px; color: #d9c9a0;
-}
-.status b { color: var(--warn); }
-/* gauge */
-.gauge-card {
-  flex: 0 1 360px; border: 1px solid var(--line); background: var(--panel);
-  border-radius: 14px; padding: 22px 22px 16px; box-shadow: 0 18px 50px rgba(0,0,0,.35);
-}
-.gauge-card svg { width: 100%; height: auto; display: block; }
-.gauge-cap { color: var(--muted); font-size: 12.5px; text-align: center; margin: 10px 0 0; }
-.gauge-cap b { color: var(--ink); }
-@keyframes needle {
-  0%, 100% { transform: rotate(-1.6deg); }
-  50% { transform: rotate(1.9deg); }
-}
-.needle { transform-origin: 100px 100px; animation: needle 2.4s ease-in-out infinite; }
-
-/* ---------- stat chips ---------- */
-.stats { display: flex; gap: 12px; flex-wrap: wrap; margin: 34px 0 6px; }
-.stat {
-  border: 1px solid var(--line); background: var(--panel); border-radius: 10px;
-  padding: 12px 18px; min-width: 128px;
-}
-.stat b { display: block; font-size: 22px; letter-spacing: -.3px; }
-.stat span { color: var(--muted); font-size: 12.5px; }
-
-/* ---------- cards ---------- */
-.grid { display: grid; gap: 14px; }
-.grid.two { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-.grid.three { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-.card {
-  border: 1px solid var(--line); background: var(--panel); border-radius: 12px;
-  padding: 20px 20px 18px;
-}
-.card h3 { margin: 0 0 8px; font-size: 16.5px; }
-.card p { margin: 0; color: var(--muted); font-size: 14.5px; }
-.card .k { color: var(--accent2); font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 8px; }
-.card ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 14.5px; }
-.card li { margin: 4px 0; }
-.card li b { color: var(--ink); font-weight: 600; }
-
-/* ---------- safety ladder ---------- */
-.ladder { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-.lvl { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 16px 18px; }
-.lvl .pill { display: inline-block; font: 600 11.5px/1 var(--mono); letter-spacing: 1px; padding: 6px 10px; border-radius: 999px; }
-.lvl.ok .pill { color: #0e1512; background: var(--ok); }
-.lvl.warn .pill { color: #171207; background: var(--warn); }
-.lvl.mut .pill { color: var(--ink); background: var(--panel2); border: 1px solid var(--line); }
-.lvl h3 { margin: 10px 0 6px; font-size: 15.5px; }
-.lvl p { margin: 0; color: var(--muted); font-size: 14px; }
-.quote {
-  margin: 26px 0 0; padding: 16px 20px; border-left: 3px solid var(--accent);
-  background: var(--panel); border-radius: 0 10px 10px 0; color: var(--ink); font-size: 16px;
-}
-.quote small { display: block; color: var(--muted); margin-top: 4px; font-size: 13px; }
-
-/* ---------- run / terminal ---------- */
-.term {
-  background: #101216; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
-  max-width: 760px;
-}
-.term-bar { display: flex; gap: 6px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel); }
-.term-bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); display: inline-block; }
-.term-bar span { color: var(--muted); font: 12px var(--mono); margin-left: 8px; }
-.term pre { margin: 0; padding: 18px 20px; font: 13.5px/1.75 var(--mono); color: #cdd3dc; overflow-x: auto; }
-.term .c { color: #6c7686; } .term .p { color: var(--ok); } .term .a { color: var(--accent2); }
-.run-note { color: var(--muted); font-size: 14.5px; max-width: 760px; margin: 16px 0 0; }
-.run-note code { background: var(--panel2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
-
-/* ---------- coverage table ---------- */
-.tbl-wrap { border: 1px solid var(--line); border-radius: 12px; overflow: auto; background: var(--panel); }
-table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 720px; }
-th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { color: var(--muted); font: 600 11.5px/1.4 var(--mono); letter-spacing: 1px; text-transform: uppercase; }
-tr:last-child td { border-bottom: none; }
-td.fam { font-weight: 600; white-space: nowrap; }
-td.models { color: var(--muted); }
-.tag { display: inline-block; font: 600 11px/1 var(--mono); letter-spacing: .5px; padding: 5px 9px; border-radius: 999px; white-space: nowrap; }
-.tag.ok { color: #0e1512; background: var(--ok); }
-.tag.warn { color: #171207; background: var(--warn); }
-.tag.mut { color: var(--ink); background: var(--panel2); border: 1px solid var(--line); }
-.footnote { color: var(--muted); font-size: 14px; margin: 14px 0 0; max-width: 820px; }
-
-/* ---------- footer ---------- */
-footer.site { border-top: 1px solid var(--line); margin-top: 70px; padding: 34px 0 46px; }
-.foot-grid { display: flex; gap: 40px; flex-wrap: wrap; }
-.foot-grid h4 { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); font-family: var(--mono); letter-spacing: 1.5px; text-transform: uppercase; }
-.foot-grid ul { list-style: none; margin: 0; padding: 0; }
-.foot-grid li { margin: 6px 0; font-size: 14.5px; }
-.foot-note { color: var(--muted); font-size: 13px; margin-top: 26px; max-width: 760px; }
+:root { --paper:#f5f3ed; --white:#fffefb; --ink:#1c2922; --muted:#617068; --green:#244e3a; --lime:#c9e09c; --line:#daddd3; --soft:#e8eee4; --orange:#a85c35; }
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased; }
+a { color:inherit; text-decoration:none; }
+a:focus-visible, button:focus-visible { outline:3px solid #b66234; outline-offset:4px; }
+.container { max-width:1200px; margin:auto; padding:0 32px; }
+.site-header { border-bottom:1px solid var(--line); }
+.header-inner { height:76px; display:flex; align-items:center; gap:34px; }
+.brand { display:inline-flex; align-items:center; gap:11px; white-space:nowrap; }
+.mark { width:37px; height:37px; background:var(--green); color:white; border-radius:10px; display:grid; place-items:center; font-size:13px; font-weight:800; letter-spacing:.04em; }
+.brand-name { font-size:16px; font-weight:760; letter-spacing:-.04em; }
+.brand-name span { color:#64806d; }
+.nav { margin-left:auto; display:flex; align-items:center; gap:30px; color:#4e5f54; font-size:13px; font-weight:650; }
+.nav a:hover, .text-link:hover { color:#a85933; }
+.header-cta { border:1px solid #b9c7b9; border-radius:7px; padding:9px 15px; color:var(--green); font-size:13px; font-weight:700; white-space:nowrap; }
+.header-cta:hover { background:var(--soft); }
+.hero { display:grid; grid-template-columns:1fr 1fr; gap:70px; align-items:center; padding:86px 0 77px; }
+.eyebrow { display:flex; align-items:center; gap:9px; color:var(--green); text-transform:uppercase; letter-spacing:.15em; font-size:11px; font-weight:800; }
+.eyebrow:before { content:""; width:19px; height:2px; background:#bc7049; }
+h1, h2, h3, p { margin-top:0; }
+h1 { font-family:Georgia,"Times New Roman",serif; font-weight:400; font-size:clamp(48px,5.6vw,76px); letter-spacing:-.055em; line-height:1.02; margin:24px 0 25px; }
+h1 em { color:#658c6a; font-weight:400; }
+.lead { color:#53645a; font-size:17px; max-width:530px; line-height:1.75; margin-bottom:27px; }
+.actions { display:flex; flex-wrap:wrap; gap:10px; }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:24px; min-height:48px; padding:12px 18px; border-radius:7px; background:var(--green); color:white; font-size:13px; font-weight:700; border:1px solid var(--green); transition:background .2s,border-color .2s; }
+.btn:hover { background:#356849; border-color:#356849; }
+.btn.light { background:transparent; color:var(--ink); border-color:#c7d0c2; }
+.btn.light:hover { background:#e7ebe2; }
+.hero-note { margin:20px 0 0; color:#728078; font-size:12px; display:flex; gap:8px; align-items:center; }
+.hero-note .dot { width:7px; height:7px; background:#97ac82; border-radius:50%; flex:none; }
+/* Illustration: a deliberately labelled simulation, not a screenshot. */
+.console { background:#1a2c23; color:#edf5e6; border-radius:14px; box-shadow:0 25px 65px #1e322326; padding:22px; overflow:hidden; }
+.console-top { display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#b8c9ba; letter-spacing:.08em; text-transform:uppercase; border-bottom:1px solid #3b4c41; padding-bottom:17px; }
+.console-top strong { color:#f2f6ed; font-size:12px; letter-spacing:.02em; text-transform:none; }
+.console-status { display:flex; align-items:center; gap:7px; color:#cce3a9; }
+.console-status:before { content:""; background:#bddb89; width:6px; height:6px; border-radius:50%; }
+.console-title { display:flex; justify-content:space-between; gap:15px; align-items:end; margin:26px 0 16px; }
+.console-title h2 { font-size:19px; font-weight:600; letter-spacing:-.03em; margin:0; }
+.console-title span { color:#aabcb0; font-size:10px; }
+.metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.metric { background:#263b2e; border:1px solid #405447; padding:13px; border-radius:7px; min-width:0; }
+.metric small { display:block; color:#a4b9a8; font-size:10px; }
+.metric strong { display:block; font-size:22px; line-height:1.25; font-weight:600; margin-top:5px; letter-spacing:-.04em; }
+.metric strong span { font-size:10px; color:#acbdac; font-weight:500; letter-spacing:0; }
+.graph { background:#203329; border:1px solid #405447; border-radius:7px; margin-top:8px; padding:14px 13px 6px; }
+.graph-head { display:flex; justify-content:space-between; color:#b1c3b4; font-size:10px; }
+.graph-head strong { font-weight:500; color:#d5e5d5; }
+.graph svg { display:block; width:100%; height:108px; }
+.console-bottom { display:flex; justify-content:space-between; align-items:center; gap:10px; padding-top:16px; color:#a9bbad; font-size:10px; }
+.console-bottom b { color:#d3e7c0; font-weight:500; }
+.strip { border-top:1px solid var(--line); border-bottom:1px solid var(--line); display:grid; grid-template-columns: 1.15fr repeat(3,1fr); gap:20px; padding:22px 0; }
+.strip-label { text-transform:uppercase; letter-spacing:.13em; color:#7d8b80; font-size:10px; font-weight:800; align-self:center; }
+.strip-item { font-size:13px; color:#68786d; border-left:1px solid var(--line); padding-left:22px; }
+.strip-item b { color:var(--ink); display:block; font-size:13px; }
+.section { padding:105px 0; }
+.section-head { display:flex; justify-content:space-between; align-items:end; gap:30px; margin-bottom:37px; }
+.section-head h2, .cta-copy h2 { font:400 clamp(34px,4vw,48px)/1.13 Georgia,"Times New Roman",serif; letter-spacing:-.045em; margin:14px 0 0; }
+.section-head p { max-width:410px; color:var(--muted); font-size:15px; margin:0; }
+.features { display:grid; grid-template-columns:repeat(3,1fr); gap:13px; }
+.card { background:var(--white); border:1px solid #e0e4da; border-radius:10px; padding:25px; min-height:210px; display:flex; flex-direction:column; }
+.icon { display:grid; place-items:center; width:39px; height:39px; background:#eaf0e5; border-radius:9px; color:var(--green); font-size:18px; margin-bottom:22px; }
+.icon svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.card h3 { font-size:16px; margin:0 0 8px; letter-spacing:-.02em; }
+.card p { color:#69766d; font-size:13.5px; line-height:1.7; margin:0; }
+.card a { color:var(--green); font-size:12px; font-weight:750; margin-top:auto; padding-top:20px; }
+.card a:hover { color:#ae633c; }
+.coverage-wrap { background:#e9eee5; border-top:1px solid #dae2d6; border-bottom:1px solid #dae2d6; }
+.coverage-grid { display:grid; grid-template-columns:.8fr 1.2fr; gap:85px; }
+.coverage-grid h2 { font:400 clamp(34px,4vw,48px)/1.13 Georgia,"Times New Roman",serif; letter-spacing:-.045em; margin:15px 0 20px; }
+.coverage-grid p { color:#607067; font-size:15px; }
+.text-link { color:var(--green); font-size:13px; font-weight:750; display:inline-block; margin-top:10px; }
+.rows { border-top:1px solid #cad5c9; }
+.row { display:grid; grid-template-columns:145px 1fr; gap:20px; padding:18px 0; border-bottom:1px solid #cad5c9; }
+.row b { font-size:13px; }
+.row span { color:#5e6e63; font-size:13px; }
+.notice { display:flex; gap:12px; align-items:flex-start; background:#f8f3e6; border:1px solid #e9dec9; border-radius:8px; padding:16px 18px; margin-top:24px; color:#725a3d; font-size:12.5px; }
+.notice strong { color:#614c34; }
+.start-grid { display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--line); }
+.start { padding:28px 25px 0 0; }
+.start + .start { border-left:1px solid var(--line); padding-left:25px; }
+.num { color:#a95c36; font-size:11px; font-weight:800; letter-spacing:.12em; }
+.start h3 { font-size:16px; margin:12px 0 8px; }
+.start p { color:var(--muted); font-size:13.5px; max-width:300px; }
+.start a { font-weight:750; font-size:13px; color:var(--green); }
+.start a:hover { color:#a85933; }
+.cta { background:var(--green); color:white; border-radius:12px; padding:42px 46px; display:flex; gap:25px; align-items:center; justify-content:space-between; }
+.cta-copy .eyebrow { color:#c5dda8; }
+.cta-copy h2 { font-size:36px; margin:12px 0 8px; }
+.cta-copy p { color:#c4d3c2; font-size:14px; margin:0; }
+.cta .btn { background:#d5e7b5; color:#203529; border-color:#d5e7b5; white-space:nowrap; }
+.cta .btn:hover { background:#e8f1d4; }
+footer { margin-top:100px; border-top:1px solid var(--line); padding:38px 0 42px; }
+.footer-inner { display:flex; gap:20px; justify-content:space-between; align-items:start; }
+.footer-inner p { color:#7b877e; font-size:12px; margin:8px 0 0; max-width:420px; }
+.footer-links { display:flex; gap:25px; flex-wrap:wrap; font-size:12px; font-weight:700; color:#53675a; }
+.footer-links a:hover { color:#a85933; }
+@media(max-width:850px) { .hero { gap:35px; grid-template-columns:1fr; padding:60px 0; } .hero-copy { max-width:650px; } .console { max-width:640px; width:100%; } .features { grid-template-columns:repeat(2,1fr); } .coverage-grid { grid-template-columns:1fr; gap:25px; } .nav { gap:15px; } }
+@media(max-width:600px) { .container { padding:0 20px; } .header-inner { height:auto; min-height:70px; flex-wrap:wrap; gap:12px; padding:14px 0; } .nav { order:3; width:100%; margin:0; justify-content:space-between; gap:8px; font-size:12px; } .header-cta { margin-left:auto; } .hero { padding:48px 0; } h1 { font-size:49px; } .lead { font-size:15px; } .strip { grid-template-columns:1fr 1fr; gap:15px; } .strip-item { border:0; padding:0; } .features { grid-template-columns:1fr; } .card { min-height:0; } .section { padding:70px 0; } .section-head { display:block; } .section-head p { margin-top:16px; } .row { grid-template-columns:105px 1fr; gap:12px; } .start-grid { grid-template-columns:1fr; } .start, .start + .start { border-left:0; border-bottom:1px solid var(--line); padding:23px 0; } .cta { display:block; padding:28px; } .cta .btn { margin-top:20px; } .footer-inner { display:block; } .footer-links { margin-top:24px; } }
+@media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
 </style>
 </head>
 <body>
-
-<header class="site">
-  <div class="wrap">
-    <a class="brand" href="./">
-      <span class="brand-mark">GO</span>
-      <span><strong>GuzziOnBoard</strong><small>diagnostic workstation</small></span>
-    </a>
-    <nav class="top">
-      <a href="#try">Demos</a>
-      <a href="#features">Features</a>
-      <a href="#safety">Safety</a>
-      <a href="#run">Run it</a>
-      <a href="#coverage">Coverage</a>
-      <a class="gh" href="https://github.com/ahardkore/GuzziOnBoard">GitHub ↗</a>
-    </nav>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="./" aria-label="GuzziOnBoard home"><span class="mark">GO</span><span class="brand-name">Guzzi<span>OnBoard</span></span></a>
+    <nav class="nav" aria-label="Main navigation"><a href="#features">Workstation</a><a href="#coverage">Coverage</a><a href="#get-started">Get started</a><a href="https://github.com/ahardkore/GuzziOnBoard">GitHub ↗</a></nav>
+    <a class="header-cta" href="web/index.html">Open demo ↗</a>
   </div>
 </header>
-
 <main>
-
-<!-- ================= HERO ================= -->
-<section class="wrap">
-  <div class="hero">
-    <div class="hero-copy">
-      <span class="overline">Open source · AGPL-3.0 · Python 3.11+</span>
-      <h1>A safety-first workstation for <em>multiple motorcycle makes</em>.</h1>
-      <p class="lede">
-        The Magneti Marelli ECUs fitted from the mid-1990s to today — identified,
-        interrogated, backed up and compared, over <strong>K-Line (KWP2000)</strong> and
-        <strong>CAN (ISO-TP)</strong>. The same Marelli hardware on Ducati and Aprilia
-        is cataloged too, read-only until its identifier tables are confirmed. Author-tested Kawasaki ER-6n and Triumph Daytona sources inform read-only hardware paths, not yet tested by this project. Selected Honda, Suzuki and BMW material supports offline research only.
-      </p>
-      <div class="cta-row">
-        <a class="btn primary" href="web/tour.html">Take the tour →</a>
-        <a class="btn" href="web/index.html">🖥 Try the workstation in your browser</a>
-        <a class="btn ghost" href="#run">Run it locally</a>
+  <div class="container">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <div class="eyebrow">Open source · built for the workshop</div>
+        <h1 id="hero-title">Get to know<br>your <em>machine.</em></h1>
+        <p class="lead">A multi-brand motorcycle workstation for diagnostics, calibration research and the details that make a good workshop session.</p>
+        <div class="actions"><a class="btn" href="web/index.html">Try the browser demo <span aria-hidden="true">↗</span></a><a class="btn light" href="https://github.com/ahardkore/GuzziOnBoard/releases">Get the desktop app <span aria-hidden="true">→</span></a></div>
+        <p class="hero-note"><span class="dot"></span> No account needed to explore the simulator.</p>
       </div>
-      <div class="status">
-        <span>⚠</span>
-        <span><b>Status: working software, unproven on a motorcycle.</b>
-        The protocol stack, catalog, safety gate, memory stack and UI are real and
-        tested — the hardware transports are written but not yet validated against a
-        bike, and ECU writing stays gated.</span>
+      <div class="console" role="img" aria-label="Illustrative simulated workstation showing example engine speed, throttle and temperature values">
+        <div class="console-top"><strong>GO &nbsp; / &nbsp; WORKSPACE</strong><span class="console-status">SIMULATED</span></div>
+        <div class="console-title"><h2>Live data</h2><span>ILLUSTRATIVE VALUES</span></div>
+        <div class="metrics"><div class="metric"><small>Engine speed</small><strong>1,350 <span>rpm</span></strong></div><div class="metric"><small>Throttle</small><strong>2.1 <span>%</span></strong></div><div class="metric"><small>Temperature</small><strong>82 <span>°C</span></strong></div></div>
+        <div class="graph"><div class="graph-head"><strong>Engine speed</strong><span>EXAMPLE TIMELINE</span></div><svg viewBox="0 0 440 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 20H440 M0 48H440 M0 76H440" fill="none" stroke="#44584a" stroke-width="1"/><path d="M0 74 C25 71 35 67 55 69 S80 64 102 67 S125 55 146 59 S170 54 191 58 S214 49 235 52 S258 48 280 51 S303 41 324 47 S349 39 369 42 S411 33 440 36" fill="none" stroke="#d0e7a8" stroke-width="2.5"/><path d="M0 74 C25 71 35 67 55 69 S80 64 102 67 S125 55 146 59 S170 54 191 58 S214 49 235 52 S258 48 280 51 S303 41 324 47 S349 39 369 42 S411 33 440 36 L440 100 L0 100Z" fill="#aacc8c" opacity=".07"/></svg></div>
+        <div class="console-bottom"><span>Illustration, not a live connection</span><b>● &nbsp; Simulation only</b></div>
       </div>
-    </div>
-
-    <div class="gauge-card">
-      <!-- tachometer: idle, closed loop, warmed up -->
-      <svg viewBox="0 0 200 118" role="img" aria-label="Tachometer at 1350 rpm">
-        <path d="M 22 100 A 78 78 0 0 1 178 100" fill="none" stroke="#31363f" stroke-width="7" stroke-linecap="round"/>
-        <path d="M 167.5 61 A 78 78 0 0 1 178 100" fill="none" stroke="#d2492e" stroke-width="7" stroke-linecap="round"/>
-        <g stroke="#8b93a1" stroke-width="2.5" stroke-linecap="round">
-          <line x1="22"    y1="100"  x2="34"    y2="100"/>
-          <line x1="26.7"  y1="73.3" x2="38"    y2="77.4"/>
-          <line x1="40.3"  y1="49.9" x2="49.4"  y2="57.6"/>
-          <line x1="61"    y1="32.5" x2="67"    y2="42.8"/>
-          <line x1="86.5"  y1="23.2" x2="88.5"  y2="35"/>
-          <line x1="113.5" y1="23.2" x2="111.5" y2="35"/>
-          <line x1="139"   y1="32.5" x2="133"   y2="42.8"/>
-          <line x1="159.7" y1="49.9" x2="150.6" y2="57.6"/>
-          <line x1="173.3" y1="73.3" x2="162"   y2="77.4"/>
-          <line x1="178"   y1="100"  x2="166"   y2="100"/>
-        </g>
-        <g fill="#8b93a1" font-family="ui-monospace, Menlo, monospace" font-size="11" text-anchor="middle">
-          <text x="46"   y="106">0</text>
-          <text x="49"   y="87">1</text>
-          <text x="58"   y="71">2</text>
-          <text x="72"   y="59">3</text>
-          <text x="90"   y="52">4</text>
-          <text x="110"  y="52">5</text>
-          <text x="128"  y="59">6</text>
-          <text x="142"  y="71">7</text>
-          <text x="151"  y="87">8</text>
-          <text x="154"  y="106">9</text>
-        </g>
-        <g class="needle">
-          <line x1="100" y1="100" x2="134.7" y2="48.6" stroke="#e8eaee" stroke-width="3.5" stroke-linecap="round"/>
-        </g>
-        <circle cx="100" cy="100" r="7" fill="#22262f" stroke="#8b93a1" stroke-width="2"/>
-        <text x="100" y="92" fill="#8b93a1" font-family="ui-monospace, Menlo, monospace" font-size="9" text-anchor="middle" letter-spacing="1">×1000 r/min</text>
-      </svg>
-      <p class="gauge-cap"><b>Griso 1200 8V · IAW 5AM</b> — idle, warmed up, closed loop.<br>
-      The simulator idles at 1350&nbsp;rpm. The safety gate still refuses the stupid stuff.</p>
-    </div>
+    </section>
+    <div class="strip" aria-label="Project highlights"><div class="strip-label">One workspace for</div><div class="strip-item"><b>Diagnostics</b>Observe &amp; investigate</div><div class="strip-item"><b>Map research</b>Review before building</div><div class="strip-item"><b>Workshop tools</b>Make the details count</div></div>
+    <section class="section" id="features">
+      <div class="section-head"><div><div class="eyebrow">The workstation</div><h2>A little more clarity<br>at every step.</h2></div><p>From a first look at live data to a closer look at calibration files, keep your tools and evidence together.</p></div>
+      <div class="features">
+        <article class="card"><div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></div><h3>Understand the session</h3><p>Review supported live channels, fault codes and recorded sessions with raw data and context where available.</p><a href="web/tour.html">Explore the workflow →</a></article>
+        <article class="card"><div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16M15 4v16"/></svg></div><h3>Look closer at maps</h3><p>Render XDF tables, compare images, stage changes and explore log-based proposals. Fitment and checksum requirements still matter.</p><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/XDF_LIBRARY.md">About the XDF library →</a></article>
+        <article class="card"><div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="m14.5 14.5 5 5M8 10h4M10 8v4"/></svg></div><h3>Research ECU numbers</h3><p>Compare part, hardware and software identifiers locally, or choose to search a third-party catalog for more leads.</p><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/ECU_NUMBER_RESEARCH.md">How matching works →</a></article>
+        <article class="card"><div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 17h3l3-10 4 10 3-7 2 4h3"/><path d="M3 4v16h18"/></svg></div><h3>Make sense of captures</h3><p>Inspect CAN and K-Line logs and use selected offline multi-brand decoders without sending a frame to a motorcycle.</p><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/EXTERNAL_MOTORCYCLE_RESEARCH.md">See research sources →</a></article>
+        <article class="card"><div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 6a4 4 0 0 0-5 5L4 16a2 2 0 0 0 3 3l5-5a4 4 0 0 0 5-5l-3 3-2-2z"/></svg></div><h3>Useful workshop extras</h3><p>Work through service intervals, gearing, manual-text search and more with user-supplied information.</p><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/WORKSHOP_REFERENCE_TOOLS.md">Browse the tools →</a></article>
+        <article class="card"><div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M3 13h18"/></svg></div><h3>Desktop &amp; browser</h3><p>Run the workstation locally or explore the hosted simulator. Both share the interface; only the local app offers hardware transports.</p><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/DESKTOP.md">Desktop setup →</a></article>
+      </div>
+    </section>
   </div>
-
-  <div class="stats">
-    <div class="stat"><b>11</b><span>ECU families</span></div>
-    <div class="stat"><b>118</b><span>model variants</span></div>
-    <div class="stat"><b>1992–2026</b><span>years covered</span></div>
-    <div class="stat"><b>460+</b><span>unit tests</span></div>
-    <div class="stat"><b>3</b><span>brands, one Marelli stack</span></div>
+  <section class="coverage-wrap" id="coverage"><div class="container section coverage-grid">
+    <div><div class="eyebrow">Coverage &amp; confidence</div><h2>Many makes.<br>Specific capabilities.</h2><p>GuzziOnBoard began with Moto Guzzi, but the workspace reaches beyond one badge. What you can do depends on the exact ECU, software and evidence behind each profile.</p><a class="text-link" href="https://github.com/ahardkore/GuzziOnBoard/blob/main/README.md#coverage-what-is-and-isnt-enabled">Read the coverage overview →</a></div>
+    <div><div class="rows"><div class="row"><b>Marelli</b><span>Moto Guzzi and selected Ducati / Aprilia applications, with profile-specific gates.</span></div><div class="row"><b>Honda</b><span>Offline response decoding, XDF research and narrowly scoped offline builds.</span></div><div class="row"><b>Kawasaki / Triumph</b><span>Selected read-only diagnostic paths, informed by third-party sources.</span></div><div class="row"><b>Harley-Davidson</b><span>Read-only J1850 diagnostics and offline capture / calibration-region research.</span></div><div class="row"><b>More research</b><span>Selected Suzuki, BMW, Yamaha and CFMoto offline tools and references.</span></div></div>
+      <div class="notice"><span aria-hidden="true">ⓘ</span><span><strong>Before you connect:</strong> GuzziOnBoard's hardware integrations have not been validated on a physical motorcycle. The hosted demo is simulated; physical ECU writing remains blocked. A listed make or matching identifier is not proof of fitment.</span></div>
+    </div>
+  </div></section>
+  <div class="container">
+    <section class="section" id="get-started"><div class="section-head"><div><div class="eyebrow">Get started</div><h2>Your bench, your way.</h2></div><p>Explore first, then choose the setup that fits your workshop.</p></div>
+      <div class="start-grid"><article class="start"><span class="num">01 / EXPLORE</span><h3>Try the simulator</h3><p>Open the hosted workstation and get familiar with its virtual motorcycle and tools.</p><a href="web/index.html">Open browser demo ↗</a></article><article class="start"><span class="num">02 / INSTALL</span><h3>Use the desktop app</h3><p>Find available builds and setup instructions for your operating system. Releases may lag the source.</p><a href="https://github.com/ahardkore/GuzziOnBoard/releases">View releases ↗</a></article><article class="start"><span class="num">03 / BUILD</span><h3>Run from source</h3><p>Start the local workstation with Python 3.11+ and explore the code and documentation.</p><a href="https://github.com/ahardkore/GuzziOnBoard#run-from-source">Read the quick start ↗</a></article></div>
+    </section>
+    <section class="cta" aria-label="Explore the demo"><div class="cta-copy"><div class="eyebrow">Start with the simulator</div><h2>Take a look around.</h2><p>A working demo, no motorcycle or cable required.</p></div><a class="btn" href="web/index.html">Open the workstation <span aria-hidden="true">↗</span></a></section>
   </div>
-</section>
-
-<!-- ================= TRY ================= -->
-<section class="section wrap" id="try">
-  <h2>Try it right now — nothing to install</h2>
-  <p class="sub">Three pages, hosted here. No server, no CDN, no account:
-     this is what the workstation feels like, minus the real wire protocol underneath.</p>
-  <div class="grid three">
-    <div class="card">
-      <span class="k">New · full UI</span>
-      <h3>🖥 Workstation demo</h3>
-      <p>The actual workstation interface, with the simulated ECU running in your browser:
-         pick a bike in the Garage, connect, identify it, watch live channels, read and
-         clear fault codes, seed a fault, pulse an actuator — and get refused by the
-         same safety gate when the preconditions are not met.</p>
-      <p>The rest of the bench is simulated too: back up and re-flash the ECU (three
-         seconds instead of twenty minutes, and it says so), render the bundled TunerPro
-         maps, run a guided test, replay and compare recorded sessions, build a report,
-         and use the workshop tools. Nothing here has touched a motorcycle — only real
-         hardware (serial adapters, CAN) is refused rather than faked.</p>
-      <p style="margin-top:12px"><a class="btn primary" href="web/index.html">Open the workstation demo →</a></p>
-    </div>
-    <div class="card">
-      <span class="k">Standalone demo</span>
-      <h3>🏍 Engine simulator</h3>
-      <p>The same engine model the workstation's simulator runs: start it, rev it, watch the
-         live channels move — then inject a fault and watch the safety gate refuse the
-         stupid stuff. Single file, works offline.</p>
-      <p style="margin-top:12px"><a class="btn" href="web/sim.html">Open the simulator →</a></p>
-    </div>
-    <div class="card">
-      <span class="k">Guided walkthrough</span>
-      <h3>🗺 Tour &amp; setup</h3>
-      <p>A walk through every view of the workstation — Garage, live data, fault codes,
-         ECU memory, maps &amp; tables — plus the setup side: the cables and adapters that
-         matter for a real bike.</p>
-      <p style="margin-top:12px"><a class="btn" href="web/tour.html">Take the tour →</a></p>
-    </div>
-  </div>
-  <p class="run-note">The workstation demo answers its own API in the page (the catalog is
-     exported from the Python definitions, the engine model and the safety gate are ported).
-     ECU memory, maps &amp; tables, the tools, guided tests, session recording and reports say
-     <b>local workstation only</b> rather than pretending — they move files and open ports.
-     The <b>full workstation</b> runs on your machine and speaks actual KWP2000 / ISO-TP over
-     K-Line or CAN — see below.</p>
-</section>
-
-<!-- ================= FEATURES ================= -->
-<section class="section wrap" id="features">
-  <h2>What it actually does</h2>
-  <p class="sub">No decorative features. Everything below is implemented, and what isn't
-     proven on hardware says so.</p>
-  <div class="grid three">
-    <div class="card">
-      <h3>Real protocol stack</h3>
-      <p>KWP2000 (ISO&nbsp;14230) application and data-link layer — fast init, 5-baud init,
-         framing, checksums — plus ISO-TP (ISO&nbsp;15765-2) segmentation for the CAN bikes.
-         Unit tested down to the timing.</p>
-    </div>
-    <div class="card">
-      <h3>A catalog with teeth</h3>
-      <p>11 existing controller profiles, two read-only profiles and two research placeholders, 122 model variants
-         across Moto Guzzi, Ducati, Aprilia, Honda, Kawasaki, Suzuki and Triumph (1992–2026), each with a confidence level
-         that governs what the workstation will let you do. Enforced in code, not in the docs.</p>
-    </div>
-    <div class="card">
-      <h3>A simulator that isn't fake</h3>
-      <p>The simulated ECU speaks the actual wire protocol and drives the whole stack —
-         and a virtual-CAN rehearsal exercises the complete ISO-TP path: segmentation,
-         flow control, reassembly. No bike required.</p>
-    </div>
-    <div class="card">
-      <h3>Identify · live data · fault codes</h3>
-      <p>ECU identification, live channels with proper scaling, DTC read and clear with the
-         workstation-observed context, actuator tests, TPS and adaptation resets — gated by
-         confidence and safety.</p>
-    </div>
-    <div class="card">
-      <h3>Memory: read, verify, back up</h3>
-      <p>ECU memory read with the 5AM path grounded in a verified capture, and backups
-         verified by a second independent read before you're told they're good.</p>
-    </div>
-    <div class="card">
-      <h3>Maps, sessions, reports</h3>
-      <p>TunerPro XDF table rendering and named diffs of two dumps (by table and axis
-         value, not raw offset), session recording and channel-by-channel comparison,
-         text/JSON reports and PDF export.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ================= SAFETY ================= -->
-<section class="section wrap" id="safety">
-  <h2>Safety is the feature</h2>
-  <p class="sub">A workstation that commands a motorcycle ECU must know what it doesn't
-     know. Every family in the catalog carries a confidence level — and the level decides
-     what's permitted.</p>
-  <div class="ladder">
-    <div class="lvl ok">
-      <span class="pill">VERIFIED-CAPTURE</span>
-      <h3>Grounded in a real capture</h3>
-      <p>The IAW 5AM / 5AM2 path is anchored to a verified bus capture: full diagnostics
-         and memory read. Writing is implemented and simulator-tested, but stays gated
-         pending bench confirmation.</p>
-    </div>
-    <div class="lvl warn">
-      <span class="pill">DOCUMENTED</span>
-      <h3>Documented protocol</h3>
-      <p>Full diagnostics — identification, live data, fault codes, routines — for families
-         whose protocol behavior is documented across the GuzziDiag ecosystem.</p>
-    </div>
-    <div class="lvl mut">
-      <span class="pill">INFERRED</span>
-      <h3>Inferred only</h3>
-      <p>Degrades to identification, fault codes and the read-only discovery sweep. The
-         workstation will not command an ECU it does not genuinely understand — including
-         every cross-brand Ducati and Aprilia entry.</p>
-    </div>
-  </div>
-  <div class="grid three" style="margin-top:14px">
-    <div class="card">
-      <h3>Backups you can trust</h3>
-      <p>Two independent reads must agree before a backup is called good; interrupted
-         writes leave checkpoints with recovery guidance.</p>
-    </div>
-    <div class="card">
-      <h3>No fake keys</h3>
-      <p>SecurityAccess seed/key plumbing supports key-provider plugins — but no unverified
-         key algorithm ships as if it worked. The transcribed 5AM key stays hardware-gated.</p>
-    </div>
-    <div class="card">
-      <h3>Careful by construction</h3>
-      <p>Read-only discovery sweeps, adapter pre-flight (including the FTDI latency timer),
-         a connect checklist, and CAN capture analysis that only ever listens.</p>
-    </div>
-  </div>
-  <div class="quote">
-    "Confidence is enforced, not decorative. Anything below <code>documented</code> degrades
-    to identification, fault codes and the read-only discovery sweep."
-    <small>— the rule the whole workstation is built around</small>
-  </div>
-</section>
-
-<!-- ================= RUN ================= -->
-<section class="section wrap" id="run">
-  <h2>Run the real thing</h2>
-  <p class="sub">Simulator mode needs nothing but Python&nbsp;3.11+ — no serial port is
-     opened until you ask for one.</p>
-  <div class="term">
-    <div class="term-bar"><i></i><i></i><i></i><span>workstation — terminal</span></div>
-<pre><span class="c"># simulator mode: the whole workstation, no bike, no cable</span>
-<span class="p">$</span> python3 run_server.py
-<span class="c">#  → open http://127.0.0.1:8000 — pick a bike in the Garage</span>
-
-<span class="c"># real hardware (pyserial + python-can)</span>
-<span class="p">$</span> pip install -e <span class="a">'.[hardware]'</span>
-<span class="p">$</span> python3 run_server.py</pre>
-  </div>
-  <p class="run-note">
-    Try <code>Griso 1200 8V</code> / <code>2012</code> in the Garage, connect in simulator
-    mode, and the rest of the workstation comes alive. TunerPro XDF definitions for the maps
-    view are yours to supply (third-party, see the README) — rendering and diffing are
-    strictly read-only.
-  </p>
-</section>
-
-<!-- ================= COVERAGE ================= -->
-<section class="section wrap" id="coverage">
-  <h2>Coverage</h2>
-  <p class="sub">Marelli ECU families in the catalog, with the confidence level that
-     governs what the workstation will let you do.</p>
-  <div class="tbl-wrap">
-    <table>
-      <thead>
-        <tr><th>Family</th><th>Years</th><th>Bus</th><th>Confidence</th><th>Representative models</th></tr>
-      </thead>
-      <tbody>
-        <tr><td class="fam">IAW P8</td><td>1993–1997</td><td>K-Line</td><td><span class="tag mut">inferred</span></td><td class="models">Daytona 1000, Quota 1000, California III i.e.</td></tr>
-        <tr><td class="fam">IAW 16M</td><td>1996–2001</td><td>K-Line</td><td><span class="tag warn">documented</span></td><td class="models">Sport 1100, V10 Centauro, Daytona RS</td></tr>
-        <tr><td class="fam">IAW 15M</td><td>1997–2002</td><td>K-Line</td><td><span class="tag warn">documented</span></td><td class="models">California EV / Jackal / Stone, V11 Sport</td></tr>
-        <tr><td class="fam">IAW 15RC</td><td>2002–2012</td><td>K-Line</td><td><span class="tag warn">documented</span></td><td class="models">V7 Classic, Nevada 750, Breva 750, Bellagio</td></tr>
-        <tr><td class="fam">IAW 5AM / 5AM2</td><td>2005–2016</td><td>K-Line</td><td><span class="tag ok">verified-capture</span></td><td class="models">All CARC: Griso, Norge, Breva 850–1200, Stelvio, 1200 Sport</td></tr>
-        <tr><td class="fam">IAW 7SM</td><td>2013–2021</td><td>K-Line</td><td><span class="tag warn">documented</span></td><td class="models">California 1400, Audace, Eldorado, MGX-21, early V85 TT</td></tr>
-        <tr><td class="fam">MIU G3</td><td>2012–2016</td><td>K-Line</td><td><span class="tag warn">documented</span></td><td class="models">V7 (single throttle body), V7 II, V9</td></tr>
-        <tr><td class="fam">MIU G4</td><td>2017–2021</td><td>CAN</td><td><span class="tag mut">inferred</span></td><td class="models">V7 III, V7 850</td></tr>
-        <tr><td class="fam">Marelli 11MP</td><td>2019–2026</td><td>CAN</td><td><span class="tag mut">inferred</span></td><td class="models">Later V85 TT, V100 Mandello</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <p class="footnote">Ducati and Aprilia bought the same Magneti Marelli ECUs — 748, 916,
-     996, 999, Monster, Multistrada; RSV Mille, Tuono, Caponord, RSV4 — and the catalog
-     resolves those bikes to the shared families. Those Ducati and Aprilia entries ship read-only
-     by design, until their identifier tables are confirmed. Honda and Suzuki research entries are offline-only. Kawasaki and Triumph diagnostic paths are read-only and do not identify the ECU.</p>
-</section>
-
 </main>
-
-<footer class="site">
-  <div class="wrap">
-    <div class="foot-grid">
-      <div>
-        <h4>Project</h4>
-        <ul>
-          <li><a href="https://github.com/ahardkore/GuzziOnBoard">GitHub repository ↗</a></li>
-          <li><a href="web/tour.html">Tour &amp; setup</a></li>
-          <li><a href="web/index.html">Workstation demo (in-browser)</a></li>
-          <li><a href="web/sim.html">Engine simulator demo</a></li>
-          <li><a href="https://github.com/ahardkore/GuzziOnBoard/releases">Releases ↗</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>Documentation</h4>
-        <ul>
-          <li><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/ARCHITECTURE.md">Architecture</a></li>
-          <li><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/PROTOCOL_NOTES.md">Protocol notes</a></li>
-          <li><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/PROGRAMMING.md">ECU programming</a></li>
-          <li><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/USER_WORKFLOWS.md">User workflows</a></li>
-          <li><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/PRIOR_ART.md">Prior art</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>Quick start</h4>
-        <ul>
-          <li class="mono">python3 run_server.py</li>
-          <li class="mono">pip install -e '.[hardware]'</li>
-          <li class="mono">pip install -e '.[dev]' &amp;&amp; pytest</li>
-        </ul>
-      </div>
-    </div>
-    <p class="foot-note">GuzziOnBoard is AGPL-3.0-licensed (see the repository for source and notices). It is a hobby project, not affiliated
-       with Moto Guzzi, Piaggio, Ducati, Aprilia, Honda or Magneti Marelli. Working software,
-       unproven on a motorcycle — read the safety notes before you connect anything to a
-       real ECU.</p>
-  </div>
-</footer>
-
+<footer><div class="container footer-inner"><div><a class="brand" href="./"><span class="mark">GO</span><span class="brand-name">Guzzi<span>OnBoard</span></span></a><p>Independent, open-source software. Not affiliated with motorcycle or ECU manufacturers. AGPL-3.0; third-party materials have their own terms.</p></div><div class="footer-links"><a href="web/tour.html">Tour &amp; setup</a><a href="web/sim.html">Engine simulator</a><a href="https://github.com/ahardkore/GuzziOnBoard">GitHub ↗</a><a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/PHYSICAL_VALIDATION.md">Safety &amp; validation ↗</a></div></div></footer>
 </body>
 </html>

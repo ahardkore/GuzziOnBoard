@@ -107,7 +107,10 @@ missing or corrupt frames are shown as missing, never reused as fresh values.
 The temperature unit differs between original source documentation and code;
 treat it as a candidate. DTC requests target the source's ECM, ABS and TSM
 addresses. The display identifies which modules responded, and does not infer
-that missing modules are clean or label a fault current/historic. A verified
+that missing modules are clean or label a fault current/historic. For matching
+codes it also displays a source-labelled reference description from the
+HarleyDroid EVO English DTC list (167 codes, GPL-3.0-or-later); descriptions
+are leads, not verified fitment or a diagnosis. Unknown codes remain unlabeled. A verified
 response with a zero code is not a complete health assessment.
 
 The transport allows only its fixed setup, the named identity/DTC requests and
@@ -134,3 +137,71 @@ provided here. Neither establishes a reusable checksum algorithm for the
 HarleyECUTool 16 KiB region. The local checksum-plugin framework is available
 for a suitable user-supplied provider, but no Harley calibration checksum
 provider or validated matching Harley definition is bundled.
+
+## Live CAN broadcast observation (local Linux workstation)
+
+**Discovery → Harley HDLAN · live CAN observation** reads bounded two-second
+windows from an existing Linux SocketCAN interface after explicit confirmation.
+Configure the correct bitrate and adapter/wiring in the operating system first;
+the application neither configures the interface nor sends CAN frames. A normal
+CAN controller may still electrically acknowledge traffic: if true silent bus
+monitoring is required, configure and verify the adapter/controller's
+listen-only mode independently. Adapter support and permissions vary; this
+feature is unavailable in the hosted demo and is not an ELM327 CAN session.
+Stopping the monitor prevents further windows; an already-running window can
+take up to two seconds to finish and its result is discarded. The monitor also
+stops when the page is hidden or its interface/profile changes. It keeps only
+the most recent matching frame per ID in each window and never carries a missing
+value forward. Raw bytes remain visible.
+
+Two explicit mapping choices are supplied:
+
+* **HarleyDroid HDLAN community** uses the GPL best-effort candidate mappings
+  already described above. Speed, odometer, temperature, clutch, neutral and
+  tentative RPM depend on model and year, and these broadcasts do not identify
+  the bike. No gear is estimated.
+* **2017 XL1200X Sportster** follows reported observations in
+  [earnaz/Harley-Davidson-CAN-Bus at 835a1bcc](https://github.com/earnaz/Harley-Davidson-CAN-Bus/tree/835a1bccb1cdee0369e120f4a134fbb0bde3564d),
+  copyright 2023 Chrisisbrown, MIT (`LICENSES/Harley-Sportster-CAN-MIT.txt`).
+  It exposes raw throttle-frame and battery-frame bytes and narrowly recognized
+  switch/stand patterns, not percentages, volts or complete switch semantics.
+  Unknown patterns stay unknown. The source reports observations on one bike;
+  selecting this option is a user assertion, not vehicle detection.
+
+These are passive candidate broadcasts, not verified instrumentation, and must
+not be used for riding or safety decisions. No fault queries, ECU memory,
+security, calibration writing or other diagnostic requests are sent. This
+integration has synthetic tests only, with no physical Harley testing.
+
+## Live Delphi CAN identity and raw DID research
+
+In Garage, use the ECU-only override **Harley Delphi CAN (identity research)**,
+select CAN and read-only mode, and specify a CAN channel. On Linux use an
+already configured SocketCAN channel such as `can0`; for a PCAN adapter use a
+python-can PCAN channel such as `PCAN_USBBUS1` with its driver installed.
+The profile is restricted to 500 kbit/s, physical `0x7E0`/`0x7E8` and zero
+padding. The source describes Delphi ECUs approximately 2014–2020, but this
+selection is not proof of a particular ECU, software revision or motorcycle.
+
+The connection requires a matching `3E 00` / `7E 00` tester-present response;
+that confirms only a responder. The Identify action attempts the source's
+five fixed identity DIDs (`F1EA`, `F1ED`, `F1F5`, `F1F2`, `F1EF`), displaying
+successful responses as **raw candidates**. The source's example metadata
+has blank part and serial fields and its tool reads DIDs after authentication;
+this default-session attempt can be refused or time out. A negative or absent
+reply is not a confirmed identity. Successful candidate values are not used
+as the programming gate's identified or hardware evidence. DIDs and session
+logs may contain sensitive identification information.
+
+The Live view offers four fixed raw DIDs (`0100`–`0103`) observed in a source
+capture. Their units and semantics are unknown, so the app shows only the raw
+bytes and their big-endian integer representation. Each has the captured length
+checked; no sensor interpretation or safety state is inferred. Other arbitrary
+DIDs, security, session changes, resets, fault clear, memory operations and
+writes are refused. The source's memory-read path actually requires an opaque,
+vehicle-specific transfer payload sent using **RequestDownload (`34`) and
+TransferData (`36`)**, not merely a passive read. We do not treat that as
+read-only, nor replay a proprietary payload or claim it works across Harleys.
+The published sample does not establish target identity, firmware compatibility
+or checksum/recovery requirements for a safe flash. This integration has
+synthetic tests only and has not been tested on physical hardware.

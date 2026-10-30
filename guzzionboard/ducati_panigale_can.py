@@ -1,9 +1,10 @@
-"""Opt-in offline Ducati Mitsubishi CAN capture interpretation.
+"""Opt-in Ducati Mitsubishi CAN capture interpretation.
 
 Adapted from DucatiPanigaleCanBus, src/canbusble.cpp and
 src/DucatiPanigaleCanbus.lua, commit 03e7127c69ee3398c03076352ac93bbd3f795ce2.
 Copyright (c) 2021 Renato Bonomini, MIT; see LICENSES/DucatiPanigaleCanBus-MIT.txt.
-No live transport, vehicle identification, diagnostic ID inference or ECU write.
+The separate bounded observer can use this decoder on live SocketCAN frames.
+No vehicle identification, diagnostic ID inference or ECU write.
 Values are research leads; this is not a Moto Guzzi profile.
 """
 from __future__ import annotations

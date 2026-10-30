@@ -81,12 +81,11 @@ Important source limitation: the two example received frames in the upstream REA
 
 ## Multi-brand expansion: protocol and calibration evidence
 
-All new decoders are **offline research only** in the shared browser and desktop
-Tools page. A user selects the source/profile and pastes complete frames. There
+The pasted-frame decoders in this section are **offline research tools** in the shared browser and desktop
+Tools page. Separate live sessions have since been added for the SV650 profiles, as detailed below. A user selects the source/profile and pastes complete frames. There
 is no ECU connection, hardware driver, automatic brand detection, polling,
 unlock, fault clearing, programming, or proof that a capture came from the
-selected bike. The Suzuki catalog entry remains a research placeholder with no diagnostic
-capabilities; physical and simulator sessions are blocked. Kawasaki ER-6n 2006
+selected bike. Kawasaki ER-6n 2006
 and Triumph Daytona 675 2012 also have separate read-only diagnostic paths described below. BMW and Harley research are
 not claimed as garage vehicle fitments. Raw frames and candidate values remain
 local to the tab. Limits: 100 frames per invocation and 70 K-Line bytes per
@@ -95,7 +94,7 @@ frame; no stream reconstruction. Do not use these candidates as safety data.
 | Evidence source and pinned revision | Scope imported | Important limits |
 |---|---|---|
 | [iKawa](https://github.com/gabrielerandazzo/iKawa/tree/79eb9049d13037be6fd91b8a1d1acd164ca70104) | Copyright (c) 2026 Gabriele Randazzo, MIT; `ikawa/Kline.cpp` response parsing and a subset of read-value formulas for author-tested **2006 Kawasaki ER-6n**. Full notice: `LICENSES/iKawa-MIT.txt`. | Exact ECU ID and broader model/year coverage unverified. Source-specific throttle calibration, decimal-byte RPM/speed formulas and all values are candidates. Rejects negative, short, wrong-address and bad-sum frames. |
-| [SV650overlay](https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce) | BananaJoh, GPL-3.0; `MainActivity.java` and `DataInfo.java` candidates for author-operated **Suzuki SV650AK7 (2007)** SDS all-sensors frames. License: `LICENSES/SV650overlay-GPL-3.0.txt`. | Source says some conversions are missing or inaccurate. Its RPM uses only the high byte; another SDS implementation treats both bytes differently. Other conversions also differ. The Suzuki source explicitly says conversions may be inaccurate, so it is not promoted to a physical ECU profile. |
+| [SV650overlay](https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce) | BananaJoh, GPL-3.0; `MainActivity.java` and `DataInfo.java` candidates for author-operated **Suzuki SV650AK7 (2007)** SDS all-sensors frames. License: `LICENSES/SV650overlay-GPL-3.0.txt`. | Source says some conversions are missing or inaccurate. Its RPM uses only the high byte; another SDS implementation treats both bytes differently. Other conversions also differ. Now offered as a read-only, source-scoped live session, with every conversion labelled candidate. This integration has not been physically tested; the source warns that some conversions are inaccurate. It has no ECU memory or programming access. |
 | [daytona-kline](https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32) | Copyright (C) 2026 Andrew Wilke, GPL-3.0-or-later; ISO 9141 response framing and subset of SAE mode 01 formulas for **2012 Triumph Daytona 675**. License: `LICENSES/Daytona-Kline-GPL-3.0.txt`. | Author tested one bike; formulas have not been compared against its dash. Other years untested, and its `0x21` sensor block did not work on the tested bike. The offline decoder does not transmit. A separate read-only implementation below adapts slow wake-up and polling; security access and output tests are not imported. |
 | [EasierCan](https://github.com/HagayBT/BMW-R1300GS-Smart-Backlight-Fog-Light-Controller/tree/a4c37ceabeea57bc7e97b51da345dd7b84e21596) | Copyright (c) 2026 HagayBT, MIT; candidate RPM and switch bits from a **BMW R1300GS** capture source. License: `LICENSES/BMW-R1300GS-EasierCan-MIT.txt`. | No specific model year is established by the README. No transmitting, wiring or output-control code is imported. Input is a manually supplied 11-bit classic CAN frame; its direction is unknown. Matching IDs do not establish fitment. |
 | [vpw-sniffer](https://github.com/bbutka/vpw-sniffer/tree/37aa6f974615154419bc28eb9cf9f9cfb804ade0) | Copyright (c) 2026 bbutka, MIT; generic J1850 CRC-8 check, for research into a **2008 Harley-Davidson Touring** bus. License: `LICENSES/VPW-Sniffer-MIT.txt`. | Source says it has not been validated on a bike. Its test labels `01 02 03 → 1B`, but its own CRC implementation yields `C1`; we test `C1` plus standard `123456789 → 4B`. Only CRC consistency is reported—no Harley data, timing, bus capture or bike compatibility is established. |
@@ -253,7 +252,7 @@ adapted from [daytona-kline](https://github.com/andrewwilke/daytona-kline/tree/d
 
 Select the exact make/model/year, an appropriate isolated K-Line-to-USB adapter and bike-specific diagnostic harness, read-only mode, and the profile-default handshake. Both profiles use 10400 baud, 1-second idle, 25/25 ms fast init, source address F1, ECU address 11 (Versys) or 12 (GSX-R), and require an addressed `C1 EA 8F` wake response. They use source-described, explicitly length-prefixed KWP frames with checksum/address/response validation. Other key bytes are rejected rather than inventing negotiated formats; a real ECU using different keys will not connect. The Versys starts `10 80`, reads the fixed `21 04/05/06/07/09/0B/0C` list, and polls `21 0B` for keepalive. The GSX-R queries `21 08` once per live-data poll and expects the emulator's full 50-byte sensor-data block; `3E 01` is its source keepalive. Only these exchanges are permitted, not DTC, clear, security, memory, write or programming services. No ECU identification or simulator is claimed.
 
-These numbers are **candidate source conversions**, not independent calibrations. The source's C++ stores several results in integer types; the workstation shows fractional arithmetic in some cases rather than reproducing every truncation or unsigned wrap. For Versys speed and throttle it displays the first source byte (up to two response bytes accepted), and for GSX-R battery it deliberately displays the raw byte: the source labels its `byte*100/126` output as voltage but its units are unclear. The GSX-R displayed fields all carry the actual local ID `08`; raw samples contain the individual source-offset bytes, not the full snapshot. The older SV650 source uses materially different conversions and explicitly warns that some are inaccurate; its 2007 profile remains offline-only. Missing, truncated, unexpected, wrong-address or invalid-checksum data is rejected. Uncertain values do not drive the workstation's engine/battery safety state.
+These numbers are **candidate source conversions**, not independent calibrations. The source's C++ stores several results in integer types; the workstation shows fractional arithmetic in some cases rather than reproducing every truncation or unsigned wrap. For Versys speed and throttle it displays the first source byte (up to two response bytes accepted), and for GSX-R battery it deliberately displays the raw byte: the source labels its `byte*100/126` output as voltage but its units are unclear. The GSX-R displayed fields all carry the actual local ID `08`; raw samples contain the individual source-offset bytes, not the full snapshot. The separate 2007 SV650AK7 source uses different conversions and explicitly warns that some are inaccurate; see its scoped live profile below. Missing, truncated, unexpected, wrong-address or invalid-checksum data is rejected. Uncertain values do not drive the workstation's engine/battery safety state.
 
 ### Honda flash-reader research, not an enabled feature
 
@@ -329,3 +328,103 @@ targets the 2022 RC 390 using an OBDLink Bluetooth adapter, but does not
 establish that this project's SocketCAN integration or any specific PID works
 on that motorcycle; no code was copied and no model-specific connection was
 enabled from it.
+
+## Honda PGM-FI K-Line: source-listed diagnostic attempts
+
+[MCU Innovations](https://mcuinnovations.com/news/protocol-honda_keihin_kline_pgmfi/)
+lists Honda models and years under its **Honda Keihin KLINE PGMFI** protocol.
+The catalog includes 61 distinct Honda model labels, including extensions from a newer MCU Innovations list and a separate FI Honda diagnostic vendor, as **unknown-confidence,
+read-only attempts**, not as confirmed compatibility. The source's commercial
+protocol list is evidence of its own coverage; it does not establish that this
+workstation's diagnostic tables or initialization work on every listed ECU,
+market or variant. It does not authorize any memory or tuning operations.
+Previously supported Honda profiles are unchanged.
+
+The diagnostic table request format and fixed table list follow
+[WiseNoodle/honda-moto-ecu-suite](https://github.com/WiseNoodle/honda-moto-ecu-suite/tree/85431bd831b2c50a640fac35dccf36c09df20c07)
+(GPL-3.0, `LICENSES/Honda-Moto-ECU-Suite-GPL-3.0.txt`). It probes these tables
+because different ECUs answer different sets. Select a cataloged Honda model
+and year, read-only physical K-Line, and the profile-default initialization.
+After an exact initialization response, the Live page can request the fixed
+`10`, `11`, `17`, `20`, `21`, `60`, `61`, `67`, `70`, `71`, `D0`, and `D1`
+diagnostic tables **individually**. Only table 10 is selected by default; no
+automatic scan of every table occurs. A missing, invalid or unselected table
+is not represented as a successful zero. The unaltered table payload is shown.
+Optional engine-speed and temperature candidates for tables 10, 11 and 17 are based
+on other source layouts; the temperature may be coolant or oil depending on
+ECU. They are not used for safety gating. Table `00` is queried for an
+unverified five-byte ECM ID candidate and session keepalive, not a confirmed
+part number. Wire frames are length-, table-, and checksum-checked. There are
+no arbitrary table requests, clearing, reset, programming, ECU image reads,
+or simulator for this profile. A diagnostic table is not an ECU flash dump.
+
+**No bike has been physically tested by GuzziOnBoard for this profile.** The
+These model labels are source-listed targets for a live attempt, not individually verified
+motorcycles. Individual response and sensor compatibility may differ.
+Secure the motorcycle, use the correct diagnostic connector and transceiver, and
+never operate the app while riding.
+
+## Suzuki GSX-R1000 2004 raw SDS snapshot
+
+[uronour/suzuki-Kawasaki-ecu-tool](https://github.com/uronour/suzuki-Kawasaki-ecu-tool/tree/4f92cc2adab254595b08c21e2c90b4c57d2e9cc6)
+reports live SDS tests on a 2004 GSX-R1000. Its README reserves all rights; no
+source code or captured data from that repository is copied here. The
+independently implemented attempt uses a 10400-baud physical K-Line,
+addressed fast initialization to ECU `12`, and only the source-described
+`21 08` snapshot. No DTC, security, memory, clear or stop commands are sent.
+The source's documentation and implementation disagree on offset bases and
+response-length checks; therefore only raw snapshot bytes are displayed and
+no sensor values are claimed. It reports `23` memory read does not work outside
+boot/flash mode; this integration does not attempt it. The new implementation
+is synthetic-tested only and the exact ECU and market remain unverified.
+
+## Ducati Mitsubishi broadcast observation
+
+The desktop **Discovery → Motorcycle CAN live broadcast observation** panel
+now includes the existing MIT-licensed
+[DucatiPanigaleCanBus](https://github.com/renatobo/DucatiPanigaleCanBus/tree/03e7127c69ee3398c03076352ac93bbd3f795ce2)
+decoder for a bounded live receive-only SocketCAN window. Upstream names the
+Panigale 899/959/1199/1199S/1199R/1299/1299S/R/Superleggera, Multistrada 1200
+(2010–14), Diavel, Diavel Strada and Diavel DS as target examples. This is not
+proof of exact fitment or a bike count validated by this project. Configure
+the interface and 500 kbit/s bitrate in the OS first and explicitly confirm
+wiring and limitations. It filters the three source IDs, excludes transmit,
+extended, remote, error, and CAN-FD frames, and displays only fresh window
+values with raw bytes. The app sends no CAN frames, although a normal adapter
+can still ACK traffic unless separately configured listen-only. No ECU
+identification, requests, fault operations, memory or flashing are provided.
+The integration is synthetic-tested only. The hosted demo cannot access
+hardware.
+
+
+### Suzuki SV650 SDS live sessions
+
+* [SV650overlay](https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce) reports an operating **2007 SV650AK7**, and provides the wake and sensor conversions used here (GPL-3.0; `LICENSES/SV650overlay-GPL-3.0.txt`). We use a six-second idle, 25/25 ms fast wake, `81 12 F1 81 05`, and the fixed `21 08` read. RPM, TPS, temperatures, battery and the gear/status byte are **candidates**, not verified measurements or safety inputs; the source itself cautions that some conversions are inaccurate. RPM uses only the high byte.
+* [synfinatic/sv650sds](https://github.com/synfinatic/sv650sds/tree/bacf803a9056241ef270acf0e7e31467961aeba5) describes communication with **2003–2005 SV650** and supplies a raw `21 08` capture from ECU 32920-17G2. Source is GPL-3.0 (`LICENSES/SV650SDS-GPL-3.0.txt`). The separate session returns only raw bytes and never uses the AK7 conversions. The documented model-year range is not a hardware test of every bike.
+
+Both profiles accept only addressed, checksum-valid 57-byte all-sensors responses; are read-only and restricted to the selected source model/year; and expose neither DTC, ECU identification, memory, control, nor flashing. GuzziOnBoard adaptations have synthetic tests and **no physical validation**. A K-Line adapter, appropriate connector and correct wiring are required.
+
+
+### Expanded Honda, Suzuki and Harley source-listed attempts
+
+The [current MCU Innovations Honda Keihin PGM-FI list](https://mcuinnovations.com/vehicles/protocols/honda_keihin_kline_pgmfi/) adds model years and HRC/CRF/150cc variants. An independent [FI Honda diagnostic product list](https://www.obd2tool.com/goods-5014-OBD+Tool+For+Fuel+Injected+Honda+Motorcycles+Support+Multi-languages.html) lists additional Goldwing, NC700, Shadow Aero (fuel-injected only), VFR1200FD and other models. These product lists describe other tools, not proven compatibility of this session. Unsupported table responses remain errors; candidate IDs do not enable programming. [AiM’s HDS decoder list](https://www.aimtechnologies.com/support/stockecu/HondaCBR-RR_600_2003-2005+CBR-RR1000_2004-2015_100_eng.pdf) explicitly excludes HRC ECUs older than its listed 2013 CBR600RR D11 and 2014 CBR1000RR coverage, whereas MCU lists some earlier HRC variants; those vendor scopes differ and neither proves this integration works.
+
+[AiM's Suzuki SDS fitment list](https://support.aimshop.com/downloads/stockEcu/bike/suzuki/Suzuki_SDS_Protocol_102_eng.pdf) lists GSX-R600/750 (2006–2016), GSX-R1000 (2005–2016), and GSX-R1300 Hayabusa (2008–2016). A separate raw-snapshot profile attempts the `21 08` request evidenced by the earlier Suzuki sources. AiM does not establish that exact frame format or length on every listed bike; unexpected responses fail rather than being decoded. Existing narrower 2011 GSX-R600 and 2004 GSX-R1000 profiles remain unchanged. No identity, faults, memory, or tuning is offered by this new profile.
+
+[Dynojet's Delphi CAN product fitment list](https://www.dynojet.com/harley-davidson-power-vision-delphi-can-black-1/) supplies 80 named Harley models across 2011–2022, including the 2014–2020 range described by the separate lawflo Delphi research. They now offer the existing limited identity/raw-DID CAN attempt in Garage. Dynojet does not establish that GuzziOnBoard's DIDs, addresses, or default session work on each ECU. Tester-present may fail and subsequent requests may require authentication; no flash or memory reading is implemented. ECU-only override remains available.
+
+Every expanded profile has synthetic tests and no GuzziOnBoard hardware validation. Commercial fitment lists and a successful synthetic response are not evidence of a successful connection on a physical bike.
+
+
+### Additional Kawasaki KDS and Harley J1850 source-listed models
+
+A [Kawasaki diagnostic product application list](https://orebrobildiagnos.se/en/product/obd-scan-tool-for-kawasaki-motorcycles/) names 37 road/off-road model labels. Their Garage selections attempt the 10400-baud 2012 Versys KDS framing with a fixed `10 80` session start and optional `21 04/05/06/07/09/0B/0C` reads. The vendor list does not establish that those exact messages or lengths work on the listed ECUs. This session returns raw bytes only, rejects wrong checksums, addresses, services and lengths, and does not infer sensor or safety values. Some listed models can use different interfaces or carbureted variants; verify the exact bike and harness. It offers no DTCs, ECU image, writes or simulator. The 2006 ER-6n and 2012 Versys 650 existing source-scoped profiles remain unchanged.
+
+[Dynojet's Delphi J1850 fitment list](https://www.dynojet.com/harley-davidson-power-vision-delphi-j1850-black-1/) names 121 model labels in several Harley families for its product. The existing HarleyDroid J1850 research path now permits source-listed vehicle selections as well as the ECU-only override. It can attempt read-only live broadcasts, identification fragments and fault queries, but missing responses are not clean results and data layouts may vary. The Dynojet list is evidence about its product, not proof this integration supports each ECU; select fuel-injected Delphi versions only. Both integrations here have synthetic tests and no physical GuzziOnBoard testing. Neither reads ECU memory nor supports programming.
+
+
+### Additional Honda ECU list and Dynojet Delphi CAN years
+
+[HondaECU-1 at b59ae98](https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952) lists Honda model/year and Keihin ECU examples in its checksum table and describes K-Line access. Sixteen additional model labels can select the existing PGM-FI read-only attempt. MSX125 and CRF250R preserve the exact listed years rather than filling gaps. The listed checksum addresses are not implemented or used to enable memory writes; the source does not establish our diagnostic tables for every ECU. [Dynojet lists the CRF110F for its Power Vision](https://www.dynojet.com/power-vision-3-for-2019-2020-honda-crf110f-pv3-16-07/) for 2019–2024, while HondaECU-1 explicitly lists a 2019 K-Line ECU; later years may differ. All of these GuzziOnBoard attempts have synthetic tests only and no physical validation.
+
+Dynojet’s Delphi CAN product list includes 2011–2013 Softail/Dyna fitments and the 2021–2022 Iron 883 and Forty-Eight, plus the 2021 Iron 1200. The exact product-listed years now route to the existing fixed DID research session. The separate DID source describes approximately 2014–2020, so it is particularly important to regard earlier/later ECU behavior and raw DIDs as unverified. No new memory or tuning access is enabled.

@@ -1880,7 +1880,7 @@ class Api:
         if body.get("confirm") is not True:
             return 400, {"error": "Confirm the bus, adapter and research-only limitations first."}
         if not self._hdlan_lock.acquire(blocking=False):
-            return 409, {"error": "A Harley CAN observation is already running."}
+            return 409, {"error": "A CAN observation is already running."}
         try:
             return 200, harley_hdlan_listen.listen(body.get("channel"), body.get("profile", "community"))
         finally:

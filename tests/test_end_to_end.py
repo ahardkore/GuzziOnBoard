@@ -456,3 +456,33 @@ def test_can_identifiers_are_configurable_only_for_virtual_rehearsal(catalog):
     with pytest.raises(ValueError):
         ws.select(model="V7 III Stone", year=2019, transport="can",
                   can_rx_id=0x200000000)
+
+
+def test_memory_read_decision_distinguishes_supported_path_from_write_readiness(catalog):
+    from guzzionboard.safety import SafetyViolation
+    service, _, gate = build(catalog)
+    assert not service.check_memory_read().allowed
+    service.connect()
+    # A diagnostic read does not require an identity or a verified backup.
+    assert not gate.state.identified and not gate.state.verified_backup
+    assert service.check_memory_read().allowed
+    assert len(service.read_memory(0, 16)) == 16
+    service.disconnect()
+    service, _, _ = build(catalog, '16m'); service.connect()
+    decision = service.check_memory_read()
+    assert not decision.allowed and 'read-path' in decision.reason()
+    with pytest.raises(SafetyViolation, match='read-path') as exc:
+        service.read_memory(0, 16)
+    assert not exc.value.decision.allowed
+    service.disconnect()
+
+
+def test_direct_memory_read_rejects_bad_arguments_and_truncated_blocks(catalog, monkeypatch):
+    service, _, _ = build(catalog); service.connect()
+    for kwargs in ({'start': -1, 'size': 4}, {'size': 0}, {'size': 4, 'block': 0},
+                   {'size': 4, 'block': 256}, {'start': 0xffffff, 'size': 2}):
+        with pytest.raises(ValueError): service.read_memory(**kwargs)
+    monkeypatch.setattr(service.session, 'read_memory_by_address', lambda *a, **k: b'\x01')
+    with pytest.raises(ProtocolError, match='returned 1 bytes, expected 4'):
+        service.read_memory(0, 4)
+    service.disconnect()

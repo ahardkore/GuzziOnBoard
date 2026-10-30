@@ -1,0 +1,47 @@
+{
+  "id": "suzuki_gsxr1000_2004",
+  "family": "Suzuki GSX-R1000 2004 (source-reported SDS)",
+  "display_name": "Suzuki GSX-R1000 2004 (raw SDS snapshot)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "2004",
+  "notes": "Source reports this model tested, but its offset descriptions conflict with its implementation. GuzziOnBoard has not tested on physical hardware. Only raw 21 08 snapshot data is returned. No verified ECU identity, sensor interpretation, faults, memory access, programming or simulator.",
+  "session": {
+    "protocol": "suzuki-gsxr1000-2004",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 1.0,
+    "physical_evidence_note": "Source reports GSX-R1000 2004 tests; this adaptation has synthetic tests only."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No memory or programming operations."
+  },
+  "capabilities": [
+    "live"
+  ],
+  "sources": [
+    "https://github.com/uronour/suzuki-Kawasaki-ecu-tool/tree/4f92cc2adab254595b08c21e2c90b4c57d2e9cc6"
+  ],
+  "parameters": [
+    {
+      "key": "raw_snapshot",
+      "name": "Raw SDS sensor snapshot (meaning unverified)",
+      "local_id": 8,
+      "unit": "",
+      "default": true,
+      "confidence": "unknown"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "suzuki-gsxr1000-2004",
+    "inter_byte_delay": 0.005
+  }
+}

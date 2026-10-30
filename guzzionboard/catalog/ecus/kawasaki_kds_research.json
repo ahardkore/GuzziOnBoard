@@ -1,0 +1,97 @@
+{
+  "id": "kawasaki_kds_research",
+  "family": "Kawasaki KDS K-Line (research)",
+  "display_name": "Kawasaki KDS (raw read-only attempt)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "source-listed model years only",
+  "notes": "A Kawasaki diagnostic vendor lists these models for its tool. This separate KDS session is adapted from a 2012 Versys source; each model, address, and response layout may vary. Synthetic tests only; raw PIDs, no verified sensors, ECU ID, DTCs, memory, controls or simulator.",
+  "session": {
+    "protocol": "kawasaki-kds-research",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 1.0,
+    "physical_evidence_note": "Vendor lists these motorcycles for its diagnostic tool; this separate implementation has synthetic tests only and model-specific protocol compatibility is not physically verified."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No source-specific ECU memory access, checksums or programming implemented."
+  },
+  "capabilities": [
+    "live"
+  ],
+  "sources": [
+    "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3",
+    "https://orebrobildiagnos.se/en/product/obd-scan-tool-for-kawasaki-motorcycles/"
+  ],
+  "parameters": [
+    {
+      "key": "raw_04",
+      "name": "KDS 04 raw response (meaning unverified)",
+      "local_id": 4,
+      "unit": "",
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "raw_05",
+      "name": "KDS 05 raw response (meaning unverified)",
+      "local_id": 5,
+      "unit": "",
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "raw_06",
+      "name": "KDS 06 raw response (meaning unverified)",
+      "local_id": 6,
+      "unit": "",
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "raw_07",
+      "name": "KDS 07 raw response (meaning unverified)",
+      "local_id": 7,
+      "unit": "",
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "raw_09",
+      "name": "KDS 09 raw response (meaning unverified)",
+      "local_id": 9,
+      "unit": "",
+      "default": true,
+      "confidence": "unknown"
+    },
+    {
+      "key": "raw_0b",
+      "name": "KDS 0B raw response (meaning unverified)",
+      "local_id": 11,
+      "unit": "",
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "raw_0c",
+      "name": "KDS 0C raw response (meaning unverified)",
+      "local_id": 12,
+      "unit": "",
+      "default": false,
+      "confidence": "unknown"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "kawasaki-kds-research",
+    "address": 17,
+    "inter_byte_delay": 0.005
+  }
+}

@@ -350,3 +350,51 @@ def test_cb500f_dashble_wake_timing(monkeypatch):
     assert result.ok and result.method == 'honda-cb500f-dashble'
     assert port.writes == [bytes.fromhex('fe 04 ff ff'), bytes.fromhex('72 05 00 f0 99')]
     assert clock.sleeps[:3] == [0.070, 0.130, 0.050]
+
+
+def test_honda_pgmfi_research_wake_is_bounded_and_requires_response(monkeypatch):
+    clock = _clock(monkeypatch)
+    class HondaPort(FakePort):
+        def write(self, data):
+            super().write(data)
+            if bytes(data) == bytes.fromhex('72 05 00 f0 99'):
+                self.rx.extend(bytes.fromhex('02 04 00 fa'))
+            return len(data)
+    port = HondaPort()
+    result = KLineTransport(baud=10400, inter_byte_delay=0).initialize(
+        KLineConnection(port=port, echo=False, inter_byte_delay=0), method='honda-pgmfi-research')
+    assert result.ok and result.method == 'honda-pgmfi-research'
+    assert port.writes == [bytes.fromhex('fe 04 ff ff'), bytes.fromhex('72 05 00 f0 99')]
+    assert clock.sleeps[:3] == [0.070,0.120,0.200] and not port.break_condition
+
+
+@pytest.mark.parametrize('method',['suzuki-sv650ak7-2007','suzuki-sv650-2003'])
+def test_sv650_wake_uses_six_second_idle_and_addressed_frame(monkeypatch,method):
+    clock=_clock(monkeypatch)
+    response=encode_request([0xc1,0xea,0x8f],target=0xf1,source=0x12)
+    port=FakePort(response)
+    result=KLineTransport(baud=10400).initialize(
+        KLineConnection(port=port,echo=False,inter_byte_delay=0.005),method=method)
+    assert result.ok and result.request==bytes.fromhex('81 12 f1 81 05')
+    assert 6.0 in clock.sleeps
+    assert all(len(part)==1 for part in port.writes)
+
+
+def test_suzuki_gsxr_research_init_is_addressed_and_paced(monkeypatch):
+    clock=_clock(monkeypatch)
+    response=encode_request([0xc1,0xea,0x8f],target=0xf1,source=0x12)
+    port=FakePort(response)
+    result=KLineTransport(baud=10400).initialize(
+        KLineConnection(port=port,echo=False,inter_byte_delay=0.005),method='suzuki-sds-gsxr-research')
+    assert result.ok and result.request==bytes.fromhex('81 12 f1 81 05')
+    assert 1.0 in clock.sleeps and all(len(part)==1 for part in port.writes)
+
+
+def test_kawasaki_kds_research_wake_is_addressed_and_paced(monkeypatch):
+    clock=_clock(monkeypatch)
+    response=encode_request([0xc1,0xea,0x8f],target=0xf1,source=0x11)
+    port=FakePort(response)
+    result=KLineTransport(baud=10400).initialize(
+        KLineConnection(port=port,echo=False,inter_byte_delay=0.005),method='kawasaki-kds-research')
+    assert result.ok and result.request==bytes.fromhex('81 11 f1 81 04')
+    assert 1.0 in clock.sleeps and all(len(part)==1 for part in port.writes)

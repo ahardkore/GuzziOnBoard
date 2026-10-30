@@ -602,3 +602,29 @@ def test_an_interrupted_write_leaves_a_resumable_checkpoint(service, tmp_path):
 
     service._write_checkpoint(path, {"phase": "complete"})
     assert service.pending_checkpoint("flash") is None
+
+
+def test_programming_read_rejects_short_address_response(service, monkeypatch):
+    from guzzionboard.programming import Region
+    from guzzionboard.protocol.kwp2000 import ProtocolError
+    monkeypatch.setattr(service.diag.session, 'read_memory_by_address', lambda *a, **k: b'\x00')
+    with pytest.raises(ProtocolError, match='returned 1 bytes, expected 4'):
+        service._read_by_address(Region('flash',0,4,block=4))
+
+
+@pytest.mark.parametrize('data', [
+    b'\x22\x00\x00\x00\x04\x11\x22\x33\x44', # wrong subfunction
+    b'\x21\x00\x01\x00\x04\x11\x22\x33\x44', # wrong address
+    b'\x21\x00\x00\x00\x03\x11\x22\x33',      # wrong announced size
+    b'\x21\x00\x00\x00\x04\x11\x22\x33',      # truncated data
+    b'\x21\x00\x00\x00\x04\x11\x22\x33\x44\x55', # excess data
+])
+def test_programming_transfer_read_rejects_invalid_blocks(service, monkeypatch, data):
+    from guzzionboard.programming import Region
+    from guzzionboard.protocol.kwp2000 import ProtocolError
+    class Frame:
+        def __init__(self, data): self.data = data
+        def hex(self): return self.data.hex()
+    monkeypatch.setattr(service.diag.session, 'request', lambda payload: Frame(data))
+    with pytest.raises(ProtocolError, match='memory block'):
+        service._read_by_transfer(Region('flash',0,4,block=4))

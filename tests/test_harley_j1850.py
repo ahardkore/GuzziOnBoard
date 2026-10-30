@@ -241,3 +241,32 @@ def test_harleydroid_reference_descriptions_are_scoped_and_unknown_remains_unkno
     result = HarleyJ1850Session(conn).read_dtcs()
     assert result['dtcs'][0]['code'] == 'P3FFF'
     assert result['dtcs'][0]['description'] == ''
+
+
+def test_j1850_source_listed_models_support_synthetic_live_read(monkeypatch):
+    monkeypatch.setattr(DiagnosticsService,'_start_keepalive',lambda _:None)
+    bikes=[v for v in load_catalog().vehicles if v.ecu=='harley_j1850_harleydroid']
+    assert len({b.model for b in bikes}) >= 120
+    for bike in bikes:
+        for year in range(bike.year_from,bike.year_to + 1):
+            w=Workstation(record=False)
+            selected=w.select(make=bike.make,model=bike.model,year=year,transport='elm_j1850',device='COM3')
+            assert 'synthetic' in selected['ecu']['session']['physical_evidence_note'].lower()
+            assert not selected['ecu']['memory']['read_supported'] and not selected['ecu']['memory']['write_supported']
+            t=FakeTransport(); t.conn.broadcast=frame(0x28,0x1b,0x10,0x02,0x0f,0xa0)
+            monkeypatch.setattr(w,'_build_transport',lambda:t)
+            w.connect(mode='read_only')
+            assert w.require_service().read_parameters(['rpm'])[0].value==1000
+            assert t.conn.commands==['ATMA']
+            w.disconnect(); assert t.conn.closed
+
+
+def test_j1850_source_selected_models_keep_mode_and_device_guards():
+    w=Workstation(record=False)
+    w.select(make='Harley-Davidson',model='XL1200X Forty-Eight',year=2012,transport='elm_j1850',device='COM3')
+    with pytest.raises(TransportUnavailable,match='read-only'):w.connect(mode='service')
+    w.select(make='Harley-Davidson',model='XL1200X Forty-Eight',year=2012,transport='elm_j1850',device='')
+    with pytest.raises(TransportUnavailable,match='explicit ELM327 serial'):w.connect(mode='read_only')
+    with pytest.raises(ValueError,match='not cataloged'):
+        w.select(make='Harley-Davidson',model='XL1200X Forty-Eight',year=2014,ecu='harley_j1850_harleydroid')
+    assert load_catalog().resolve('XL1200X Forty-Eight',2014,'Harley-Davidson')[1].id=='harley_delphi_can_uds'

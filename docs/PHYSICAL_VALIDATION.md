@@ -117,3 +117,22 @@ For a combination to be called physically validated, its evidence set needs:
 
 Until those artifacts exist, UI and documentation must say **not physically
 validated**, regardless of unit-test coverage.
+
+## Separating read attempts from write authorization
+
+An established connection is not proof that an ECU memory reader is implemented.
+A documented or explicitly acknowledged experimental reader can be exercised without
+first possessing a verified backup; its results must not automatically authorize
+writing. Unsupported profiles remain unsupported until a compatible reader, memory
+geometry, session and any required security procedure are implemented, not until a
+user somehow produces a verified backup. In particular, the existing MGZ-A03 research
+reader is available with its separate confirmation and exact live-ID check, and its
+output remains a research file.
+
+The desktop ECU memory page can compare two non-empty local image files up to 16 MiB
+without an ECU connection. Files stay in the window and no ECU requests are made.
+It reports size, byte equality and differences; it does not establish independent
+reads, ECU identity, complete coverage, checksum correctness or restoreability, and
+does not create a verified backup or unlock programming. For physical evaluation,
+keep provenance for both acquisitions and perform ECU-specific checks; failed or
+rejected security exchanges must not be retried automatically.

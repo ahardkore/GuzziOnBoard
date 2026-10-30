@@ -14,10 +14,22 @@
   "https://www.woolichracing.com/products/kawasaki/zx6r-636/2026/2026-kawasaki-zx6r-636-ecu-flashing.aspx: commercial Kawasaki part and year-list research",
   "https://www.woolichracing.com/products/kawasaki/ninja-650-ex650/2026/2026-kawasaki-ninja-650-ex650-ecu-flashing.aspx: commercial Kawasaki part and year-list research",
   "https://www.woolichracing.com/products/kawasaki/z650/kawasaki-z650-ecu-flashing.aspx: commercial Kawasaki part and year-list research",
-  "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce: Suzuki SV650AK7 2007 author-tested reference, offline research only",
+  "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce: Suzuki SV650AK7 2007 author-tested K-Line reference",
   "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32: Triumph Daytona 675 2012 author-tested read-only OBD reference",
   "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952: CB500F / CBR500R 2013–2016 MGZ-A03 offline reference",
-  "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3: author-reported 2012 Versys 650 and 2011 GSX-R600 read-only K-Line"
+  "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3: author-reported 2012 Versys 650 and 2011 GSX-R600 read-only K-Line",
+  "https://mcuinnovations.com/news/protocol-honda_keihin_kline_pgmfi/: source-listed Honda Keihin PGM-FI models; model-specific diagnostic support unverified",
+  "https://github.com/uronour/suzuki-Kawasaki-ecu-tool/tree/4f92cc2adab254595b08c21e2c90b4c57d2e9cc6: source-reported 2004 Suzuki GSX-R1000 SDS",
+  "https://github.com/synfinatic/sv650sds/tree/bacf803a9056241ef270acf0e7e31467961aeba5: SV650 2003–2005 SDS research and live capture",
+  "https://mcuinnovations.com/vehicles/protocols/honda_keihin_kline_pgmfi/",
+  "https://www.obd2tool.com/goods-5014-OBD+Tool+For+Fuel+Injected+Honda+Motorcycles+Support+Multi-languages.html",
+  "https://support.aimshop.com/downloads/stockEcu/bike/suzuki/Suzuki_SDS_Protocol_102_eng.pdf",
+  "https://www.dynojet.com/harley-davidson-power-vision-delphi-can-black-1/",
+  "https://www.aimtechnologies.com/support/stockecu/HondaCBR-RR_600_2003-2005+CBR-RR1000_2004-2015_100_eng.pdf",
+  "https://www.dynojet.com/harley-davidson-power-vision-delphi-j1850-black-1/",
+  "https://orebrobildiagnos.se/en/product/obd-scan-tool-for-kawasaki-motorcycles/",
+  "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+  "https://www.dynojet.com/power-vision-3-for-2019-2020-honda-crf110f-pv3-16-07/"
  ],
  "vehicles": [
   {
@@ -1379,7 +1391,7 @@
    "year_to": 2007,
    "ecu": "suzuki_sv650ak7_2007",
    "confidence": "inferred",
-   "notes": "Author-reported fitment, not independently validated. ECU identity unconfirmed; offline capture analysis only. No physical diagnostic or simulator session."
+   "notes": "SV650overlay reports operation on 2007 SV650AK7. Source warns some conversions are inaccurate; this integration has synthetic tests only. Live data is read-only and candidate; no ECU ID, faults, memory or programming."
   },
   {
    "make": "Triumph",
@@ -1436,6 +1448,3267 @@
    "notes": "Model/year reported tested by source; this integration has only synthetic tests. ECU and market unknown.",
    "confidence": "inferred",
    "make": "Suzuki"
+  },
+  {
+   "make": "Honda",
+   "model": "BeAT 110",
+   "year_from": 2013,
+   "year_to": 2014,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB 300",
+   "year_from": 2009,
+   "year_to": 2011,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB1000R",
+   "year_from": 2008,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB1100EX",
+   "year_from": 2014,
+   "year_to": 2016,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB1300SF",
+   "year_from": 2008,
+   "year_to": 2016,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB400SF",
+   "year_from": 2008,
+   "year_to": 2016,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB500X",
+   "year_from": 2016,
+   "year_to": 2018,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB600F",
+   "year_from": 2012,
+   "year_to": 2013,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBF1000",
+   "year_from": 2011,
+   "year_to": 2016,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBF600",
+   "year_from": 2007,
+   "year_to": 2013,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR 125 R",
+   "year_from": 2015,
+   "year_to": 2016,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR 125 RB",
+   "year_from": 2011,
+   "year_to": 2011,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR 150 R",
+   "year_from": 2010,
+   "year_to": 2014,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR 150 R",
+   "year_from": 2016,
+   "year_to": 2017,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR 250 R",
+   "year_from": 2011,
+   "year_to": 2015,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR250RR",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR300R",
+   "year_from": 2014,
+   "year_to": 2018,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR650F",
+   "year_from": 2013,
+   "year_to": 2018,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB650F",
+   "year_from": 2013,
+   "year_to": 2018,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR650R",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB650R",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF 110 F",
+   "year_from": 2019,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF 125 F",
+   "year_from": 2019,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF 450 L",
+   "year_from": 2019,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF1000 AFRICA TWIN",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF250L",
+   "year_from": 2014,
+   "year_to": 2015,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF250L",
+   "year_from": 2017,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF450R",
+   "year_from": 2017,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "LEAD 110",
+   "year_from": 2011,
+   "year_to": 2012,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "LEAD 125A",
+   "year_from": 2010,
+   "year_to": 2010,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "Monkey / Z 125",
+   "year_from": 2019,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "MSX125 GROM",
+   "year_from": 2013,
+   "year_to": 2019,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "NC750 / NC750X",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "NSF250R",
+   "year_from": 2012,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "SH 300",
+   "year_from": 2017,
+   "year_to": 2018,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "Super Cub 110",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "VFR1200F",
+   "year_from": 2010,
+   "year_to": 2018,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "VFR1200X CROSSTOURER",
+   "year_from": 2012,
+   "year_to": 2018,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "VFR800",
+   "year_from": 2014,
+   "year_to": 2014,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "Vision 110",
+   "year_from": 2012,
+   "year_to": 2016,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "Wave 110",
+   "year_from": 2009,
+   "year_to": 2016,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "Wave 110",
+   "year_from": 2019,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "Wave 125",
+   "year_from": 2010,
+   "year_to": 2011,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "X-ADV 750",
+   "year_from": 2017,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "XRE 300",
+   "year_from": 2010,
+   "year_to": 2012,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-R1000",
+   "year_from": 2004,
+   "year_to": 2004,
+   "ecu": "suzuki_gsxr1000_2004",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "Source reports this model tested; this software is synthetic-tested only and provides raw sensor snapshot, not a confirmed reading, ECU identity or memory access."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR500R",
+   "year_from": 2017,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB500F",
+   "year_from": 2017,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR600RR",
+   "year_from": 2003,
+   "year_to": 2004,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR600RR",
+   "year_from": 2006,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR1000RR",
+   "year_from": 2004,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming."
+  },
+  {
+   "make": "Suzuki",
+   "model": "SV650",
+   "ecu": "suzuki_sv650_2003",
+   "confidence": "unknown",
+   "notes": "Source reports 03–05 SV650 communication; raw SDS snapshot only. Integration synthetic-tested, no ECU ID, memory or programming.",
+   "year_from": 2003,
+   "year_to": 2005
+  },
+  {
+   "make": "Honda",
+   "model": "CBR1000RR HRC",
+   "year_from": 2008,
+   "year_to": 2008,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning. AiM excludes earlier HRC ECU variants from its own decoder; source coverage differs."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR1000RR HRC",
+   "year_from": 2012,
+   "year_to": 2019,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning. AiM excludes earlier HRC ECU variants from its own decoder; source coverage differs."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR600RR HRC",
+   "year_from": 2005,
+   "year_to": 2018,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning. AiM excludes earlier HRC ECU variants from its own decoder; source coverage differs."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF300L",
+   "year_from": 2021,
+   "year_to": 2022,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF450RL",
+   "year_from": 2021,
+   "year_to": 2026,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF 450 RX Enduro",
+   "year_from": 2022,
+   "year_to": 2022,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "RS 150",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "Sonic 150",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "Supra GTR 150",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "Winner 150",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR650F",
+   "year_from": 2021,
+   "year_to": 2023,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR650R",
+   "year_from": 2021,
+   "year_to": 2023,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CB650R",
+   "year_from": 2021,
+   "year_to": 2023,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF 110 F",
+   "year_from": 2021,
+   "year_to": 2025,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF 125 F",
+   "year_from": 2021,
+   "year_to": 2025,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF450R",
+   "year_from": 2021,
+   "year_to": 2025,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "Monkey / Z 125",
+   "year_from": 2021,
+   "year_to": 2021,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "NSF250R",
+   "year_from": 2021,
+   "year_to": 2024,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "X-ADV 750",
+   "year_from": 2021,
+   "year_to": 2025,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR600RR",
+   "year_from": 2021,
+   "year_to": 2022,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR1000RR",
+   "year_from": 2021,
+   "year_to": 2026,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CB600F",
+   "year_from": 2007,
+   "year_to": 2007,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Honda FI diagnostic product lists this model/year; this is not confirmation of this integration or every table. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR125R",
+   "year_from": 2007,
+   "year_to": 2009,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Honda FI diagnostic product lists this model/year; this is not confirmation of this integration or every table. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR125R",
+   "year_from": 2011,
+   "year_to": 2011,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Honda FI diagnostic product lists this model/year; this is not confirmation of this integration or every table. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF250L",
+   "year_from": 2013,
+   "year_to": 2013,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Honda FI diagnostic product lists this model/year; this is not confirmation of this integration or every table. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF450R",
+   "year_from": 2009,
+   "year_to": 2013,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Honda FI diagnostic product lists this model/year; this is not confirmation of this integration or every table. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "Goldwing 1800",
+   "year_from": 2005,
+   "year_to": 2008,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Honda FI diagnostic product lists this model/year; this is not confirmation of this integration or every table. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "NC700X",
+   "year_from": 2012,
+   "year_to": 2013,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Honda FI diagnostic product lists this model/year; this is not confirmation of this integration or every table. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "NC700XD",
+   "year_from": 2012,
+   "year_to": 2013,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Honda FI diagnostic product lists this model/year; this is not confirmation of this integration or every table. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "Shadow Aero 750",
+   "year_from": 2007,
+   "year_to": 2012,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Honda FI diagnostic product lists this model/year; this is not confirmation of this integration or every table. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning. Fuel-injected versions only."
+  },
+  {
+   "make": "Honda",
+   "model": "VFR1200FD",
+   "year_from": 2010,
+   "year_to": 2010,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Honda FI diagnostic product lists this model/year; this is not confirmation of this integration or every table. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Honda",
+   "model": "VFR1200FD",
+   "year_from": 2012,
+   "year_to": 2013,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "Honda FI diagnostic product lists this model/year; this is not confirmation of this integration or every table. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning."
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-R600",
+   "year_from": 2006,
+   "year_to": 2010,
+   "ecu": "suzuki_sds_gsxr_research",
+   "confidence": "unknown",
+   "notes": "AiM lists this model/year for its SDS K-Line protocol. Exact frame compatibility here is synthetic-tested only, not physically verified. Read-only raw snapshot attempt; no ECU memory or programming."
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-R600",
+   "year_from": 2012,
+   "year_to": 2016,
+   "ecu": "suzuki_sds_gsxr_research",
+   "confidence": "unknown",
+   "notes": "AiM lists this model/year for its SDS K-Line protocol. Exact frame compatibility here is synthetic-tested only, not physically verified. Read-only raw snapshot attempt; no ECU memory or programming."
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-R750",
+   "year_from": 2006,
+   "year_to": 2016,
+   "ecu": "suzuki_sds_gsxr_research",
+   "confidence": "unknown",
+   "notes": "AiM lists this model/year for its SDS K-Line protocol. Exact frame compatibility here is synthetic-tested only, not physically verified. Read-only raw snapshot attempt; no ECU memory or programming."
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-R1000",
+   "year_from": 2005,
+   "year_to": 2016,
+   "ecu": "suzuki_sds_gsxr_research",
+   "confidence": "unknown",
+   "notes": "AiM lists this model/year for its SDS K-Line protocol. Exact frame compatibility here is synthetic-tested only, not physically verified. Read-only raw snapshot attempt; no ECU memory or programming."
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-R1300 Hayabusa",
+   "year_from": 2008,
+   "year_to": 2016,
+   "ecu": "suzuki_sds_gsxr_research",
+   "confidence": "unknown",
+   "notes": "AiM lists this model/year for its SDS K-Line protocol. Exact frame compatibility here is synthetic-tested only, not physically verified. Read-only raw snapshot attempt; no ECU memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLS Softail Slim",
+   "year_from": 2012,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSL Softail Slim 107",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSS Softail Slim S",
+   "year_from": 2016,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTC Heritage Softail Classic",
+   "year_from": 2011,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTN Softail Deluxe",
+   "year_from": 2011,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XG500 Street 500",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XG750 Street 750",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL1200C Sportster 1200 Custom",
+   "year_from": 2014,
+   "year_to": 2019,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL1200NS Iron 1200",
+   "year_from": 2018,
+   "year_to": 2021,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL1200T SuperLow 1200T",
+   "year_from": 2014,
+   "year_to": 2018,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDF Fat Bob",
+   "year_from": 2012,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDL Low Rider",
+   "year_from": 2014,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDC Super Glide Custom",
+   "year_from": 2012,
+   "year_to": 2014,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLD Switchback",
+   "year_from": 2012,
+   "year_to": 2016,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCU Electra Glide Ultra Classic",
+   "year_from": 2014,
+   "year_to": 2019,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCUL Electra Glide Ultra Classic Low",
+   "year_from": 2015,
+   "year_to": 2016,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTK Ultra Limited",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTKSE CVO Limited",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTKL Ultra Limited Low",
+   "year_from": 2015,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLRT Freewheeler",
+   "year_from": 2015,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDLS Low Rider S",
+   "year_from": 2016,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTRX Road Glide",
+   "year_from": 2015,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTRXSE CVO Road Glide",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHR Road King",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHRSE6 CVO Road King",
+   "year_from": 2014,
+   "year_to": 2014,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHRXS Road King Special",
+   "year_from": 2017,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCUTG Tri Glide Ultra",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHX Street Glide",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHXS Street Glide Special",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHXSE CVO Street Glide",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTF Fat Boy",
+   "year_from": 2011,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTFBS Fat Boy S",
+   "year_from": 2016,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTFB Fat Boy Lo",
+   "year_from": 2011,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTRU Road Glide Ultra",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTRXS Road Glide Special",
+   "year_from": 2015,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSB Breakout",
+   "year_from": 2013,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSBSE CVO Breakout",
+   "year_from": 2013,
+   "year_to": 2014,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XG750A Street Rod",
+   "year_from": 2017,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL1200CX Roadster",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL1200V Seventy-Two",
+   "year_from": 2014,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL1200X Forty-Eight",
+   "year_from": 2014,
+   "year_to": 2022,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL883L SuperLow",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL883N Iron 883",
+   "year_from": 2014,
+   "year_to": 2022,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLFB Fat Boy 107",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLFBS Fat Boy 114",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXBB Street Bob 107",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLDE Deluxe 107",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHC Heritage Classic 107",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHCS Heritage Classic 114",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSB Sport Glide 107",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXFB Fat Bob 107",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXFBS Fat Bob 114",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXLR Low Rider 107",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSE CVO Pro Street Breakout",
+   "year_from": 2016,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTRUSE CVO Road Glide Ultra",
+   "year_from": 2015,
+   "year_to": 2016,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL1200XS Forty-Eight Special",
+   "year_from": 2018,
+   "year_to": 2019,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXLRS Low Rider S 114",
+   "year_from": 2020,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXBRS Breakout 114",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXBR Breakout 107",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCUTGSE CVO Tri Glide",
+   "year_from": 2020,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTRK Road Glide Limited",
+   "year_from": 2020,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDRS FXDR 114",
+   "year_from": 2019,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHT Electra Glide Standard",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDB Street Bob",
+   "year_from": 2012,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTR Road Glide",
+   "year_from": 2015,
+   "year_to": 2016,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL883R Sportster 883 Roadster",
+   "year_from": 2014,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHRC Road King Classic",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXST Softail Standard 107",
+   "year_from": 2020,
+   "year_to": 2020,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate diagnostic integration has synthetic tests only, and exact compatibility is not confirmed. Limited tester-present and raw DID attempts may require authentication; no memory access or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "D-Tracker 125",
+   "year_from": 2010,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "ER-6f",
+   "year_from": 2006,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "ER-6n",
+   "year_from": 2007,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "KLE650",
+   "year_from": 2006,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "KLX125",
+   "year_from": 2010,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "KLX250",
+   "year_from": 2006,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "KX250F",
+   "year_from": 2011,
+   "year_to": 2015,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "KX450F",
+   "year_from": 2009,
+   "year_to": 2015,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja 250R FI",
+   "year_from": 2008,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja 250L/RR",
+   "year_from": 2014,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja 300",
+   "year_from": 2013,
+   "year_to": 2015,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja 650",
+   "year_from": 2012,
+   "year_to": 2015,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja 650R",
+   "year_from": 2006,
+   "year_to": 2011,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja 1000",
+   "year_from": 2011,
+   "year_to": 2015,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "VN900",
+   "year_from": 2006,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "VN2000",
+   "year_from": 2004,
+   "year_to": 2011,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Versys",
+   "year_from": 2006,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Versys 1000",
+   "year_from": 2012,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Vulcan 900",
+   "year_from": 2006,
+   "year_to": 2015,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Vulcan 1500",
+   "year_from": 2001,
+   "year_to": 2008,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Vulcan 1600",
+   "year_from": 2003,
+   "year_to": 2009,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Vulcan 2000",
+   "year_from": 2004,
+   "year_to": 2011,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "W800",
+   "year_from": 2011,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z250",
+   "year_from": 2013,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z250SL",
+   "year_from": 2014,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z750",
+   "year_from": 2004,
+   "year_to": 2012,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z750R",
+   "year_from": 2011,
+   "year_to": 2012,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z800",
+   "year_from": 2013,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z1000",
+   "year_from": 2003,
+   "year_to": 2015,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z1000SX",
+   "year_from": 2011,
+   "year_to": 2015,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "ZRX1200",
+   "year_from": 2009,
+   "year_to": 2014,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "ZX-6R Ninja",
+   "year_from": 2003,
+   "year_to": 2015,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "ZX-6RR Ninja",
+   "year_from": 2003,
+   "year_to": 2006,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "ZX-10R Ninja",
+   "year_from": 2004,
+   "year_to": 2010,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "ZX-12R Ninja",
+   "year_from": 2000,
+   "year_to": 2006,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "ZX-14",
+   "year_from": 2006,
+   "year_to": 2011,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "ZZR1400",
+   "year_from": 2006,
+   "year_to": 2011,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "A vendor lists this model/year for its Kawasaki diagnostic tool; this separate KDS request sequence has synthetic tests only and may not work on this ECU. Raw reads only; no memory or tuning."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLST Heritage Softail",
+   "year_from": 2006,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTC Heritage Softail Classic",
+   "year_from": 2001,
+   "year_to": 2010,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTI Heritage Softail",
+   "year_from": 2006,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTN Softail Deluxe",
+   "year_from": 2005,
+   "year_to": 2010,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTSE CVO Softail Convertible",
+   "year_from": 2010,
+   "year_to": 2010,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDFSE CVO Dyna Fat Bob",
+   "year_from": 2009,
+   "year_to": 2010,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDFSE2 CVO Dyna Fat Bob",
+   "year_from": 2010,
+   "year_to": 2010,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDSE Screamin Eagle Dyna",
+   "year_from": 2007,
+   "year_to": 2008,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDSE2 Screamin Eagle Dyna",
+   "year_from": 2008,
+   "year_to": 2008,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDWG Dyna Wide Glide",
+   "year_from": 2004,
+   "year_to": 2005,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDWG Dyna Wide Glide",
+   "year_from": 2007,
+   "year_to": 2008,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDWG Dyna Wide Glide",
+   "year_from": 2010,
+   "year_to": 2011,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDWGI Dyna Wide Glide",
+   "year_from": 2004,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDX Dyna Super Glide Sport",
+   "year_from": 2004,
+   "year_to": 2005,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDXI Dyna Super Glide Sport",
+   "year_from": 2004,
+   "year_to": 2005,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXST Softail Standard",
+   "year_from": 2001,
+   "year_to": 2009,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSTC Softail Custom",
+   "year_from": 2007,
+   "year_to": 2010,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSTD Softail Deuce",
+   "year_from": 2001,
+   "year_to": 2007,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSTDSE Screamin Eagle Softail Deuce",
+   "year_from": 2003,
+   "year_to": 2003,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSTDSE2 Screamin Eagle Softail Deuce 2",
+   "year_from": 2004,
+   "year_to": 2004,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSTI Softail Standard",
+   "year_from": 2001,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSTS Springer Softail",
+   "year_from": 2001,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSTSI Springer Softail",
+   "year_from": 2001,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSTSSE Screamin Eagle Softail Springer",
+   "year_from": 2007,
+   "year_to": 2007,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSTSSE2 Screamin Eagle Softail Springer",
+   "year_from": 2007,
+   "year_to": 2008,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSTSSE3 CVO Softail Springer",
+   "year_from": 2009,
+   "year_to": 2009,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "VRSCA V-Rod",
+   "year_from": 2002,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "VRSCAW V-Rod",
+   "year_from": 2007,
+   "year_to": 2010,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "VRSCB V-Rod",
+   "year_from": 2004,
+   "year_to": 2005,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "VRSCDX Night Rod Special",
+   "year_from": 2007,
+   "year_to": 2017,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "VRSCF V-Rod Muscle",
+   "year_from": 2009,
+   "year_to": 2017,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "VRSCSE Screamin Eagle V-Rod",
+   "year_from": 2005,
+   "year_to": 2005,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "VRSCSE2 Screamin Eagle V-Rod 2",
+   "year_from": 2006,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "VRSCX Screamin Eagle V-Rod",
+   "year_from": 2007,
+   "year_to": 2007,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL1200C Sportster 1200 Custom",
+   "year_from": 2007,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL1200L Sportster 1200 Low",
+   "year_from": 2007,
+   "year_to": 2011,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL1200N Sportster 1200 Nightster",
+   "year_from": 2007,
+   "year_to": 2012,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL1200R Sportster 1200 Roadster",
+   "year_from": 2007,
+   "year_to": 2008,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL883C Sportster 883 Custom",
+   "year_from": 2007,
+   "year_to": 2010,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL883L Sportster 883 Low",
+   "year_from": 2007,
+   "year_to": 2010,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDF Fat Bob",
+   "year_from": 2008,
+   "year_to": 2011,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDC Super Glide Custom",
+   "year_from": 2005,
+   "year_to": 2005,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDC Super Glide Custom",
+   "year_from": 2007,
+   "year_to": 2011,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDCI Super Glide Custom",
+   "year_from": 2005,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTC Electra Glide Classic",
+   "year_from": 2002,
+   "year_to": 2005,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTC Electra Glide Classic",
+   "year_from": 2007,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCI Electra Glide Classic",
+   "year_from": 2002,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCSE Screamin Eagle Electra Glide",
+   "year_from": 2004,
+   "year_to": 2008,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCSE2 Screamin Eagle Electra Glide 2",
+   "year_from": 2005,
+   "year_to": 2005,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHT Electra Glide Standard",
+   "year_from": 2002,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTI Electra Glide Standard",
+   "year_from": 2003,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCU Electra Glide Ultra Classic",
+   "year_from": 2007,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCUSE Screamin Eagle Ultra Classic Electra Glide",
+   "year_from": 2006,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCUSE2 Screamin Eagle Ultra Classic Electra Glide",
+   "year_from": 2007,
+   "year_to": 2007,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCUSE3 Screamin Eagle Ultra Classic Electra Glide",
+   "year_from": 2008,
+   "year_to": 2008,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCUI Electra Glide Ultra Classic",
+   "year_from": 2002,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTK Electra Glide Ultra Limited",
+   "year_from": 2010,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTS Heritage Springer",
+   "year_from": 2001,
+   "year_to": 2007,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTSI Heritage Springer",
+   "year_from": 2001,
+   "year_to": 2003,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "VRSCD Night Rod",
+   "year_from": 2006,
+   "year_to": 2008,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTR Road Glide",
+   "year_from": 2007,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTRI Road Glide",
+   "year_from": 2002,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTRX Road Glide Custom",
+   "year_from": 2010,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTRU Road Glide Ultra",
+   "year_from": 2011,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHR Road King",
+   "year_from": 2002,
+   "year_to": 2004,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHR Road King",
+   "year_from": 2006,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHRC Road King Classic",
+   "year_from": 2007,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHRCI Road King Classic",
+   "year_from": 2002,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHRS Road King Custom",
+   "year_from": 2004,
+   "year_to": 2007,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHRSI Road King Custom",
+   "year_from": 2004,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHRSEI Screamin Eagle Road King",
+   "year_from": 2002,
+   "year_to": 2002,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHRSE5 CVO Road King",
+   "year_from": 2013,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHRSE3 Screamin Eagle Road King",
+   "year_from": 2007,
+   "year_to": 2008,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHRSE4 Screamin Eagle Road King",
+   "year_from": 2008,
+   "year_to": 2008,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHRI Road King",
+   "year_from": 2002,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHRSEI2 Screamin Eagle Road King 2",
+   "year_from": 2003,
+   "year_to": 2003,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTSB Cross Bones",
+   "year_from": 2008,
+   "year_to": 2010,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTF Fat Boy",
+   "year_from": 2001,
+   "year_to": 2010,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTFI Fat Boy",
+   "year_from": 2001,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTFB Fat Boy Lo",
+   "year_from": 2010,
+   "year_to": 2010,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSTB Night Train",
+   "year_from": 2001,
+   "year_to": 2009,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSTBI Night Train",
+   "year_from": 2001,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXCW Rocker",
+   "year_from": 2008,
+   "year_to": 2009,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXCWC Rocker C",
+   "year_from": 2008,
+   "year_to": 2011,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTSC Softail Springer Classic",
+   "year_from": 2005,
+   "year_to": 2007,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL1200X Forty-Eight",
+   "year_from": 2010,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL883N Iron 883",
+   "year_from": 2009,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL1200V Seventy-Two",
+   "year_from": 2012,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHX Street Glide",
+   "year_from": 2006,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHXI Street Glide",
+   "year_from": 2006,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "VRSCR Street Rod",
+   "year_from": 2006,
+   "year_to": 2007,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCUTG Tri Glide Ultra Classic",
+   "year_from": 2009,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "VRSCDX ANN V-Rod Anniversary Edition",
+   "year_from": 2012,
+   "year_to": 2012,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "VRXSE Screamin Eagle Destroyer",
+   "year_from": 2006,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTSCI Softail Springer Classic",
+   "year_from": 2005,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXSTDI Softail Deuce",
+   "year_from": 2001,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTFSE Screamin Eagle Fat Boy",
+   "year_from": 2005,
+   "year_to": 2005,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTNI Softail Deluxe",
+   "year_from": 2005,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTCI Heritage Softail Classic",
+   "year_from": 2001,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHXXX Street Glide Trike",
+   "year_from": 2010,
+   "year_to": 2011,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHXSE3 CVO Street Glide",
+   "year_from": 2012,
+   "year_to": 2012,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHXSE2 CVO Street Glide",
+   "year_from": 2011,
+   "year_to": 2011,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCUSE8 CVO Ultra Classic Electra Glide",
+   "year_from": 2013,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCUSE7 CVO Ultra Classic Electra Glide",
+   "year_from": 2012,
+   "year_to": 2012,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCUSE6 CVO Ultra Classic Electra Glide",
+   "year_from": 2011,
+   "year_to": 2011,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCUSE5 CVO Ultra Classic Electra Glide",
+   "year_from": 2010,
+   "year_to": 2010,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCUSE4 CVO Ultra Classic Electra Glide",
+   "year_from": 2009,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTRSE3 CVO Road Glide",
+   "year_from": 2009,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTRUSE CVO Road Glide Ultra",
+   "year_from": 2011,
+   "year_to": 2011,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTRXSE CVO Road Glide",
+   "year_from": 2012,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTRXSE2 CVO Road Glide Custom",
+   "year_from": 2013,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHXSE CVO Street Glide",
+   "year_from": 2010,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL50 50th Anniversary Sportster",
+   "year_from": 2007,
+   "year_to": 2007,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL883 Sportster",
+   "year_from": 2007,
+   "year_to": 2008,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL883L SuperLow",
+   "year_from": 2011,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XL883R Sportster 883 Roadster",
+   "year_from": 2007,
+   "year_to": 2013,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XR1200",
+   "year_from": 2008,
+   "year_to": 2010,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XR1200X",
+   "year_from": 2011,
+   "year_to": 2012,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDB Street Bob",
+   "year_from": 2007,
+   "year_to": 2011,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDBI Street Bob",
+   "year_from": 2006,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "XLH883",
+   "year_from": 2007,
+   "year_to": 2009,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXD Dyna Super Glide",
+   "year_from": 2007,
+   "year_to": 2011,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDI Dyna Super Glide",
+   "year_from": 2004,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDI35 Dyna 35th Anniversary Super Glide",
+   "year_from": 2006,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDL Dyna Low Rider",
+   "year_from": 2004,
+   "year_to": 2005,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDL Dyna Low Rider",
+   "year_from": 2007,
+   "year_to": 2009,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDLI Dyna Low Rider",
+   "year_from": 2004,
+   "year_to": 2006,
+   "ecu": "harley_j1850_harleydroid",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi J1850 tool, for fuel-injected Delphi ECUs only. This separate HarleyDroid integration has synthetic tests only; compatibility and sensor interpretation vary. ELM327 read-only; no memory or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTNSE CVO Softail Deluxe",
+   "year_from": 2014,
+   "year_to": 2015,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate default-session integration has synthetic tests only; fixed DID and transport compatibility vary. Read-only identity and raw DIDs, no memory reading or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTSE3 CVO Softail Convertible",
+   "year_from": 2012,
+   "year_to": 2012,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate default-session integration has synthetic tests only; fixed DID and transport compatibility vary. Read-only identity and raw DIDs, no memory reading or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXDWG Dyna Wide Glide",
+   "year_from": 2012,
+   "year_to": 2017,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate default-session integration has synthetic tests only; fixed DID and transport compatibility vary. Read-only identity and raw DIDs, no memory reading or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXS Blackline",
+   "year_from": 2011,
+   "year_to": 2013,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate default-session integration has synthetic tests only; fixed DID and transport compatibility vary. Read-only identity and raw DIDs, no memory reading or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTSE2 CVO Softail Convertible",
+   "year_from": 2011,
+   "year_to": 2011,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate default-session integration has synthetic tests only; fixed DID and transport compatibility vary. Read-only identity and raw DIDs, no memory reading or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTSB Cross Bones",
+   "year_from": 2011,
+   "year_to": 2011,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate default-session integration has synthetic tests only; fixed DID and transport compatibility vary. Read-only identity and raw DIDs, no memory reading or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTK Electra Glide Ultra Limited",
+   "year_from": 2014,
+   "year_to": 2014,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate default-session integration has synthetic tests only; fixed DID and transport compatibility vary. Read-only identity and raw DIDs, no memory reading or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHTCUSE4 CVO Ultra Classic Electra Glide",
+   "year_from": 2014,
+   "year_to": 2014,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate default-session integration has synthetic tests only; fixed DID and transport compatibility vary. Read-only identity and raw DIDs, no memory reading or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLTRSE3 CVO Road Glide",
+   "year_from": 2014,
+   "year_to": 2019,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate default-session integration has synthetic tests only; fixed DID and transport compatibility vary. Read-only identity and raw DIDs, no memory reading or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FXD Dyna Super Glide",
+   "year_from": 2012,
+   "year_to": 2013,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate default-session integration has synthetic tests only; fixed DID and transport compatibility vary. Read-only identity and raw DIDs, no memory reading or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLSTSE CVO Softail Convertible",
+   "year_from": 2011,
+   "year_to": 2012,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate default-session integration has synthetic tests only; fixed DID and transport compatibility vary. Read-only identity and raw DIDs, no memory reading or programming."
+  },
+  {
+   "make": "Harley-Davidson",
+   "model": "FLHRSE5 CVO Road King",
+   "year_from": 2014,
+   "year_to": 2014,
+   "ecu": "harley_delphi_can_uds",
+   "confidence": "unknown",
+   "notes": "Dynojet lists this model/year for its Delphi CAN product. This separate default-session integration has synthetic tests only; fixed DID and transport compatibility vary. Read-only identity and raw DIDs, no memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "Z125M",
+   "year_from": 2019,
+   "year_to": 2019,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF110F",
+   "year_from": 2019,
+   "year_to": 2024,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists a 2019 CRF110F K-Line ECU; Dynojet lists CRF110F 2019–2024 for its Power Vision. This is not confirmation that this separate implementation works on every ECU. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "MSX125",
+   "year_from": 2014,
+   "year_to": 2014,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "MSX125",
+   "year_from": 2017,
+   "year_to": 2017,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR250R",
+   "year_from": 2012,
+   "year_to": 2012,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR250R HRC",
+   "year_from": 2014,
+   "year_to": 2014,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR250RR HRC",
+   "year_from": 2017,
+   "year_to": 2017,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF250R",
+   "year_from": 2011,
+   "year_to": 2011,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF250R",
+   "year_from": 2013,
+   "year_to": 2015,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "VTR250",
+   "year_from": 2015,
+   "year_to": 2015,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR300R HRC",
+   "year_from": 2014,
+   "year_to": 2014,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB300",
+   "year_from": 2008,
+   "year_to": 2012,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "SH300",
+   "year_from": 2009,
+   "year_to": 2009,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "XRE 300",
+   "year_from": 2009,
+   "year_to": 2012,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "Transalp700",
+   "year_from": 2013,
+   "year_to": 2013,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "Shadow 750",
+   "year_from": 2009,
+   "year_to": 2009,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "GL1800",
+   "year_from": 2015,
+   "year_to": 2015,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB600F/R",
+   "year_from": 2010,
+   "year_to": 2011,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
   }
  ]
 }

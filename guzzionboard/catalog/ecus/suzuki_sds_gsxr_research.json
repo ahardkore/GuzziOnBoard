@@ -1,0 +1,48 @@
+{
+  "id": "suzuki_sds_gsxr_research",
+  "family": "Suzuki GSX-R / Hayabusa SDS (research)",
+  "display_name": "Suzuki GSX-R / Hayabusa (raw SDS attempt)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "AiM-listed model years only",
+  "notes": "AiM lists these models for its SDS K-Line protocol; the exact request and 50-byte response used here come from separate sources. Compatibility and this integration have synthetic tests only. Raw snapshot only; no ECU ID, faults, memory, programming or simulator.",
+  "session": {
+    "protocol": "suzuki-sds-gsxr-research",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 1.0,
+    "physical_evidence_note": "AiM lists these models for its SDS protocol; this separate integration has synthetic tests only and its exact request/response compatibility is not physically verified."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No memory or programming operations."
+  },
+  "capabilities": [
+    "live"
+  ],
+  "sources": [
+    "https://support.aimshop.com/downloads/stockEcu/bike/suzuki/Suzuki_SDS_Protocol_102_eng.pdf",
+    "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3"
+  ],
+  "parameters": [
+    {
+      "key": "raw_snapshot",
+      "name": "Raw SDS sensor snapshot (meaning unverified)",
+      "local_id": 8,
+      "unit": "",
+      "default": true,
+      "confidence": "unknown"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "suzuki-sds-gsxr-research",
+    "inter_byte_delay": 0.005
+  }
+}

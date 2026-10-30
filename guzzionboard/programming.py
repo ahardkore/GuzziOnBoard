@@ -457,6 +457,14 @@ class ProgrammingService:
             {"region": region_name, "size": image.size,
              "sha256": image.sha256, "duration_s": image.meta["duration_s"]},
         )
+        from .read_sharing import configured, queue_read
+        if configured():
+            import threading
+            try:
+                threading.Thread(target=queue_read, args=(self.diag, image, region_name),
+                                 name="queue-read-report", daemon=True).start()
+            except RuntimeError:
+                pass  # optional evidence sharing must never invalidate a completed read
         return image
 
     def _read_honda_mgz_research(self, region_name: str, confirmed: bool) -> FirmwareImage:

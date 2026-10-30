@@ -139,7 +139,8 @@ def test_the_status_endpoint_is_honest_before_anything_is_applied(api):
     assert body["submission"]["url"].startswith("https://github.com/")
     assert body["selection"]["ecu"] == "7sm"
     assert "write" in body["not_claimable"]
-    assert "never uploaded" in body["note"]
+    assert "stay local" in body["note"]
+    assert body["automatic"]["state"] == "not_running"
 
 
 # ------------------------------------------------------------- building one
@@ -259,7 +260,7 @@ def test_check_apply_and_revert_over_http(api, home, tmp_path):
     assert {change["claim"] for change in preview["changes"]} >= {
         "handshake", "identify", "dtc_read",
     }
-    assert "Read-level promotions only" in preview["message"]
+    assert "Read-level effects only" in preview["message"]
     assert api.ws.catalog.ecu("7sm").field_confirmation == {}   # not applied yet
 
     # applying with the wrong digest is refused

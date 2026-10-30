@@ -628,3 +628,16 @@ def test_programming_transfer_read_rejects_invalid_blocks(service, monkeypatch, 
     monkeypatch.setattr(service.diag.session, 'request', lambda payload: Frame(data))
     with pytest.raises(ProtocolError, match='memory block'):
         service._read_by_transfer(Region('flash',0,4,block=4))
+
+
+def test_read_succeeds_when_optional_report_thread_cannot_start(service, monkeypatch):
+    """A synthetic read result must survive failure to start the optional reporter."""
+    import threading
+    from guzzionboard import read_sharing
+
+    monkeypatch.setattr(read_sharing, 'configured', lambda: True)
+    def unavailable(_thread):
+        raise RuntimeError('thread limit')
+    monkeypatch.setattr(threading.Thread, 'start', unavailable)
+    image = service.read_region('flash')
+    assert image.source == 'read' and image.size == service.profile.memory['regions']['flash']['size']

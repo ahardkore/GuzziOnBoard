@@ -13,18 +13,19 @@ The pipeline
    a bundle with a raw capture and claim digests.
 2. **Aggregate** (:func:`build_update_pack`) - confirmations are validated
    against their captures and grouped by ``(ECU family, claim)``. A claim needs
-   ``quorum`` confirmations that are *independent*: distinct install markers
-   and distinct captures. Contradicted claims are refused, not averaged.
+   at least one confirmation by default (a larger independent quorum is
+   configurable). Contradicted claims are refused, not averaged.
 3. **Sign** (:func:`envelope_for`) - the pack is canonicalised and signed with
    the maintainer's Ed25519 seed. The seed never enters this repository.
 4. **Distribute** - the envelope is published as a release asset. The URL is
    pinned in :data:`DEFAULT_PACK_URL`; the key that signs it lives in the
    shipped keyring, and an operator can pin their own as well.
-5. **Verify and apply** (``apply_pack``) - the install checks the signature
+5. **Verify and apply** (``apply_pack``) - a background worker checks for
+   published packs; the install checks the signature
    against a pinned key, checks that the pack was reviewed against this exact
    catalog revision, checks that its sequence number is newer than what is
-   already applied, and only then writes an overlay. The overlay is read by
-   ``catalog.load_catalog()`` on the next start.
+   already applied, and only then writes an overlay. The catalog is reloaded
+   for future ECU connections; an open session keeps its original definition.
 
 What a pack may do
 ------------------
@@ -55,6 +56,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import time
 import urllib.error
 import urllib.request
@@ -346,7 +348,7 @@ def _claim_effects(
             "target": "source",
             "value": (
                 f"Verified protocol update: {family} {claim} confirmed by "
-                f"{len(references)} independent field session(s) on real hardware "
+                f"{len(references)} reported field session(s) "
                 f"({', '.join(r['id'] for r in references)})"
             ),
         }
@@ -357,7 +359,7 @@ def _claim_effects(
 def build_update_pack(
     confirmations: list[tuple[dict, bytes]],
     *,
-    quorum: int = 2,
+    quorum: int = 1,
     reviewer: str = "",
     pack_id: str = "",
     sequence: int = 1,
@@ -375,11 +377,8 @@ def build_update_pack(
     """
     if not confirmations:
         raise ProtocolUpdateError("no confirmations supplied")
-    if quorum < 2:
-        raise ProtocolUpdateError(
-            "quorum must be at least 2: one machine, one session and one "
-            "mistake must not be able to change the catalog for everybody"
-        )
+    if type(quorum) is not int or quorum < 1:
+        raise ProtocolUpdateError("quorum must be at least 1")
     issued = _now(issued_at)
     verified: list[dict] = []
     rejections: list[dict] = []
@@ -519,8 +518,7 @@ def build_update_pack(
                 "effects": effects,
                 "references": references,
                 "evidence_note": (
-                    f"{len(references)} independent field confirmation(s) on real "
-                    f"hardware; each claim digest can be recomputed from the "
+                    f"{len(references)} reported field confirmation(s); hardware origin is not independently verified; each claim digest can be recomputed from the "
                     f"attached capture."
                 ),
             }
@@ -600,6 +598,9 @@ def validate_pack(pack: dict, *, now: float | None = None) -> dict:
             raise ProtocolUpdateError(f"{key} is required")
     if int(pack["sequence"]) < 1:
         raise ProtocolUpdateError("sequence must be a positive integer")
+    quorum = pack.get("quorum", 1)
+    if type(quorum) is not int or quorum < 1:
+        raise ProtocolUpdateError("quorum must be at least 1")
     issued = _parse_time(pack["issued_at"], "issued_at")
     expires = _parse_time(pack["expires_at"], "expires_at")
     if expires <= issued:
@@ -642,10 +643,10 @@ def validate_pack(pack: dict, *, now: float | None = None) -> dict:
                 raise ProtocolUpdateError(f"promotion is missing {key!r}")
         if not isinstance(promotion["references"], list) or len(
             promotion["references"]
-        ) < int(pack.get("quorum", 2)):
+        ) < quorum:
             raise ProtocolUpdateError(
                 f"{promotion_key(promotion)}: fewer references than the quorum of "
-                f"{pack.get('quorum', 2)}"
+                f"{quorum}"
             )
         if promotion["ecu"] not in fingerprints:
             raise ProtocolUpdateError(
@@ -865,9 +866,7 @@ def check_envelope(
 ) -> dict:
     """Verify a pack and describe exactly what applying it would change.
 
-    Applying is a second, explicit step (:func:`apply_pack`) that must quote
-    the digest returned here, so a stale preview cannot be applied to a
-    different pack.
+    A manual or automatic caller must pass this exact digest to apply_pack.
     """
     directory = _directory(directory)
     verified = verify_envelope(envelope, keyring(directory), now=now)
@@ -939,9 +938,9 @@ def check_envelope(
             for promotion in pack["promotions"]
         ],
         "message": (
-            "Signed by a pinned key, reviewed against this catalog revision, "
-            f"and built from {len(distinct_captures)} independent field "
-            "confirmation(s). Read-level promotions only."
+            "Signed by a pinned key and matched to this catalog revision; "
+            f"built from {len(distinct_captures)} reported field "
+            "confirmation(s). Hardware origin is not independently verified. Read-level effects only."
         ),
     }
 
@@ -1056,7 +1055,7 @@ def catalog_fragment(pack: dict, *, applied_at: str = "") -> dict[str, dict]:
                 "captures": captures,
                 "note": (
                     "Promoted by a reviewed protocol update built from independent "
-                    "field sessions on real hardware. Read-level only: no control "
+                    "reported field sessions; hardware origin is not independently verified. Read-level only: no control "
                     "action, no confidence change, no write path."
                 ),
             },
@@ -1083,7 +1082,7 @@ def merge_catalog_fragment(raw: dict, fragment: dict) -> dict:
         session["physical_supported"] = True
         session["physical_evidence_note"] = (
             "Physical use enabled by a reviewed protocol update built from "
-            "independent field sessions on real hardware."
+            "reported field sessions; hardware origin is not independently verified."
         )
         merged["session"] = session
     if fragment.get("memory_read_supported") and isinstance(merged.get("memory"), dict):
@@ -1225,7 +1224,7 @@ def status(directory: str | Path | None = None) -> dict:
             continue
     return {
         "directory": str(directory),
-        "source_url": DEFAULT_PACK_URL,
+        "source_url": os.environ.get("GOB_PROTOCOL_UPDATE_URL") or DEFAULT_PACK_URL,
         "trusted_keys": keys,
         "bundled_keyring": str(BUNDLED_KEYRING),
         "local_keyring": str(directory / "keys.json"),

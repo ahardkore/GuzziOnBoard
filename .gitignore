@@ -24,3 +24,9 @@ blob-report/
 packaging/resources/*.exe
 packaging/windows_version_info.txt
 .desktop-test-data/
+
+# Cloudflare local state, generated deployment config and local secrets.
+.wrangler/
+.dev.vars*
+cloudflare/wrangler.deploy.toml
+.wrangler-dryrun/

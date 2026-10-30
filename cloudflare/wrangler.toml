@@ -1,0 +1,10 @@
+name = "guzzionboard-validation"
+main = "worker.mjs"
+compatibility_date = "2025-08-01"
+
+# Local test binding only. For deployment, run configure.mjs; it resolves the
+# real ID by the database name and writes an ignored deployment config.
+[[d1_databases]]
+binding = "DB"
+database_name = "guzzionboard"
+database_id = "local"

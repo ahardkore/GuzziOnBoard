@@ -170,7 +170,7 @@ and the [source review](docs/USER_SOURCE_REVIEW.md).
 | Topic | Guide |
 | --- | --- |
 | Desktop setup and exports | [Desktop application](docs/DESKTOP.md) |
-| ECU coverage, evidence and protocols | [Protocol notes](docs/PROTOCOL_NOTES.md) · [Physical validation](docs/PHYSICAL_VALIDATION.md) |
+| ECU coverage, evidence and protocols | [Protocol notes](docs/PROTOCOL_NOTES.md) · [Physical validation](docs/PHYSICAL_VALIDATION.md) · [Hosted read sharing](docs/HOSTED_READ_SHARING.md) · [Cloudflare deployment](docs/CLOUDFLARE_DEPLOYMENT.md) |
 | XDFs, maps and checksum providers | [XDF library](docs/XDF_LIBRARY.md) · [Checksum plugins](docs/CHECKSUM_PLUGINS.md) |
 | ECU number and vehicle research | [ECU number research](docs/ECU_NUMBER_RESEARCH.md) |
 | Harley diagnostics and Delphi research | [Harley tuning](docs/HARLEY_TUNING.md) |

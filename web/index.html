@@ -187,11 +187,11 @@
     <div class="flow-divider"><span class="flow-step">03 · Contribute</span><span>Optional: review evidence and confirm a real-world protocol update.</span></div>
     <article class="panel secondary-panel" id="protocolPanel">
       <h2>Protocol evidence — field confirmations &amp; updates</h2>
-      <p class="muted">One qualifying hardware confirmation can be used to build a read-level update. The desktop checks for published signed packs at startup and periodically, verifies the trusted key and catalog revision, then applies valid packs for future connections. With explicit consent and a configured hosted relay, one qualifying completed read can be reported and published automatically; no production relay or key is bundled. Automatic reports are self-reported, region-specific provenance, not independently verified hardware or family-wide proof. Without a trusted release key and published pack no update can be applied. Writing is never enabled by these updates.</p>
+      <p class="muted">One qualifying hardware confirmation can be used to build a read-level update. The desktop checks for published signed packs at startup and periodically, verifies the trusted key and catalog revision, then applies valid packs for future connections. With explicit consent and a configured hosted relay, one qualifying completed read can be reported and published automatically; the default relay URL and its public key are bundled in updated builds. A submission token must be provisioned separately. Automatic reports are self-reported, region-specific provenance, not independently verified hardware or family-wide proof. Without a trusted release key and published pack no update can be applied. Writing is never enabled by these updates.</p>
       <div id="protocolOut">Loading…</div>
       <div class="toolbar">
         <input type="text" id="protocolUrl" class="grow"
-               placeholder="Pack URL or local path — leave blank for the published release asset"
+               placeholder="Pack URL or local path — leave blank for the configured relay"
                aria-label="Protocol update pack URL">
         <button class="btn" id="protocolCheckBtn">Check for a signed update…</button>
         <button class="btn" id="protocolRefreshBtn">Refresh</button>
@@ -206,7 +206,7 @@
         one taken from the pack you are about to install, which would be trusting the
         thing being checked. Keys pinned here live in
         <code>~/.guzzionboard/protocol/keys.json</code> and are not overwritten by
-        application updates.</p>
+        application updates. Forgetting a bundled key disables it locally until you deliberately pin it again.</p>
         <div id="protocolKeysOut" class="muted small">Loading…</div>
         <div class="toolbar">
           <input type="text" id="protocolKeyId" placeholder="key name (e.g. release)"

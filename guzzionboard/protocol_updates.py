@@ -87,12 +87,10 @@ OVERLAY_SCHEMA = "guzzionboard.protocol-overlay/v1"
 DEFAULT_DIR = Path.home() / ".guzzionboard" / "protocol"
 #: Public keyring shipped with the application (see ``docs/PROTOCOL_UPDATES.md``).
 BUNDLED_KEYRING = Path(__file__).parent / "catalog" / "protocol_keys.json"
-#: Release asset every install checks. GitHub Releases, not a bespoke service:
-#: the artifact is public, versioned and independently mirrorable.
-DEFAULT_PACK_URL = (
-    "https://github.com/ahardkore/GuzziOnBoard/releases/latest/download/"
-    "protocol-update.json"
-)
+#: The public relay endpoint supplies signed packs. Trust is established by
+#: the separately bundled public key, never by the URL or the envelope itself.
+DEFAULT_RELAY_URL = "https://guzzionboard-validation.aaron-hard11.workers.dev"
+DEFAULT_PACK_URL = DEFAULT_RELAY_URL + "/protocol-update.json"
 #: An operator (or a workshop) can pin additional keys without touching the
 #: shipped ones. Empty until somebody adds one.
 LOCAL_KEYRING = DEFAULT_DIR / "keys.json"
@@ -714,7 +712,7 @@ def verify_envelope(
 
 def fetch_pack(url: str | None = None, *, timeout: float = MAX_FETCH_SECONDS) -> dict:
     """Download an envelope. HTTPS or a local file; nothing else."""
-    url = (url or DEFAULT_PACK_URL).strip()
+    url = (url or os.environ.get("GOB_PROTOCOL_UPDATE_URL") or DEFAULT_PACK_URL).strip()
     if not url:
         raise ProtocolUpdateError("no protocol update URL is configured")
     if url.startswith("file://"):
@@ -779,8 +777,31 @@ def _applied_sequence(record: dict) -> int:
         return 0
 
 
+def _revoked_keys(directory: Path) -> set[str]:
+    """Locally disabled key IDs, including keys bundled with the app."""
+    path = directory / "revoked-keys.json"
+    if not path.is_file():
+        return set()
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        names = value["keys"]
+        if not isinstance(names, list) or any(not isinstance(n, str) or not n for n in names):
+            raise ValueError("keys must be a list of names")
+        return set(names)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise ProtocolUpdateError(f"invalid local key-revocation file: {exc}") from exc
+
+
+def _save_revoked_keys(directory: Path, names: set[str]) -> None:
+    directory.mkdir(parents=True, exist_ok=True)
+    target = directory / "revoked-keys.json"
+    temporary = directory / "revoked-keys.json.tmp"
+    temporary.write_text(json.dumps({"keys": sorted(names)}, indent=2) + "\n", encoding="utf-8")
+    os.replace(temporary, target)
+
+
 def keyring(directory: str | Path | None = None) -> dict[str, str]:
-    """The trusted public keys: bundled first, then operator-pinned."""
+    """Bundled and locally pinned keys, less locally revoked key IDs."""
     directory = _directory(directory)
     keys: dict[str, str] = {}
     for path in (BUNDLED_KEYRING, directory / "keys.json"):
@@ -788,6 +809,8 @@ def keyring(directory: str | Path | None = None) -> dict[str, str]:
             keys.update(load_keyring(path))
         except SignatureError as exc:                      # pragma: no cover
             raise ProtocolUpdateError(str(exc)) from exc
+    for name in _revoked_keys(directory):
+        keys.pop(name, None)
     return keys
 
 
@@ -1109,9 +1132,9 @@ def load_applied_overlay(
     """The overlay in force, and a status honest enough to show in the UI.
 
     The signature is verified when a pack is *applied* (that is the moment the
-    bytes cross a trust boundary). Every later start re-checks that the stored
-    envelope is still the one that was verified - digest for digest - and says
-    so, so a file edited after the fact is refused rather than trusted.
+    bytes cross a trust boundary). Later loads re-check the digest and the
+    signature against the currently trusted key. Expiration prevents new
+    applications but does not invalidate a previously applied pack.
     """
     directory = _directory(directory)
     record = _applied_record(directory)
@@ -1160,6 +1183,13 @@ def load_applied_overlay(
             "reason": "the applied record does not say the signature was verified",
             "pack": record.get("pack", {}),
         }
+    if (not key_id or not verify_signature(canonical_json(envelope.get("payload") or {}),
+                                            str(envelope.get("signature") or ""), trusted.get(key_id, ""))):
+        return None, {
+            "state": "refused",
+            "reason": "the applied pack no longer verifies against its pinned key",
+            "pack": record.get("pack", {}),
+        }
     overlay = {
         "schema": OVERLAY_SCHEMA,
         "pack": record.get("pack", {}),
@@ -1180,8 +1210,8 @@ def load_applied_overlay(
         },
         "detail": (
             "Read-level promotions were applied from a signed pack. The "
-            "signature was verified at apply time; the stored envelope is "
-            "checked against that digest on every start."
+            "signature and digest are checked against the current trusted "
+            "key on every load."
         ),
     }
 
@@ -1215,13 +1245,7 @@ def status(directory: str | Path | None = None) -> dict:
     """Everything the UI needs to be honest about protocol updates."""
     directory = _directory(directory)
     overlay, overlay_status = load_applied_overlay(directory)
-    keys = {}
-    for path in (BUNDLED_KEYRING, directory / "keys.json"):
-        try:
-            for name, value in load_keyring(path).items():
-                keys[name] = value[:16] + "…"
-        except SignatureError:                             # pragma: no cover
-            continue
+    keys = {name: value[:16] + "…" for name, value in keyring(directory).items()}
     return {
         "directory": str(directory),
         "source_url": os.environ.get("GOB_PROTOCOL_UPDATE_URL") or DEFAULT_PACK_URL,
@@ -1237,10 +1261,9 @@ def status(directory: str | Path | None = None) -> dict:
             "changed by an update; those stay in the reviewed catalog."
         ),
         "how": (
-            "Pin the release key (scripts/build_protocol_update.py --generate-key "
-            "on the maintainer side), publish protocol-update.json as a release "
-            "asset, then check for it here. An install that never fetches still "
-            "gets promotions in the next application release."
+            "The configured HTTPS relay is checked automatically; its packs "
+            "must verify against an independently pinned public key. Manual "
+            "checks and alternative URLs remain available."
         ),
     }
 
@@ -1268,23 +1291,33 @@ def revert(directory: str | Path | None = None) -> dict:
 
 
 def pin_key(name: str, public_key_hex: str, directory: str | Path | None = None) -> dict:
-    """Add a trusted public key to this install's keyring."""
+    """Pin a public key and explicitly re-enable a locally revoked ID."""
     directory = _directory(directory)
-    if not is_public_key(public_key_hex):
-        raise ProtocolUpdateError("a public key is 64 hex characters")
+    if not name or not is_public_key(public_key_hex):
+        raise ProtocolUpdateError("a key name and 64 hex characters are required")
     keys = load_keyring(directory / "keys.json")
     keys[name] = public_key_hex.lower()
     save_keyring(directory / "keys.json", keys)
+    revoked = _revoked_keys(directory)
+    if name in revoked:
+        revoked.remove(name)
+        _save_revoked_keys(directory, revoked)
     return {"pinned": name, "keys": sorted(keys), "path": str(directory / "keys.json")}
 
 
 def unpin_key(name: str, directory: str | Path | None = None) -> dict:
+    """Forget a local key and revoke a bundled key on this installation."""
     directory = _directory(directory)
     keys = load_keyring(directory / "keys.json")
+    bundled = load_keyring(BUNDLED_KEYRING)
+    if name in bundled:
+        revoked = _revoked_keys(directory)
+        revoked.add(name)
+        _save_revoked_keys(directory, revoked)
     if name in keys:
         del keys[name]
         save_keyring(directory / "keys.json", keys)
-    return {"pinned": sorted(keys), "removed": name}
+    return {"pinned": sorted(keyring(directory)), "removed": name}
 
 
 __all__ = [

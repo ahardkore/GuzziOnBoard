@@ -102,6 +102,7 @@ class FakeLog:
 
 @pytest.fixture
 def home(tmp_path, monkeypatch):
+    monkeypatch.setattr(protocol_updates, "BUNDLED_KEYRING", tmp_path / "no-bundled-keys.json")
     monkeypatch.setattr(confirmations, "DEFAULT_DIR", tmp_path / "confirmations")
     monkeypatch.setattr(confirmations, "INSTALL_FILE", tmp_path / "install.json")
     monkeypatch.setattr(protocol_updates, "DEFAULT_DIR", tmp_path / "protocol")
@@ -396,3 +397,15 @@ def test_dispatch_turns_a_protocol_refusal_into_a_browser_readable_400(api, home
         httpd.shutdown()
         httpd.server_close()
         thread.join(timeout=5)
+
+
+def test_manual_check_honors_environment_url_and_reports_it(api, tmp_path, monkeypatch):
+    pack = _pack_from(api, tmp_path)
+    envelope = protocol_updates.envelope_for(pack, seed=SEED, key_id="release")
+    protocol_updates.pin_key("release", envelope["public_key"])
+    path = tmp_path / "pack.json"
+    path.write_text(json.dumps(envelope))
+    monkeypatch.setenv("GOB_PROTOCOL_UPDATE_URL", path.as_uri())
+    status, result = api.post_protocol_updates_check({})
+    assert status == 200 and result["url"] == path.as_uri()
+    assert result["preview"]["signature_verified"]

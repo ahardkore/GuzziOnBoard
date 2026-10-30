@@ -194,6 +194,7 @@ def pack_for(tmp_path: Path, session: dict | None = None, **build_kwargs) -> dic
 @pytest.fixture
 def home(tmp_path, monkeypatch):
     """A private HOME, so nothing touches a developer's real ~/.guzzionboard."""
+    monkeypatch.setattr(protocol_updates, "BUNDLED_KEYRING", tmp_path / "no-bundled-keys.json")
     monkeypatch.setattr(confirmations, "DEFAULT_DIR", tmp_path / "confirmations")
     monkeypatch.setattr(confirmations, "INSTALL_FILE", tmp_path / "install.json")
     monkeypatch.setattr(protocol_updates, "DEFAULT_DIR", tmp_path / "protocol")
@@ -646,7 +647,7 @@ def test_status_explains_itself_and_fetches_are_bounded(tmp_path, home):
     status = protocol_updates.status(tmp_path / "protocol")
     assert status["applied"] is False
     assert "read-level promotions only" in status["note"]
-    assert "release asset" in status["how"]
+    assert "HTTPS relay" in status["how"]
 
     with pytest.raises(protocol_updates.ProtocolUpdateError, match="HTTPS"):
         protocol_updates.fetch_pack("http://example.invalid/pack.json")
@@ -868,10 +869,10 @@ def test_the_maintainer_tool_builds_checks_and_refuses(tmp_path):
     assert "signature ok" in checked.stdout
     assert "catalog 7sm: matches" in checked.stdout
 
-    # without a pinned key the tool refuses rather than guessing
+    # The bundled production key rejects a pack signed with a different seed.
     unpinned = run("--check", str(out))
     assert unpinned.returncode == 2
-    assert "no trusted key" in unpinned.stderr
+    assert "signature does not verify" in unpinned.stderr
 
     # a pack built from a directory with no confirmations is refused
     empty = tmp_path / "nothing"
@@ -955,3 +956,44 @@ def test_incomplete_memory_result_never_produces_read_claim(detail):
     events = confirmations.parse_capture(session_log())
     events.append({'kind': 'action', 'name': 'memory_read_complete', 'detail': detail})
     assert 'memory_read' not in confirmations.derive_claims(events)
+
+
+def test_bundled_production_defaults_and_url_override(tmp_path, monkeypatch):
+    assert protocol_updates.keyring(tmp_path)["release"] == (
+        "1e68c798efe14f03c89f02c9cab82353d4ad36e3311a928e1ac95bd8652a5cab"
+    )
+    assert protocol_updates.DEFAULT_PACK_URL == (
+        "https://guzzionboard-validation.aaron-hard11.workers.dev/protocol-update.json"
+    )
+    default_override = tmp_path / "override.json"
+    explicit = tmp_path / "explicit.json"
+    default_override.write_text('{"chosen":"override"}')
+    explicit.write_text('{"chosen":"explicit"}')
+    monkeypatch.setenv("GOB_PROTOCOL_UPDATE_URL", default_override.as_uri())
+    assert protocol_updates.fetch_pack()["chosen"] == "override"
+    assert protocol_updates.fetch_pack(explicit.as_uri())["chosen"] == "explicit"
+
+
+def test_revoking_bundled_key_and_repinning_controls_applied_overlay(tmp_path, home, monkeypatch):
+    directory = tmp_path / "protocol"
+    envelope = sign(pack_for(tmp_path))
+    bundled = tmp_path / "bundled.json"
+    signing.save_keyring(bundled, {"release": envelope["public_key"]})
+    monkeypatch.setattr(protocol_updates, "BUNDLED_KEYRING", bundled)
+    preview = protocol_updates.check_envelope(envelope, directory=directory)
+    protocol_updates.apply_pack(envelope, expected_sha256=preview["sha256"], directory=directory)
+    assert protocol_updates.load_applied_overlay(directory)[0] is not None
+    protocol_updates.unpin_key("release", directory)
+    assert "release" not in protocol_updates.keyring(directory)
+    assert "release" not in protocol_updates.status(directory)["trusted_keys"]
+    assert protocol_updates.load_applied_overlay(directory)[1]["state"] == "refused"
+    # Replacing the ID must not restore the old key's applied overlay.
+    protocol_updates.pin_key("release", signing.public_key(SEED_B), directory)
+    assert protocol_updates.load_applied_overlay(directory)[1]["state"] == "refused"
+    protocol_updates.unpin_key("release", directory)
+    protocol_updates.pin_key("release", envelope["public_key"], directory)
+    assert protocol_updates.load_applied_overlay(directory)[0] is not None
+    # A corrupt revocation file fails closed instead of silently trusting keys.
+    (directory / "revoked-keys.json").write_text("not json")
+    with pytest.raises(protocol_updates.ProtocolUpdateError, match="revocation"):
+        protocol_updates.keyring(directory)

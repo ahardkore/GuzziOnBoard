@@ -1,21 +1,23 @@
 # Protocol updates — from one operator's confirmation to every install
 
-> **Current rollout:** An opt-in client and a deployable relay are implemented,
-> but no service has been deployed, no production token or release key has been
-> provisioned, and the bundled keyring is empty. Existing installs need an app
-> update and suitable configuration. See [hosted read sharing](HOSTED_READ_SHARING.md).
-> A single authenticated self-report is not independent proof of hardware, a
-> restorable image, or applicability to other variants or regions. The automatic
-> relay publishes region-specific provenance only: it does not promote
-> family-wide `verified-bench` confidence or enable writes.
+> **Current rollout:** The Cloudflare validation relay responds at
+> `https://guzzionboard-validation.aaron-hard11.workers.dev` and the next app
+> build bundles its URL and the supplied `release` public key. The operator
+> reports configuring the Worker secrets and D1 schema; authenticated submission,
+> production signing-key matching, and physical hardware have not been independently
+> verified. Existing releases need an app update. See
+> [hosted read sharing](HOSTED_READ_SHARING.md). A single authenticated
+> self-report is not independent proof of hardware, a restorable image, or
+> applicability to other variants or regions. Automatic relay updates provide
+> region-specific provenance only and do not enable writes.
 
 ## Status
 
-The mechanism described here is implemented, synthetic-tested and reachable
-from the workstation UI and HTTP API. No relay is deployed. The shipped catalog
-lists the IAW 5AM at `verified-bench` on the strength of a published capture, and `guzzionboard/catalog/protocol_keys.json`
-ships **empty on purpose**. Nothing in this repository is trusted until a
-maintainer adds a key to that file, or an operator pins one locally.
+The mechanism is implemented and synthetic-tested, and is reachable from the
+workstation UI and HTTP API. The shipped catalog lists the IAW 5AM at
+`verified-bench` on the strength of a published capture. The updated bundled
+keyring includes the supplied relay public key; an operator can also pin keys
+locally or revoke a bundled key on that installation.
 
 That distinction is the whole point of this document. A pipeline is not
 evidence, and a signature is not truth — it is a checkable claim about *who
@@ -43,11 +45,11 @@ Two publication routes carry *identical* promotions, and the code that makes
 them identical is `protocol_updates.catalog_fragment()`:
 
 * **the signed pack** — automatically checked and applied when the install has
-  a trusted key and a compatible release asset; manual preview is also available;
+  a trusted key and a compatible relay pack; manual preview is also available;
 * **the committed catalog change** — slow, but it reaches every install in the
   next release and needs no trust infrastructure at all.
 
-The relay is deployable but is not currently hosted. The manual pack remains a
+The manual pack remains a
 file with a signature; an install that never fetches updates can still receive
 catalog changes through an ordinary application release.
 
@@ -170,11 +172,12 @@ cannot keep; the fix is either the missing definition or `--withhold
 | latency | minutes | a release |
 | produced by | `--out protocol-update.json` | `--print-catalog-fragment` / `--apply-catalog` |
 
-The pack is published as a GitHub release asset, because the artifact is then
-public, versioned and independently mirrorable. `DEFAULT_PACK_URL` points at
-`releases/latest/download/protocol-update.json`; fetches are bounded
-(`MAX_PACK_BYTES` 512 KiB, `MAX_FETCH_SECONDS` 20 s) and only HTTPS or a local
-file is accepted — no plain HTTP, no arbitrary schemes.
+The default pack URL points to the Cloudflare relay at
+`https://guzzionboard-validation.aaron-hard11.workers.dev/protocol-update.json`.
+`GOB_PROTOCOL_UPDATE_URL` or the manual URL field can select a different source;
+a manually produced pack may also be published as a GitHub release asset.
+Fetches are bounded (`MAX_PACK_BYTES` 512 KiB, `MAX_FETCH_SECONDS` 20 s)
+and only HTTPS or a local file is accepted — no plain HTTP or arbitrary schemes.
 
 Route two is the same promotions expressed as catalog-file edits, produced by
 `catalog_fragment()` and merged by `merge_catalog_fragment()`. Committing that
@@ -225,9 +228,9 @@ later as if it were current.
 
 ## 7. Keys — pinned in advance, never on first use
 
-* The shipped keyring is `guzzionboard/catalog/protocol_keys.json`; it is
-  **empty by design**, and an empty keyring refuses every pack. There is no
-  trust-on-first-use anywhere in this path.
+* The shipped keyring is `guzzionboard/catalog/protocol_keys.json`; it includes
+  the public key `release` supplied for the hosted relay. An empty keyring
+  refuses every pack. There is no trust-on-first-use in this path.
 * An operator or workshop can pin additional keys in
   `~/.guzzionboard/protocol/keys.json` — a location application updates never
   overwrite, so a fleet can trust its own reviewer without changing the
@@ -238,7 +241,10 @@ later as if it were current.
   characters pasted from somewhere you trust — never from the pack you are
   about to install. Replacing an existing name is refused as a single step: you
   forget the old pin first, so the change is two visible actions rather than
-  one silent overwrite.
+  one silent overwrite. Forgetting a bundled key persists as a local revocation
+  in `revoked-keys.json`, and removes its applied overlay from future catalog
+  loads. Deliberately pinning the ID again re-enables it; an existing overlay
+  must verify against the newly pinned key.
 * A key that must be retired is replaced by a new key and a new pack signed
   with it; installs that pinned the old key simply stop accepting new packs
   until they pin the new one, which is the intended failure direction.
@@ -325,9 +331,9 @@ Files and directories:
 | `guzzionboard/confirmations.py` | bundles: build, verify, store, submission link |
 | `guzzionboard/protocol_updates.py` | aggregation, signing, keys, check/apply/revert, catalog fragment |
 | `guzzionboard/signing.py` | Ed25519 and canonical JSON (stdlib only) |
-| `guzzionboard/catalog/protocol_keys.json` | shipped keyring — empty until a maintainer adds a key |
+| `guzzionboard/catalog/protocol_keys.json` | shipped relay public key (no secret) |
 | `~/.guzzionboard/confirmations/` | bundles (`conf-*.json`) and their frozen captures (`conf-*.session.jsonl`) |
-| `~/.guzzionboard/protocol/` | `keys.json`, `applied.json`, `applied/<sha256>.json` |
+| `~/.guzzionboard/protocol/` | `keys.json`, `revoked-keys.json`, `applied.json`, `applied/<sha256>.json` |
 | `scripts/build_protocol_update.py` | maintainer tool: generate key, build, review, sign, check, print/apply catalog fragment |
 
 Schemas: `guzzionboard.protocol-confirmation/v1`,

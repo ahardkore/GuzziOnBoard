@@ -153,3 +153,23 @@ def test_http_submission_retry_and_automatic_application(shared, monkeypatch):
 
 # Preserve the implementation when the fixture disables background sends.
 _real_flush_outbox = read_sharing.flush_outbox
+
+
+def test_default_relay_requires_consent_and_token(monkeypatch):
+    monkeypatch.delenv("GOB_VALIDATION_URL", raising=False)
+    monkeypatch.delenv("GOB_SHARE_READ_VALIDATIONS", raising=False)
+    monkeypatch.delenv("GOB_VALIDATION_TOKEN", raising=False)
+    assert read_sharing.submission_url() == protocol_updates.DEFAULT_RELAY_URL
+    assert not read_sharing.configured()
+    monkeypatch.setenv("GOB_VALIDATION_TOKEN", TOKEN)
+    assert not read_sharing.configured()
+    monkeypatch.setenv("GOB_SHARE_READ_VALIDATIONS", "1")
+    assert read_sharing.configured()
+    monkeypatch.delenv("GOB_VALIDATION_TOKEN")
+    assert not read_sharing.configured()
+    monkeypatch.setenv("GOB_VALIDATION_TOKEN", TOKEN)
+    monkeypatch.setenv("GOB_VALIDATION_URL", "http://insecure.example")
+    assert not read_sharing.configured()
+    monkeypatch.setenv("GOB_VALIDATION_URL", "https://other.example")
+    assert read_sharing.configured()
+    assert read_sharing.submission_url() == "https://other.example"

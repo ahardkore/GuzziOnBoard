@@ -1,11 +1,13 @@
 # Hosted read-report sharing
 
-This is deployable software, **not a live service**. There is no production
-hostname, release signing key or submission token in this repository, and the
-bundled update keyring is empty. A maintainer must deploy and secure the relay,
-provide its public key through an authenticated channel, and ship an updated
-app or configure each installation. Existing releases do not gain this feature
-automatically. Merely running the app does not upload reports.
+The Cloudflare relay responds at
+`https://guzzionboard-validation.aaron-hard11.workers.dev`. Updated app builds
+bundle that address and the supplied `release` public key. The operator reports
+that the D1 schema and Worker secrets are configured, but authenticated production
+submission, a production signature matching that key, and hardware have not yet
+been independently verified. Existing releases need an app update. Merely running
+the app does not upload reports: a sender also needs consent and a separately,
+securely provisioned submission token. No token or signing seed ships in the app.
 
 ## What one read can and cannot establish
 
@@ -37,19 +39,20 @@ unlock all bikes or all regions.
 
 ## Consent and data
 
-The shop operator must explicitly configure all three variables before opening
-the desktop application or local console server:
+The shop operator must explicitly configure consent and a securely provisioned
+token before opening the desktop application or local console server. The URLs
+below are optional overrides of the bundled defaults:
 
 ```sh
 export GOB_SHARE_READ_VALIDATIONS=1
-export GOB_VALIDATION_URL=https://YOUR-VALIDATION-HOST
+export GOB_VALIDATION_URL=https://YOUR-VALIDATION-HOST  # optional
 export GOB_VALIDATION_TOKEN='YOUR-PROVISIONED-TOKEN'
-export GOB_PROTOCOL_UPDATE_URL=https://YOUR-VALIDATION-HOST/protocol-update.json
+export GOB_PROTOCOL_UPDATE_URL=https://YOUR-VALIDATION-HOST/protocol-update.json  # optional
 ```
 
 Use a secret manager or protected environment file for the token, not shell
-history, Git, or chat. Set the update URL even on receiving-only installations;
-they do not need the submission token or sharing flag. To stop future uploads,
+history, Git, or chat. Receiving-only installations need neither the submission
+token nor sharing flag; they may override the default update URL if desired. To stop future uploads,
 unset the flag or token. Pending files remain under the app data directory in
 `protocol/outbox/`; delete those files if withdrawal must also discard retries.
 The UI reports whether sharing is configured and how many reports are queued.
@@ -72,7 +75,8 @@ sensitive data in otherwise allowed frame fields.
 
 A Workers + D1 version is available for the existing database named
 `guzzionboard`; see [Cloudflare deployment](CLOUDFLARE_DEPLOYMENT.md).
-It is not yet deployed or connected to that database.
+The operator reports running the D1 schema and configuring the Worker, but
+authenticated production submission and signing remain unverified.
 
 ## Deploying the standalone relay
 

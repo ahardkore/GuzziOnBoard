@@ -1,9 +1,11 @@
 # Cloudflare deployment: existing `guzzionboard` D1 database
 
-The Cloudflare Worker is implemented and locally synthetic-tested, but is **not
-live or provisioned**. The owner provided the ID for the existing D1 database
-named `guzzionboard`; it is configured in `cloudflare/wrangler.build.toml`, but
-its identity and contents have not been verified from this workspace.
+The Cloudflare Worker has been locally synthetic-tested and its public relay
+endpoint responds at `https://guzzionboard-validation.aaron-hard11.workers.dev`.
+The owner reports running the schema and provisioning runtime values. The D1
+contents, authenticated production submission, production signing-key match,
+and hardware use have not been independently verified from this workspace.
+The owner-provided D1 ID is configured in `cloudflare/wrangler.build.toml`.
 Cloudflare Workers cannot run the standalone Python HTTP relay unchanged. This
 Worker implements the same submission and signed-update endpoints using D1.
 
@@ -171,12 +173,13 @@ database name; it does not create a new database.
    Workers and D1 usage limits, CPU time, logging and rate limiting for your
    account; local tests do not establish production capacity or cost. Verify
    a synthetic end-to-end test with a clearly labeled test environment first.
-6. For **receiving** installs, pin the public key out of band and set
-   `GOB_PROTOCOL_UPDATE_URL=https://<your-worker-host>/protocol-update.json`
-   before launching the app. Updated builds can ship the public key and URL.
-   For **submitting** installs, also securely provision `GOB_VALIDATION_URL`
-   (the HTTPS Worker origin), `GOB_VALIDATION_TOKEN`, and the explicit consent
-   flag `GOB_SHARE_READ_VALIDATIONS=1`. Those installations also need session
+6. Updated builds bundle the public key and URL for the hosted relay at
+   `https://guzzionboard-validation.aaron-hard11.workers.dev`. For a different
+   relay, receiving installs must pin its public key out of band and set
+   `GOB_PROTOCOL_UPDATE_URL=https://<your-worker-host>/protocol-update.json`.
+   For **submitting** installs, securely provision `GOB_VALIDATION_TOKEN` and
+   set the explicit consent flag `GOB_SHARE_READ_VALIDATIONS=1`; set
+   `GOB_VALIDATION_URL` only when using a different HTTPS Worker origin. Those installations also need session
    recording enabled. Never distribute the seed or give the token to someone
    who should not be able to submit. Existing app releases must be updated.
 

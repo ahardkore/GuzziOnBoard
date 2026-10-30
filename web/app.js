@@ -2297,13 +2297,17 @@ async function loadProtocol() {
           + `${esc(status.trusted_keys[name])} `
           + `<button class="link-btn" data-unpin="${esc(name)}">forget</button></p>`).join('')
         : '<p>No key is pinned, so no pack can be applied on this machine. '
-          + 'That is the shipped default, and it is not a bug.</p>';
+          + 'Pin a trusted key to receive updates.</p>';
       $$('[data-unpin]', keysOut).forEach((btn) => {
         btn.onclick = async () => {
           try {
             await api('/api/protocol-updates/unpin-key',
               { method: 'POST', body: { key_id: btn.dataset.unpin } });
             toast(`Forgot ${btn.dataset.unpin}. Packs signed by it are refused.`, 'info');
+            protocol.preview = null;
+            protocol.envelope = null;
+            await loadCatalog();
+            await refreshStatus();
             await loadProtocol();
           } catch (err) { toast(err.message, 'bad'); }
         };
@@ -2433,6 +2437,8 @@ async function pinProtocolKey() {
       key you can forget again.</p></div>`;
     if ($('#protocolKeyHex')) $('#protocolKeyHex').value = '';
     toast('Key pinned. Check a pack to preview exactly what it would change.', 'ok');
+    await loadCatalog();
+    await refreshStatus();
     await loadProtocol();
   } catch (err) {
     out.innerHTML = `<p class="muted">${esc(err.message)}</p>`;

@@ -15,7 +15,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from . import confirmations, resources
+from . import confirmations, protocol_updates, resources
 
 OUTBOX = resources.data_root() / "protocol" / "outbox"
 MAX_CAPTURE = 8 * 1024 * 1024
@@ -23,9 +23,13 @@ _lock = threading.Lock()
 _flush_lock = threading.Lock()
 
 
+def submission_url():
+    return os.environ.get("GOB_VALIDATION_URL") or protocol_updates.DEFAULT_RELAY_URL
+
+
 def configured():
     return (os.environ.get("GOB_SHARE_READ_VALIDATIONS") == "1"
-            and bool(os.environ.get("GOB_VALIDATION_URL", "").startswith("https://"))
+            and bool(submission_url().startswith("https://"))
             and bool(os.environ.get("GOB_VALIDATION_TOKEN")))
 
 
@@ -97,7 +101,7 @@ def flush_outbox():
     if not configured() or not _flush_lock.acquire(blocking=False):
         return
     try:
-        url = os.environ["GOB_VALIDATION_URL"].rstrip("/") + "/v1/confirmations"
+        url = submission_url().rstrip("/") + "/v1/confirmations"
         token = os.environ["GOB_VALIDATION_TOKEN"]
         opener = urllib.request.build_opener(_NoRedirect())
         with _lock:

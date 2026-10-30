@@ -317,7 +317,7 @@ test('desktop exposes multi-brand offline research and blocks hardware sessions'
       return { status: r.status, body: await r.json() };
     };
     return {
-      select: await post('/api/select', { make: 'Suzuki', model: 'SV650AK7', year: 2007, transport: 'kline' }),
+      select: await post('/api/select', { make: 'Kawasaki', model: 'Ninja ZX-6R (636)', year: 2026, transport: 'can' }),
       connect: await post('/api/connect', { mode: 'read_only' }),
     };
   });

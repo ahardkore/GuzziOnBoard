@@ -165,7 +165,7 @@ def test_the_protocol_evidence_panel_is_wired_and_honest():
     # Applying quotes the digest from the preview, so consent cannot be reused.
     assert "expected_sha256" in source
     assert "one qualifying hardware confirmation" in html.lower()
-    assert "no production relay or key is bundled" in html.lower()
+    assert "a submission token must be provisioned separately" in html.lower()
     assert "If automated read sharing is explicitly configured" in html
     assert "A simulated session cannot confirm anything about hardware" in html
 

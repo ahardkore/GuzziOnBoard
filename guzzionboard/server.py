@@ -14,6 +14,7 @@ import hashlib
 import json
 import math
 import mimetypes
+import os
 import re
 import secrets
 import threading
@@ -1698,7 +1699,7 @@ class Api:
         happens when the operator asks for it.
         """
         url = body.get("url") or None
-        fetch_url = url or protocol_updates_mod.DEFAULT_PACK_URL
+        fetch_url = url or os.environ.get("GOB_PROTOCOL_UPDATE_URL") or protocol_updates_mod.DEFAULT_PACK_URL
         envelope = protocol_updates_mod.fetch_pack(url)
         preview = protocol_updates_mod.check_envelope(envelope)
         return 200, {
@@ -1745,12 +1746,20 @@ class Api:
         return 200, result
 
     def post_protocol_updates_pin_key(self, body: dict) -> tuple[int, dict]:
-        return 200, protocol_updates_mod.pin_key(
-            str(body.get("key_id") or ""), str(body.get("public_key") or "")
-        )
+        from .auto_protocol_updates import UPDATE_LOCK
+        with UPDATE_LOCK:
+            result = protocol_updates_mod.pin_key(
+                str(body.get("key_id") or ""), str(body.get("public_key") or "")
+            )
+            result["catalog"] = self.ws.reload_catalog()
+        return 200, result
 
     def post_protocol_updates_unpin_key(self, body: dict) -> tuple[int, dict]:
-        return 200, protocol_updates_mod.unpin_key(str(body.get("key_id") or ""))
+        from .auto_protocol_updates import UPDATE_LOCK
+        with UPDATE_LOCK:
+            result = protocol_updates_mod.unpin_key(str(body.get("key_id") or ""))
+            result["catalog"] = self.ws.reload_catalog()
+        return 200, result
 
     def _session_capture(self) -> bytes:
         """The frozen bytes of the current session log.

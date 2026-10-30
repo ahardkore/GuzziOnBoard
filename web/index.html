@@ -126,7 +126,7 @@
           <span>Device</span>
           <input id="deviceInput" placeholder="/dev/ttyUSB0">
         </label>
-        <p id="elmFields" class="muted small" hidden>For the ECU-only Harley J1850 / HarleyDroid profile: enter the paired ELM327 serial port at 38400 baud and select read-only mode. Source reports Harley J1850 bikes, notably Sportster; model/year layouts vary. GuzziOnBoard has not hardware-tested this integration. Adapter setup alone does not identify an ECU.</p>
+        <p id="elmFields" class="muted small" hidden>For the source-listed Harley or ECU-only J1850 / HarleyDroid profile: enter the paired ELM327 serial port at 38400 baud and select read-only mode. Source reports Harley J1850 bikes, notably Sportster; model/year layouts vary. GuzziOnBoard has not hardware-tested this integration. Adapter setup alone does not identify an ECU.</p>
         <div id="klineFields" hidden>
           <label class="field">
             <span>K-Line handshake</span>
@@ -140,7 +140,7 @@
           <p class="muted small">Use the profile default first. The Honda CB500F DashBle entry is an explicit ECU-only option: its source does not specify the bike year or ECU and the integration is not hardware-tested. Auto waits 2.6 seconds after a failed fast attempt before slow init, so older ECUs do not mistake the fallback for the rest of a partial 5-baud address.</p>
         </div>
         <div id="canFields" hidden>
-          <p class="muted small">Harley Delphi CAN identity research is ECU-only, requires 500 kbit/s and fixed 0x7E0/0x7E8; enter an explicit SocketCAN channel (e.g. can0) or PCAN channel (e.g. PCAN_USBBUS1). This attempts tester-present, five raw identity DIDs and four raw source-observed DIDs; a response does not verify fitment and the source may require authentication. No ECU memory, security, or programming is provided.</p>
+          <p class="muted small">Harley Delphi CAN identity research is available by source-listed vehicle or ECU-only override. This integration has synthetic tests only and may not work for a selected bike. It requires 500 kbit/s and fixed 0x7E0/0x7E8; enter an explicit SocketCAN channel (e.g. can0) or PCAN channel (e.g. PCAN_USBBUS1). This attempts tester-present, five raw identity DIDs and four raw source-observed DIDs; a response does not verify fitment and the source may require authentication. No ECU memory, security, or programming is provided.</p>
           <p class="muted small">Generic OBD-II 11-bit CAN is an explicit ECU-only option, not a claim of compatibility with the selected motorcycle. It needs a compatible CAN interface and correctly wired adapter, 500 kbit/s and a physical OBD ECU ID pair; this integration has not been hardware-tested. It reads supported standard live PIDs and emission-related stored faults, not ECU memory.</p>
           <label class="field">
             <span>Request id (tester &rarr; ECU)</span>
@@ -800,9 +800,9 @@
     </article>
 
     <article class="panel" id="harleyLiveCan">
-      <h2>Harley HDLAN · live CAN observation</h2>
-      <p class="muted small">Observe candidate broadcast values from an already configured Linux SocketCAN interface. Community mappings are best-effort and vary by model/year; RPM is especially tentative. No ECU diagnostic request, identification, DTC, memory read or tuning is provided. Never use these values for riding or safety decisions. This application sends no CAN frames, but a normal CAN controller may acknowledge traffic; configure hardware listen-only mode separately if required.</p>
-      <label class="field"><span>Observation source (not automatic vehicle identification)</span><select id="harleyLiveProfile"><option value="community">HarleyDroid HDLAN community candidates</option><option value="sportster_2017">2017 XL1200X Sportster · source-described raw frames</option></select></label>
+      <h2>Motorcycle CAN · live broadcast observation</h2>
+      <p class="muted small">Observe candidate broadcast values from an already configured Linux SocketCAN interface. Select the source profile for your bike; mappings are best-effort and vary by model/year. The Ducati source uses 500 kbit/s. No ECU diagnostic request, identification, DTC, memory read or tuning is provided. Never use these values for riding or safety decisions. This application sends no CAN frames, but a normal CAN controller may acknowledge traffic; configure hardware listen-only mode separately if required.</p>
+      <label class="field"><span>Observation source (not automatic vehicle identification)</span><select id="harleyLiveProfile"><option value="community">HarleyDroid HDLAN community candidates</option><option value="sportster_2017">2017 XL1200X Sportster · source-described raw frames</option><option value="ducati_mitsubishi">Ducati Mitsubishi · Panigale / Multistrada 1200 / Diavel candidates</option></select></label>
       <label class="field"><span>Existing SocketCAN interface (bitrate configured in the OS)</span><input id="harleyLiveChannel" value="can0" maxlength="15"></label>
       <label class="check"><input type="checkbox" id="harleyLiveConfirm"> I confirmed the adapter, wiring, bus configuration and research-only limitations</label>
       <div class="toolbar"><button class="btn" id="harleyLiveStart">Start observation</button><button class="btn small" id="harleyLiveStop" disabled>Stop</button></div>
@@ -852,7 +852,7 @@
   <section class="view hidden" id="firmware">
     <article class="panel">
       <h2>ECU memory</h2>
-      <p class="muted">Reading an ECU image is slow but safe. Writing one is neither. Everything here is ordered the way it has to happen: check the adapter, read a backup, verify it, validate the new image, and only then write.</p>
+      <p class="muted">A documented memory read is generally lower risk than a write, but ECU protocols, power and wiring still matter. A live diagnostic connection does not mean an ECU memory reader exists. Use an implemented read path or compare existing files below; write support requires a separate ECU-specific protocol and safety checks.</p>
       <div id="memCaps" class="kv">Connect to an ECU first.</div>
       <div id="memCapsNote"></div>
     </article>
@@ -885,6 +885,17 @@
         <span class="muted small" id="memProgressText"></span>
       </div>
       <div id="memResult"></div>
+    </article>
+
+    <article class="panel" id="memoryComparePanel">
+      <h2>Compare two ECU image files</h2>
+      <p class="muted small">Compare independent reads from any tool locally in this window. Identical bytes can reveal repeatability, but do not prove that either read is complete, from the same ECU, correct for a particular layout, or restorable. No ECU communication, file upload, writes, or backup authorization occur.</p>
+      <div class="toolbar">
+        <label class="inline">First image <input type="file" id="memoryCompareFirst"></label>
+        <label class="inline">Second image <input type="file" id="memoryCompareSecond"></label>
+        <button class="btn" id="memoryCompareBtn">Compare bytes</button>
+      </div>
+      <div id="memoryCompareOut" aria-live="polite"></div>
     </article>
 
     <article class="panel" id="baseMapPanel">

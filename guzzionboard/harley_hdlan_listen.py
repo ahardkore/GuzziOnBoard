@@ -1,7 +1,7 @@
-"""Bounded receive-only SocketCAN observation of candidate Harley HDLAN frames.
+"""Bounded receive-only SocketCAN observation of candidate motorcycle CAN frames.
 
-Decoding uses the separately attributed HarleyDroid EVO community map. This
-module never sends CAN frames; a normal CAN controller can still ACK traffic.
+Decoding uses the separately attributed HarleyDroid EVO, Sportster and Ducati
+Mitsubishi community maps. This module never sends CAN frames; a normal CAN controller can still ACK traffic.
 It does not identify a bike or establish the integrity of CAN broadcasts.
 """
 from __future__ import annotations
@@ -11,11 +11,13 @@ import time
 
 from .canlog import CanFrame
 from .harley_hdlan_can import MIN_LENGTH, decode_capture
+from .ducati_panigale_can import decode_capture as decode_ducati
 from .transports.can import _require_can
 from .transports.base import TransportError
 
 DURATION = 2.0
 MAX_FRAMES = 10000
+DUCATI_LENGTH = {0x18: 6, 0x80: 7, 0x100: 6}
 SPORTSTER_LENGTH = {0x550: (6, 8), 0x544: (8,), 0x542: (8,), 0x530: (8,)}
 
 
@@ -47,9 +49,9 @@ def decode_sportster(frames):
 def listen(channel: str, profile: str = "community") -> dict:
     if not isinstance(channel, str) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,15}', channel):
         raise ValueError('Enter a valid existing SocketCAN interface name (1–15 characters).')
-    if profile not in ('community', 'sportster_2017'):
-        raise ValueError('Unknown Harley CAN observation profile.')
-    filters = MIN_LENGTH if profile == 'community' else SPORTSTER_LENGTH
+    if profile not in ('community', 'sportster_2017', 'ducati_mitsubishi'):
+        raise ValueError('Unknown CAN observation profile.')
+    filters = MIN_LENGTH if profile == 'community' else DUCATI_LENGTH if profile == 'ducati_mitsubishi' else SPORTSTER_LENGTH
     can = _require_can()
     try:
         # SocketCAN bitrate and controller listen-only mode must already be
@@ -76,8 +78,8 @@ def listen(channel: str, profile: str = "community") -> dict:
                     or getattr(msg, 'is_rx', True) is False or msg.arbitration_id not in filters):
                 continue
             data = bytes(msg.data)
-            valid_length = (MIN_LENGTH[msg.arbitration_id] <= len(data) <= 8 if profile == 'community'
-                            else len(data) in SPORTSTER_LENGTH[msg.arbitration_id])
+            valid_length = (len(data) in SPORTSTER_LENGTH[msg.arbitration_id] if profile == 'sportster_2017'
+                            else filters[msg.arbitration_id] <= len(data) <= 8)
             if not valid_length:
                 invalid += 1
                 continue
@@ -87,8 +89,10 @@ def listen(channel: str, profile: str = "community") -> dict:
         raise TransportError(f'SocketCAN receive failed: {exc}') from exc
     finally:
         bus.shutdown()
-    events = decode_capture(latest.values())['events'] if profile == 'community' else decode_sportster(latest.values())
+    events = (decode_capture(latest.values())['events'] if profile == 'community'
+              else decode_ducati(latest.values())['events'] if profile == 'ducati_mitsubishi'
+              else decode_sportster(latest.values()))
     return {'channel': channel, 'profile': profile, 'duration_seconds': DURATION, 'frames_received': count,
             'invalid_length_frames': invalid, 'frame_limit_reached': count >= MAX_FRAMES,
             'events': events,
-            'note': 'Candidate community mappings only; not an ECU response, bike identification or safety measurement. No CAN frames were sent by this application. A normal controller may still acknowledge bus traffic.'}
+            'note': 'Candidate source mappings only; not an ECU response, bike identification or safety measurement. No CAN frames were sent by this application. A normal controller may still acknowledge bus traffic.'}

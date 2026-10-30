@@ -488,9 +488,12 @@ class ProgrammingService:
         address = region.start
         while len(out) < region.size:
             chunk = min(region.block, region.size - len(out))
-            out += session.read_memory_by_address(
+            data = session.read_memory_by_address(
                 address, chunk, addr_bytes=region.addr_bytes
             )
+            if len(data) != chunk:
+                raise ProtocolError(f"memory read at 0x{address:06X} returned {len(data)} bytes, expected {chunk}")
+            out += data
             address += chunk
             self.diag._touch()
             self._emit("read", len(out), region.size, f"0x{address:06X}")
@@ -526,13 +529,13 @@ class ProgrammingService:
                 )
                 # 76 <subfn> <addr16> <len16> <data...>
                 body = frame.data[1:]
-                if len(body) < 4:
-                    raise ProtocolError(
-                        f"short block response at 0x{address:06X}: {frame.hex()}"
-                    )
+                if (len(body) < 4 or frame.data[0] != subfn
+                        or int.from_bytes(body[:2], "big") != (address & 0xffff)
+                        or int.from_bytes(body[2:4], "big") != chunk):
+                    raise ProtocolError(f"memory block header mismatch at 0x{address:06X}")
                 payload = body[4:]
-                if not payload:
-                    raise ProtocolError(f"empty block at 0x{address:06X}")
+                if len(payload) != chunk:
+                    raise ProtocolError(f"memory block at 0x{address:06X} returned {len(payload)} bytes, expected {chunk}")
                 out += payload
                 address += len(payload)
                 self.diag._touch()

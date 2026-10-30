@@ -86,12 +86,11 @@ capture profile enables Harley tuning or memory programming.
 
 ## Live J1850 diagnostics (desktop and local workstation)
 
-The separate **Harley J1850 / HarleyDroid (read-only, ECU-only)** profile
+The separate **Harley J1850 / HarleyDroid (read-only research)** profile
 implements a narrow live diagnostic path based on the same pinned GPL
-HarleyDroid EVO source. In Garage, clear the model, open **Override: pick an
-ECU family directly**, select the Harley profile, choose **Harley J1850
-(ELM327 serial)** and **read-only**, then enter the explicitly addressed
-serial port. Install `pip install -e '.[hardware]'` if the ELM transport is
+HarleyDroid EVO source. In Garage, select a source-listed Harley model/year or clear the model and choose the ECU-only override, then choose **Harley J1850
+(ELM327 serial)** and **read-only**, and enter the explicitly addressed
+serial port. [Dynojet’s J1850 product list](https://www.dynojet.com/harley-davidson-power-vision-delphi-j1850-black-1/) lists these model/years for fuel-injected Delphi ECUs; it does not establish compatibility of our separate integration. Some years may include carbureted or different-ECU variants: verify the bike, fuel injection, ECU and wiring. These vehicle attempts are synthetic-tested only and not hardware-verified. Install `pip install -e '.[hardware]'` if the ELM transport is
 unavailable. The ELM327 serial interface is configured at **38400 baud**,
 8N1; paired Bluetooth serial ports can be used if the operating system exposes
 them as a serial device. Raw Wi-Fi ELM sockets and J2534 are not implemented.
@@ -175,13 +174,11 @@ integration has synthetic tests only, with no physical Harley testing.
 
 ## Live Delphi CAN identity and raw DID research
 
-In Garage, use the ECU-only override **Harley Delphi CAN (identity research)**,
-select CAN and read-only mode, and specify a CAN channel. On Linux use an
+In Garage, select a source-listed Harley model/year, or use the ECU-only override **Harley Delphi CAN (identity research)**. Select CAN and read-only mode, and specify a CAN channel. [Dynojet lists these models](https://www.dynojet.com/harley-davidson-power-vision-delphi-can-black-1/) for its Delphi CAN product; that fitment list does not establish that this separate implementation or its fixed DIDs work on any particular motorcycle. This integration is synthetic-tested only. On Linux use an
 already configured SocketCAN channel such as `can0`; for a PCAN adapter use a
 python-can PCAN channel such as `PCAN_USBBUS1` with its driver installed.
 The profile is restricted to 500 kbit/s, physical `0x7E0`/`0x7E8` and zero
-padding. The source describes Delphi ECUs approximately 2014–2020, but this
-selection is not proof of a particular ECU, software revision or motorcycle.
+padding. The DID source describes Delphi ECUs approximately 2014–2020; Dynojet’s product fitments include additional 2011–2013 and 2021–2022 models. Those extra model-years use the same experimental default-session requests, with no GuzziOnBoard hardware validation; ECU protocol and response layouts may differ. Selection does not establish the actual ECU or software revision.
 
 The connection requires a matching `3E 00` / `7E 00` tester-present response;
 that confirms only a responder. The Identify action attempts the source's

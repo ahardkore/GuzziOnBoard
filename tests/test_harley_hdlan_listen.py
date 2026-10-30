@@ -112,3 +112,24 @@ def test_exact_2017_sportster_source_observations_preserve_unknowns(monkeypatch)
     assert {f['can_id'] for f in calls[0]['can_filters']} == set(listen.SPORTSTER_LENGTH)
     assert not bus.send_called and bus.shutdown_called
     with pytest.raises(ValueError): listen.listen('can0', 'arbitrary')
+
+
+def test_ducati_mitsubishi_live_broadcasts_reuse_offline_decoder(monkeypatch):
+    bus = Bus([msg(0x80, [0,0,0,0,80,0x12,0x34,0]),
+               msg(0x18, [0,0,0,0,0x21,0x20]),
+               msg(0x100, [0,0,0,120,125,70]),
+               msg(0x80, [0,0]), msg(0x80, [0]*8, is_rx=False),
+               msg(0x80, [0]*8, is_extended_id=True)])
+    calls=setup_bus(monkeypatch,bus)
+    result=listen.listen('can0','ducati_mitsubishi')
+    assert {entry['can_id'] for entry in calls[0]['can_filters']} == {0x18,0x80,0x100}
+    events={x['id']:x for x in result['events']}
+    assert events['0x80']['values'] == {'throttle_percent':40, 'rpm':0x1234}
+    assert events['0x18']['values'] == {'rear_wheel_speed_kmh':18, 'gear_raw':1}
+    assert events['0x100']['values'] == {'coolant_c':80,'air_c':30,'battery_v':12.5}
+    assert result['invalid_length_frames'] == 1 and bus.shutdown_called and not bus.send_called
+
+
+def test_ducati_window_does_not_reuse_stale_frames(monkeypatch):
+    bus=Bus([]); setup_bus(monkeypatch,bus)
+    assert listen.listen('can0','ducati_mitsubishi')['events'] == []

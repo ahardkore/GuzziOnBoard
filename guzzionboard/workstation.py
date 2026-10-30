@@ -250,6 +250,9 @@ class Workstation:
             )
         if entry and entry.notes:
             notices.append({"level": "info", "text": entry.notes})
+        evidence = profile.session.get("physical_evidence_note")
+        if evidence:
+            notices.append({"level": "info", "text": f"Validation: {evidence}"})
         promotion = _field_confirmation_notice(profile)
         if promotion:
             notices.append(promotion)
@@ -489,10 +492,12 @@ class Workstation:
             profile = self.selection.profile
             if profile.session.get("protocol") == "harley-delphi-can-identity":
                 spec = self.selection.can_spec()
-                if (self.selection.entry is not None or self.selection.transport_kind != "can"
-                        or mode != "read_only" or not self.selection.device.strip()
+                if (self.selection.entry is not None and (self.selection.make.casefold() != "harley-davidson"
+                        or self.selection.entry.ecu != profile.id)):
+                    raise TransportUnavailable("Harley Delphi research requires an ECU-only or source-listed Harley selection")
+                if (self.selection.transport_kind != "can" or mode != "read_only" or not self.selection.device.strip()
                         or (spec.get("bitrate"), spec.get("tx_id"), spec.get("rx_id")) != (500000, 0x7e0, 0x7e8)):
-                    raise TransportUnavailable("Harley Delphi identity research requires ECU-only selection, explicit CAN device and fixed 500 kbit/s IDs in read-only mode")
+                    raise TransportUnavailable("Harley Delphi identity research requires an explicit CAN device and fixed 500 kbit/s IDs in read-only mode")
             if profile.session.get("protocol") == "generic-obd-can-11bit":
                 spec = self.selection.can_spec()
                 tx = spec.get("tx_id")
@@ -502,8 +507,9 @@ class Workstation:
                         or spec.get("rx_id") != tx + 8):
                     raise TransportUnavailable("Generic OBD requires ECU-only selection, read-only CAN and an 11-bit physical OBD ID pair at 500 kbit/s")
             if profile.session.get("protocol") == "harley-j1850-harleydroid":
-                if self.selection.entry is not None:
-                    raise TransportUnavailable("Harley J1850 requires an explicit ECU-only selection; no model/year fitment is cataloged")
+                if (self.selection.entry is not None and (self.selection.make.casefold() != "harley-davidson"
+                        or self.selection.entry.ecu != profile.id)):
+                    raise TransportUnavailable("Harley J1850 requires an ECU-only or source-listed Harley selection")
                 if self.selection.transport_kind != "elm_j1850" or mode != "read_only":
                     raise TransportUnavailable("Harley J1850 requires the ELM327 serial transport in read-only mode")
                 if not self.selection.device.strip():
@@ -530,11 +536,39 @@ class Workstation:
                     raise TransportUnavailable("Honda K-Line requires the exact Honda CBR600RR 2005 selection")
                 if self.selection.transport_kind != "kline" or mode != "read_only":
                     raise TransportUnavailable("Honda K-Line supports physical K-Line and read-only mode only")
-            if profile.session.get("protocol") in ("aster-versys-2012", "aster-gsxr600-2011"):
+            if profile.session.get("protocol") == "honda-pgmfi-research":
+                if (self.selection.entry is None or self.selection.make.casefold() != "honda"
+                        or self.selection.entry.ecu != profile.id):
+                    raise TransportUnavailable("Honda PGM-FI research requires a source-listed Honda selection")
+                if self.selection.transport_kind != "kline" or mode != "read_only":
+                    raise TransportUnavailable("Honda PGM-FI research supports physical K-Line and read-only mode only")
+            if profile.session.get("protocol") == "kawasaki-kds-research":
+                if (self.selection.entry is None or self.selection.make.casefold() != "kawasaki"
+                        or self.selection.entry.ecu != profile.id):
+                    raise TransportUnavailable("Kawasaki KDS research requires a source-listed vehicle")
+                if self.selection.transport_kind != "kline" or mode != "read_only":
+                    raise TransportUnavailable("Kawasaki KDS research supports physical K-Line and read-only mode only")
+            if profile.session.get("protocol") == "suzuki-sds-gsxr-research":
+                ranges = {"gsx-r600": (2006, 2016), "gsx-r750": (2006, 2016),
+                          "gsx-r1000": (2005, 2016), "gsx-r1300 hayabusa": (2008, 2016)}
+                bounds = ranges.get(self.selection.model.casefold())
+                if (self.selection.entry is None or self.selection.make.casefold() != "suzuki"
+                        or self.selection.entry.ecu != profile.id or bounds is None
+                        or self.selection.year is None or not bounds[0] <= self.selection.year <= bounds[1]):
+                    raise TransportUnavailable("Suzuki SDS research requires a source-listed model and year")
+                if self.selection.transport_kind != "kline" or mode != "read_only":
+                    raise TransportUnavailable("Suzuki SDS research supports physical K-Line and read-only mode only")
+            if profile.session.get("protocol") in ("aster-versys-2012", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003"):
                 expected = {"aster-versys-2012": ("kawasaki", "versys 650", 2012),
-                            "aster-gsxr600-2011": ("suzuki", "gsx-r600", 2011)}[profile.session["protocol"]]
+                            "aster-gsxr600-2011": ("suzuki", "gsx-r600", 2011),
+                            "suzuki-gsxr1000-2004": ("suzuki", "gsx-r1000", 2004),
+                            "suzuki-sv650ak7-2007": ("suzuki", "sv650ak7", 2007),
+                            "suzuki-sv650-2003": ("suzuki", "sv650", (2003, 2004, 2005))}[profile.session["protocol"]]
+                make, model, year = expected
+                years = year if isinstance(year, tuple) else (year,)
                 if (self.selection.entry is None or
-                        (self.selection.make.casefold(), self.selection.model.casefold(), self.selection.year) != expected):
+                        (self.selection.make.casefold(), self.selection.model.casefold()) != (make, model) or
+                        self.selection.year not in years):
                     raise TransportUnavailable("Source-scoped K-Line requires the exact tested model and year")
                 if self.selection.transport_kind != "kline" or mode != "read_only":
                     raise TransportUnavailable("Source-scoped K-Line supports physical K-Line and read-only mode only")

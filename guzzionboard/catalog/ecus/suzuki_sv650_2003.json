@@ -1,0 +1,47 @@
+{
+  "id": "suzuki_sv650_2003",
+  "family": "Suzuki SV650 2003\u20132005 (source-reported SDS)",
+  "display_name": "Suzuki SV650 2003\u20132005 (raw SDS snapshot)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "2003\u20132005",
+  "notes": "Source reverse-engineers 03\u201305 SV650 and captures 32920-17G2. This integration has synthetic tests only. Raw SDS snapshot only; no 2007 decoding, ECU identity, faults, memory or programming.",
+  "session": {
+    "protocol": "suzuki-sv650-2003",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 1.0,
+    "physical_evidence_note": "Source reports 03\u201305 SV650 communication; this adaptation is synthetic-tested only."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No memory or programming operations."
+  },
+  "capabilities": [
+    "live"
+  ],
+  "sources": [
+    "https://github.com/synfinatic/sv650sds/tree/bacf803a9056241ef270acf0e7e31467961aeba5"
+  ],
+  "parameters": [
+    {
+      "key": "raw_snapshot",
+      "name": "Raw SDS sensor snapshot (meaning unverified)",
+      "local_id": 8,
+      "unit": "",
+      "default": true,
+      "confidence": "unknown"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "suzuki-sv650-2003",
+    "inter_byte_delay": 0.005
+  }
+}

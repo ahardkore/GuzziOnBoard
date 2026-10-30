@@ -82,11 +82,15 @@ def test_local_identifiers_are_unique_within_a_family(catalog):
         if profile.id == "suzuki_gsxr600_2011":
             # Eight independent channels share one 21 08 sensor snapshot.
             assert len(ids) == 8 and set(ids) == {0x08}
+        elif profile.id == "suzuki_sv650ak7_2007":
+            assert len(ids) == 6 and set(ids) == {0x08}
         elif profile.id == "honda_cbr600rr_2005":
             # Channels share the source-specific 71 10 and 71 D1 tables.
             assert len(ids) == 9 and ids.count(0x10) == 7 and ids.count(0xD1) == 2
         elif profile.id == "honda_cb500f_dashble":
             assert len(ids) == 9 and ids.count(0x11) == 7 and ids.count(0xD1) == 2
+        elif profile.id == "honda_pgmfi_research":
+            assert len(ids) == 18 and all(ids.count(table) == 3 for table in (0x10, 0x11, 0x17))
         else:
             assert len(ids) == len(set(ids)), f"{profile.id} has duplicate local ids"
         keys = [p.key for p in profile.parameters]
@@ -210,7 +214,7 @@ def test_unknown_vehicle_raises_rather_than_guessing(catalog):
 
 
 def test_cross_brand_makes_are_present(catalog):
-    assert set(catalog.makes()) == {"Aprilia", "Ducati", "Honda", "Kawasaki", "Moto Guzzi", "Suzuki", "Triumph"}
+    assert set(catalog.makes()) == {"Aprilia", "Ducati", "Harley-Davidson", "Honda", "Kawasaki", "Moto Guzzi", "Suzuki", "Triumph"}
 
 
 def test_every_cross_brand_entry_is_read_only_until_confirmed(catalog):
@@ -218,13 +222,13 @@ def test_every_cross_brand_entry_is_read_only_until_confirmed(catalog):
 
     Ducati and Aprilia run the same Marelli ECUs, but this catalog's
     identifier tables were all captured in a Moto Guzzi context - so every
-    cross-brand vehicle ships as 'inferred' and degrades to read-only via
+    cross-brand vehicle ships as 'inferred' or 'unknown' and degrades to read-only via
     the effective-confidence rule in the workstation.
     """
     cross = [v for v in catalog.vehicles if v.make != "Moto Guzzi"]
     assert len(cross) >= 30
     for vehicle in cross:
-        assert vehicle.confidence == "inferred", vehicle
+        assert vehicle.confidence in ("inferred", "unknown"), vehicle
         assert vehicle.ecu in catalog.ecus
 
 

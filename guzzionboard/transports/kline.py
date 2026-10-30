@@ -253,8 +253,14 @@ class KLineTransport(Transport):
             "kawasaki-er6n": "kawasaki-er6n",
             "honda-cbr600rr-2005": "honda-cbr600rr-2005",
             "honda-cb500f-dashble": "honda-cb500f-dashble",
+            "honda-pgmfi-research": "honda-pgmfi-research",
             "aster-versys-2012": "aster-versys-2012",
+            "kawasaki-kds-research": "kawasaki-kds-research",
             "aster-gsxr600-2011": "aster-gsxr600-2011",
+            "suzuki-gsxr1000-2004": "suzuki-gsxr1000-2004",
+            "suzuki-sds-gsxr-research": "suzuki-sds-gsxr-research",
+            "suzuki-sv650-2003": "suzuki-sv650-2003",
+            "suzuki-sv650ak7-2007": "suzuki-sv650ak7-2007",
             "triumph-daytona-2012": "triumph-daytona-2012",
         }
         selected = aliases.get(str(method).strip().lower())
@@ -273,11 +279,11 @@ class KLineTransport(Transport):
                     break
             result.attempts = attempts
             return result
-        if selected in ("honda-cbr600rr-2005", "honda-cb500f-dashble"):
+        if selected in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-pgmfi-research"):
             return self._honda_init(connection, selected)
-        if selected in ("aster-versys-2012", "aster-gsxr600-2011"):
-            return self._fast_init(connection, target=0x11 if selected == "aster-versys-2012" else 0x12,
-                                   source=0xF1, functional=False, paced=True, idle=1.0)
+        if selected in ("aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research"):
+            return self._fast_init(connection, target=0x11 if selected in ("aster-versys-2012", "kawasaki-kds-research") else 0x12,
+                                   source=0xF1, functional=False, paced=True, idle=6.0 if selected in ("suzuki-sv650ak7-2007", "suzuki-sv650-2003") else 1.0)
         if selected == "kawasaki-er6n":
             return self._fast_init(connection, target=0x11, source=0xF1,
                                    functional=False, paced=True)

@@ -728,6 +728,7 @@ async function resolveVehicle() {
       </div>
       <div class="muted small">${esc(m.label)} · ${esc(m.displacement || '?')} cc · TPS ${esc(m.tps || 'n/a')}</div>
       ${m.notes ? `<p class="note">${esc(m.notes)}</p>` : ''}
+      ${e.session?.physical_evidence_note ? `<p class="note"><strong>Validation:</strong> ${esc(e.session.physical_evidence_note)}</p>` : ''}
       <div>${e.effective_capabilities.map((c) => `<span class="tag">${esc(c)}</span>`).join(' ')}</div>
     </div>`;
   }).join('')
@@ -859,7 +860,7 @@ async function preparePhysicalConnection(selection) {
         'Put the kill switch in RUN.',
         'Turn the ignition key ON and wait for the dashboard self-check to finish. Do not start the engine.',
       ],
-      'Leave the key ON while the workstation connects. If the engine must run, a later prompt will tell you when to start it.',
+      [ecu.session?.physical_evidence_note, 'Leave the key ON while the workstation connects. If the engine must run, a later prompt will tell you when to start it.'].filter(Boolean).join(' '),
     ),
     'Key on — connect',
     { tone: 'primary' },
@@ -940,7 +941,7 @@ async function connect() {
       await api('/api/checklist', { method: 'POST', body: { accepted: $('#checklistAccept').checked } });
     }
     const initMethod = currentTransport() === 'kline' ? $('#initMethod').value : '';
-    if (['kawasaki_er6n_2006', 'triumph_daytona_675_2012', 'kawasaki_versys650_2012', 'suzuki_gsxr600_2011', 'honda_cbr600rr_2005', 'honda_cb500f_dashble'].includes(selection.ecu?.id) && initMethod) {
+    if (['kawasaki_er6n_2006', 'triumph_daytona_675_2012', 'kawasaki_versys650_2012', 'kawasaki_kds_research', 'suzuki_gsxr600_2011', 'honda_cbr600rr_2005', 'honda_cb500f_dashble', 'honda_pgmfi_research', 'suzuki_gsxr1000_2004', 'suzuki_sv650ak7_2007', 'suzuki_sv650_2003', 'suzuki_sds_gsxr_research'].includes(selection.ecu?.id) && initMethod) {
       throw new Error('This model requires ECU profile default handshake; select it before connecting.');
     }
     Prefs.set('initMethod', initMethod);
@@ -974,6 +975,12 @@ async function connect() {
             ? 'The ELM adapter is configured. A successful identity or live response is needed to confirm communication; the workstation does not send keepalives for this profile.'
             : selection.ecu?.id === 'harley_delphi_can_uds'
               ? 'A tester-present response was received; this does not identify the ECU or prove Harley fitment. The fixed DID requests may require authentication and no keepalives are sent.'
+            : selection.ecu?.id === 'kawasaki_kds_research'
+              ? 'A Versys-style KDS initialization response was received. Raw requests and lengths may vary by ECU; this does not establish identity, fitment or programming support.'
+            : selection.ecu?.id === 'honda_pgmfi_research'
+              ? 'A Honda diagnostic initialization response was received. Table availability and candidate sensor interpretations vary by ECU; this does not establish ECU identity or programming support.'
+            : selection.ecu?.id === 'suzuki_gsxr1000_2004'
+              ? 'An addressed SDS initialization response was received. The snapshot is raw and its fields are unverified; this does not establish ECU identity or programming support.'
             : selection.ecu?.id === 'generic_obd_can_11bit'
               ? 'The selected ECU answered a standard OBD support query. This does not identify the ECU or prove vehicle fitment; no keepalives are sent.'
               : 'The ECU is online and the workstation will keep the session alive.',
@@ -2548,10 +2555,53 @@ function renderBaseMap(status, canRead) {
       <h4>No base map — writing is refused</h4>
       <p class="small">${esc(status.reason || 'none saved for this ECU')}</p>
       <p class="small">A verified backup saves one automatically: it reads the region twice,
-        compares both copies and files the result as this ECU's guaranteed restore image.</p>
+        compares both copies and files the result as a restore candidate. Matching reads alone do not prove that an image is complete or restorable.</p>
     </div>`;
   }
 }
+
+// Compare locally and independently of the ECU session or write gates.
+// Equal files are not automatically promoted to verified backups.
+let memoryCompareGeneration = 0;
+for (const input of [$('#memoryCompareFirst'), $('#memoryCompareSecond')]) {
+  input.onchange = () => { memoryCompareGeneration++; $('#memoryCompareOut').textContent = ''; };
+}
+$('#memoryCompareBtn').onclick = async () => {
+  const generation = ++memoryCompareGeneration;
+  const first = $('#memoryCompareFirst').files[0];
+  const second = $('#memoryCompareSecond').files[0];
+  const out = $('#memoryCompareOut');
+  if (!first || !second) {
+    out.textContent = 'Choose two image files to compare.';
+    return;
+  }
+  const limit = 16 * 1024 * 1024;
+  if (!first.size || !second.size || first.size > limit || second.size > limit) {
+    out.textContent = 'Both files must be non-empty and no larger than 16 MiB.';
+    return;
+  }
+  out.textContent = 'Comparing locally…';
+  try {
+    const [a, b] = await Promise.all([first.arrayBuffer(), second.arrayBuffer()]);
+    if (generation !== memoryCompareGeneration) return;
+    const x = new Uint8Array(a), y = new Uint8Array(b);
+    let changed = 0, firstDiff = -1;
+    for (let i = 0; i < Math.min(x.length, y.length); i++) {
+      if (x[i] !== y[i]) { changed++; if (firstDiff < 0) firstDiff = i; }
+    }
+    const extra = Math.abs(x.length - y.length);
+    const identical = !changed && !extra;
+    if (firstDiff < 0 && extra) firstDiff = Math.min(x.length, y.length);
+    out.innerHTML = `<div class="gate-card ${identical ? 'warn' : 'bad'}">
+      <h4>${identical ? 'Byte-for-byte identical' : 'Files differ'}</h4>
+      <p class="small">${esc(first.name)}: ${x.length.toLocaleString()} bytes · ${esc(second.name)}: ${y.length.toLocaleString()} bytes</p>
+      ${identical ? '' : `<p class="small">${changed.toLocaleString()} differing bytes in shared range; ${extra.toLocaleString()} extra bytes; first difference at 0x${firstDiff.toString(16).toUpperCase()}.</p>`}
+      <p class="small">Matching files do not prove independent reads, ECU identity, completeness or restoreability. This comparison does not create a verified backup or enable writing.</p>
+    </div>`;
+  } catch (error) {
+    if (generation === memoryCompareGeneration) out.textContent = `Could not read the selected files: ${error.message}`;
+  }
+};
 
 async function refreshBaseMap() {
   try {
@@ -2619,10 +2669,20 @@ function startMemoryPoll() {
 function stopMemoryPoll() { clearInterval(fw.timer); fw.timer = null; }
 
 async function loadMemory() {
-  try {
-    renderMemoryCapabilities(await api('/api/memory'));
-  } catch (err) {
-    $('#memCaps').innerHTML = `<p class="muted">${esc(err.message)}</p>`;
+  if (state.connected) {
+    try {
+      renderMemoryCapabilities(await api('/api/memory'));
+    } catch (err) {
+      $('#memCaps').innerHTML = `<p class="muted">${esc(err.message)}</p>`;
+    }
+  } else {
+    fw.caps = null;
+    $('#memCaps').textContent = 'Connect to an ECU to see available memory operations.';
+    $('#memCapsNote').textContent = '';
+    for (const id of ['backupBtn', 'readBtn', 'validateBtn', 'baseMapSaveBtn', 'baseMapFileBtn', 'baseMapRestoreBtn', 'writeBtn']) {
+      $(`#${id}`).disabled = true;
+    }
+    $('#baseMapOut').textContent = 'Connect to an ECU first.';
   }
   try {
     const sec = await api('/api/security');

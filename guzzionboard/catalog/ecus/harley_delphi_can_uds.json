@@ -1,16 +1,16 @@
 {
   "id": "harley_delphi_can_uds",
   "family": "Harley Delphi CAN identity (research)",
-  "display_name": "Harley Delphi CAN (identity research, ECU-only)",
+  "display_name": "Harley Delphi CAN (identity research, read-only)",
   "transport": "can",
   "confidence": "unknown",
-  "years": "source reports approximately 2014\u20132020; exact fitment unknown",
-  "notes": "Explicit ECU-only research attempt based on a published Delphi CAN tool, not proof of Harley fitment. This integration is synthetic-tested only. Read-only tester-present and five identity DIDs and four raw source-observed DIDs; the source reads DIDs after authentication, so this limited default-session attempt may be rejected. Raw DID meanings are unknown. No security, memory reading, tuning, fault clear or programming.",
+  "years": "Dynojet source-listed models, 2011\u20132022; DIDs from a separate 2014\u20132020 source",
+  "notes": "Dynojet lists these models for Delphi CAN. The fixed DID implementation is derived from a separate approximately 2014\u20132020 source and has synthetic tests only; the protocol and IDs may differ on other ECUs. Read-only tester-present, five identity DIDs and four raw source-observed DIDs; the source reads DIDs after authentication, so this default-session attempt may be rejected. Raw DID meanings are unknown. No security, memory reading, tuning, fault clear or programming.",
   "session": {
     "protocol": "harley-delphi-can-identity",
     "physical_supported": true,
     "simulator_supported": false,
-    "physical_evidence_note": "Source describes 500 kbit/s CAN physical 7E0/7E8 and Delphi identity DIDs; this default-session integration is not hardware-tested."
+    "physical_evidence_note": "Dynojet lists these models for its Delphi CAN tool; this separate default-session integration has synthetic tests only and is not hardware-tested. Authentication or other protocol differences may prevent replies."
   },
   "identification": {
     "available": true,
@@ -26,7 +26,8 @@
     "live"
   ],
   "sources": [
-    "https://github.com/rob9206/lawflo/tree/6255518dc9118d960efa42d6d9dc975926bbd579/ZOOSH_ECU-main/HarleyECUDump"
+    "https://github.com/rob9206/lawflo/tree/6255518dc9118d960efa42d6d9dc975926bbd579/ZOOSH_ECU-main/HarleyECUDump",
+    "https://www.dynojet.com/harley-davidson-power-vision-delphi-can-black-1/"
   ],
   "parameters": [
     {

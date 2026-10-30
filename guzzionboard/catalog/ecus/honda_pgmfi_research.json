@@ -1,0 +1,208 @@
+{
+  "id": "honda_pgmfi_research",
+  "family": "Honda Keihin PGM-FI K-Line (research)",
+  "display_name": "Honda Keihin PGM-FI (raw diagnostic tables, read-only)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "source-listed model years only",
+  "notes": "Source-listed Honda Keihin PGM-FI models are eligible for a diagnostic attempt, not confirmed fitment of this implementation. ECU and table support vary by model, market and software. This integration has synthetic tests only. Read-only diagnostic table queries and raw ID candidate; table 10/11/17 engine speed and temperature are unverified candidates. No ECU memory, controls, DTCs, flashing or simulator.",
+  "session": {
+    "protocol": "honda-pgmfi-research",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "Sources list PGM-FI models or relevant K-Line ECU examples; Dynojet lists CRF110F for its tool. This separate integration has synthetic tests only; model-specific compatibility is not physically verified."
+  },
+  "identification": {
+    "available": true,
+    "note": "Raw five-byte ECM ID candidate only; not a verified ECU identity."
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No ECU memory read or write in this profile."
+  },
+  "capabilities": [
+    "identify",
+    "live"
+  ],
+  "sources": [
+    "https://github.com/WiseNoodle/honda-moto-ecu-suite/tree/85431bd831b2c50a640fac35dccf36c09df20c07",
+    "https://mcuinnovations.com/news/protocol-honda_keihin_kline_pgmfi/",
+    "https://mcuinnovations.com/vehicles/protocols/honda_keihin_kline_pgmfi/",
+    "https://www.obd2tool.com/goods-5014-OBD+Tool+For+Fuel+Injected+Honda+Motorcycles+Support+Multi-languages.html",
+    "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+    "https://www.dynojet.com/power-vision-3-for-2019-2020-honda-crf110f-pv3-16-07/"
+  ],
+  "parameters": [
+    {
+      "key": "table_10_raw",
+      "name": "Table 10 raw diagnostic data",
+      "local_id": 16,
+      "unit": "",
+      "digits": 0,
+      "default": true,
+      "confidence": "unknown"
+    },
+    {
+      "key": "table_10_rpm",
+      "name": "Table 10 Engine speed candidate",
+      "local_id": 16,
+      "unit": "rpm",
+      "digits": 0,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "table_10_coolant",
+      "name": "Table 10 Engine temperature (coolant/oil candidate)",
+      "local_id": 16,
+      "unit": "\u00b0C",
+      "digits": 0,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "table_11_raw",
+      "name": "Table 11 raw diagnostic data",
+      "local_id": 17,
+      "unit": "",
+      "digits": 0,
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "table_11_rpm",
+      "name": "Table 11 Engine speed candidate",
+      "local_id": 17,
+      "unit": "rpm",
+      "digits": 0,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "table_11_coolant",
+      "name": "Table 11 Engine temperature (coolant/oil candidate)",
+      "local_id": 17,
+      "unit": "\u00b0C",
+      "digits": 0,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "table_17_raw",
+      "name": "Table 17 raw diagnostic data",
+      "local_id": 23,
+      "unit": "",
+      "digits": 0,
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "table_17_rpm",
+      "name": "Table 17 Engine speed candidate",
+      "local_id": 23,
+      "unit": "rpm",
+      "digits": 0,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "table_17_coolant",
+      "name": "Table 17 Engine temperature (coolant/oil candidate)",
+      "local_id": 23,
+      "unit": "\u00b0C",
+      "digits": 0,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "table_20_raw",
+      "name": "Table 20 raw diagnostic data",
+      "local_id": 32,
+      "unit": "",
+      "digits": 0,
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "table_21_raw",
+      "name": "Table 21 raw diagnostic data",
+      "local_id": 33,
+      "unit": "",
+      "digits": 0,
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "table_60_raw",
+      "name": "Table 60 raw diagnostic data",
+      "local_id": 96,
+      "unit": "",
+      "digits": 0,
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "table_61_raw",
+      "name": "Table 61 raw diagnostic data",
+      "local_id": 97,
+      "unit": "",
+      "digits": 0,
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "table_67_raw",
+      "name": "Table 67 raw diagnostic data",
+      "local_id": 103,
+      "unit": "",
+      "digits": 0,
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "table_70_raw",
+      "name": "Table 70 raw diagnostic data",
+      "local_id": 112,
+      "unit": "",
+      "digits": 0,
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "table_71_raw",
+      "name": "Table 71 raw diagnostic data",
+      "local_id": 113,
+      "unit": "",
+      "digits": 0,
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "table_d0_raw",
+      "name": "Table D0 raw diagnostic data",
+      "local_id": 208,
+      "unit": "",
+      "digits": 0,
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "table_d1_raw",
+      "name": "Table D1 raw diagnostic data",
+      "local_id": 209,
+      "unit": "",
+      "digits": 0,
+      "default": false,
+      "confidence": "unknown"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "honda-pgmfi-research",
+    "inter_byte_delay": 0
+  }
+}

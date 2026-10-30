@@ -67,6 +67,21 @@ class Versys2012Session(AsterKLineSession):
         return self.request(b'\x21\x0b')
 
 
+class KawasakiKdsResearchSession(Versys2012Session):
+    """Raw KDS attempts on separately source-listed model/year selections.
+
+    The fitment vendor does not specify these frames; they are adapted from
+    the Aster94 2012 Versys source and may not work on a selected ECU.
+    """
+    def read_raw(self, pid):
+        if pid not in self.SIZES:
+            raise PermissionError("KDS identifier is not allowlisted")
+        return self.request(bytes([0x21, pid])).payload[2:]
+
+    def tester_present(self):
+        return self.request(b'\x21\x09')
+
+
 def decode_versys(pid, raw):
     if pid == 9:
         return (raw[0] * 255 + raw[1]) * 100 / 255
@@ -111,3 +126,95 @@ def decode_gsxr(key, raw):
     if key == 'battery_raw':
         return a  # Source labels a*100/126 as voltage; expose raw until units are clear.
     return a
+
+
+class Gsxr10002004Session(AsterKLineSession):
+    """2004 GSX-R1000 SDS diagnostic snapshot attempt, raw bytes only.
+
+    Request/target facts described in uronour/suzuki-Kawasaki-ecu-tool,
+    revision 4f92cc2adab254595b08c21e2c90b4c57d2e9cc6. The source reserves
+    all rights: no upstream code or captured data is copied. Its 2004 sensor
+    offset references are internally inconsistent, so no values are decoded.
+    This integration has not been tested on a physical ECU.
+    """
+    target = 0x12
+    allowed = frozenset((b'\x21\x08',))
+
+    def validate_data(self, pid, data):
+        if pid != 0x08 or not 1 <= len(data) <= 60:
+            raise ProtocolError('GSX-R1000 raw snapshot length is outside bounds')
+
+    def read_snapshot(self):
+        return self.request(b'\x21\x08').payload[2:]
+
+    def tester_present(self):
+        return self.request(b'\x21\x08')
+
+
+class SuzukiGsxrResearchSession(Gsxr10002004Session):
+    """Raw SDS attempt for AiM-listed GSX-R and Hayabusa models.
+
+    AiM lists SDS fitment but does not document this exact request or the
+    response shape for each model; those come from separate Suzuki sources.
+    This integration and cross-model compatibility have synthetic tests only.
+    """
+    def validate_data(self, pid, data):
+        if pid != 0x08 or len(data) != 50:
+            raise ProtocolError('SDS all-sensors response must contain 50 data bytes')
+
+
+class Sv6502003Session(Gsxr10002004Session):
+    """Raw 03–05 SV650 SDS; source capture 32920-17G2, GPL-3.0.
+
+    synfinatic/sv650sds revision bacf803a9056241ef270acf0e7e31467961aeba5.
+    This integration is not hardware-tested; no 2007 decoder is applied.
+    """
+    def request(self, payload, *, timeout=None):
+        if bytes(payload) not in self.allowed:
+            raise PermissionError("SV650 session allows only the all-sensors read")
+        time.sleep(0.2)
+        return super().request(payload, timeout=timeout)
+
+    def validate_data(self, pid, data):
+        if pid != 0x08 or len(data) != 50:
+            raise ProtocolError('SV650 SDS all-sensors response must contain 50 data bytes')
+
+
+class Sv650Ak7Session(AsterKLineSession):
+    """Read-only 2007 SV650AK7 SDS, adapted from SV650overlay GPL-3.0.
+
+    BananaJoh/sv650overlay revision cc80f0d35abd60255bbcd74cdddef515ed4945ce;
+    see LICENSES/SV650overlay-GPL-3.0.txt. No GuzziOnBoard hardware test.
+    """
+    target = 0x12
+    allowed = frozenset((b'\x21\x08',))
+    FIELDS = {'rpm': (11, 1), 'tps': (13, 1), 'coolant': (15, 1),
+              'airtemp': (16, 1), 'battery': (18, 1), 'gear_status': (20, 1)}
+
+    def request(self, payload, *, timeout=None):
+        if bytes(payload) not in self.allowed:
+            raise PermissionError("SV650AK7 session allows only the all-sensors read")
+        # Source waits at least 200 ms after each frame; unlike the source,
+        # never retry or automatically reinitialize after a failure.
+        time.sleep(0.2)
+        return super().request(payload, timeout=timeout)
+
+    def validate_data(self, pid, data):
+        if pid != 0x08 or len(data) != 50:
+            raise ProtocolError('SV650AK7 SDS all-sensors response must contain 50 data bytes')
+
+    def read_snapshot(self):
+        data = self.request(b'\x21\x08').payload[2:]
+        return {key: data[offset:offset + length] for key, (offset, length) in self.FIELDS.items()}
+
+    def tester_present(self):
+        return self.request(b'\x21\x08')
+
+
+def decode_sv650ak7(key, raw):
+    value = raw[0]
+    if key == 'rpm': return value * 69 // 10 * 10
+    if key == 'tps': return int((value - 58) * 6 / 10)
+    if key in ('coolant', 'airtemp'): return value - 40
+    if key == 'battery': return (value + 109) * 5 / 100 if value else 0
+    return value

@@ -1,16 +1,17 @@
 {
   "id": "suzuki_sv650ak7_2007",
-  "family": "2007 Suzuki SV650AK7 research",
-  "display_name": "Suzuki SV650AK7 2007 (offline research only)",
+  "family": "2007 Suzuki SV650AK7 SDS (source-reported)",
+  "display_name": "Suzuki SV650AK7 2007 (read-only SDS)",
   "transport": "kline",
   "confidence": "unknown",
   "years": "2007",
-  "notes": "Research placeholder, not a confirmed ECU family, market, firmware or fitment. A third-party project reports testing one vehicle; only offline supplied response analysis is implemented. No diagnostic communication, memory access or simulator.",
+  "notes": "SV650overlay reports operating an SV650AK7 on K-Line. This integration has synthetic tests only. Source explicitly says some conversions may be inaccurate. All displayed values are candidates, not safety readings. No confirmed ECU ID, DTCs, memory, controls, programming or simulator.",
   "session": {
-    "protocol": "research-only",
-    "physical_supported": false,
-    "physical_blocked_reason": "Suzuki diagnostic transport and protocol are not implemented or validated in this application.",
-    "simulator_supported": false
+    "protocol": "suzuki-sv650ak7-2007",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 1.0,
+    "physical_evidence_note": "SV650overlay reports operating a 2007 SV650AK7; this implementation is synthetic-tested only."
   },
   "identification": {
     "available": false
@@ -20,11 +21,79 @@
     "write_supported": false,
     "write_blocked_reason": "Research-only profile; programming and checksum verification are not implemented."
   },
-  "capabilities": [],
+  "capabilities": [
+    "live"
+  ],
   "sources": [
     "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce"
   ],
-  "parameters": [],
+  "parameters": [
+    {
+      "key": "rpm",
+      "name": "Engine speed (source candidate, high byte only)",
+      "local_id": 8,
+      "unit": "rpm",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "tps",
+      "name": "Throttle (source candidate)",
+      "local_id": 8,
+      "unit": "%",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "coolant",
+      "name": "Coolant (source candidate)",
+      "local_id": 8,
+      "unit": "\u00b0C",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "airtemp",
+      "name": "Intake temperature (source candidate)",
+      "local_id": 8,
+      "unit": "\u00b0C",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "battery",
+      "name": "Battery (source candidate)",
+      "local_id": 8,
+      "unit": "V",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "gear_status",
+      "name": "Gear/status byte (source candidate)",
+      "local_id": 8,
+      "unit": "",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    }
+  ],
   "actuators": [],
-  "routines": []
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "suzuki-sv650ak7-2007",
+    "inter_byte_delay": 0.005
+  }
 }

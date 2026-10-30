@@ -157,3 +157,60 @@ def test_virtual_can_isotp_live_multiframe_candidate_identity():
     finally:
         s.disconnect(); thread.join(3); ecu.shutdown()
     assert not thread.is_alive() and not failures
+
+
+def test_source_listed_harley_models_connect_and_poll_synthetic_transport(monkeypatch):
+    monkeypatch.setattr(DiagnosticsService, '_start_keepalive', lambda _: None)
+    c=load_catalog(); bikes=[v for v in c.vehicles if v.ecu=='harley_delphi_can_uds']
+    assert len({v.model for v in bikes}) >= 60
+    for bike in bikes:
+        for year in range(bike.year_from, bike.year_to + 1):
+            w=Workstation(record=False)
+            selected=w.select(make=bike.make,model=bike.model,year=year,transport='can',device='can0')
+            assert selected['ecu']['id']=='harley_delphi_can_uds'
+            assert 'synthetic' in selected['ecu']['session']['physical_evidence_note'].lower()
+            assert not selected['ecu']['memory']['read_supported'] and not selected['ecu']['memory']['write_supported']
+            t=FakeCan([bytes.fromhex('7e 00'),bytes.fromhex('62 01 00 12 34')])
+            monkeypatch.setattr(w,'_build_transport',lambda:t)
+            w.connect(mode='read_only')
+            sample=w.require_service().read_parameters(['raw_did_0100'])[0]
+            assert sample.raw==b'\x12\x34' and sample.value==0x1234
+            assert t.conn.sent==[b'\x3e\x00',b'\x22\x01\x00']
+            w.disconnect(); assert t.conn.closed
+
+
+def test_harley_source_list_selection_requires_read_only_fixed_can():
+    w=Workstation(record=False)
+    w.select(make='Harley-Davidson',model='FLHX Street Glide',year=2019,transport='can',device='can0')
+    with pytest.raises(TransportUnavailable,match='read-only'): w.connect(mode='service')
+    w.select(make='Harley-Davidson',model='FLHX Street Glide',year=2019,transport='can',device='can0',can_tx_id='0x7df')
+    with pytest.raises(TransportUnavailable,match='fixed 500'): w.connect(mode='read_only')
+    with pytest.raises(ValueError,match='not cataloged'):
+        w.select(make='Harley-Davidson',model='FLHX Street Glide',year=2021,ecu='harley_delphi_can_uds')
+
+
+@pytest.mark.parametrize('model,year,expected', [
+    ('FLSTC Heritage Softail Classic',2010,'harley_j1850_harleydroid'),
+    ('FLSTC Heritage Softail Classic',2011,'harley_delphi_can_uds'),
+    ('FXDWG Dyna Wide Glide',2011,'harley_j1850_harleydroid'),
+    ('FXDWG Dyna Wide Glide',2012,'harley_delphi_can_uds'),
+    ('FLSTSE CVO Softail Convertible',2010,'harley_j1850_harleydroid'),
+    ('FLSTSE CVO Softail Convertible',2011,'harley_delphi_can_uds'),
+    ('FLSTSB Cross Bones',2010,'harley_j1850_harleydroid'),
+    ('FLSTSB Cross Bones',2011,'harley_delphi_can_uds'),
+    ('XL1200X Forty-Eight',2022,'harley_delphi_can_uds'),
+    ('XL883N Iron 883',2022,'harley_delphi_can_uds'),
+    ('XL1200NS Iron 1200',2021,'harley_delphi_can_uds'),
+    ('FXS Blackline',2011,'harley_delphi_can_uds'),
+    ('FLSTNSE CVO Softail Deluxe',2015,'harley_delphi_can_uds')])
+def test_dynojet_year_transition_routes_exact_profile(model,year,expected):
+    assert load_catalog().resolve(model,year,'Harley-Davidson')[1].id == expected
+
+
+def test_no_cataloged_harley_year_has_conflicting_protocols():
+    entries=[v for v in load_catalog().vehicles if v.make=='Harley-Davidson']
+    for left in entries:
+        for right in entries:
+            if left.ecu==right.ecu or left.model.casefold()!=right.model.casefold():
+                continue
+            assert left.year_to < right.year_from or right.year_to < left.year_from

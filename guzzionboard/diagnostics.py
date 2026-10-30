@@ -16,8 +16,9 @@ from dataclasses import dataclass, field
 from .catalog import Catalog, EcuProfile, Parameter, load_catalog
 from .protocol.legacy_iaw import LegacyIAWSession
 from .protocol.kawasaki_er6n import KawasakiER6nSession, decode_kawasaki_value
-from .protocol.aster_kline import AsterKLineSession, Versys2012Session, Gsxr6002011Session, decode_versys, decode_gsxr
+from .protocol.aster_kline import AsterKLineSession, Versys2012Session, KawasakiKdsResearchSession, Gsxr6002011Session, Gsxr10002004Session, SuzukiGsxrResearchSession, Sv6502003Session, Sv650Ak7Session, decode_versys, decode_gsxr, decode_sv650ak7
 from .protocol.honda_cbr600rr import HondaCBR600RRSession, HondaCB500FDashSession, decode_honda
+from .protocol.honda_pgmfi import HondaPgmfiSession
 from .protocol.kawasaki_ninja7 import KawasakiNinja7Session
 from .protocol.triumph_daytona import TriumphDaytonaSession
 from .protocol.harley_j1850 import HarleyJ1850Session
@@ -32,7 +33,7 @@ from .protocol.kwp2000 import (
     apply_scaling,
     decode_raw_value,
 )
-from .safety import Decision, Mode, Risk, SafetyGate, SafetyViolation
+from .safety import Check, Decision, Mode, Risk, SafetyGate, SafetyViolation
 from .sessionlog import NullSessionLog, SessionLog
 from .transports.base import (
     Connection,
@@ -145,17 +146,17 @@ class DiagnosticsService:
                 method = "can"
             if exact_method == "harley-j1850-harleydroid" and (self.transport.name != "elm_j1850" or not self.transport.is_physical or self.gate.mode.value != "read_only"):
                 raise TransportUnavailable("Harley J1850 requires the ELM serial transport and read-only mode")
-            if exact_method in ("kawasaki-er6n", "triumph-daytona-2012", "harley-j1850-harleydroid", "aster-versys-2012", "aster-gsxr600-2011", "honda-cbr600rr-2005", "honda-cb500f-dashble") and method != exact_method:
+            if exact_method in ("kawasaki-er6n", "triumph-daytona-2012", "harley-j1850-harleydroid", "aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research", "honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-pgmfi-research") and method != exact_method:
                 raise TransportUnavailable(f"{self.profile.family} requires its profile-default initialization")
-            if exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble"):
-                expected = {"honda-cbr600rr-2005": "honda_cbr600rr_2005", "honda-cb500f-dashble": "honda_cb500f_dashble"}[exact_method]
+            if exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-pgmfi-research"):
+                expected = {"honda-cbr600rr-2005": "honda_cbr600rr_2005", "honda-cb500f-dashble": "honda_cb500f_dashble", "honda-pgmfi-research": "honda_pgmfi_research"}[exact_method]
                 if (self.profile.id != expected or self.transport.name != "kline"
                         or not self.transport.is_physical or self.gate.mode != Mode.READ_ONLY
                         or getattr(self.transport, "baud", 10400) != 10400):
                     raise TransportUnavailable("Honda source-scoped profile requires 10400 baud, physical K-Line and read-only mode")
-            if exact_method in ("aster-versys-2012", "aster-gsxr600-2011"):
-                expected = {"aster-versys-2012": "kawasaki_versys650_2012",
-                            "aster-gsxr600-2011": "suzuki_gsxr600_2011"}[exact_method]
+            if exact_method in ("aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research"):
+                expected = {"aster-versys-2012": "kawasaki_versys650_2012", "kawasaki-kds-research": "kawasaki_kds_research",
+                            "aster-gsxr600-2011": "suzuki_gsxr600_2011", "suzuki-gsxr1000-2004": "suzuki_gsxr1000_2004", "suzuki-sv650ak7-2007": "suzuki_sv650ak7_2007", "suzuki-sv650-2003": "suzuki_sv650_2003", "suzuki-sds-gsxr-research": "suzuki_sds_gsxr_research"}[exact_method]
                 if (self.profile.id != expected or self.transport.name != "kline"
                         or not self.transport.is_physical or self.gate.mode != Mode.READ_ONLY
                         or getattr(self.transport, "baud", 10400) != 10400):
@@ -279,23 +280,26 @@ class DiagnosticsService:
                     self.connection = None
                     self.session = None
                     raise
-            elif exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble"):
+            elif exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-pgmfi-research"):
                 if (self.init_result.protocol != "honda-cbr600rr" or not self.init_result.handshake_complete
                         or self.init_result.response != bytes.fromhex("02 04 00 fa")):
                     self.connection.close()
                     self.connection = None
                     raise ProtocolError("Honda profile requires the exact initialization response")
-                cls = HondaCBR600RRSession if exact_method == "honda-cbr600rr-2005" else HondaCB500FDashSession
+                cls = {"honda-cbr600rr-2005": HondaCBR600RRSession, "honda-cb500f-dashble": HondaCB500FDashSession, "honda-pgmfi-research": HondaPgmfiSession}[exact_method]
                 self.session = cls(connection=self.connection, on_frame=self.log.frame, write_guard=lambda _: False)
-            elif exact_method in ("aster-versys-2012", "aster-gsxr600-2011"):
+            elif exact_method in ("aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research"):
                 from .protocol.kwp2000 import decode_frame
                 try:
-                    target = 0x11 if exact_method == "aster-versys-2012" else 0x12
+                    target = 0x11 if exact_method in ("aster-versys-2012", "kawasaki-kds-research") else 0x12
                     wake = decode_frame(self.init_result.response)
+                    wake_ok = (len(wake.payload) == 3 and wake.payload[0] == 0xc1
+                               if exact_method in ("suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research")
+                               else wake.payload == b"\xc1\xea\x8f")
                     if (not self.init_result.handshake_complete or wake.target != 0xF1
-                            or wake.source != target or wake.payload != b"\xc1\xea\x8f"):
-                        raise ProtocolError("Source-scoped K-Line requires addressed C1 EA 8F wake response")
-                    cls = Versys2012Session if target == 0x11 else Gsxr6002011Session
+                            or wake.source != target or not wake_ok):
+                        raise ProtocolError("Source-scoped K-Line requires addressed C1 and source-specific key bytes")
+                    cls = {"aster-versys-2012": Versys2012Session, "kawasaki-kds-research": KawasakiKdsResearchSession, "aster-gsxr600-2011": Gsxr6002011Session, "suzuki-gsxr1000-2004": Gsxr10002004Session, "suzuki-sv650ak7-2007": Sv650Ak7Session, "suzuki-sv650-2003": Sv6502003Session, "suzuki-sds-gsxr-research": SuzukiGsxrResearchSession}[exact_method]
                     self.session = cls(connection=self.connection, target=target, source=0xF1,
                                        on_frame=self.log.frame, write_guard=lambda _: False)
                     if target == 0x11:
@@ -562,7 +566,7 @@ class DiagnosticsService:
     # -- live data --------------------------------------------------------
     def read_parameter(self, param: Parameter) -> Sample:
         session = self._require()
-        if isinstance(session, (HarleyJ1850Session, Gsxr6002011Session, HondaCBR600RRSession)):
+        if isinstance(session, (HarleyJ1850Session, KawasakiKdsResearchSession, Gsxr6002011Session, Gsxr10002004Session, SuzukiGsxrResearchSession, Sv6502003Session, Sv650Ak7Session, HondaCBR600RRSession)):
             return self.read_parameters([param.key])[0]
         try:
             if isinstance(session, LegacyIAWSession):
@@ -625,6 +629,60 @@ class DiagnosticsService:
             else:
                 params = [self.profile.parameter(k) for k in keys]
             session = self._require()
+            if isinstance(session, KawasakiKdsResearchSession):
+                samples = []
+                for param in params:
+                    try:
+                        raw = session.read_raw(param.local_id)
+                        self._touch()
+                        sample = Sample(param.key, param.name, param.local_id, raw, None, param.unit,
+                                        text="Raw KDS data (interpretation unverified)")
+                        self.log.sample(param.key, param.local_id, raw, None, param.unit)
+                    except (NegativeResponse, ProtocolError) as exc:
+                        sample = Sample(param.key, param.name, param.local_id, b"", None, param.unit, error=str(exc))
+                    self.last_samples[param.key] = sample
+                    samples.append(sample)
+                return samples
+            if isinstance(session, Gsxr10002004Session):
+                if not params:
+                    return []
+                try:
+                    raw = session.read_snapshot()
+                    self._touch()
+                    sample = Sample(params[0].key, params[0].name, params[0].local_id, raw, None, params[0].unit,
+                                    text="Raw snapshot (interpretation unverified)")
+                    self.log.sample(sample.key, sample.local_id, raw, None, sample.unit)
+                except (NegativeResponse, ProtocolError) as exc:
+                    sample = Sample(params[0].key, params[0].name, params[0].local_id, b"", None, params[0].unit, error=str(exc))
+                self.last_samples[sample.key] = sample
+                return [sample]
+            if isinstance(session, HondaPgmfiSession):
+                tables, errors = {}, {}
+                for table in dict.fromkeys(p.local_id for p in params):
+                    try:
+                        tables[table] = session.read_table(table)
+                        self._touch()
+                    except (NegativeResponse, ProtocolError) as exc:
+                        errors[table] = str(exc)
+                samples = []
+                for param in params:
+                    data = tables.get(param.local_id, b"")
+                    error = errors.get(param.local_id, "")
+                    value, text, raw = None, "", data
+                    if not error and param.key.endswith("_rpm"):
+                        if len(data) < 2: error = "Honda table too short for candidate RPM"
+                        else: raw, value = data[:2], int.from_bytes(data[:2], "big")
+                    elif not error and param.key.endswith("_coolant"):
+                        if len(data) < 6: error = "Honda table too short for candidate coolant"
+                        else: raw, value = data[5:6], data[5] - 40
+                    elif not error:
+                        text = "Raw table (meaning varies)"
+                    sample = Sample(param.key, param.name, param.local_id, raw, value, param.unit, text=text, error=error)
+                    self.last_samples[param.key] = sample
+                    if not error:
+                        self.log.sample(param.key, param.local_id, raw, value, param.unit)
+                    samples.append(sample)
+                return samples
             if isinstance(session, HondaCBR600RRSession):
                 snapshots, errors = {}, {}
                 for table in dict.fromkeys(p.local_id for p in params):
@@ -646,6 +704,24 @@ class DiagnosticsService:
                         sample = Sample(param.key, param.name, param.local_id, raw, value, param.unit, text=text)
                         self.log.sample(param.key, param.local_id, raw, value, param.unit)
                     self.last_samples[param.key] = sample
+                    samples.append(sample)
+                return samples
+            if isinstance(session, Sv650Ak7Session):
+                try:
+                    snapshot = session.read_snapshot()
+                    self._touch()
+                except (NegativeResponse, ProtocolError) as exc:
+                    samples = [Sample(p.key, p.name, p.local_id, b"", None, p.unit, error=str(exc)) for p in params]
+                    self.last_samples.update({sample.key: sample for sample in samples})
+                    return samples
+                samples = []
+                for param in params:
+                    raw = snapshot[param.key]
+                    value = decode_sv650ak7(param.key, raw)
+                    value = round(value, param.digits) if param.digits else int(round(value))
+                    sample = Sample(param.key, param.name, param.local_id, raw, value, param.unit)
+                    self.last_samples[param.key] = sample
+                    self.log.sample(param.key, param.local_id, raw, value, param.unit)
                     samples.append(sample)
                 return samples
             if isinstance(session, Gsxr6002011Session):
@@ -1041,42 +1117,55 @@ class DiagnosticsService:
 
     # -- memory -----------------------------------------------------------
     def check_memory_read(self) -> Decision:
-        return self.gate.evaluate(
-            "memory-read", Risk.READ, profile=self.profile, capability="memory_read"
+        """Report the direct KWP read path, independently of write readiness.
+
+        Other research readers have their own explicit confirmation and session
+        checks in ProgrammingService. A diagnostic connection alone does not
+        imply that a memory reader has been implemented.
+        """
+        checks = (
+            Check("connected", self.connected, "connect before reading memory"),
+            Check("read-path", bool(self.profile.memory.get("read_supported"))
+                  and not self.profile.memory.get("research_read_only"),
+                  "no direct KWP read path for this profile; an experimental reader may have its own workflow"),
+            Check("protocol", isinstance(self.session, KWP2000Session),
+                  "direct memory reading requires a KWP2000 session"),
         )
+        return Decision(all(c.passed for c in checks), "memory-read", Risk.READ, checks)
 
     def read_memory(
         self, start: int = 0, size: int | None = None, *, block: int = 0x80,
         progress=None,
     ) -> bytes:
-        """Read an ECU image. Read-only, but slow (tens of minutes on a 5AM)."""
+        """Read through an implemented KWP path; this is not a verified backup."""
         with self._lock:
+            decision = self.check_memory_read()
+            if not decision.allowed:
+                raise SafetyViolation(decision)
             session = self._require_kwp()
-            if not self.profile.memory.get("read_supported"):
-                raise SafetyViolation(
-                    self.gate.evaluate(
-                        "memory-read", Risk.READ, profile=self.profile,
-                        capability="memory_read",
-                    )
-                )
-            total = size or self.profile.memory.get("image_size") or 0
-            if not total:
-                raise ValueError(
-                    f"{self.profile.family}: image size is unknown, pass an explicit size"
-                )
+            total = self.profile.memory.get("image_size") if size is None else size
+            if not isinstance(start, int) or isinstance(start, bool) or start < 0:
+                raise ValueError("start must be a non-negative integer")
+            if not isinstance(total, int) or isinstance(total, bool) or total <= 0:
+                raise ValueError(f"{self.profile.family}: image size is unknown or invalid")
+            if not isinstance(block, int) or isinstance(block, bool) or not 1 <= block <= 0xff:
+                raise ValueError("block must be 1..255 bytes")
+            if start + total > 0x1000000:
+                raise ValueError("memory read exceeds the 24-bit address space")
 
             out = bytearray()
             address = start
             while len(out) < total:
                 chunk = min(block, total - len(out))
-                out += session.read_memory_by_address(address, chunk)
+                data = session.read_memory_by_address(address, chunk)
+                if len(data) != chunk:
+                    raise ProtocolError(f"memory read at 0x{address:06X} returned {len(data)} bytes, expected {chunk}")
+                out += data
                 address += chunk
                 self._touch()
                 if progress:
                     progress(len(out), total)
-            self.log.action(
-                "memory_read", {"start": start, "size": len(out)}
-            )
+            self.log.action("memory_read", {"start": start, "size": len(out)})
             return bytes(out)
 
     # -- status -----------------------------------------------------------

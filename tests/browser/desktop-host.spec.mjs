@@ -830,3 +830,81 @@ test('Harley Delphi CAN override remains ECU-only and explains live identity sco
   expect(request).not.toHaveProperty('model');
   expect(request).not.toHaveProperty('year');
 });
+
+test('Honda PGM-FI and GSX-R1000 appear as read-only source-scoped attempts', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => fetch('/api/disconnect', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}));
+  for (const [make, model, year, id] of [
+    ['Honda','Wave 110',2012,'honda_pgmfi_research'],
+    ['Honda','CB1000R',2015,'honda_pgmfi_research'],
+    ['Suzuki','GSX-R1000',2004,'suzuki_gsxr1000_2004'],
+    ['Suzuki','SV650AK7',2007,'suzuki_sv650ak7_2007'],
+    ['Suzuki','SV650',2004,'suzuki_sv650_2003'],
+    ['Suzuki','GSX-R1300 Hayabusa',2015,'suzuki_sds_gsxr_research'],
+    ['Honda','Goldwing 1800',2008,'honda_pgmfi_research'],
+    ['Harley-Davidson','FLHX Street Glide',2019,'harley_delphi_can_uds'],
+    ['Harley-Davidson','XL1200X Forty-Eight',2012,'harley_j1850_harleydroid'],
+    ['Harley-Davidson','FLSTC Heritage Softail Classic',2011,'harley_delphi_can_uds'],
+    ['Harley-Davidson','XL1200X Forty-Eight',2022,'harley_delphi_can_uds'],
+    ['Honda','CRF110F',2024,'honda_pgmfi_research'],
+    ['Kawasaki','Ninja 300',2014,'kawasaki_kds_research'],
+  ]) {
+    await page.selectOption('#makeSelect',make);
+    await page.selectOption('#modelSelect',model);
+    await page.selectOption('#yearSelect',String(year));
+    await expect(page.locator('#resolveResult')).toContainText('synthetic');
+    const select = await page.evaluate(async ({make,model,year}) => {
+      const res=await fetch('/api/select',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({make,model,year,transport:'kline'})});
+      return res.json();
+    },{make,model,year});
+    expect(select.ecu.id).toBe(id);
+    expect(select.ecu.memory.read_supported).toBe(false);
+    expect(select.ecu.memory.write_supported).toBe(false);
+    expect(select.ecu.session.simulator_supported).toBe(false);
+  }
+});
+
+test('Ducati live CAN uses confirmed bounded observation and clears stale frames', async ({page}) => {
+  await page.goto('/');
+  await page.locator('[data-view="discovery"]').click();
+  await page.selectOption('#harleyLiveProfile','ducati_mitsubishi');
+  let requests=[];
+  await page.route('**/api/tools/harley-hdlan-listen', async route => {
+    requests.push(route.request().postDataJSON());
+    const events=requests.length===1 ? [{id:'0x80',raw:'0000000050123400',values:{rpm:4660}}] : [];
+    await route.fulfill({json:{events,frames_received:events.length,invalid_length_frames:0}});
+  });
+  await page.locator('#harleyLiveStart').click();
+  await expect(page.locator('#harleyLiveOut')).toContainText('Confirm the bus');
+  expect(requests).toHaveLength(0);
+  await page.locator('#harleyLiveConfirm').check();
+  await page.locator('#harleyLiveStart').click();
+  await expect(page.locator('#harleyLiveOut')).toContainText('rpm: 4660');
+  await expect(page.locator('#harleyLiveOut')).toContainText('No recognized values in this window.');
+  expect(requests[0]).toEqual({channel:'can0', profile:'ducati_mitsubishi',confirm:true});
+  await page.locator('#harleyLiveStop').click();
+});
+
+test('ECU image comparison is local and does not authorize a backup or write', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="firmware"]').click();
+  const a=page.locator('#memoryCompareFirst'), b=page.locator('#memoryCompareSecond');
+  const out=page.locator('#memoryCompareOut');
+  const payload=(name,bytes)=>({name,mimeType:'application/octet-stream',buffer:Buffer.from(bytes)});
+  await a.setInputFiles(payload('one.bin',[1,2,3]));
+  await b.setInputFiles(payload('two.bin',[1,2,3]));
+  await page.locator('#memoryCompareBtn').click();
+  await expect(out).toContainText('Byte-for-byte identical');
+  await expect(out).toContainText('does not create a verified backup or enable writing');
+  await b.setInputFiles(payload('other.bin',[1,4,3,8]));
+  await expect(out).toBeEmpty();
+  await page.locator('#memoryCompareBtn').click();
+  await expect(out).toContainText('Files differ');
+  await expect(out).toContainText('1 differing bytes');
+  await expect(out).toContainText('1 extra bytes');
+  await expect(out).toContainText('first difference at 0x1');
+  await b.setInputFiles(payload('empty.bin',[]));
+  await page.locator('#memoryCompareBtn').click();
+  await expect(out).toContainText('non-empty');
+  expect(page.failures).toEqual([]);
+});

@@ -16,8 +16,13 @@ from dataclasses import dataclass, field
 from .catalog import Catalog, EcuProfile, Parameter, load_catalog
 from .protocol.legacy_iaw import LegacyIAWSession
 from .protocol.kawasaki_er6n import KawasakiER6nSession, decode_kawasaki_value
+from .protocol.aster_kline import AsterKLineSession, Versys2012Session, Gsxr6002011Session, decode_versys, decode_gsxr
+from .protocol.honda_cbr600rr import HondaCBR600RRSession, HondaCB500FDashSession, decode_honda
+from .protocol.kawasaki_ninja7 import KawasakiNinja7Session
 from .protocol.triumph_daytona import TriumphDaytonaSession
 from .protocol.harley_j1850 import HarleyJ1850Session
+from .protocol.obd_can import ObdCanSession
+from .protocol.harley_delphi_can import HarleyDelphiCanSession
 from .protocol.kwp2000 import (
     KWP2000Session,
     NegativeResponse,
@@ -27,7 +32,7 @@ from .protocol.kwp2000 import (
     apply_scaling,
     decode_raw_value,
 )
-from .safety import Decision, Risk, SafetyGate, SafetyViolation
+from .safety import Decision, Mode, Risk, SafetyGate, SafetyViolation
 from .sessionlog import NullSessionLog, SessionLog
 from .transports.base import (
     Connection,
@@ -136,10 +141,50 @@ class DiagnosticsService:
 
             method = init_method or self.profile.kline.get("init", "fast")
             exact_method = self.profile.session.get("protocol")
+            if exact_method == "kawasaki-ninja7-can" and init_method is None:
+                method = "can"
             if exact_method == "harley-j1850-harleydroid" and (self.transport.name != "elm_j1850" or not self.transport.is_physical or self.gate.mode.value != "read_only"):
                 raise TransportUnavailable("Harley J1850 requires the ELM serial transport and read-only mode")
-            if exact_method in ("kawasaki-er6n", "triumph-daytona-2012", "harley-j1850-harleydroid") and method != exact_method:
+            if exact_method in ("kawasaki-er6n", "triumph-daytona-2012", "harley-j1850-harleydroid", "aster-versys-2012", "aster-gsxr600-2011", "honda-cbr600rr-2005", "honda-cb500f-dashble") and method != exact_method:
                 raise TransportUnavailable(f"{self.profile.family} requires its profile-default initialization")
+            if exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble"):
+                expected = {"honda-cbr600rr-2005": "honda_cbr600rr_2005", "honda-cb500f-dashble": "honda_cb500f_dashble"}[exact_method]
+                if (self.profile.id != expected or self.transport.name != "kline"
+                        or not self.transport.is_physical or self.gate.mode != Mode.READ_ONLY
+                        or getattr(self.transport, "baud", 10400) != 10400):
+                    raise TransportUnavailable("Honda source-scoped profile requires 10400 baud, physical K-Line and read-only mode")
+            if exact_method in ("aster-versys-2012", "aster-gsxr600-2011"):
+                expected = {"aster-versys-2012": "kawasaki_versys650_2012",
+                            "aster-gsxr600-2011": "suzuki_gsxr600_2011"}[exact_method]
+                if (self.profile.id != expected or self.transport.name != "kline"
+                        or not self.transport.is_physical or self.gate.mode != Mode.READ_ONLY
+                        or getattr(self.transport, "baud", 10400) != 10400):
+                    raise TransportUnavailable("Source-scoped K-Line requires its exact profile, 10400 baud, and read-only physical transport")
+            if exact_method == "generic-obd-can-11bit":
+                tx = getattr(self.transport, "tx_id", None)
+                if (self.profile.id != "generic_obd_can_11bit" or self.transport.name != "can"
+                        or not self.transport.is_physical or self.gate.mode != Mode.READ_ONLY
+                        or init_method not in (None, "can") or getattr(self.transport, "bitrate", None) != 500000
+                        or type(tx) is not int or not 0x7E0 <= tx <= 0x7E7
+                        or getattr(self.transport, "rx_id", None) != tx + 8
+                        or getattr(self.transport, "padding", None) != 0):
+                    raise TransportUnavailable("Generic OBD requires 11-bit physical OBD CAN IDs, 500 kbit/s, zero padding and read-only mode")
+            if exact_method == "harley-delphi-can-identity":
+                if (self.profile.id != "harley_delphi_can_uds" or self.transport.name != "can"
+                        or not self.transport.is_physical or self.gate.mode != Mode.READ_ONLY
+                        or init_method not in (None, "can")
+                        or (getattr(self.transport, "bitrate", None), getattr(self.transport, "tx_id", None),
+                            getattr(self.transport, "rx_id", None), getattr(self.transport, "padding", None))
+                           != (500000, 0x7e0, 0x7e8, 0)):
+                    raise TransportUnavailable("Harley Delphi research requires fixed 500 kbit/s CAN IDs and read-only mode")
+            if exact_method == "kawasaki-ninja7-can":
+                if (self.profile.id != "kawasaki_ninja7_hybrid" or self.transport.name != "can"
+                        or not self.transport.is_physical or self.gate.mode != Mode.READ_ONLY
+                        or init_method not in (None, "can")
+                        or (getattr(self.transport, "bitrate", None), getattr(self.transport, "tx_id", None),
+                            getattr(self.transport, "rx_id", None), getattr(self.transport, "padding", None))
+                           != (500000, 0x764, 0x746, 0)):
+                    raise TransportUnavailable("Ninja 7 requires its exact source-scoped CAN settings and read-only mode")
             self.connection = self.transport.open()
             try:
                 self.init_result = self.transport.initialize(
@@ -162,6 +207,8 @@ class DiagnosticsService:
             # Preserve those raw bytes in the same provenance log as every
             # later request/response instead of losing the most important
             # handshake of the session.
+            for frame in self.init_result.prelude:
+                self.log.frame("tx", frame)
             if self.init_result.request:
                 self.log.frame("tx", self.init_result.request)
             if self.init_result.response:
@@ -188,7 +235,8 @@ class DiagnosticsService:
             # or KWP-on-CAN application definition. Reusing K-Line frames
             # inside ISO-TP would look plausible in a simulator but is not a
             # real protocol, so physical CAN remains explicitly unavailable.
-            if self.init_result.protocol == "isotp" and self.transport.is_physical:
+            if (self.init_result.protocol == "isotp" and self.transport.is_physical
+                    and exact_method not in ("kawasaki-ninja7-can", "generic-obd-can-11bit", "harley-delphi-can-identity")):
                 self.connection.close()
                 self.connection = None
                 raise TransportUnavailable(
@@ -197,7 +245,67 @@ class DiagnosticsService:
                     "validated; no request was sent"
                 )
 
-            if self.profile.session.get("protocol") == "kawasaki-er6n":
+            if exact_method == "harley-delphi-can-identity":
+                try:
+                    if self.init_result.protocol != "isotp" or not self.init_result.handshake_complete:
+                        raise ProtocolError("Harley Delphi identity research requires ISO-TP CAN transport")
+                    self.session = HarleyDelphiCanSession(self.connection, on_frame=self.log.frame)
+                    self.session.request(b"\x3e\x00")
+                except Exception:
+                    self.connection.close()
+                    self.connection = None
+                    self.session = None
+                    raise
+            elif exact_method == "generic-obd-can-11bit":
+                try:
+                    if self.init_result.protocol != "isotp" or not self.init_result.handshake_complete:
+                        raise ProtocolError("Generic OBD requires ISO-TP CAN transport")
+                    self.session = ObdCanSession(self.connection, on_frame=self.log.frame)
+                    self.session.initialise()
+                except Exception:
+                    self.connection.close()
+                    self.connection = None
+                    self.session = None
+                    raise
+            elif exact_method == "kawasaki-ninja7-can":
+                try:
+                    if self.init_result.protocol != "isotp" or not self.init_result.handshake_complete:
+                        raise ProtocolError("Ninja 7 requires ISO-TP CAN transport")
+                    self.session = KawasakiNinja7Session(connection=self.connection,
+                        on_frame=self.log.frame, write_guard=lambda _: False)
+                    self.session.request(b"\x10\x80")
+                except Exception:
+                    self.connection.close()
+                    self.connection = None
+                    self.session = None
+                    raise
+            elif exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble"):
+                if (self.init_result.protocol != "honda-cbr600rr" or not self.init_result.handshake_complete
+                        or self.init_result.response != bytes.fromhex("02 04 00 fa")):
+                    self.connection.close()
+                    self.connection = None
+                    raise ProtocolError("Honda profile requires the exact initialization response")
+                cls = HondaCBR600RRSession if exact_method == "honda-cbr600rr-2005" else HondaCB500FDashSession
+                self.session = cls(connection=self.connection, on_frame=self.log.frame, write_guard=lambda _: False)
+            elif exact_method in ("aster-versys-2012", "aster-gsxr600-2011"):
+                from .protocol.kwp2000 import decode_frame
+                try:
+                    target = 0x11 if exact_method == "aster-versys-2012" else 0x12
+                    wake = decode_frame(self.init_result.response)
+                    if (not self.init_result.handshake_complete or wake.target != 0xF1
+                            or wake.source != target or wake.payload != b"\xc1\xea\x8f"):
+                        raise ProtocolError("Source-scoped K-Line requires addressed C1 EA 8F wake response")
+                    cls = Versys2012Session if target == 0x11 else Gsxr6002011Session
+                    self.session = cls(connection=self.connection, target=target, source=0xF1,
+                                       on_frame=self.log.frame, write_guard=lambda _: False)
+                    if target == 0x11:
+                        self.session.request(b"\x10\x80")
+                except Exception:
+                    self.connection.close()
+                    self.connection = None
+                    self.session = None
+                    raise
+            elif self.profile.session.get("protocol") == "kawasaki-er6n":
                 from .protocol.kwp2000 import decode_frame
                 try:
                     wake = decode_frame(self.init_result.response)
@@ -284,7 +392,7 @@ class DiagnosticsService:
             if self.session is not None:
                 self.release_all_outputs()
                 try:
-                    if isinstance(self.session, (KawasakiER6nSession, TriumphDaytonaSession)):
+                    if isinstance(self.session, (KawasakiER6nSession, KawasakiNinja7Session, TriumphDaytonaSession, AsterKLineSession, HondaCBR600RRSession)):
                         pass  # no unverified stop exchange
                     elif isinstance(self.session, KWP2000Session):
                         self.session.stop_diagnostic_session()
@@ -358,7 +466,46 @@ class DiagnosticsService:
             spec = self.profile.identification
             fields = {}
 
-            if isinstance(session, HarleyJ1850Session):
+            if isinstance(session, HarleyDelphiCanSession):
+                self.identity = None
+                self.gate.state.identified = False
+                self.gate.state.ecu_hardware = ""
+                fields, raw = session.read_identity_candidates()
+                self._touch()
+                self.identity = Identity(fields=fields, raw=raw, ecu_id="", family=self.profile.family)
+                self.log.action("identify", self.identity.as_dict())
+                return self.identity
+            if isinstance(session, ObdCanSession):
+                # VIN and calibration identifiers are not verified ECU hardware
+                # or permission to write. Drop stale evidence before re-reading.
+                self.identity = None
+                self.gate.state.identified = False
+                self.gate.state.ecu_hardware = ""
+                fields, raw = session.read_vehicle_information()
+                self._touch()
+                self.identity = Identity(fields=fields,
+                                         raw=raw, ecu_id="", family=self.profile.family)
+                self.log.action("identify", self.identity.as_dict())
+                return self.identity
+            if isinstance(session, HondaCBR600RRSession):
+                # This is a source-derived raw candidate, not a verified part number
+                # or a basis for the safety gate / programming authorization.
+                self.identity = None
+                self.gate.state.identified = False
+                self.gate.state.ecu_hardware = ""
+                raw = session.read_identity_candidate()
+                self._touch()
+                self.identity = Identity(fields={"Honda ECM ID (raw candidate)": raw.hex(" ").upper()},
+                                         raw=raw, ecu_id="", family=self.profile.family)
+                self.log.action("identify", self.identity.as_dict())
+                return self.identity
+            if isinstance(session, KawasakiNinja7Session):
+                self.identity = None
+                self.gate.state.identified = False
+                self.gate.state.ecu_hardware = ""
+                raw = session.read_identity_raw()
+                fields = {"ECU identification (raw ASCII candidate)": raw.decode("ascii", "replace").strip("\x00 ")}
+            elif isinstance(session, HarleyJ1850Session):
                 # A failed re-identification must not leave prior ECU evidence active.
                 self.identity = None
                 self.gate.state.identified = False
@@ -415,7 +562,7 @@ class DiagnosticsService:
     # -- live data --------------------------------------------------------
     def read_parameter(self, param: Parameter) -> Sample:
         session = self._require()
-        if isinstance(session, HarleyJ1850Session):
+        if isinstance(session, (HarleyJ1850Session, Gsxr6002011Session, HondaCBR600RRSession)):
             return self.read_parameters([param.key])[0]
         try:
             if isinstance(session, LegacyIAWSession):
@@ -449,6 +596,8 @@ class DiagnosticsService:
 
         if isinstance(session, KawasakiER6nSession):
             value = decode_kawasaki_value(param.local_id, raw)
+        elif isinstance(session, Versys2012Session):
+            value = decode_versys(param.local_id, raw)
         else:
             value = apply_scaling(
                 value_raw, scale=param.scale, bias=param.bias, recip=param.recip
@@ -461,7 +610,8 @@ class DiagnosticsService:
         )
         self.last_samples[param.key] = sample
         self.log.sample(param.key, param.local_id, raw, value, param.unit)
-        self._update_inferred_state(param.key, value, text)
+        if not isinstance(session, AsterKLineSession):
+            self._update_inferred_state(param.key, value, text)
         return sample
 
     def read_parameters(self, keys: list[str] | None = None) -> list[Sample]:
@@ -475,6 +625,47 @@ class DiagnosticsService:
             else:
                 params = [self.profile.parameter(k) for k in keys]
             session = self._require()
+            if isinstance(session, HondaCBR600RRSession):
+                snapshots, errors = {}, {}
+                for table in dict.fromkeys(p.local_id for p in params):
+                    try:
+                        snapshots[table] = session.read_snapshot(table)
+                        self._touch()
+                    except (NegativeResponse, ProtocolError) as exc:
+                        errors[table] = str(exc)
+                samples = []
+                for param in params:
+                    if param.local_id in errors:
+                        sample = Sample(param.key, param.name, param.local_id, b"", None, param.unit,
+                                        error=errors[param.local_id])
+                    else:
+                        raw = snapshots[param.local_id][param.key]
+                        value = decode_honda(param.key, raw)
+                        value = round(value, param.digits) if param.digits else int(round(value))
+                        text = param.states.get(str(int(value)), "") if param.states else ""
+                        sample = Sample(param.key, param.name, param.local_id, raw, value, param.unit, text=text)
+                        self.log.sample(param.key, param.local_id, raw, value, param.unit)
+                    self.last_samples[param.key] = sample
+                    samples.append(sample)
+                return samples
+            if isinstance(session, Gsxr6002011Session):
+                try:
+                    snapshot = session.read_snapshot()
+                    self._touch()
+                except (NegativeResponse, ProtocolError) as exc:
+                    samples = [Sample(p.key, p.name, p.local_id, b"", None, p.unit, error=str(exc)) for p in params]
+                    self.last_samples.update({sample.key: sample for sample in samples})
+                    return samples
+                samples = []
+                for param in params:
+                    raw = snapshot[param.key]
+                    value = decode_gsxr(param.key, raw)
+                    value = round(value, param.digits) if param.digits else int(round(value))
+                    sample = Sample(param.key, param.name, param.local_id, raw, value, param.unit)
+                    self.last_samples[param.key] = sample
+                    self.log.sample(param.key, param.local_id, raw, value, param.unit)
+                    samples.append(sample)
+                return samples
             if isinstance(session, HarleyJ1850Session):
                 snapshot = session.read_snapshot()
                 samples = []
@@ -529,12 +720,18 @@ class DiagnosticsService:
                 self.log.action("read_dtcs", {"count": len(result["dtcs"]), "format": result["format"],
                                                "modules": result["modules"], "dtcs": result["dtcs"]})
                 return result
-            if isinstance(session, TriumphDaytonaSession):
+            if isinstance(session, KawasakiNinja7Session):
+                dtcs = session.read_stored_codes()
+                self._touch()
+                self.log.action("read_dtcs", {"count": len(dtcs), "dtcs": dtcs, "format": "kawasaki-ninja7"})
+                return {"dtcs": dtcs, "format": "kawasaki-ninja7", "context": {},
+                        "note": "Source confirmed a zero-DTC response; nonzero records and status interpretation remain candidates."}
+            if isinstance(session, (TriumphDaytonaSession, ObdCanSession)):
                 dtcs = session.read_stored_codes()
                 self._touch()
                 self.log.action("read_dtcs", {"count": len(dtcs), "dtcs": dtcs, "format": "obd-stored"})
                 return {"dtcs": dtcs, "format": "obd-stored", "context": {},
-                        "note": "Stored mode 03 codes only; pending codes, warning-lamp state and individual status bytes were not read."}
+                        "note": "Stored mode 03 emission-related codes from the selected ECU only; other modules, pending codes, warning-lamp state and individual status bytes were not read."}
             if isinstance(session, LegacyIAWSession):
                 result = self._read_legacy_fault_registers(session)
                 self._touch()

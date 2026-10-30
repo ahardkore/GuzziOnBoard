@@ -96,6 +96,7 @@ def test_dtc_response_status_and_missing_modules_are_not_invented():
     result = s.read_dtcs()
     assert result['modules'] == {'ECM':{'responded':True}, 'ABS':{'responded':True}, 'TSM':{'responded':False}}
     assert result['dtcs'][0]['code'] == 'P0134'
+    assert result['dtcs'][0]['description'] == 'HarleyDroid reference (fitment unverified): Front Oxygen Sensor Open'
     assert result['dtcs'][0]['status_byte'] is None and result['dtcs'][0]['status'] == 'unknown'
     assert 'missing responses do not mean no faults' in result['note']
     assert not s.check_clear_dtcs().allowed
@@ -228,3 +229,15 @@ def test_service_checks_initialize_method_before_open():
     t = FakeTransport(); s = service(t)
     with pytest.raises(TransportUnavailable, match='requires its profile-default initialization'): s.connect(init_method='fast')
     assert not t.opened
+
+
+def test_harleydroid_reference_descriptions_are_scoped_and_unknown_remains_unknown():
+    from guzzionboard.harley_dtc_descriptions import DESCRIPTIONS
+    assert len(DESCRIPTIONS) == 167
+    assert DESCRIPTIONS['C1151'] == 'Front Wheel ABS Release Too Long'
+    assert 'PFFFF' not in DESCRIPTIONS
+    conn = FakeConnection()
+    conn.replies['1952FF00'] = frame(0x6c, 0xf1, 0x10, 0x59, 0x3f, 0xff)
+    result = HarleyJ1850Session(conn).read_dtcs()
+    assert result['dtcs'][0]['code'] == 'P3FFF'
+    assert result['dtcs'][0]['description'] == ''

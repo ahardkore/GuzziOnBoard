@@ -344,3 +344,27 @@ def test_research_preview_supports_unrecognized_xdf_without_creating_files(tmp_p
         assert status == 400 and 'SHA-256 changed' in report['error']
     status, report = api.post_maps_research_preview({**body, 'changes': [{**body['changes'][0], 'expected_raw': 1}]})
     assert status == 400 and 'source changed' in report['error']
+
+@pytest.mark.parametrize('model', ['Ninja ZX-6R (636)', 'Ninja 650 / EX650', 'Z650'])
+def test_2026_kawasaki_user_definition_research_preview_never_builds(tmp_path, monkeypatch, source, model):
+    import hashlib
+    from guzzionboard import server
+    from guzzionboard.workstation import Workstation
+    xdf_path = tmp_path / 'user_kawasaki_research.xdf'
+    xdf_path.write_text(XDF_TEXT)
+    xdf = XdfFile.from_file(xdf_path)
+    monkeypatch.setattr(server, 'available_xdfs', lambda directory=None: [xdf])
+    api = server.Api(Workstation(session_dir=tmp_path / 'sessions'))
+    api.ws.select(make='Kawasaki', model=model, year=2026)
+    body = {'path': source.path, 'xdf': xdf_path.name,
+            'expected_source_sha256': source.sha256,
+            'expected_xdf_sha256': hashlib.sha256(xdf_path.read_bytes()).hexdigest(),
+            'changes': [{'kind': 'table', 'id': 'fuel-main', 'row': 0, 'col': 1,
+                         'expected_raw': 20, 'value': 2.5}]}
+    before = sorted(p.name for p in tmp_path.iterdir())
+    status, report = api.post_maps_research_preview(body)
+    assert status == 200 and report['research_only'] and not report['writes_file']
+    assert report['changes'][0]['after_raw'] == 25 and not report['diff']['identical']
+    assert sorted(p.name for p in tmp_path.iterdir()) == before
+    status, _ = api.post_maps_preview(body)
+    assert status == 400

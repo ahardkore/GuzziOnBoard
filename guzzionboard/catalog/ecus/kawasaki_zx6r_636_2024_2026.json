@@ -1,0 +1,30 @@
+{
+  "id": "kawasaki_zx6r_636_2024_2026",
+  "family": "Kawasaki Ninja ZX-6R (636) research (2024–2026)",
+  "display_name": "Kawasaki Ninja ZX-6R (636) 2024–2026 (research only)",
+  "transport": "can",
+  "confidence": "unknown",
+  "years": "2024–2026",
+  "notes": "Commercial listing reports candidate ECU part numbers for this model/year range; exact year, market, ECU part and software require independent verification. This profile does not establish ECU identity, tune compatibility, communications, checksum or programming.",
+  "session": {
+    "protocol": "research-only",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_blocked_reason": "The exact ECU diagnostic and programming application is not implemented; no physical requests are permitted."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No applicable memory protocol, validated definition, checksum or recovery path is integrated."
+  },
+  "capabilities": [],
+  "sources": [
+    "https://www.woolichracing.com/products/kawasaki/zx6r-636/2026/2026-kawasaki-zx6r-636-ecu-flashing.aspx"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}

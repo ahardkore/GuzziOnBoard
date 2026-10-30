@@ -27,6 +27,8 @@ from . import resources
 
 from . import adapter as adapter_mod
 from . import canlog
+from . import harley_hdlan_listen
+from . import yamaha_mt03_listen
 from . import j2534
 from . import klinelog
 from . import logconvert
@@ -352,6 +354,8 @@ class Api:
         #: The guided procedure currently being worked through, if any.
         self._run: procedures.ProcedureRun | None = None
         self.jobs = JobRunner()
+        self._hdlan_lock = threading.Lock()
+        self._yamaha_observation_lock = threading.Lock()
 
     # -- catalog ----------------------------------------------------------
     def get_catalog(self, query: dict) -> tuple[int, dict]:
@@ -906,9 +910,12 @@ class Api:
         region = body.get("region", "flash")
 
         def run(report):
-            image = prog.read_region(region, progress=report)
-            path = image.save(prog.image_dir / f"{prog.profile.id}-{region}-read.bin")
-            return {"path": str(path), "describe": image.describe()}
+            research = bool(prog.profile.memory.get("research_read_only"))
+            image = prog.read_region(region, progress=report,
+                                     experimental_confirmation=body.get("confirm_research_read") is True)
+            suffix = f"research-read-{secrets.token_hex(6)}" if research else "read"
+            path = image.save(prog.image_dir / f"{prog.profile.id}-{region}-{suffix}.bin")
+            return {"path": str(path), "describe": image.describe(), "research_only": research}
 
         return 202, self.jobs.start(f"read:{region}", run)
 
@@ -1852,6 +1859,33 @@ class Api:
             "instructions": "" if ok else adapter_mod.latency_fix_instructions(port),
         }
 
+    def post_tools_yamaha_mt03_listen(self, body: dict) -> tuple[int, dict]:
+        """Receive one bounded Yamaha dashboard stream window; send no request."""
+        if body.get("confirm") is not True:
+            return 400, {"error": "Confirm the exact bike, wiring and research limitations first."}
+        if not self._yamaha_observation_lock.acquire(blocking=False):
+            return 409, {"error": "A Yamaha observation is already running."}
+        try:
+            # Keep connection/selection changes serialized while this separate
+            # receiver owns the port; pyserial exclusivity is cooperative only.
+            with self.ws._lock:
+                if self.ws.service is not None and self.ws.service.connected:
+                    return 409, {"error": "Disconnect the current ECU session before observing Yamaha K-Line."}
+                return 200, yamaha_mt03_listen.listen(body.get("port"))
+        finally:
+            self._yamaha_observation_lock.release()
+
+    def post_tools_harley_hdlan_listen(self, body: dict) -> tuple[int, dict]:
+        """Explicit, bounded SocketCAN receive; never submits a CAN frame."""
+        if body.get("confirm") is not True:
+            return 400, {"error": "Confirm the bus, adapter and research-only limitations first."}
+        if not self._hdlan_lock.acquire(blocking=False):
+            return 409, {"error": "A Harley CAN observation is already running."}
+        try:
+            return 200, harley_hdlan_listen.listen(body.get("channel"), body.get("profile", "community"))
+        finally:
+            self._hdlan_lock.release()
+
     def post_tools_canlog(self, body: dict) -> tuple[int, dict]:
         """Analyse a passively sniffed CAN capture: which ids are the pair?
 
@@ -2129,6 +2163,8 @@ ROUTES_POST = {
     "/api/security/unverified": "post_security_unverified",
     "/api/adapter/latency": "post_adapter_latency",
     "/api/tools/canlog": "post_tools_canlog",
+    "/api/tools/harley-hdlan-listen": "post_tools_harley_hdlan_listen",
+    "/api/tools/yamaha-mt03-listen": "post_tools_yamaha_mt03_listen",
     "/api/tools/klinelog": "post_tools_klinelog",
     "/api/tools/z2dif": "post_tools_z2dif",
     "/api/tools/rpmsignal": "post_tools_rpmsignal",

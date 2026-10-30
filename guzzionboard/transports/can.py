@@ -58,7 +58,9 @@ class CanConnection(Connection):
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             msg = self.bus.recv(timeout=0.05)
-            if msg is None or msg.arbitration_id != self.rx_id:
+            if (msg is None or msg.arbitration_id != self.rx_id
+                    or getattr(msg, "is_extended_id", self.rx_id > 0x7FF) != (self.rx_id > 0x7FF)
+                    or getattr(msg, "is_remote_frame", False) or getattr(msg, "is_error_frame", False)):
                 continue
             if (msg.data[0] >> 4) == 0x3:
                 status = msg.data[0] & 0x0F
@@ -79,7 +81,9 @@ class CanConnection(Connection):
         self._rx.reset()
         while time.monotonic() < deadline:
             msg = self.bus.recv(timeout=max(0.01, deadline - time.monotonic()))
-            if msg is None or msg.arbitration_id != self.rx_id:
+            if (msg is None or msg.arbitration_id != self.rx_id
+                    or getattr(msg, "is_extended_id", self.rx_id > 0x7FF) != (self.rx_id > 0x7FF)
+                    or getattr(msg, "is_remote_frame", False) or getattr(msg, "is_error_frame", False)):
                 continue
             payload, reply = self._rx.feed(bytes(msg.data))
             if reply is not None:
@@ -87,7 +91,7 @@ class CanConnection(Connection):
                 self.bus.send(
                     can.Message(
                         arbitration_id=self.tx_id,
-                        data=reply,
+                        data=reply[:3] + bytes([self.padding]) * (len(reply) - 3),
                         is_extended_id=self.tx_id > 0x7FF,
                     )
                 )
@@ -111,6 +115,7 @@ class CanTransport(Transport):
     bitrate: int | None = None
     tx_id: int | None = None
     rx_id: int | None = None
+    padding: int = 0xAA
     name: str = field(default="can", init=False)
     is_physical: bool = field(default=True, init=False)
 
@@ -136,7 +141,7 @@ class CanTransport(Transport):
             ) from exc
         # Values were validated above; keep the connection type strictly int.
         return CanConnection(
-            bus=bus, tx_id=int(self.tx_id), rx_id=int(self.rx_id)
+            bus=bus, tx_id=int(self.tx_id), rx_id=int(self.rx_id), padding=self.padding
         )
 
     def initialize(self, connection: CanConnection, **_) -> InitResult:

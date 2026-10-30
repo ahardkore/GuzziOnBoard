@@ -1,0 +1,227 @@
+{
+  "id": "generic_obd_can_11bit",
+  "family": "Generic OBD-II 11-bit CAN (opt-in)",
+  "display_name": "Generic OBD-II 11-bit CAN (read-only, ECU-only)",
+  "transport": "can",
+  "confidence": "unknown",
+  "years": "not model-specific",
+  "notes": "Opt-in standard OBD-II emission diagnostics only, where the selected ECU actually supports ISO 15765-4 11-bit CAN at 500 kbit/s. Not established for any particular motorcycle, including Ninja 650. Synthetic integration tests only. Requires a correct adapter and physical ECU ID pair. Optional Mode 09 VIN and calibration IDs are not verified ECU identity; no memory image, tuning, clears or programming.",
+  "session": {
+    "protocol": "generic-obd-can-11bit",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "physical_evidence_note": "Standard OBD-II requests only; no model-specific fitment is claimed. This integration is synthetic-tested only."
+  },
+  "identification": {
+    "available": true,
+    "note": "Optional support-bitmap-gated Mode 09 VIN and calibration IDs, not confirmed ECU identity or programming authorization."
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Standard OBD live PIDs and DTCs do not provide ECU memory or flashing."
+  },
+  "capabilities": [
+    "identify",
+    "live",
+    "dtc_read"
+  ],
+  "sources": [
+    "https://github.com/RyoheiHashimoto/obd2",
+    "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32",
+    "https://github.com/brendan-w/python-OBD/tree/a378bdd81d58c67d08050e4244173a9a7dbda73d"
+  ],
+  "parameters": [
+    {
+      "key": "rpm",
+      "name": "Engine speed (unverified)",
+      "local_id": 12,
+      "unit": "rpm",
+      "length": 2,
+      "scale": 0.25,
+      "bias": 0,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "speed",
+      "name": "Speed (unverified)",
+      "local_id": 13,
+      "unit": "km/h",
+      "length": 1,
+      "scale": 1,
+      "bias": 0,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "tps",
+      "name": "Throttle (unverified)",
+      "local_id": 17,
+      "unit": "%",
+      "length": 1,
+      "scale": 0.39215686274509803,
+      "bias": 0,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "coolant",
+      "name": "Coolant temperature (unverified)",
+      "local_id": 5,
+      "unit": "°C",
+      "length": 1,
+      "scale": 1,
+      "bias": -40,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "airtemp",
+      "name": "Intake temperature (unverified)",
+      "local_id": 15,
+      "unit": "°C",
+      "length": 1,
+      "scale": 1,
+      "bias": -40,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "map",
+      "name": "Manifold pressure (unverified)",
+      "local_id": 11,
+      "unit": "kPa",
+      "length": 1,
+      "scale": 1,
+      "bias": 0,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "load",
+      "name": "Engine load (unverified)",
+      "local_id": 4,
+      "unit": "%",
+      "length": 1,
+      "scale": 0.39215686274509803,
+      "bias": 0,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "timing",
+      "name": "Timing advance (unverified)",
+      "local_id": 14,
+      "unit": "°",
+      "length": 1,
+      "scale": 0.5,
+      "bias": -64,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "trim",
+      "name": "Short-term fuel trim (unverified)",
+      "local_id": 6,
+      "unit": "%",
+      "length": 1,
+      "scale": 0.78125,
+      "bias": -100,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "engine_runtime",
+      "name": "Engine runtime (unverified)",
+      "local_id": 31,
+      "unit": "s",
+      "length": 2,
+      "scale": 1,
+      "bias": 0,
+      "digits": 0,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "fuel_level",
+      "name": "Fuel level (unverified)",
+      "local_id": 47,
+      "unit": "%",
+      "length": 1,
+      "scale": 0.39215686274509803,
+      "bias": 0,
+      "digits": 1,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "barometric",
+      "name": "Barometric pressure (unverified)",
+      "local_id": 51,
+      "unit": "kPa",
+      "length": 1,
+      "scale": 1,
+      "bias": 0,
+      "digits": 0,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "control_voltage",
+      "name": "Control module voltage (unverified)",
+      "local_id": 66,
+      "unit": "V",
+      "length": 2,
+      "scale": 0.001,
+      "bias": 0,
+      "digits": 2,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "oil_temp",
+      "name": "Oil temperature (unverified)",
+      "local_id": 92,
+      "unit": "°C",
+      "length": 1,
+      "scale": 1,
+      "bias": -40,
+      "digits": 0,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "fuel_rate",
+      "name": "Engine fuel rate (unverified)",
+      "local_id": 94,
+      "unit": "L/h",
+      "length": 2,
+      "scale": 0.05,
+      "bias": 0,
+      "digits": 2,
+      "default": false,
+      "confidence": "inferred"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "init": "can"
+  },
+  "can": {
+    "bitrate": 500000,
+    "tx_id": 2016,
+    "rx_id": 2024,
+    "interface": "socketcan"
+  }
+}

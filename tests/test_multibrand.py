@@ -42,17 +42,17 @@ def test_override_retains_vehicle_confidence_and_rejects_other_make():
     assert ws.select(ecu="5am")["entry"] is None  # explicit ECU-only bench path
 
 
-def test_honda_placeholder_blocks_hardware_and_simulator_before_open():
+def test_honda_live_profile_remains_scoped_and_no_simulator():
     ws = Workstation(record=False)
     selected = ws.select(make="Honda", model="CBR600RR", year=2005, transport="kline")
-    assert selected["ecu"]["capabilities"] == []
-    assert selected["ecu"]["session"]["physical_supported"] is False
-    with pytest.raises(TransportUnavailable, match="no transport was constructed"):
-        ws.connect(mode="read_only")
-    assert ws.log is None and ws.service is None
+    assert selected["ecu"]["capabilities"] == ["identify", "live"]
+    assert selected["ecu"]["session"]["physical_supported"] is True
+    assert not selected["ecu"]["memory"]["read_supported"]
+    with pytest.raises(TransportUnavailable, match="read-only mode"):
+        ws.connect(mode="service")
     for kind in ("simulator", "cansim"):
         ws.select(make="Honda", model="CBR600RR", year=2005, transport=kind)
-        with pytest.raises(TransportUnavailable, match="no matching simulator"):
+        with pytest.raises(TransportUnavailable):
             ws.connect()
         with pytest.raises(TransportUnavailable, match="no matching simulator"):
             ws._build_transport()

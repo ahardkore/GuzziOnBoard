@@ -1,30 +1,139 @@
 {
   "id": "honda_cbr600rr_2005",
-  "family": "2005 Honda CBR600RR research",
-  "display_name": "Honda CBR600RR 2005 (offline research only)",
+  "family": "2005 Honda CBR600RR (source-reported)",
+  "display_name": "Honda CBR600RR 2005 (read-only K-Line)",
   "transport": "kline",
   "confidence": "unknown",
   "years": "2005",
-  "notes": "Research placeholder, not a confirmed ECU family or fitment. An independent project reports testing this model; this application only decodes supplied response frames offline. No physical or simulated Honda diagnostic session exists.",
+  "notes": "Upstream reports testing a 2005 CBR600RR; ECU part, firmware and market unknown. GuzziOnBoard has synthetic tests only. Table 10 sensor values and D1 status interpretations are candidates. Table 00 ECM ID is an unverified raw candidate; no fault memory, flash memory, controls or simulator.",
   "session": {
-    "protocol": "honda-research-only",
-    "physical_supported": false,
-    "physical_blocked_reason": "Honda K-Line transport and diagnostics are not implemented or validated in this application.",
-    "simulator_supported": false
+    "protocol": "honda-cbr600rr-2005",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "Source reports testing a 2005 CBR600RR; this implementation has synthetic tests only."
   },
   "identification": {
-    "available": false
+    "available": true,
+    "note": "Unverified raw five-byte ECM ID candidate; not a confirmed part number or programming identity."
   },
   "memory": {
     "read_supported": false,
     "write_supported": false,
-    "write_blocked_reason": "Honda diagnostic and programming protocols are not implemented or validated."
+    "write_blocked_reason": "Honda ECU memory, image validation and programming are not implemented."
   },
-  "capabilities": [],
+  "capabilities": [
+    "identify",
+    "live"
+  ],
   "sources": [
     "https://github.com/andreibaw/Honda_K-Line_KWP2000/tree/f3bd42ff438e840e4da3802dd5038a195f3d67be"
   ],
-  "parameters": [],
+  "parameters": [
+    {
+      "key": "rpm",
+      "name": "Engine speed (source candidate)",
+      "local_id": 16,
+      "unit": "rpm",
+      "length": 2,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "tps",
+      "name": "Throttle (source candidate)",
+      "local_id": 16,
+      "unit": "%",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "coolant",
+      "name": "Coolant temperature (source candidate)",
+      "local_id": 16,
+      "unit": "°C",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "airtemp",
+      "name": "Intake temperature (source candidate)",
+      "local_id": 16,
+      "unit": "°C",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "map",
+      "name": "Manifold pressure (source candidate)",
+      "local_id": 16,
+      "unit": "kPa",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "battery",
+      "name": "Battery voltage (source candidate)",
+      "local_id": 16,
+      "unit": "V",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "speed",
+      "name": "Speed (source candidate)",
+      "local_id": 16,
+      "unit": "km/h",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "gear_status",
+      "name": "Gear / clutch status (source candidate)",
+      "local_id": 209,
+      "unit": "",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred",
+      "states": {
+        "0": "In gear (candidate)",
+        "1": "Neutral or clutch (candidate)",
+        "3": "Kickstand down (candidate)"
+      }
+    },
+    {
+      "key": "engine_status",
+      "name": "Engine status byte (source candidate)",
+      "local_id": 209,
+      "unit": "",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred",
+      "states": {
+        "1": "Running (candidate)"
+      }
+    }
+  ],
   "actuators": [],
-  "routines": []
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "honda-cbr600rr-2005",
+    "inter_byte_delay": 0
+  }
 }

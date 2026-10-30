@@ -18,9 +18,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="guzzionboard",
         description=(
-            "GuzziOnBoard - a safety-first diagnostic workstation for the "
-            "Magneti Marelli ECUs of Moto Guzzi motorcycles (and the same "
-            "ECUs in Ducatis and Aprilias)."
+            "GuzziOnBoard - a multi-brand motorcycle diagnostics, calibration "
+            "research and workshop workstation. Coverage varies by ECU and operation."
         ),
         epilog=(
             "quick start:\n"

@@ -884,7 +884,7 @@ function selectionRequest() {
   const ecuOverride = $('#ecuOverride').value;
   const body = ecuOverride
     ? { ecu: ecuOverride, transport: currentTransport(), device: $('#deviceInput').value,
-        ...($('#modelSelect').value && $('#yearSelect').value ? {
+        ...(!['generic_obd_can_11bit', 'honda_cb500f_dashble', 'harley_delphi_can_uds'].includes(ecuOverride) && $('#modelSelect').value && $('#yearSelect').value ? {
           make: $('#makeSelect').value, model: $('#modelSelect').value,
           year: parseInt($('#yearSelect').value, 10),
         } : {}) }
@@ -940,7 +940,7 @@ async function connect() {
       await api('/api/checklist', { method: 'POST', body: { accepted: $('#checklistAccept').checked } });
     }
     const initMethod = currentTransport() === 'kline' ? $('#initMethod').value : '';
-    if (['kawasaki_er6n_2006', 'triumph_daytona_675_2012'].includes(selection.ecu?.id) && initMethod) {
+    if (['kawasaki_er6n_2006', 'triumph_daytona_675_2012', 'kawasaki_versys650_2012', 'suzuki_gsxr600_2011', 'honda_cbr600rr_2005', 'honda_cb500f_dashble'].includes(selection.ecu?.id) && initMethod) {
       throw new Error('This model requires ECU profile default handshake; select it before connecting.');
     }
     Prefs.set('initMethod', initMethod);
@@ -972,7 +972,11 @@ async function connect() {
         guideBody(
           selection.ecu?.id === 'harley_j1850_harleydroid'
             ? 'The ELM adapter is configured. A successful identity or live response is needed to confirm communication; the workstation does not send keepalives for this profile.'
-            : 'The ECU is online and the workstation will keep the session alive.',
+            : selection.ecu?.id === 'harley_delphi_can_uds'
+              ? 'A tester-present response was received; this does not identify the ECU or prove Harley fitment. The fixed DID requests may require authentication and no keepalives are sent.'
+            : selection.ecu?.id === 'generic_obd_can_11bit'
+              ? 'The selected ECU answered a standard OBD support query. This does not identify the ECU or prove vehicle fitment; no keepalives are sent.'
+              : 'The ECU is online and the workstation will keep the session alive.',
           [
             'Leave the ignition key ON.',
             'Keep the engine stopped until a test explicitly asks you to start it.',
@@ -1101,7 +1105,10 @@ async function identifyWithGuide() {
   try {
     const identity = await api('/api/identify');
     renderIdentity(identity);
-    toast('ECU identified.', 'ok');
+    const message = identity.ecu_id ? 'ECU identified.'
+      : (identity.fields?.['Vehicle VIN (unverified OBD response)'] || identity.fields?.['Calibration IDs (unverified OBD response)']) ? 'OBD vehicle information read; ECU not confirmed.'
+      : 'Raw identity candidate read; ECU not confirmed.';
+    toast(message, 'ok');
     await refreshStatus();
   } catch (err) { toast(err.message, 'bad'); }
 }
@@ -1611,10 +1618,12 @@ async function readDtcs() {
   $('#dtcSummary').textContent = list.length
     ? `${list.length} code${list.length > 1 ? 's' : ''} reported`
     : data.format === 'harley-j1850' ? 'No codes reported by responding modules; missing modules are unknown.'
-    : data.format === 'obd-stored' ? 'No stored codes reported (pending codes not read).' : 'Fault memory is clean.';
+    : data.format === 'obd-stored' ? 'No stored codes reported (pending codes not read).'
+    : data.format === 'kawasaki-ninja7' ? 'No codes reported by the source-described query; other fault states are unknown.' : 'Fault memory is clean.';
 
   const context = Object.entries(data.context || {});
   const obdHtml = data.format === 'obd-stored' ? `<div class="gate blocked">${esc(data.note || 'Stored codes only.')}</div>` : '';
+  const kawasakiHtml = data.format === 'kawasaki-ninja7' ? `<div class="gate blocked">${esc(data.note || '')}</div>` : '';
   const harleyHtml = data.format === 'harley-j1850' ? `<div class="gate blocked">${esc(data.note || '')}
     ${Object.entries(data.modules || {}).map(([name, module]) => `<span class="tag">${esc(name)}: ${module.responded ? 'responded' : 'no verified response'}</span>`).join(' ')}</div>` : '';
   const legacyHtml = data.format === 'legacy-fault-bitfields'
@@ -1631,7 +1640,7 @@ async function readDtcs() {
        ).join(' ')}</div>`
     : '';
 
-  $('#faultList').innerHTML = obdHtml + harleyHtml + legacyHtml + contextHtml + (list.length ? list.map((d) => `
+  $('#faultList').innerHTML = obdHtml + harleyHtml + kawasakiHtml + legacyHtml + contextHtml + (list.length ? list.map((d) => `
     <article class="fault ${d.warning_indicator ? 'warn' : ''}">
       <div class="fault-code">${esc(d.code)}</div>
       <div class="fault-info">
@@ -1642,7 +1651,7 @@ async function readDtcs() {
       <div class="fault-status ${d.status}">${esc(d.status)}</div>
     </article>`).join('')
     : `<article class="panel empty"><div class="empty-icon">${data.format === 'harley-j1850' ? '?' : '✓'}</div>
-       <h3>No diagnostic trouble codes reported</h3><p>${data.format === 'harley-j1850' ? 'Only verified responses were examined; missing modules and fault status remain unknown.' : data.format === 'obd-stored' ? 'No stored codes reported; pending codes were not read.' : 'The ECU reports a clean fault memory.'}</p></article>`);
+       <h3>No diagnostic trouble codes reported</h3><p>${data.format === 'harley-j1850' ? 'Only verified responses were examined; missing modules and fault status remain unknown.' : data.format === 'obd-stored' ? 'No stored codes reported; pending codes were not read.' : data.format === 'kawasaki-ninja7' ? 'This query reported no codes; other fault states were not established.' : 'The ECU reports a clean fault memory.'}</p></article>`);
 
   state.clearDecision = data.clear;
   renderGate(data.clear, $('#clearGate'));
@@ -2436,11 +2445,11 @@ function renderMemoryCapabilities(data) {
   const rows = [
     ['ECU', `${esc(c.family)} <span class="muted">(${esc(c.ecu)})</span>`],
     ['Protocol', `<code>${esc(c.protocol)}</code>`],
-    ['Read supported', yesno(c.read_supported)],
+    ['Read supported', c.research_read_only ? '<b class="warn">experimental MGZ-A03 only</b>' : yesno(c.read_supported)],
     ['Write supported', c.simulated
       ? (c.write_supported ? '<b class="ok">yes <span class="muted">(sim&nbsp;)</span></b>' : yesno(false))
       : yesno(c.write_supported)],
-    ['SecurityAccess', c.security_required
+    ['SecurityAccess', c.research_read_only ? 'fixed source exchange; unverified on hardware' : c.security_required
       ? (c.security_available
         ? '<b class="ok">required, provider available</b>'
         : '<b class="bad">required, no key provider</b>')
@@ -2480,7 +2489,7 @@ function renderMemoryCapabilities(data) {
   }).join('');
 
   const canRead = c.read_supported;
-  $('#backupBtn').disabled = !canRead;
+  $('#backupBtn').disabled = !canRead || c.research_read_only;
   $('#readBtn').disabled = !canRead;
   $('#validateBtn').disabled = false;
 
@@ -2495,7 +2504,7 @@ function renderMemoryCapabilities(data) {
   $('#checkpointOut').innerHTML = pending.join('');
 
   fw.acknowledgement = data.acknowledgement || '';
-  renderBaseMap(data.base_map, canRead);
+  renderBaseMap(data.base_map, canRead && !c.research_read_only);
   renderWriteGate();
 }
 
@@ -2519,7 +2528,7 @@ function renderBaseMap(status, canRead) {
     saveBtn.textContent = status.intact
       ? 'Take another verified backup' : 'Save base map now';
   }
-  if (fileBtn) fileBtn.disabled = false;
+  if (fileBtn) fileBtn.disabled = Boolean(fw.caps?.capabilities?.research_read_only);
   if (restoreBtn) restoreBtn.disabled = !status.intact;
 
   if (status.intact) {
@@ -2584,6 +2593,7 @@ function renderMemoryProgress(job) {
     $('#memResult').innerHTML = `
       <div class="gate-card ok">
         <h4>${esc(job.name)} complete</h4>
+        ${r.research_only ? '<p><b>Experimental research file — not a verified backup or flash-ready image.</b></p>' : ''}
         ${r.verified !== undefined
           ? `<p>Two reads compared: <b>${r.verified ? 'identical' : 'DIFFERENT'}</b>
              (${r.attempts} attempts)</p>` : ''}
@@ -2811,9 +2821,13 @@ $('#baseMapRestoreBtn').onclick = async () => {
 
 $('#readBtn').onclick = async () => {
   if (!(await prepareEngineState('off', 'Prepare for a single ECU memory read.'))) return;
+  const research = Boolean(fw.caps?.capabilities?.research_read_only);
+  if (research && !(await confirmDialog('Experimental MGZ-A03 research read',
+    'This untested implementation sends a fixed security exchange and reads only if the live ECM ID matches MGZ-A03. No write is sent. Keep power stable and the engine stopped. A returned file is not a verified backup or flash-ready image.',
+    'I understand — attempt the research read', { tone: 'danger' }))) return;
   $('#memResult').innerHTML = '';
   try {
-    await api('/api/memory/read', { method: 'POST', body: { region: $('#memRegion').value } });
+    await api('/api/memory/read', { method: 'POST', body: { region: $('#memRegion').value, confirm_research_read: research } });
     startMemoryPoll();
   } catch (err) { toast(err.message, 'bad'); }
 };

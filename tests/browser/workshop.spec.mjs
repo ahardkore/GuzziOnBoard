@@ -188,8 +188,8 @@ test('hosted demo never turns the Honda research entry into a Honda simulator', 
   });
   expect(result.mismatch.status).toBe(400);
   expect(result.select.status).toBe(200);
-  expect(result.select.body.ecu.capabilities).toEqual([]);
-  expect(result.select.body.notices.map((n) => n.text).join(' ')).toContain('No diagnostic operations are exposed');
+  expect(result.select.body.ecu.capabilities).toEqual(['identify', 'live']);
+  expect(result.select.body.ecu.session.simulator_supported).toBe(false);
   expect(result.connect.status).toBe(400);
   expect(result.connect.body.error).toContain('No matching simulator');
   expect(result.existing.status).toBe(200);
@@ -568,4 +568,203 @@ test('ECU lookup accepts bounded local references as text and never promotes the
   await expect(page.locator('#ecuLookupOut')).toContainText('0 local candidate(s)');
   await page.locator('#ecuLookupFileClear').click();
   await expect(page.locator('#ecuLookupFileStatus')).toContainText('No local list loaded');
+});
+
+test('cross-reference shows shared catalog ECU profiles without asserting calibration compatibility', async ({ page }) => {
+  await openTools(page);
+  await page.locator('#sharedEcuLoad').click();
+  await page.locator('#sharedEcuFamily').selectOption('5am');
+  await expect(page.locator('#sharedEcuOut')).toContainText('Moto Guzzi Griso');
+  await expect(page.locator('#sharedEcuOut')).toContainText('Ducati');
+  await expect(page.locator('#sharedEcuOut')).toContainText('Aprilia');
+  await expect(page.locator('#sharedEcuOut')).toContainText('5AM_Aprilia_Mana');
+  await expect(page.locator('#sharedEcuOut')).toContainText('Same profile is not evidence of identical hardware or calibration');
+  await page.locator('#sharedEcuFamily').selectOption('honda_cb500_mgz_a03');
+  await expect(page.locator('#sharedEcuOut')).toContainText('Honda CB500F');
+  await expect(page.locator('#sharedEcuOut')).toContainText('Honda CBR500R');
+  await expect(page.locator('#sharedEcuOut')).toContainText('CB500_MGZ_A03_gob.xdf');
+  await page.locator('#sharedEcuFamily').selectOption('xdf:15P');
+  await expect(page.locator('#sharedEcuOut')).toContainText('Aprilia Atlantic');
+  await expect(page.locator('#sharedEcuOut')).toContainText('Beverly');
+  await expect(page.locator('#sharedEcuOut')).toContainText('no vehicle-catalog profile equivalence');
+});
+
+test('Yamaha corrected research copy changes only the checksum word and is invalidated on changes', async ({ page }) => {
+  await openTools(page);
+  const bytes = Buffer.alloc(0x100000);
+  bytes.write('ABCDY123', bytes.length - 16, 'ascii');
+  bytes[bytes.length - 6] = 0x64; bytes[bytes.length - 5] = 0x02;
+  await page.locator('#yamahaVariant').selectOption('mt_1m');
+  await page.locator('#yamahaImage').setInputFiles({ name: 'synthetic.bin', mimeType: 'application/octet-stream', buffer: bytes });
+  await page.locator('#yamahaInspect').click();
+  await expect(page.locator('#yamahaRepairSave')).toBeDisabled();
+  await expect(page.locator('#yamahaOut')).toContainText('Proposed checksum word');
+  await page.locator('#yamahaRepairConfirm').check();
+  await page.locator('#yamahaInspect').click();
+  await expect(page.locator('#yamahaRepairSave')).toBeEnabled();
+  await expect(page.locator('#yamahaOut')).toContainText('not flash-ready');
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#yamahaRepairSave').click();
+  const download = await downloadPromise;
+  const { readFile } = await import('node:fs/promises');
+  const output = await readFile(await download.path());
+  expect(output.length).toBe(bytes.length);
+  let sum = 0; const changed = [];
+  for (let i = 0; i < output.length; i++) { if (output[i] !== bytes[i]) changed.push(i); }
+  for (let i = 0; i < output.length; i += 2) sum = (sum + output.readUInt16BE(i)) & 0xffff;
+  expect(sum).toBe(0x5aa5);
+  expect(changed.every(i => i === bytes.length - 8 || i === bytes.length - 7)).toBe(true);
+  expect(changed.length).toBeGreaterThan(0);
+  await page.locator('#yamahaVariant').selectOption('mt07_2020');
+  await expect(page.locator('#yamahaRepairSave')).toBeDisabled();
+  await expect(page.locator('#yamahaOut')).toBeEmpty();
+});
+
+test('Bajaj checksum repair requires the selected signature and changes only its checksum word', async ({ page }) => {
+  await openTools(page);
+  const bytes = Buffer.alloc(0xc0000);
+  bytes.write('JL351458010651', 0x80000, 'ascii');
+  bytes.write('DellOrto 32bit Engine Management System', 0x100, 'ascii');
+  await page.locator('#bajajImage').setInputFiles({ name: 'synthetic.bin', mimeType: 'application/octet-stream', buffer: bytes });
+  await page.locator('#bajajInspect').click();
+  await expect(page.locator('#bajajOut')).toContainText('not flash-ready');
+  await expect(page.locator('#bajajSave')).toBeDisabled();
+  await page.locator('#bajajConfirm').check();
+  await page.locator('#bajajInspect').click();
+  await expect(page.locator('#bajajSave')).toBeEnabled();
+  const pending = page.waitForEvent('download'); await page.locator('#bajajSave').click();
+  const download = await pending; const { readFile } = await import('node:fs/promises');
+  const output = await readFile(await download.path());
+  let sum = 0, changed = [];
+  for (let i = 0x80000; i < 0x921fe; i++) sum = (sum + output[i]) & 0xffff;
+  for (let i = 0; i < output.length; i++) if (output[i] !== bytes[i]) changed.push(i);
+  expect(output.readUInt16BE(0x921fe)).toBe((~sum) & 0xffff);
+  expect(changed.length).toBeGreaterThan(0);
+  expect(changed.every(i => i === 0x921fe || i === 0x921ff)).toBe(true);
+  bytes[0x80000] = 0;
+  await page.locator('#bajajImage').setInputFiles({ name: 'wrong.bin', mimeType: 'application/octet-stream', buffer: bytes });
+  await expect(page.locator('#bajajSave')).toBeDisabled();
+  await page.locator('#bajajInspect').click();
+  await expect(page.locator('#bajajOut')).toContainText('part label is not present');
+  bytes.write('JL351458010651', 0x80000, 'ascii');
+  bytes.fill(0, 0x100, 0x100 + 'DellOrto 32bit Engine Management System'.length);
+  await page.locator('#bajajImage').setInputFiles({ name: 'missing-signature.bin', mimeType: 'application/octet-stream', buffer: bytes });
+  await page.locator('#bajajInspect').click();
+  await expect(page.locator('#bajajOut')).toContainText('signature was not found');
+  await expect(page.locator('#bajajSave')).toBeDisabled();
+  await page.locator('#bajajImage').setInputFiles({ name: 'wrong-size.bin', mimeType: 'application/octet-stream', buffer: bytes.subarray(0, bytes.length - 1) });
+  await page.locator('#bajajInspect').click();
+  await expect(page.locator('#bajajOut')).toContainText('exactly 768 KiB');
+  await expect(page.locator('#bajajSave')).toBeDisabled();
+});
+
+test('Kawasaki identifier examples preserve the source distinction between part numbers', async ({ page }) => {
+  await openTools(page);
+  await page.locator('#ecuSoftware').fill('2102D11220244156');
+  await page.locator('#ecuLookupBtn').click();
+  const out = page.locator('#ecuLookupOut');
+  await expect(out).toContainText('2 local candidate(s)');
+  await expect(out).toContainText('49245-2655');
+  await expect(out).toContainText('49245-230500000');
+  await expect(out).toContainText('ECU part differs from KWP');
+  await expect(out).toContainText('Matching does not identify the installed ECU');
+});
+
+test('2026 Kawasaki part and unclassified reference search keeps model and code distinctions', async ({ page }) => {
+  await openTools(page);
+  await page.locator('#ecuPart').fill('21175-1910');
+  await page.locator('#ecuReference').fill('TMQ2KQE1');
+  await page.locator('#ecuLookupBtn').click();
+  const out = page.locator('#ecuLookupOut');
+  await expect(out).toContainText('Ninja 650 / EX650');
+  await expect(out).toContainText('Z650');
+  await expect(out).toContainText('Source reference code: TMQ2KQE1 (exact normalized match)');
+  await expect(out).toContainText('Source reference code: TMQ2KQE3 (DIFFERENT — review)');
+  await expect(out).toContainText('product title 2023–2025');
+  await expect(out).not.toContainText('Ninja ZX-6R');
+  await page.locator('#ecuLookupClear').click();
+  await page.locator('#ecuPart').fill('21175-1952');
+  await page.locator('#ecuLookupBtn').click();
+  await expect(out).toContainText('TMQ2KQL0');
+  await expect(out).toContainText('TMQ2KQL1');
+  await expect(out).toContainText('EX650RTFNN, 2026 parts-diagram candidate (application unspecified)');
+  await expect(out).toContainText('SRS Motorsports parts viewer');
+  await expect(out).toContainText('Ninja 650 ABS EX650PTFAN, 2026 parts-diagram candidate');
+  await expect(out).toContainText('Tri County Cycle parts viewer');
+  await page.locator('#ecuLookupClear').click();
+  await page.locator('#ecuPart').fill('21175-1916');
+  await page.locator('#ecuLookupBtn').click();
+  await expect(out).toContainText('Ninja ZX-6R (636)');
+  await expect(out).not.toContainText('Ninja 650 / EX650');
+  await page.locator('#ecuLookupClear').click();
+  await page.locator('#ecuReference').fill('TMQ2KQE1');
+  await page.locator('#ecuLookupBtn').click();
+  await expect(out).toContainText('2 local candidate(s)');
+});
+
+test('Juken raw map research refuses wrong sizes and exports only linear values', async ({ page }) => {
+  await openTools(page);
+  const posts = [];
+  page.on('request', (req) => { if (req.method() === 'POST') posts.push(req.url()); });
+  const file = page.locator('#jukenImage');
+  await file.setInputFiles({ name: 'short.bin', mimeType: 'application/octet-stream', buffer: Buffer.alloc(10247) });
+  await page.locator('#jukenInspect').click();
+  await expect(page.locator('#jukenOut')).toContainText('Expected exactly 10,248');
+  await expect(page.locator('#jukenCsv')).toBeDisabled();
+  const buffer = Buffer.alloc(10248);
+  buffer.writeInt16LE(-1234, 0);
+  buffer.writeInt16LE(2345, 2);
+  buffer.writeUInt16LE(65000, 2562);
+  buffer.writeUInt8(199, 7686);
+  await file.setInputFiles({ name: 'candidate.bin', mimeType: 'application/octet-stream', buffer });
+  await page.locator('#jukenInspect').click();
+  await expect(page.locator('#jukenOut')).toContainText('FuelBase · offset 0x0 · 1281 values · min -1234 · max 2345');
+  await expect(page.locator('#jukenOut')).toContainText('InjTmg · offset 0xA02 · 1281 values · min 0 · max 65000');
+  await expect(page.locator('#jukenOut')).toContainText('FuelCor1 · offset 0x1E06 · 1281 values · min 0 · max 199');
+  await expect(page.locator('#jukenOut')).toContainText('Not a full ECU dump');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.locator('#jukenCsv').click()]);
+  expect(download.suggestedFilename()).toBe('juken5-FuelBase-raw-research.csv');
+  const stream = await download.createReadStream();
+  let csv = '';
+  for await (const chunk of stream) csv += chunk;
+  expect(csv.startsWith('linear_index,raw_value\n0,-1234\n1,2345\n')).toBe(true);
+  expect(csv.trim().split('\n')).toHaveLength(1282);
+  expect(posts).toEqual([]);
+  await page.locator('#jukenClear').click();
+  await expect(page.locator('#jukenOut')).toBeEmpty();
+  await expect(page.locator('#jukenCsv')).toBeDisabled();
+});
+
+test('hosted Harley live CAN observation never opens hardware', async ({ page }) => {
+  await page.goto('/web/index.html');
+  await page.locator('[data-view="discovery"]').click();
+  let reads = 0;
+  page.on('request', (request) => { if (request.url().includes('/api/tools/harley-hdlan-listen')) reads++; });
+  await page.locator('#harleyLiveConfirm').check();
+  await page.locator('#harleyLiveStart').click();
+  await expect(page.locator('#harleyLiveOut')).toContainText('hosted demo cannot access CAN hardware');
+  expect(reads).toBe(0);
+});
+
+test('hosted Yamaha MT-03 observation never opens serial hardware', async ({ page }) => {
+  await page.goto('/web/index.html');
+  await page.locator('[data-view="discovery"]').click();
+  let reads = 0;
+  page.on('request', (request) => { if (request.url().includes('/api/tools/yamaha-mt03-listen')) reads++; });
+  await page.locator('#yamahaLiveConfirm').check();
+  await page.locator('#yamahaLiveObserve').click();
+  await expect(page.locator('#yamahaLiveOut')).toContainText('hosted demo cannot access serial hardware');
+  expect(reads).toBe(0);
+});
+
+test('hosted catalog exposes Harley Delphi CAN as research, not simulated programming', async ({ page }) => {
+  await page.goto('/web/index.html');
+  await page.waitForSelector('#ecuOverride option[value="harley_delphi_can_uds"]', {state: 'attached'});
+  const profile = await page.evaluate(async () => {
+    const data = await (await fetch('demo-data.json')).json();
+    return data.catalog.ecus.find(ecu => ecu.id === 'harley_delphi_can_uds');
+  });
+  expect(profile.memory.read_supported).toBe(false);
+  expect(profile.memory.write_supported).toBe(false);
+  expect(profile.session.simulator_supported).toBe(false);
 });

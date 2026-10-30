@@ -10,9 +10,14 @@
   "TuneECU Aprilia and Ducati tune lists (tuneecu.net)",
   "andreibaw/Honda_K-Line_KWP2000, commit f3bd42ff438e840e4da3802dd5038a195f3d67be: author-tested 2005 Honda CBR600RR; offline response research only",
   "https://github.com/gabrielerandazzo/iKawa/tree/79eb9049d13037be6fd91b8a1d1acd164ca70104: Kawasaki ER-6n 2006 author-tested read-only KDS reference",
+  "https://github.com/mgithens1/kawasaki-can-hack/tree/26820ddf88d682c7071b0825252c7fa0b82c709a: Kawasaki Ninja 7 Hybrid 2024+ source-reported read-only CAN observations",
+  "https://www.woolichracing.com/products/kawasaki/zx6r-636/2026/2026-kawasaki-zx6r-636-ecu-flashing.aspx: commercial Kawasaki part and year-list research",
+  "https://www.woolichracing.com/products/kawasaki/ninja-650-ex650/2026/2026-kawasaki-ninja-650-ex650-ecu-flashing.aspx: commercial Kawasaki part and year-list research",
+  "https://www.woolichracing.com/products/kawasaki/z650/kawasaki-z650-ecu-flashing.aspx: commercial Kawasaki part and year-list research",
   "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce: Suzuki SV650AK7 2007 author-tested reference, offline research only",
   "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32: Triumph Daytona 675 2012 author-tested read-only OBD reference",
-  "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952: CB500F / CBR500R 2013–2016 MGZ-A03 offline reference"
+  "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952: CB500F / CBR500R 2013–2016 MGZ-A03 offline reference",
+  "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3: author-reported 2012 Versys 650 and 2011 GSX-R600 read-only K-Line"
  ],
  "vehicles": [
   {
@@ -1320,7 +1325,7 @@
    "year_to": 2005,
    "ecu": "honda_cbr600rr_2005",
    "confidence": "inferred",
-   "notes": "Research entry for the author-tested 2005 CBR600RR only; exact ECU identity and fitment are unverified. Offline response decoding only, no physical diagnostics or Honda simulator."
+   "notes": "Source reports testing this model/year; GuzziOnBoard integration has synthetic tests only. ECU part, software and market unknown."
   },
   {
    "make": "Kawasaki",
@@ -1330,6 +1335,42 @@
    "ecu": "kawasaki_er6n_2006",
    "confidence": "inferred",
    "notes": "iKawa author reports testing this model. Read-only KDS adapter; GuzziOnBoard has not hardware-tested its implementation. ECU identity and market unconfirmed; no simulator, DTCs, controls or programming."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja 7 Hybrid",
+   "year_from": 2024,
+   "year_to": null,
+   "ecu": "kawasaki_ninja7_hybrid",
+   "confidence": "inferred",
+   "notes": "Source describes the 2024+ Ninja 7 Hybrid and tested one ECU; market and software applicability to every year are not established. Read-only CAN diagnostics; GuzziOnBoard integration has only synthetic tests. No programming or controls."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z650",
+   "year_from": 2023,
+   "year_to": 2026,
+   "ecu": "kawasaki_z650_2023_2026",
+   "confidence": "inferred",
+   "notes": "Vendor year range and ECU numbers are research leads, not proof for every market, year or motorcycle. No physical diagnostics, simulation or programming in this profile. Vendor product title says 2023–2025 but its feature list says 2023–2026; verify 2026 applicability."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja 650 / EX650",
+   "year_from": 2023,
+   "year_to": 2026,
+   "ecu": "kawasaki_ninja650_2023_2026",
+   "confidence": "inferred",
+   "notes": "Vendor year range and ECU numbers are research leads, not proof for every market, year or motorcycle. No physical diagnostics, simulation or programming in this profile."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja ZX-6R (636)",
+   "year_from": 2024,
+   "year_to": 2026,
+   "ecu": "kawasaki_zx6r_636_2024_2026",
+   "confidence": "inferred",
+   "notes": "Vendor year range and ECU numbers are research leads, not proof for every market, year or motorcycle. No physical diagnostics, simulation or programming in this profile."
   },
   {
    "make": "Suzuki",
@@ -1375,6 +1416,26 @@
    "ecu": "honda_cb500_mgz_a03",
    "confidence": "inferred",
    "notes": "HondaECU lists MGZ-A03 for this model range; offline image build accepts only exact MGZ-A03 stock image and adapted XDF. No live diagnostics or programming."
+  },
+  {
+   "model": "Versys 650",
+   "year_from": 2012,
+   "year_to": 2012,
+   "ecu": "kawasaki_versys650_2012",
+   "displacement": "649",
+   "notes": "Model/year reported tested by source; this integration has only synthetic tests. ECU and market unknown.",
+   "confidence": "inferred",
+   "make": "Kawasaki"
+  },
+  {
+   "model": "GSX-R600",
+   "year_from": 2011,
+   "year_to": 2011,
+   "ecu": "suzuki_gsxr600_2011",
+   "displacement": "599",
+   "notes": "Model/year reported tested by source; this integration has only synthetic tests. ECU and market unknown.",
+   "confidence": "inferred",
+   "make": "Suzuki"
   }
  ]
 }

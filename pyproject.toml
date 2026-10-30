@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "guzzionboard"
 version = "0.4.1"
-description = "A safety-first diagnostic workstation for Moto Guzzi motorcycles"
+description = "A multi-brand motorcycle diagnostics, calibration research, and workshop workstation"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "AGPL-3.0-only" }
@@ -27,6 +27,7 @@ guzzionboard = "guzzionboard.__main__:main"
 guzzionboard-desktop = "guzzionboard.desktop:main"
 
 [tool.setuptools]
+license-files = ["LICENSE", "LICENSES/*"]
 packages = ["guzzionboard", "guzzionboard.protocol", "guzzionboard.transports", "guzzionboard.catalog"]
 
 [tool.setuptools.package-data]

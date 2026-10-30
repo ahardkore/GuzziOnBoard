@@ -67,7 +67,7 @@ from .firmware import (
     summarise_findings,
 )
 from .protocol.kwp2000 import NegativeResponse, ProtocolError, Service
-from .safety import Decision, Risk, SafetyGate, SafetyViolation
+from .safety import Decision, Mode, Risk, SafetyGate, SafetyViolation
 from .security import SecurityUnavailable, best_provider
 
 #: Where backups and checkpoints live.
@@ -213,6 +213,7 @@ class ProgrammingService:
             "security_required": bool(self.spec.get("security", {}).get("required")),
             "security_available": self._security_available(),
             "hardware_note": memory.get("hardware_note", ""),
+            "research_read_only": bool(memory.get("research_read_only")),
             "estimated_read_minutes": memory.get("approx_read_minutes"),
         }
 
@@ -400,6 +401,7 @@ class ProgrammingService:
         *,
         progress: ProgressFn | None = None,
         allow_unverified_key: bool = False,
+        experimental_confirmation: bool = False,
     ) -> FirmwareImage:
         """Read a whole region into a :class:`FirmwareImage`."""
         self._progress_fn = progress
@@ -409,6 +411,8 @@ class ProgrammingService:
                 f"{self.profile.family}: reading is not supported by this build "
                 f"({memory.get('write_blocked_reason', 'no verified read path')})"
             )
+        if self.profile.id == "honda_cb500f_dashble":
+            return self._read_honda_mgz_research(region_name, experimental_confirmation)
         if not self.diag.identity:
             raise ProgrammingError("identify the ECU before reading its memory")
 
@@ -453,6 +457,29 @@ class ProgrammingService:
             {"region": region_name, "size": image.size,
              "sha256": image.sha256, "duration_s": image.meta["duration_s"]},
         )
+        return image
+
+    def _read_honda_mgz_research(self, region_name: str, confirmed: bool) -> FirmwareImage:
+        from .protocol.honda_cbr600rr import HondaCB500FDashSession, read_mgz_a03_research_image
+        if (confirmed is not True or region_name != "flash" or self.gate.mode != Mode.READ_ONLY
+                or not self.diag.transport.is_physical or self.diag.transport.name != "kline"):
+            raise ProgrammingError("MGZ-A03 research read requires explicit confirmation, read-only physical K-Line and the flash region")
+        started = time.time()
+        with self.diag._lock:
+            session = self.diag._require()
+            if type(session) is not HondaCB500FDashSession:
+                raise ProgrammingError("MGZ-A03 research read requires its exact Honda session")
+            def progress(done, total):
+                self.diag._touch()
+                self._emit("research-read", done, total, "Experimental MGZ-A03 read; not a verified backup")
+            data = read_mgz_a03_research_image(session, progress)
+        image = FirmwareImage(data=bytearray(data), ecu_id=self.profile.id, region=region_name,
+                              source="research-read", identity={"ECM ID candidate": "01 01 25 05 01"},
+                              meta={"protocol": "honda-mgz-a03-research", "verified_backup": False,
+                                    "duration_s": round(time.time() - started, 1),
+                                    "note": "Source-derived experimental read, not a verified backup or flash-ready image."})
+        self.log.action("research_memory_read_complete", {"size": image.size, "sha256": image.sha256,
+                                                            "verified_backup": False})
         return image
 
     def _read_by_address(self, region: Region) -> bytearray:
@@ -525,6 +552,9 @@ class ProgrammingService:
         A single read of a flash over a noisy K-Line is not a backup. Two
         identical reads is the cheapest honest verification available.
         """
+        if (self.profile.memory or {}).get("research_read_only"):
+            raise ProgrammingError("Experimental Honda reads cannot create a verified backup or base map")
+
         first = self.read_region(
             region_name, progress=progress, allow_unverified_key=allow_unverified_key
         )
@@ -630,6 +660,8 @@ class ProgrammingService:
         and the operator wants the vault to know about it. The file is
         copied, hashed and indexed exactly like an automatic save.
         """
+        if (self.profile.memory or {}).get("research_read_only"):
+            raise ProgrammingError("Experimental research reads cannot be filed as verified base maps")
         store = self.vault.replace_base_map if replace else self.vault.store
         result = store(
             ecu_id=self.profile.id,
@@ -730,6 +762,8 @@ class ProgrammingService:
         """
         self._progress_fn = progress
         memory = self.profile.memory or {}
+        if self.profile.id == "honda_cb500f_dashble":
+            raise ProgrammingError("The experimental Honda profile never writes ECU memory")
         region = self.region(region_name)
 
         # 1. policy

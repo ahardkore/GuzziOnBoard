@@ -15,9 +15,9 @@
     "applied": false,
     "status": {}
    },
-   "ecu_count": 18,
-   "vehicle_count": 125,
-   "model_count": 117,
+   "ecu_count": 27,
+   "vehicle_count": 131,
+   "model_count": 123,
    "year_range": [
     1992,
     2026
@@ -713,6 +713,98 @@
      "field_confirmation": {}
     },
     {
+     "id": "generic_obd_can_11bit",
+     "family": "Generic OBD-II 11-bit CAN (opt-in)",
+     "display_name": "Generic OBD-II 11-bit CAN (read-only, ECU-only)",
+     "transport": "can",
+     "confidence": "unknown",
+     "years": "not model-specific",
+     "notes": "Opt-in standard OBD-II emission diagnostics only, where the selected ECU actually supports ISO 15765-4 11-bit CAN at 500 kbit/s. Not established for any particular motorcycle, including Ninja 650. Synthetic integration tests only. Requires a correct adapter and physical ECU ID pair. Optional Mode 09 VIN and calibration IDs are not verified ECU identity; no memory image, tuning, clears or programming.",
+     "capabilities": [
+      "identify",
+      "live",
+      "dtc_read"
+     ],
+     "effective_capabilities": [
+      "identify",
+      "live",
+      "dtc_read"
+     ],
+     "sources": [
+      "https://github.com/RyoheiHashimoto/obd2",
+      "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32",
+      "https://github.com/brendan-w/python-OBD/tree/a378bdd81d58c67d08050e4244173a9a7dbda73d"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Standard OBD live PIDs and DTCs do not provide ECU memory or flashing."
+     },
+     "kline": {
+      "init": "can"
+     },
+     "can": {
+      "bitrate": 500000,
+      "tx_id": 2016,
+      "rx_id": 2024,
+      "interface": "socketcan"
+     },
+     "session": {
+      "protocol": "generic-obd-can-11bit",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "physical_evidence_note": "Standard OBD-II requests only; no model-specific fitment is claimed. This integration is synthetic-tested only."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "harley_delphi_can_uds",
+     "family": "Harley Delphi CAN identity (research)",
+     "display_name": "Harley Delphi CAN (identity research, ECU-only)",
+     "transport": "can",
+     "confidence": "unknown",
+     "years": "source reports approximately 2014–2020; exact fitment unknown",
+     "notes": "Explicit ECU-only research attempt based on a published Delphi CAN tool, not proof of Harley fitment. This integration is synthetic-tested only. Read-only tester-present and five identity DIDs and four raw source-observed DIDs; the source reads DIDs after authentication, so this limited default-session attempt may be rejected. Raw DID meanings are unknown. No security, memory reading, tuning, fault clear or programming.",
+     "capabilities": [
+      "identify",
+      "live"
+     ],
+     "effective_capabilities": [
+      "identify",
+      "live"
+     ],
+     "sources": [
+      "https://github.com/rob9206/lawflo/tree/6255518dc9118d960efa42d6d9dc975926bbd579/ZOOSH_ECU-main/HarleyECUDump"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Source memory access needs a vehicle-specific opaque download payload and identity/fitment are unresolved."
+     },
+     "kline": {
+      "init": "can"
+     },
+     "can": {
+      "bitrate": 500000,
+      "tx_id": 2016,
+      "rx_id": 2024,
+      "interface": "socketcan"
+     },
+     "session": {
+      "protocol": "harley-delphi-can-identity",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "physical_evidence_note": "Source describes 500 kbit/s CAN physical 7E0/7E8 and Delphi identity DIDs; this default-session integration is not hardware-tested."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "harley_j1850_harleydroid",
      "family": "Harley-Davidson J1850 VPW (HarleyDroid)",
      "display_name": "Harley J1850 / HarleyDroid (read-only, ECU-only)",
@@ -785,6 +877,68 @@
      "field_confirmation": {}
     },
     {
+     "id": "honda_cb500f_dashble",
+     "family": "Honda CB500F DashBle table 11 (year unspecified)",
+     "display_name": "Honda CB500F DashBle (ECU-only, read-only K-Line)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "unspecified",
+     "notes": "Dash/DashBle report CB500F examples and show source captures but do not state model year, market, ECU or software. ECU-only opt-in, not fitment to the selected bike. GuzziOnBoard integration has synthetic tests only. Table 00 ECM ID is an unverified raw candidate; no memory, DTC, controls or simulator. An explicitly confirmed, experimental 256 KiB read is available only if the live ID matches MGZ-A03; not a verified backup.",
+     "capabilities": [
+      "identify",
+      "live"
+     ],
+     "effective_capabilities": [
+      "identify",
+      "live"
+     ],
+     "sources": [
+      "https://github.com/atoid/DashBle/tree/9c65818d13dde39b8d8203736b43109eb84a9651",
+      "https://github.com/atoid/Dash/tree/532d0f4fef1b2e11a15f1c6663fb5351757f87b8",
+      "https://github.com/WiseNoodle/honda-moto-ecu-suite/tree/85431bd831b2c50a640fac35dccf36c09df20c07",
+      "https://github.com/PhatDatPQ/eculib/tree/7921cc46551fd26d487ec778e8822ace4777899e"
+     ],
+     "memory": {
+      "read_supported": true,
+      "write_supported": false,
+      "write_blocked_reason": "No ECU flash writing is implemented for this profile.",
+      "research_read_only": true,
+      "hardware_note": "Experimental, source-derived MGZ-A03 read only. Exact live ECM ID required; security exchange is untested by GuzziOnBoard. A completed file is research-only, not a verified backup.",
+      "regions": {
+       "flash": {
+        "start": 0,
+        "size": 262144,
+        "block": 12,
+        "writable": false,
+        "note": "Source-reported MGZ-A03 only; unverified by GuzziOnBoard."
+       }
+      },
+      "programming": {
+       "protocol": "honda-mgz-a03-research",
+       "security": {
+        "required": false
+       }
+      }
+     },
+     "kline": {
+      "baud": 10400,
+      "init": "honda-cb500f-dashble",
+      "inter_byte_delay": 0
+     },
+     "can": {},
+     "session": {
+      "protocol": "honda-cb500f-dashble",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "tester_present_interval": 2.0,
+      "physical_evidence_note": "Dash/DashBle show a CB500F capture; source year/ECU unspecified. This integration has only synthetic tests."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "honda_cbr1000rr_2012_us",
      "family": "CBR1000RR-2012-US",
      "display_name": "Honda CBR1000RR 2012 US (offline tuning only)",
@@ -817,29 +971,40 @@
     },
     {
      "id": "honda_cbr600rr_2005",
-     "family": "2005 Honda CBR600RR research",
-     "display_name": "Honda CBR600RR 2005 (offline research only)",
+     "family": "2005 Honda CBR600RR (source-reported)",
+     "display_name": "Honda CBR600RR 2005 (read-only K-Line)",
      "transport": "kline",
      "confidence": "unknown",
      "years": "2005",
-     "notes": "Research placeholder, not a confirmed ECU family or fitment. An independent project reports testing this model; this application only decodes supplied response frames offline. No physical or simulated Honda diagnostic session exists.",
-     "capabilities": [],
-     "effective_capabilities": [],
+     "notes": "Upstream reports testing a 2005 CBR600RR; ECU part, firmware and market unknown. GuzziOnBoard has synthetic tests only. Table 10 sensor values and D1 status interpretations are candidates. Table 00 ECM ID is an unverified raw candidate; no fault memory, flash memory, controls or simulator.",
+     "capabilities": [
+      "identify",
+      "live"
+     ],
+     "effective_capabilities": [
+      "identify",
+      "live"
+     ],
      "sources": [
       "https://github.com/andreibaw/Honda_K-Line_KWP2000/tree/f3bd42ff438e840e4da3802dd5038a195f3d67be"
      ],
      "memory": {
       "read_supported": false,
       "write_supported": false,
-      "write_blocked_reason": "Honda diagnostic and programming protocols are not implemented or validated."
+      "write_blocked_reason": "Honda ECU memory, image validation and programming are not implemented."
      },
-     "kline": {},
+     "kline": {
+      "baud": 10400,
+      "init": "honda-cbr600rr-2005",
+      "inter_byte_delay": 0
+     },
      "can": {},
      "session": {
-      "protocol": "honda-research-only",
-      "physical_supported": false,
-      "physical_blocked_reason": "Honda K-Line transport and diagnostics are not implemented or validated in this application.",
-      "simulator_supported": false
+      "protocol": "honda-cbr600rr-2005",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "tester_present_interval": 2.0,
+      "physical_evidence_note": "Source reports testing a 2005 CBR600RR; this implementation has synthetic tests only."
      },
      "actuators": [],
      "routines": [],
@@ -885,6 +1050,185 @@
       "simulator_supported": false,
       "tester_present_interval": 2.0,
       "physical_evidence_note": "iKawa reports testing one 2006 ER-6n; this implementation has only synthetic protocol tests."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "kawasaki_ninja650_2023_2026",
+     "family": "Kawasaki Ninja 650 / EX650 research (2023–2026)",
+     "display_name": "Kawasaki Ninja 650 / EX650 2023–2026 (research only)",
+     "transport": "can",
+     "confidence": "unknown",
+     "years": "2023–2026",
+     "notes": "Commercial listing reports candidate ECU part numbers for this model/year range; exact year, market, ECU part and software require independent verification. This profile does not establish ECU identity, tune compatibility, communications, checksum or programming.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://www.woolichracing.com/products/kawasaki/ninja-650-ex650/2026/2026-kawasaki-ninja-650-ex650-ecu-flashing.aspx"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "No applicable memory protocol, validated definition, checksum or recovery path is integrated."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "research-only",
+      "physical_supported": false,
+      "simulator_supported": false,
+      "physical_blocked_reason": "The exact ECU diagnostic and programming application is not implemented; no physical requests are permitted."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "kawasaki_ninja7_hybrid",
+     "family": "Kawasaki Ninja 7 Hybrid KWP-on-CAN (source-reported)",
+     "display_name": "Kawasaki Ninja 7 Hybrid (read-only CAN)",
+     "transport": "can",
+     "confidence": "unknown",
+     "years": "2024+",
+     "notes": "Source reports Ninja 7 Hybrid 2024+ on one researched ECU. Source-described read-only KWP-on-CAN, synthetic integration tests only. Market and exact software compatibility are not established. No clears, controls, security access, ECU memory, tuning or simulator.",
+     "capabilities": [
+      "identify",
+      "live",
+      "dtc_read"
+     ],
+     "effective_capabilities": [
+      "identify",
+      "live",
+      "dtc_read"
+     ],
+     "sources": [
+      "https://github.com/mgithens1/kawasaki-can-hack/tree/26820ddf88d682c7071b0825252c7fa0b82c709a"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "No source-established ECU programming, checksum, recovery or security access."
+     },
+     "kline": {},
+     "can": {
+      "bitrate": 500000,
+      "tx_id": 1892,
+      "rx_id": 1862,
+      "interface": "socketcan"
+     },
+     "session": {
+      "protocol": "kawasaki-ninja7-can",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "tester_present_interval": 2.0,
+      "physical_evidence_note": "kawasaki-can-hack reports real Ninja 7 Hybrid diagnostic observations; this integration is synthetic-tested only."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "kawasaki_versys650_2012",
+     "family": "Kawasaki Versys 650 2012 (source-reported KDS)",
+     "display_name": "Kawasaki Versys 650 2012 (read-only KDS)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "2012",
+     "notes": "Upstream reports this model/year tested. This adaptation has only synthetic tests. ECU part, firmware and market are not established. Sensor conversions are source-reported candidates; no identity, DTC, memory, controls or simulator.",
+     "capabilities": [
+      "live"
+     ],
+     "effective_capabilities": [
+      "live"
+     ],
+     "sources": [
+      "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "No source-specific ECU memory access, checksums or programming implemented."
+     },
+     "kline": {
+      "baud": 10400,
+      "init": "aster-versys-2012",
+      "address": 17,
+      "inter_byte_delay": 0.005
+     },
+     "can": {},
+     "session": {
+      "protocol": "aster-versys-2012",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "tester_present_interval": 1.0,
+      "physical_evidence_note": "Upstream reports this model/year tested; GuzziOnBoard has only synthetic tests."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "kawasaki_z650_2023_2026",
+     "family": "Kawasaki Z650 research (2023–2026)",
+     "display_name": "Kawasaki Z650 2023–2026 (research only)",
+     "transport": "can",
+     "confidence": "unknown",
+     "years": "2023–2026",
+     "notes": "Commercial listing reports candidate ECU part numbers for this model/year range; exact year, market, ECU part and software require independent verification. This profile does not establish ECU identity, tune compatibility, communications, checksum or programming. The source feature list says 2023–2026, while its product title says 2023–2025; confirm 2026 support with the vendor.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://www.woolichracing.com/products/kawasaki/z650/kawasaki-z650-ecu-flashing.aspx"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "No applicable memory protocol, validated definition, checksum or recovery path is integrated."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "research-only",
+      "physical_supported": false,
+      "simulator_supported": false,
+      "physical_blocked_reason": "The exact ECU diagnostic and programming application is not implemented; no physical requests are permitted."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "kawasaki_zx6r_636_2024_2026",
+     "family": "Kawasaki Ninja ZX-6R (636) research (2024–2026)",
+     "display_name": "Kawasaki Ninja ZX-6R (636) 2024–2026 (research only)",
+     "transport": "can",
+     "confidence": "unknown",
+     "years": "2024–2026",
+     "notes": "Commercial listing reports candidate ECU part numbers for this model/year range; exact year, market, ECU part and software require independent verification. This profile does not establish ECU identity, tune compatibility, communications, checksum or programming.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://www.woolichracing.com/products/kawasaki/zx6r-636/2026/2026-kawasaki-zx6r-636-ecu-flashing.aspx"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "No applicable memory protocol, validated definition, checksum or recovery path is integrated."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "research-only",
+      "physical_supported": false,
+      "simulator_supported": false,
+      "physical_blocked_reason": "The exact ECU diagnostic and programming application is not implemented; no physical requests are permitted."
      },
      "actuators": [],
      "routines": [],
@@ -1052,6 +1396,47 @@
       "fault_registers": [],
       "physical_supported": false,
       "physical_blocked_reason": "Automotive IAW-04K evidence defines the legacy direct protocol, but no Moto Guzzi P8 primary definition or capture was recovered."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "suzuki_gsxr600_2011",
+     "family": "Suzuki GSX-R600 2011 (source-reported SDS)",
+     "display_name": "Suzuki GSX-R600 2011 (read-only SDS)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "2011",
+     "notes": "Upstream reports this model/year tested. This adaptation has only synthetic tests. ECU part, firmware and market are not established. Sensor conversions are source-reported candidates; no identity, DTC, memory, controls or simulator.",
+     "capabilities": [
+      "live"
+     ],
+     "effective_capabilities": [
+      "live"
+     ],
+     "sources": [
+      "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "No source-specific ECU memory access, checksums or programming implemented."
+     },
+     "kline": {
+      "baud": 10400,
+      "init": "aster-gsxr600-2011",
+      "address": 18,
+      "inter_byte_delay": 0.005
+     },
+     "can": {},
+     "session": {
+      "protocol": "aster-gsxr600-2011",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "tester_present_interval": 1.0,
+      "physical_evidence_note": "Upstream reports this model/year tested; GuzziOnBoard has only synthetic tests."
      },
      "actuators": [],
      "routines": [],
@@ -1546,7 +1931,7 @@
       "ecu": "honda_cbr600rr_2005",
       "displacement": "",
       "tps": "",
-      "notes": "Research entry for the author-tested 2005 CBR600RR only; exact ECU identity and fitment are unverified. Offline response decoding only, no physical diagnostics or Honda simulator.",
+      "notes": "Source reports testing this model/year; GuzziOnBoard integration has synthetic tests only. ECU part, software and market unknown.",
       "confidence": "inferred",
       "label": "CBR600RR (2005-2005)",
       "can": {}
@@ -1971,6 +2356,24 @@
     ]
    },
    {
+    "model": "GSX-R600",
+    "variants": [
+     {
+      "make": "Suzuki",
+      "model": "GSX-R600",
+      "year_from": 2011,
+      "year_to": 2011,
+      "ecu": "suzuki_gsxr600_2011",
+      "displacement": "599",
+      "tps": "",
+      "notes": "Model/year reported tested by source; this integration has only synthetic tests. ECU and market unknown.",
+      "confidence": "inferred",
+      "label": "GSX-R600 (2011-2011)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "GT 1000",
     "variants": [
      {
@@ -2254,6 +2657,60 @@
       "notes": "Target throttle about 3.6 degrees.",
       "confidence": "documented",
       "label": "Nevada Classic 750 (2004-2012)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Ninja 650 / EX650",
+    "variants": [
+     {
+      "make": "Kawasaki",
+      "model": "Ninja 650 / EX650",
+      "year_from": 2023,
+      "year_to": 2026,
+      "ecu": "kawasaki_ninja650_2023_2026",
+      "displacement": "",
+      "tps": "",
+      "notes": "Vendor year range and ECU numbers are research leads, not proof for every market, year or motorcycle. No physical diagnostics, simulation or programming in this profile.",
+      "confidence": "inferred",
+      "label": "Ninja 650 / EX650 (2023-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Ninja 7 Hybrid",
+    "variants": [
+     {
+      "make": "Kawasaki",
+      "model": "Ninja 7 Hybrid",
+      "year_from": 2024,
+      "year_to": null,
+      "ecu": "kawasaki_ninja7_hybrid",
+      "displacement": "",
+      "tps": "",
+      "notes": "Source describes the 2024+ Ninja 7 Hybrid and tested one ECU; market and software applicability to every year are not established. Read-only CAN diagnostics; GuzziOnBoard integration has only synthetic tests. No programming or controls.",
+      "confidence": "inferred",
+      "label": "Ninja 7 Hybrid (2024-present)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Ninja ZX-6R (636)",
+    "variants": [
+     {
+      "make": "Kawasaki",
+      "model": "Ninja ZX-6R (636)",
+      "year_from": 2024,
+      "year_to": 2026,
+      "ecu": "kawasaki_zx6r_636_2024_2026",
+      "displacement": "",
+      "tps": "",
+      "notes": "Vendor year range and ECU numbers are research leads, not proof for every market, year or motorcycle. No physical diagnostics, simulation or programming in this profile.",
+      "confidence": "inferred",
+      "label": "Ninja ZX-6R (636) (2024-2026)",
       "can": {}
      }
     ]
@@ -3353,6 +3810,42 @@
       "can": {}
      }
     ]
+   },
+   {
+    "model": "Versys 650",
+    "variants": [
+     {
+      "make": "Kawasaki",
+      "model": "Versys 650",
+      "year_from": 2012,
+      "year_to": 2012,
+      "ecu": "kawasaki_versys650_2012",
+      "displacement": "649",
+      "tps": "",
+      "notes": "Model/year reported tested by source; this integration has only synthetic tests. ECU and market unknown.",
+      "confidence": "inferred",
+      "label": "Versys 650 (2012-2012)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Z650",
+    "variants": [
+     {
+      "make": "Kawasaki",
+      "model": "Z650",
+      "year_from": 2023,
+      "year_to": 2026,
+      "ecu": "kawasaki_z650_2023_2026",
+      "displacement": "",
+      "tps": "",
+      "notes": "Vendor year range and ECU numbers are research leads, not proof for every market, year or motorcycle. No physical diagnostics, simulation or programming in this profile. Vendor product title says 2023–2025 but its feature list says 2023–2026; verify 2026 applicability.",
+      "confidence": "inferred",
+      "label": "Z650 (2023-2026)",
+      "can": {}
+     }
+    ]
    }
   ],
   "vehicles": [
@@ -4197,6 +4690,34 @@
     "ecu": "kawasaki_er6n_2006"
    },
    {
+    "make": "Kawasaki",
+    "model": "Ninja 7 Hybrid",
+    "year_from": 2024,
+    "year_to": null,
+    "ecu": "kawasaki_ninja7_hybrid"
+   },
+   {
+    "make": "Kawasaki",
+    "model": "Z650",
+    "year_from": 2023,
+    "year_to": 2026,
+    "ecu": "kawasaki_z650_2023_2026"
+   },
+   {
+    "make": "Kawasaki",
+    "model": "Ninja 650 / EX650",
+    "year_from": 2023,
+    "year_to": 2026,
+    "ecu": "kawasaki_ninja650_2023_2026"
+   },
+   {
+    "make": "Kawasaki",
+    "model": "Ninja ZX-6R (636)",
+    "year_from": 2024,
+    "year_to": 2026,
+    "ecu": "kawasaki_zx6r_636_2024_2026"
+   },
+   {
     "make": "Suzuki",
     "model": "SV650AK7",
     "year_from": 2007,
@@ -4230,6 +4751,20 @@
     "year_from": 2013,
     "year_to": 2016,
     "ecu": "honda_cb500_mgz_a03"
+   },
+   {
+    "make": "Kawasaki",
+    "model": "Versys 650",
+    "year_from": 2012,
+    "year_to": 2012,
+    "ecu": "kawasaki_versys650_2012"
+   },
+   {
+    "make": "Suzuki",
+    "model": "GSX-R600",
+    "year_from": 2011,
+    "year_to": 2011,
+    "ecu": "suzuki_gsxr600_2011"
    }
   ],
   "ecus": [
@@ -5653,6 +6188,368 @@
     "parameters": []
    },
    {
+    "id": "generic_obd_can_11bit",
+    "family": "Generic OBD-II 11-bit CAN (opt-in)",
+    "display_name": "Generic OBD-II 11-bit CAN (read-only, ECU-only)",
+    "transport": "can",
+    "confidence": "unknown",
+    "years": "not model-specific",
+    "notes": "Opt-in standard OBD-II emission diagnostics only, where the selected ECU actually supports ISO 15765-4 11-bit CAN at 500 kbit/s. Not established for any particular motorcycle, including Ninja 650. Synthetic integration tests only. Requires a correct adapter and physical ECU ID pair. Optional Mode 09 VIN and calibration IDs are not verified ECU identity; no memory image, tuning, clears or programming.",
+    "capabilities": [
+     "identify",
+     "live",
+     "dtc_read"
+    ],
+    "effective_capabilities": [
+     "identify",
+     "live",
+     "dtc_read"
+    ],
+    "sources": [
+     "https://github.com/RyoheiHashimoto/obd2",
+     "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32",
+     "https://github.com/brendan-w/python-OBD/tree/a378bdd81d58c67d08050e4244173a9a7dbda73d"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Standard OBD live PIDs and DTCs do not provide ECU memory or flashing."
+    },
+    "kline": {
+     "init": "can"
+    },
+    "can": {
+     "bitrate": 500000,
+     "tx_id": 2016,
+     "rx_id": 2024,
+     "interface": "socketcan"
+    },
+    "session": {
+     "protocol": "generic-obd-can-11bit",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "physical_evidence_note": "Standard OBD-II requests only; no model-specific fitment is claimed. This integration is synthetic-tested only."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": [
+     {
+      "key": "rpm",
+      "name": "Engine speed (unverified)",
+      "local_id": 12,
+      "request_ids": [],
+      "unit": "rpm",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "speed",
+      "name": "Speed (unverified)",
+      "local_id": 13,
+      "request_ids": [],
+      "unit": "km/h",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "tps",
+      "name": "Throttle (unverified)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "coolant",
+      "name": "Coolant temperature (unverified)",
+      "local_id": 5,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "airtemp",
+      "name": "Intake temperature (unverified)",
+      "local_id": 15,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "map",
+      "name": "Manifold pressure (unverified)",
+      "local_id": 11,
+      "request_ids": [],
+      "unit": "kPa",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "load",
+      "name": "Engine load (unverified)",
+      "local_id": 4,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "timing",
+      "name": "Timing advance (unverified)",
+      "local_id": 14,
+      "request_ids": [],
+      "unit": "°",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "trim",
+      "name": "Short-term fuel trim (unverified)",
+      "local_id": 6,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "engine_runtime",
+      "name": "Engine runtime (unverified)",
+      "local_id": 31,
+      "request_ids": [],
+      "unit": "s",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "fuel_level",
+      "name": "Fuel level (unverified)",
+      "local_id": 47,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "barometric",
+      "name": "Barometric pressure (unverified)",
+      "local_id": 51,
+      "request_ids": [],
+      "unit": "kPa",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "control_voltage",
+      "name": "Control module voltage (unverified)",
+      "local_id": 66,
+      "request_ids": [],
+      "unit": "V",
+      "group": "engine",
+      "digits": 2,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "oil_temp",
+      "name": "Oil temperature (unverified)",
+      "local_id": 92,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "fuel_rate",
+      "name": "Engine fuel rate (unverified)",
+      "local_id": 94,
+      "request_ids": [],
+      "unit": "L/h",
+      "group": "engine",
+      "digits": 2,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     }
+    ]
+   },
+   {
+    "id": "harley_delphi_can_uds",
+    "family": "Harley Delphi CAN identity (research)",
+    "display_name": "Harley Delphi CAN (identity research, ECU-only)",
+    "transport": "can",
+    "confidence": "unknown",
+    "years": "source reports approximately 2014–2020; exact fitment unknown",
+    "notes": "Explicit ECU-only research attempt based on a published Delphi CAN tool, not proof of Harley fitment. This integration is synthetic-tested only. Read-only tester-present and five identity DIDs and four raw source-observed DIDs; the source reads DIDs after authentication, so this limited default-session attempt may be rejected. Raw DID meanings are unknown. No security, memory reading, tuning, fault clear or programming.",
+    "capabilities": [
+     "identify",
+     "live"
+    ],
+    "effective_capabilities": [
+     "identify",
+     "live"
+    ],
+    "sources": [
+     "https://github.com/rob9206/lawflo/tree/6255518dc9118d960efa42d6d9dc975926bbd579/ZOOSH_ECU-main/HarleyECUDump"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Source memory access needs a vehicle-specific opaque download payload and identity/fitment are unresolved."
+    },
+    "kline": {
+     "init": "can"
+    },
+    "can": {
+     "bitrate": 500000,
+     "tx_id": 2016,
+     "rx_id": 2024,
+     "interface": "socketcan"
+    },
+    "session": {
+     "protocol": "harley-delphi-can-identity",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "physical_evidence_note": "Source describes 500 kbit/s CAN physical 7E0/7E8 and Delphi identity DIDs; this default-session integration is not hardware-tested."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": [
+     {
+      "key": "raw_did_0100",
+      "name": "DID 0100 raw integer (meaning unknown)",
+      "local_id": 256,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "unknown"
+     },
+     {
+      "key": "raw_did_0101",
+      "name": "DID 0101 raw integer (meaning unknown)",
+      "local_id": 257,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "unknown"
+     },
+     {
+      "key": "raw_did_0102",
+      "name": "DID 0102 raw integer (meaning unknown)",
+      "local_id": 258,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "unknown"
+     },
+     {
+      "key": "raw_did_0103",
+      "name": "DID 0103 raw integer (meaning unknown)",
+      "local_id": 259,
+      "request_ids": [],
+      "unit": "raw",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "unknown"
+     }
+    ]
+   },
+   {
     "id": "harley_j1850_harleydroid",
     "family": "Harley-Davidson J1850 VPW (HarleyDroid)",
     "display_name": "Harley J1850 / HarleyDroid (read-only, ECU-only)",
@@ -5770,6 +6667,200 @@
     "parameters": []
    },
    {
+    "id": "honda_cb500f_dashble",
+    "family": "Honda CB500F DashBle table 11 (year unspecified)",
+    "display_name": "Honda CB500F DashBle (ECU-only, read-only K-Line)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "unspecified",
+    "notes": "Dash/DashBle report CB500F examples and show source captures but do not state model year, market, ECU or software. ECU-only opt-in, not fitment to the selected bike. GuzziOnBoard integration has synthetic tests only. Table 00 ECM ID is an unverified raw candidate; no memory, DTC, controls or simulator. An explicitly confirmed, experimental 256 KiB read is available only if the live ID matches MGZ-A03; not a verified backup.",
+    "capabilities": [
+     "identify",
+     "live"
+    ],
+    "effective_capabilities": [
+     "identify",
+     "live"
+    ],
+    "sources": [
+     "https://github.com/atoid/DashBle/tree/9c65818d13dde39b8d8203736b43109eb84a9651",
+     "https://github.com/atoid/Dash/tree/532d0f4fef1b2e11a15f1c6663fb5351757f87b8",
+     "https://github.com/WiseNoodle/honda-moto-ecu-suite/tree/85431bd831b2c50a640fac35dccf36c09df20c07",
+     "https://github.com/PhatDatPQ/eculib/tree/7921cc46551fd26d487ec778e8822ace4777899e"
+    ],
+    "memory": {
+     "read_supported": true,
+     "write_supported": false,
+     "write_blocked_reason": "No ECU flash writing is implemented for this profile.",
+     "research_read_only": true,
+     "hardware_note": "Experimental, source-derived MGZ-A03 read only. Exact live ECM ID required; security exchange is untested by GuzziOnBoard. A completed file is research-only, not a verified backup.",
+     "regions": {
+      "flash": {
+       "start": 0,
+       "size": 262144,
+       "block": 12,
+       "writable": false,
+       "note": "Source-reported MGZ-A03 only; unverified by GuzziOnBoard."
+      }
+     },
+     "programming": {
+      "protocol": "honda-mgz-a03-research",
+      "security": {
+       "required": false
+      }
+     }
+    },
+    "kline": {
+     "baud": 10400,
+     "init": "honda-cb500f-dashble",
+     "inter_byte_delay": 0
+    },
+    "can": {},
+    "session": {
+     "protocol": "honda-cb500f-dashble",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "tester_present_interval": 2.0,
+     "physical_evidence_note": "Dash/DashBle show a CB500F capture; source year/ECU unspecified. This integration has only synthetic tests."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": [
+     {
+      "key": "rpm",
+      "name": "Engine speed (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "rpm",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "tps_raw",
+      "name": "Throttle sensor byte (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "coolant",
+      "name": "Coolant temperature (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "airtemp",
+      "name": "Intake temperature (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "map",
+      "name": "Manifold pressure (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "kPa",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "battery",
+      "name": "Battery voltage (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "V",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "speed",
+      "name": "Speed (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "km/h",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "gear_status",
+      "name": "Gear / clutch status (source candidate)",
+      "local_id": 209,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {
+       "0": "In gear (candidate)",
+       "1": "Neutral or clutch (candidate)",
+       "3": "Kickstand down (candidate)"
+      },
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "engine_status",
+      "name": "Engine status byte (source candidate)",
+      "local_id": 209,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     }
+    ]
+   },
+   {
     "id": "honda_cbr1000rr_2012_us",
     "family": "CBR1000RR-2012-US",
     "display_name": "Honda CBR1000RR 2012 US (offline tuning only)",
@@ -5803,35 +6894,179 @@
    },
    {
     "id": "honda_cbr600rr_2005",
-    "family": "2005 Honda CBR600RR research",
-    "display_name": "Honda CBR600RR 2005 (offline research only)",
+    "family": "2005 Honda CBR600RR (source-reported)",
+    "display_name": "Honda CBR600RR 2005 (read-only K-Line)",
     "transport": "kline",
     "confidence": "unknown",
     "years": "2005",
-    "notes": "Research placeholder, not a confirmed ECU family or fitment. An independent project reports testing this model; this application only decodes supplied response frames offline. No physical or simulated Honda diagnostic session exists.",
-    "capabilities": [],
-    "effective_capabilities": [],
+    "notes": "Upstream reports testing a 2005 CBR600RR; ECU part, firmware and market unknown. GuzziOnBoard has synthetic tests only. Table 10 sensor values and D1 status interpretations are candidates. Table 00 ECM ID is an unverified raw candidate; no fault memory, flash memory, controls or simulator.",
+    "capabilities": [
+     "identify",
+     "live"
+    ],
+    "effective_capabilities": [
+     "identify",
+     "live"
+    ],
     "sources": [
      "https://github.com/andreibaw/Honda_K-Line_KWP2000/tree/f3bd42ff438e840e4da3802dd5038a195f3d67be"
     ],
     "memory": {
      "read_supported": false,
      "write_supported": false,
-     "write_blocked_reason": "Honda diagnostic and programming protocols are not implemented or validated."
+     "write_blocked_reason": "Honda ECU memory, image validation and programming are not implemented."
     },
-    "kline": {},
+    "kline": {
+     "baud": 10400,
+     "init": "honda-cbr600rr-2005",
+     "inter_byte_delay": 0
+    },
     "can": {},
     "session": {
-     "protocol": "honda-research-only",
-     "physical_supported": false,
-     "physical_blocked_reason": "Honda K-Line transport and diagnostics are not implemented or validated in this application.",
-     "simulator_supported": false
+     "protocol": "honda-cbr600rr-2005",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "tester_present_interval": 2.0,
+     "physical_evidence_note": "Source reports testing a 2005 CBR600RR; this implementation has synthetic tests only."
     },
     "actuators": [],
     "routines": [],
     "capability_confidence": {},
     "field_confirmation": {},
-    "parameters": []
+    "parameters": [
+     {
+      "key": "rpm",
+      "name": "Engine speed (source candidate)",
+      "local_id": 16,
+      "request_ids": [],
+      "unit": "rpm",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "tps",
+      "name": "Throttle (source candidate)",
+      "local_id": 16,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "coolant",
+      "name": "Coolant temperature (source candidate)",
+      "local_id": 16,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "airtemp",
+      "name": "Intake temperature (source candidate)",
+      "local_id": 16,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "map",
+      "name": "Manifold pressure (source candidate)",
+      "local_id": 16,
+      "request_ids": [],
+      "unit": "kPa",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "battery",
+      "name": "Battery voltage (source candidate)",
+      "local_id": 16,
+      "request_ids": [],
+      "unit": "V",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "speed",
+      "name": "Speed (source candidate)",
+      "local_id": 16,
+      "request_ids": [],
+      "unit": "km/h",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "gear_status",
+      "name": "Gear / clutch status (source candidate)",
+      "local_id": 209,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {
+       "0": "In gear (candidate)",
+       "1": "Neutral or clutch (candidate)",
+       "3": "Kickstand down (candidate)"
+      },
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "engine_status",
+      "name": "Engine status byte (source candidate)",
+      "local_id": 209,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {
+       "1": "Running (candidate)"
+      },
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     }
+    ]
    },
    {
     "id": "kawasaki_er6n_2006",
@@ -5991,6 +7226,416 @@
       "confidence": "documented"
      }
     ]
+   },
+   {
+    "id": "kawasaki_ninja650_2023_2026",
+    "family": "Kawasaki Ninja 650 / EX650 research (2023–2026)",
+    "display_name": "Kawasaki Ninja 650 / EX650 2023–2026 (research only)",
+    "transport": "can",
+    "confidence": "unknown",
+    "years": "2023–2026",
+    "notes": "Commercial listing reports candidate ECU part numbers for this model/year range; exact year, market, ECU part and software require independent verification. This profile does not establish ECU identity, tune compatibility, communications, checksum or programming.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://www.woolichracing.com/products/kawasaki/ninja-650-ex650/2026/2026-kawasaki-ninja-650-ex650-ecu-flashing.aspx"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "No applicable memory protocol, validated definition, checksum or recovery path is integrated."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "research-only",
+     "physical_supported": false,
+     "simulator_supported": false,
+     "physical_blocked_reason": "The exact ECU diagnostic and programming application is not implemented; no physical requests are permitted."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
+    "id": "kawasaki_ninja7_hybrid",
+    "family": "Kawasaki Ninja 7 Hybrid KWP-on-CAN (source-reported)",
+    "display_name": "Kawasaki Ninja 7 Hybrid (read-only CAN)",
+    "transport": "can",
+    "confidence": "unknown",
+    "years": "2024+",
+    "notes": "Source reports Ninja 7 Hybrid 2024+ on one researched ECU. Source-described read-only KWP-on-CAN, synthetic integration tests only. Market and exact software compatibility are not established. No clears, controls, security access, ECU memory, tuning or simulator.",
+    "capabilities": [
+     "identify",
+     "live",
+     "dtc_read"
+    ],
+    "effective_capabilities": [
+     "identify",
+     "live",
+     "dtc_read"
+    ],
+    "sources": [
+     "https://github.com/mgithens1/kawasaki-can-hack/tree/26820ddf88d682c7071b0825252c7fa0b82c709a"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "No source-established ECU programming, checksum, recovery or security access."
+    },
+    "kline": {},
+    "can": {
+     "bitrate": 500000,
+     "tx_id": 1892,
+     "rx_id": 1862,
+     "interface": "socketcan"
+    },
+    "session": {
+     "protocol": "kawasaki-ninja7-can",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "tester_present_interval": 2.0,
+     "physical_evidence_note": "kawasaki-can-hack reports real Ninja 7 Hybrid diagnostic observations; this integration is synthetic-tested only."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": [
+     {
+      "key": "load",
+      "name": "Engine load",
+      "local_id": 4,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "map",
+      "name": "Intake air pressure",
+      "local_id": 5,
+      "request_ids": [],
+      "unit": "kPa",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "coolant",
+      "name": "Coolant temperature",
+      "local_id": 6,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "airtemp",
+      "name": "Intake air temperature",
+      "local_id": 7,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "rpm",
+      "name": "Engine speed",
+      "local_id": 9,
+      "request_ids": [],
+      "unit": "rpm",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "gear",
+      "name": "Gear / status",
+      "local_id": 11,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "speed",
+      "name": "Vehicle speed",
+      "local_id": 12,
+      "request_ids": [],
+      "unit": "km/h",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     },
+     {
+      "key": "speed_alt",
+      "name": "Vehicle speed (two-byte candidate)",
+      "local_id": 13,
+      "request_ids": [],
+      "unit": "km/h",
+      "group": "engine",
+      "digits": 1,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "battery",
+      "name": "Battery voltage",
+      "local_id": 118,
+      "request_ids": [],
+      "unit": "V",
+      "group": "engine",
+      "digits": 2,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "documented"
+     }
+    ]
+   },
+   {
+    "id": "kawasaki_versys650_2012",
+    "family": "Kawasaki Versys 650 2012 (source-reported KDS)",
+    "display_name": "Kawasaki Versys 650 2012 (read-only KDS)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "2012",
+    "notes": "Upstream reports this model/year tested. This adaptation has only synthetic tests. ECU part, firmware and market are not established. Sensor conversions are source-reported candidates; no identity, DTC, memory, controls or simulator.",
+    "capabilities": [
+     "live"
+    ],
+    "effective_capabilities": [
+     "live"
+    ],
+    "sources": [
+     "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "No source-specific ECU memory access, checksums or programming implemented."
+    },
+    "kline": {
+     "baud": 10400,
+     "init": "aster-versys-2012",
+     "address": 17,
+     "inter_byte_delay": 0.005
+    },
+    "can": {},
+    "session": {
+     "protocol": "aster-versys-2012",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "tester_present_interval": 1.0,
+     "physical_evidence_note": "Upstream reports this model/year tested; GuzziOnBoard has only synthetic tests."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": [
+     {
+      "key": "rpm",
+      "name": "Engine speed (source candidate)",
+      "local_id": 9,
+      "request_ids": [],
+      "unit": "rpm",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "coolant",
+      "name": "Coolant temperature (source candidate)",
+      "local_id": 6,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "airtemp",
+      "name": "Intake temperature (source candidate)",
+      "local_id": 5,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "map",
+      "name": "Intake pressure (source candidate)",
+      "local_id": 7,
+      "request_ids": [],
+      "unit": "kPa",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "gear",
+      "name": "Gear byte (source candidate)",
+      "local_id": 11,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "speed",
+      "name": "Speed byte (source candidate)",
+      "local_id": 12,
+      "request_ids": [],
+      "unit": "km/h",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "tps",
+      "name": "Throttle byte (source candidate)",
+      "local_id": 4,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     }
+    ]
+   },
+   {
+    "id": "kawasaki_z650_2023_2026",
+    "family": "Kawasaki Z650 research (2023–2026)",
+    "display_name": "Kawasaki Z650 2023–2026 (research only)",
+    "transport": "can",
+    "confidence": "unknown",
+    "years": "2023–2026",
+    "notes": "Commercial listing reports candidate ECU part numbers for this model/year range; exact year, market, ECU part and software require independent verification. This profile does not establish ECU identity, tune compatibility, communications, checksum or programming. The source feature list says 2023–2026, while its product title says 2023–2025; confirm 2026 support with the vendor.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://www.woolichracing.com/products/kawasaki/z650/kawasaki-z650-ecu-flashing.aspx"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "No applicable memory protocol, validated definition, checksum or recovery path is integrated."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "research-only",
+     "physical_supported": false,
+     "simulator_supported": false,
+     "physical_blocked_reason": "The exact ECU diagnostic and programming application is not implemented; no physical requests are permitted."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
+    "id": "kawasaki_zx6r_636_2024_2026",
+    "family": "Kawasaki Ninja ZX-6R (636) research (2024–2026)",
+    "display_name": "Kawasaki Ninja ZX-6R (636) 2024–2026 (research only)",
+    "transport": "can",
+    "confidence": "unknown",
+    "years": "2024–2026",
+    "notes": "Commercial listing reports candidate ECU part numbers for this model/year range; exact year, market, ECU part and software require independent verification. This profile does not establish ECU identity, tune compatibility, communications, checksum or programming.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://www.woolichracing.com/products/kawasaki/zx6r-636/2026/2026-kawasaki-zx6r-636-ecu-flashing.aspx"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "No applicable memory protocol, validated definition, checksum or recovery path is integrated."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "research-only",
+     "physical_supported": false,
+     "simulator_supported": false,
+     "physical_blocked_reason": "The exact ECU diagnostic and programming application is not implemented; no physical requests are permitted."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
    },
    {
     "id": "mana_tcu",
@@ -6415,6 +8060,161 @@
     "capability_confidence": {},
     "field_confirmation": {},
     "parameters": []
+   },
+   {
+    "id": "suzuki_gsxr600_2011",
+    "family": "Suzuki GSX-R600 2011 (source-reported SDS)",
+    "display_name": "Suzuki GSX-R600 2011 (read-only SDS)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "2011",
+    "notes": "Upstream reports this model/year tested. This adaptation has only synthetic tests. ECU part, firmware and market are not established. Sensor conversions are source-reported candidates; no identity, DTC, memory, controls or simulator.",
+    "capabilities": [
+     "live"
+    ],
+    "effective_capabilities": [
+     "live"
+    ],
+    "sources": [
+     "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "No source-specific ECU memory access, checksums or programming implemented."
+    },
+    "kline": {
+     "baud": 10400,
+     "init": "aster-gsxr600-2011",
+     "address": 18,
+     "inter_byte_delay": 0.005
+    },
+    "can": {},
+    "session": {
+     "protocol": "aster-gsxr600-2011",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "tester_present_interval": 1.0,
+     "physical_evidence_note": "Upstream reports this model/year tested; GuzziOnBoard has only synthetic tests."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": [
+     {
+      "key": "rpm",
+      "name": "Engine speed (source candidate)",
+      "local_id": 8,
+      "request_ids": [],
+      "unit": "rpm",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "speed",
+      "name": "Speed (source candidate)",
+      "local_id": 8,
+      "request_ids": [],
+      "unit": "km/h",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "tps",
+      "name": "Throttle (source candidate)",
+      "local_id": 8,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "map",
+      "name": "Intake pressure (source candidate)",
+      "local_id": 8,
+      "request_ids": [],
+      "unit": "kPa",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "coolant",
+      "name": "Coolant temperature (source candidate)",
+      "local_id": 8,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "airtemp",
+      "name": "Intake temperature (source candidate)",
+      "local_id": 8,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "gear",
+      "name": "Gear byte (source candidate)",
+      "local_id": 8,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "battery_raw",
+      "name": "Battery sensor byte (source candidate)",
+      "local_id": 8,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     }
+    ]
    },
    {
     "id": "suzuki_sv650ak7_2007",
@@ -8164,7 +9964,7 @@
    "ecu": "honda_cbr600rr_2005",
    "displacement": "",
    "tps": "",
-   "notes": "Research entry for the author-tested 2005 CBR600RR only; exact ECU identity and fitment are unverified. Offline response decoding only, no physical diagnostics or Honda simulator.",
+   "notes": "Source reports testing this model/year; GuzziOnBoard integration has synthetic tests only. ECU part, software and market unknown.",
    "confidence": "inferred",
    "label": "CBR600RR (2005-2005)",
    "can": {}
@@ -8180,6 +9980,58 @@
    "notes": "iKawa author reports testing this model. Read-only KDS adapter; GuzziOnBoard has not hardware-tested its implementation. ECU identity and market unconfirmed; no simulator, DTCs, controls or programming.",
    "confidence": "inferred",
    "label": "ER-6n (2006-2006)",
+   "can": {}
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja 7 Hybrid",
+   "year_from": 2024,
+   "year_to": null,
+   "ecu": "kawasaki_ninja7_hybrid",
+   "displacement": "",
+   "tps": "",
+   "notes": "Source describes the 2024+ Ninja 7 Hybrid and tested one ECU; market and software applicability to every year are not established. Read-only CAN diagnostics; GuzziOnBoard integration has only synthetic tests. No programming or controls.",
+   "confidence": "inferred",
+   "label": "Ninja 7 Hybrid (2024-present)",
+   "can": {}
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z650",
+   "year_from": 2023,
+   "year_to": 2026,
+   "ecu": "kawasaki_z650_2023_2026",
+   "displacement": "",
+   "tps": "",
+   "notes": "Vendor year range and ECU numbers are research leads, not proof for every market, year or motorcycle. No physical diagnostics, simulation or programming in this profile. Vendor product title says 2023–2025 but its feature list says 2023–2026; verify 2026 applicability.",
+   "confidence": "inferred",
+   "label": "Z650 (2023-2026)",
+   "can": {}
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja 650 / EX650",
+   "year_from": 2023,
+   "year_to": 2026,
+   "ecu": "kawasaki_ninja650_2023_2026",
+   "displacement": "",
+   "tps": "",
+   "notes": "Vendor year range and ECU numbers are research leads, not proof for every market, year or motorcycle. No physical diagnostics, simulation or programming in this profile.",
+   "confidence": "inferred",
+   "label": "Ninja 650 / EX650 (2023-2026)",
+   "can": {}
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja ZX-6R (636)",
+   "year_from": 2024,
+   "year_to": 2026,
+   "ecu": "kawasaki_zx6r_636_2024_2026",
+   "displacement": "",
+   "tps": "",
+   "notes": "Vendor year range and ECU numbers are research leads, not proof for every market, year or motorcycle. No physical diagnostics, simulation or programming in this profile.",
+   "confidence": "inferred",
+   "label": "Ninja ZX-6R (636) (2024-2026)",
    "can": {}
   },
   {
@@ -8245,6 +10097,32 @@
    "notes": "HondaECU lists MGZ-A03 for this model range; offline image build accepts only exact MGZ-A03 stock image and adapted XDF. No live diagnostics or programming.",
    "confidence": "inferred",
    "label": "CBR500R (2013-2016)",
+   "can": {}
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Versys 650",
+   "year_from": 2012,
+   "year_to": 2012,
+   "ecu": "kawasaki_versys650_2012",
+   "displacement": "649",
+   "tps": "",
+   "notes": "Model/year reported tested by source; this integration has only synthetic tests. ECU and market unknown.",
+   "confidence": "inferred",
+   "label": "Versys 650 (2012-2012)",
+   "can": {}
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-R600",
+   "year_from": 2011,
+   "year_to": 2011,
+   "ecu": "suzuki_gsxr600_2011",
+   "displacement": "599",
+   "tps": "",
+   "notes": "Model/year reported tested by source; this integration has only synthetic tests. ECU and market unknown.",
+   "confidence": "inferred",
+   "label": "GSX-R600 (2011-2011)",
    "can": {}
   }
  ],
@@ -9763,6 +11641,301 @@
     ]
    }
   },
+  "generic_obd_can_11bit": {
+   "parameters": {
+    "rpm": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.25,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 12,
+     "states": {}
+    },
+    "speed": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 13,
+     "states": {}
+    },
+    "tps": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.39215686274509803,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "coolant": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": -40.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 5,
+     "states": {}
+    },
+    "airtemp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": -40.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 15,
+     "states": {}
+    },
+    "map": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 11,
+     "states": {}
+    },
+    "load": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.39215686274509803,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 4,
+     "states": {}
+    },
+    "timing": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.5,
+     "bias": -64.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 14,
+     "states": {}
+    },
+    "trim": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.78125,
+     "bias": -100.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 6,
+     "states": {}
+    },
+    "engine_runtime": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 31,
+     "states": {}
+    },
+    "fuel_level": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.39215686274509803,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 47,
+     "states": {}
+    },
+    "barometric": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 51,
+     "states": {}
+    },
+    "control_voltage": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.001,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 2,
+     "dead": false,
+     "local_id": 66,
+     "states": {}
+    },
+    "oil_temp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": -40.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 92,
+     "states": {}
+    },
+    "fuel_rate": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.05,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 2,
+     "dead": false,
+     "local_id": 94,
+     "states": {}
+    }
+   },
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "GenericOBD-II11-bitCAN(opt-in)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "generic-obd-can-11bit",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "physical_evidence_note": "Standard OBD-II requests only; no model-specific fitment is claimed. This integration is synthetic-tested only."
+   },
+   "identification": {
+    "available": true,
+    "note": "Optional support-bitmap-gated Mode 09 VIN and calibration IDs, not confirmed ECU identity or programming authorization."
+   }
+  },
+  "harley_delphi_can_uds": {
+   "parameters": {
+    "raw_did_0100": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 256,
+     "states": {}
+    },
+    "raw_did_0101": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 257,
+     "states": {}
+    },
+    "raw_did_0102": {
+     "offset": 0,
+     "length": 3,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 258,
+     "states": {}
+    },
+    "raw_did_0103": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 259,
+     "states": {}
+    }
+   },
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "HarleyDelphiCANidentity(research)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "harley-delphi-can-identity",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "physical_evidence_note": "Source describes 500 kbit/s CAN physical 7E0/7E8 and Delphi identity DIDs; this default-session integration is not hardware-tested."
+   },
+   "identification": {
+    "available": true,
+    "note": "Raw DID candidates only; not verified ECU identity or programming authorization."
+   }
+  },
   "harley_j1850_harleydroid": {
    "parameters": {
     "rpm": {
@@ -9847,6 +12020,152 @@
     "available": false
    }
   },
+  "honda_cb500f_dashble": {
+   "parameters": {
+    "rpm": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "tps_raw": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "coolant": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "airtemp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "map": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "battery": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "speed": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "gear_status": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 209,
+     "states": {
+      "0": "In gear (candidate)",
+      "1": "Neutral or clutch (candidate)",
+      "3": "Kickstand down (candidate)"
+     }
+    },
+    "engine_status": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 209,
+     "states": {}
+    }
+   },
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "HondaCB500FDashBletable11(yearunspecified)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "honda-cb500f-dashble",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "Dash/DashBle show a CB500F capture; source year/ECU unspecified. This integration has only synthetic tests."
+   },
+   "identification": {
+    "available": true,
+    "note": "Unverified raw five-byte ECM ID candidate; not a confirmed part number or programming identity."
+   }
+  },
   "honda_cbr1000rr_2012_us": {
    "parameters": {},
    "actuators": {},
@@ -9870,25 +12189,151 @@
    }
   },
   "honda_cbr600rr_2005": {
-   "parameters": {},
+   "parameters": {
+    "rpm": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 16,
+     "states": {}
+    },
+    "tps": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 16,
+     "states": {}
+    },
+    "coolant": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 16,
+     "states": {}
+    },
+    "airtemp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 16,
+     "states": {}
+    },
+    "map": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 16,
+     "states": {}
+    },
+    "battery": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 16,
+     "states": {}
+    },
+    "speed": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 16,
+     "states": {}
+    },
+    "gear_status": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 209,
+     "states": {
+      "0": "In gear (candidate)",
+      "1": "Neutral or clutch (candidate)",
+      "3": "Kickstand down (candidate)"
+     }
+    },
+    "engine_status": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 209,
+     "states": {
+      "1": "Running (candidate)"
+     }
+    }
+   },
    "actuators": {},
    "routines": {},
    "identity": {
     "Drawing": "CM000000",
-    "Hardware": "2005HondaCBR600RRresearchHW000",
+    "Hardware": "2005HondaCBR600RR(source-reported)HW000",
     "Omologation": "SIMULATED",
     "Software": "0000SIM0",
     "Tester": "D00000"
    },
    "dtc_overrides": {},
    "session": {
-    "protocol": "honda-research-only",
-    "physical_supported": false,
-    "physical_blocked_reason": "Honda K-Line transport and diagnostics are not implemented or validated in this application.",
-    "simulator_supported": false
+    "protocol": "honda-cbr600rr-2005",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "Source reports testing a 2005 CBR600RR; this implementation has synthetic tests only."
    },
    "identification": {
-    "available": false
+    "available": true,
+    "note": "Unverified raw five-byte ECM ID candidate; not a confirmed part number or programming identity."
    }
   },
   "kawasaki_er6n_2006": {
@@ -10014,6 +12459,329 @@
     "simulator_supported": false,
     "tester_present_interval": 2.0,
     "physical_evidence_note": "iKawa reports testing one 2006 ER-6n; this implementation has only synthetic protocol tests."
+   },
+   "identification": {
+    "available": false
+   }
+  },
+  "kawasaki_ninja650_2023_2026": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "KawasakiNinja650/EX650research(2023–2026)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "research-only",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_blocked_reason": "The exact ECU diagnostic and programming application is not implemented; no physical requests are permitted."
+   },
+   "identification": {
+    "available": false
+   }
+  },
+  "kawasaki_ninja7_hybrid": {
+   "parameters": {
+    "load": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.39215686274509803,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 4,
+     "states": {}
+    },
+    "map": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.544,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 5,
+     "states": {}
+    },
+    "coolant": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": -40.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 6,
+     "states": {}
+    },
+    "airtemp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": -40.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 7,
+     "states": {}
+    },
+    "rpm": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.25,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 9,
+     "states": {}
+    },
+    "gear": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 11,
+     "states": {}
+    },
+    "speed": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 12,
+     "states": {}
+    },
+    "speed_alt": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.5,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 13,
+     "states": {}
+    },
+    "battery": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.125,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 2,
+     "dead": false,
+     "local_id": 118,
+     "states": {}
+    }
+   },
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "KawasakiNinja7HybridKWP-on-CAN(source-reported)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "kawasaki-ninja7-can",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "kawasaki-can-hack reports real Ninja 7 Hybrid diagnostic observations; this integration is synthetic-tested only."
+   },
+   "identification": {
+    "available": true,
+    "option": 128
+   }
+  },
+  "kawasaki_versys650_2012": {
+   "parameters": {
+    "rpm": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 9,
+     "states": {}
+    },
+    "coolant": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 6,
+     "states": {}
+    },
+    "airtemp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 5,
+     "states": {}
+    },
+    "map": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 7,
+     "states": {}
+    },
+    "gear": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 11,
+     "states": {}
+    },
+    "speed": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 12,
+     "states": {}
+    },
+    "tps": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 4,
+     "states": {}
+    }
+   },
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "KawasakiVersys6502012(source-reportedKDS)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "aster-versys-2012",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 1.0,
+    "physical_evidence_note": "Upstream reports this model/year tested; GuzziOnBoard has only synthetic tests."
+   },
+   "identification": {
+    "available": false
+   }
+  },
+  "kawasaki_z650_2023_2026": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "KawasakiZ650research(2023–2026)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "research-only",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_blocked_reason": "The exact ECU diagnostic and programming application is not implemented; no physical requests are permitted."
+   },
+   "identification": {
+    "available": false
+   }
+  },
+  "kawasaki_zx6r_636_2024_2026": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "KawasakiNinjaZX-6R(636)research(2024–2026)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "research-only",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_blocked_reason": "The exact ECU diagnostic and programming application is not implemented; no physical requests are permitted."
    },
    "identification": {
     "available": false
@@ -10375,6 +13143,134 @@
       "encoding": "ascii"
      }
     ]
+   }
+  },
+  "suzuki_gsxr600_2011": {
+   "parameters": {
+    "rpm": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 8,
+     "states": {}
+    },
+    "speed": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 8,
+     "states": {}
+    },
+    "tps": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 8,
+     "states": {}
+    },
+    "map": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 8,
+     "states": {}
+    },
+    "coolant": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 8,
+     "states": {}
+    },
+    "airtemp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 8,
+     "states": {}
+    },
+    "gear": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 8,
+     "states": {}
+    },
+    "battery_raw": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 8,
+     "states": {}
+    }
+   },
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "SuzukiGSX-R6002011(source-reportedSDS)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "aster-gsxr600-2011",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 1.0,
+    "physical_evidence_note": "Upstream reports this model/year tested; GuzziOnBoard has only synthetic tests."
+   },
+   "identification": {
+    "available": false
    }
   },
   "suzuki_sv650ak7_2007": {

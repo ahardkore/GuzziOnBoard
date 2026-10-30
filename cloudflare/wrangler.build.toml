@@ -1,0 +1,16 @@
+# Production relay for Workers Builds. This is separate from the public website
+# Worker named "guzzionboard". It contains only a D1 resource ID, never secrets.
+name = "guzzionboard-validation"
+main = "worker.mjs"
+compatibility_date = "2025-08-01"
+workers_dev = true
+preview_urls = false
+
+# Preserve dashboard-configured public variables on subsequent deployments.
+# Cloudflare preserves encrypted secrets separately.
+keep_vars = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "guzzionboard"
+database_id = "66e69f17-cf5b-4728-b07b-6eb365be587f"

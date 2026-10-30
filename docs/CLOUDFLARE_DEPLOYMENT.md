@@ -1,8 +1,9 @@
 # Cloudflare deployment: existing `guzzionboard` D1 database
 
 The Cloudflare Worker is implemented and locally synthetic-tested, but is **not
-live or provisioned**. The existing D1 database was reported by its owner to be
-named `guzzionboard`; its account and ID are not available in this workspace.
+live or provisioned**. The owner provided the ID for the existing D1 database
+named `guzzionboard`; it is configured in `cloudflare/wrangler.build.toml`, but
+its identity and contents have not been verified from this workspace.
 Cloudflare Workers cannot run the standalone Python HTTP relay unchanged. This
 Worker implements the same submission and signed-update endpoints using D1.
 
@@ -34,6 +35,69 @@ secret into a public desktop binary or distribute it indiscriminately. Review
 uploads. The Worker discards connection frames after validation, but receives
 those frames and they may contain identifying bytes; Cloudflare network and
 logging systems can see request metadata. Configure log retention appropriately.
+
+## Workers Builds from a phone
+
+The account has a separate existing `guzzionboard` Worker serving a website.
+**Do not change or replace that Worker** to deploy the relay. Create a separate
+Worker named `guzzionboard-validation` and connect it to this repository using
+Workers Builds. The tracked `cloudflare/wrangler.build.toml` identifies the
+owner-provided D1 database and `worker.mjs`, has no static assets, and preserves
+variables set in the Cloudflare dashboard. It contains no secret values. It is
+not an instruction to create or alter any database automatically.
+
+1. In Cloudflare, open **D1 → guzzionboard → Console** and run the contents of
+   [`cloudflare/schema.sql`](../cloudflare/schema.sql). The statements use
+   `IF NOT EXISTS` and `INSERT OR IGNORE`: they do not delete other tables or
+   reset an existing sequence. Back up the database first and verify the selected
+   database name and ID before running SQL. The schema is not initialized by a
+   Worker deployment.
+2. Under **Workers & Pages**, create a new Worker named
+   `guzzionboard-validation` and connect this repository. In its build settings
+   use the repository root (`/`), leave the build command empty, and set the
+   **deploy command** to:
+
+   ```sh
+   npx wrangler deploy --config cloudflare/wrangler.build.toml
+   ```
+
+   This exact config flag is essential: plain `npx wrangler deploy` at the repo
+   root can auto-detect a static project and publish repository files instead of
+   the relay. Leave the website Worker's build settings unchanged unless you
+   independently review what files its existing static deployment publishes.
+   Check the deploy log: it must name `guzzionboard-validation`, include a D1
+   `DB` binding, and not upload the repository as static assets. A build token
+   must have whatever permissions Cloudflare requires to deploy the Worker and
+   use this D1 binding. Never put a Cloudflare API token in chat or source code.
+3. On that **validation** Worker, in **Settings → Variables and Secrets**, add:
+
+   | Name | Type | Value |
+   | --- | --- | --- |
+   | `GOB_KEY_ID` | variable | `release` |
+   | `GOB_PUBLIC_KEY` | variable | public key, 64 hex characters |
+   | `GOB_SIGNING_SEED` | **secret** | corresponding 64-hex private seed |
+   | `GOB_VALIDATION_TOKEN` | **secret** | a strong random token, at least 32 characters |
+
+   Create and back up the key pair and token securely. Provision the **matching**
+   public key and seed; the Worker refuses to publish if they differ. Do not
+   send either secret in chat or commit it. Apply/deploy the dashboard changes.
+   Build settings variables are not the same as runtime variables; these must be
+   on the Worker. `keep_vars = true` protects dashboard variables on later Git
+   deployments, while Cloudflare preserves encrypted secrets separately.
+4. Verify the validation Worker's own HTTPS address, distinct from the website.
+   A `GET /protocol-update.json` returning JSON `no update yet` with HTTP 404 is
+   expected before the first accepted report. Missing schema produces a 503;
+   submissions also return 503 until all required variables and secrets exist.
+   Deploying the Worker does not configure existing desktop apps: provision its
+   URL and pin the public key on receiving installations, and separately obtain
+   consent and provision the token on authorized submitting installations.
+
+This Git-build configuration is account-specific. If the D1 ID changes, review
+and update the config; preserve the existing database and monotonic sequence.
+Do not reuse the same production D1 for untrusted previews. The configuration
+explicitly disables preview URLs; a separate isolated environment is needed for
+safe preview tests. Cloudflare access, production secrets, database contents,
+and a public Worker URL were not available to verify from this workspace.
 
 ## Prepare on an authorized administrator's machine
 

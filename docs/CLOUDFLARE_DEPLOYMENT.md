@@ -69,6 +69,11 @@ not an instruction to create or alter any database automatically.
    `DB` binding, and not upload the repository as static assets. A build token
    must have whatever permissions Cloudflare requires to deploy the Worker and
    use this D1 binding. Never put a Cloudflare API token in chat or source code.
+   Connecting an existing Worker to Git does not necessarily start a build. If
+   the history is empty, a later push to the configured production branch can
+   trigger the first build. Alternatively, use a Cloudflare Deploy Hook and a
+   POST request. A Deploy Hook URL is itself a credential: do not share it or
+   commit it. A retry option only helps when there is a previous build to retry.
 3. On that **validation** Worker, in **Settings → Variables and Secrets**, add:
 
    | Name | Type | Value |

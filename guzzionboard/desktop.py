@@ -645,6 +645,7 @@ class DesktopApp:
         self.exit_code = 0
 
         self._server_thread: threading.Thread | None = None
+        self._protocol_updates = None
         self._stopping = threading.Event()
         self._stopped = False
         self._closing_anyway = False
@@ -713,6 +714,9 @@ class DesktopApp:
             target=self.httpd.serve_forever, name="guzzionboard-http", daemon=True
         )
         self._server_thread.start()
+        from .auto_protocol_updates import AutoProtocolUpdates
+        self._protocol_updates = AutoProtocolUpdates(self.workstation).start()
+        self.handler.api.auto_protocol_updates = self._protocol_updates
 
     def _record_instance(self) -> None:
         self.instances.write(
@@ -1000,6 +1004,9 @@ class DesktopApp:
             return
         self._stopped = True
         self._closing_anyway = True
+        if self._protocol_updates is not None:
+            self._protocol_updates.stop()
+            self._protocol_updates = None
         if self.window is not None:
             try:
                 self.window.destroy()

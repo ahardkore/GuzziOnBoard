@@ -325,11 +325,13 @@ def test_quorum_and_independence_are_enforced(tmp_path):
 
     with pytest.raises(protocol_updates.ProtocolUpdateError, match="no confirmations"):
         protocol_updates.build_update_pack([])
-    with pytest.raises(protocol_updates.ProtocolUpdateError, match="quorum must be at least 2"):
-        protocol_updates.build_update_pack([(one, capture_one)], quorum=1)
-    # one confirmation is not a consensus
+    with pytest.raises(protocol_updates.ProtocolUpdateError, match="quorum must be at least 1"):
+        protocol_updates.build_update_pack([(one, capture_one)], quorum=0)
+    single = protocol_updates.build_update_pack([(one, capture_one)])
+    assert single["quorum"] == 1 and all(len(p["references"]) == 1 for p in single["promotions"])
+    # A higher quorum can still be requested explicitly.
     with pytest.raises(protocol_updates.ProtocolUpdateError, match="nothing reached quorum"):
-        protocol_updates.build_update_pack([(one, capture_one)])
+        protocol_updates.build_update_pack([(one, capture_one)], quorum=2)
     # a capture that is not the bundle's own capture is not evidence
     with pytest.raises(protocol_updates.ProtocolUpdateError, match="no confirmation passed"):
         protocol_updates.build_update_pack([(one, capture_two)])
@@ -338,7 +340,7 @@ def test_quorum_and_independence_are_enforced(tmp_path):
     same_install_b, capture_b = bundle_for(tmp_path, install="a" * 32, seed=3, **live)
     with pytest.raises(protocol_updates.ProtocolUpdateError, match="not independent"):
         protocol_updates.build_update_pack([(same_install_a, capture_a),
-                                           (same_install_b, capture_b)])
+                                           (same_install_b, capture_b)], quorum=2)
     pack = protocol_updates.build_update_pack(
         [(one, capture_one), (two, capture_two), (same_install_a, capture_a)]
     )
@@ -896,3 +898,60 @@ def test_the_maintainer_tool_builds_checks_and_refuses(tmp_path):
     assert "refusing to sign" in unmatched.stderr
     assert "'rpm'" in unmatched.stderr and "declares 0 live parameter" in unmatched.stderr
     assert not (tmp_path / "unused.json").exists()
+
+
+def test_one_hardware_memory_read_produces_read_only_pack(tmp_path):
+    bundle, capture = bundle_for(tmp_path, install='a'*32, memory_read=True)
+    pack = protocol_updates.build_update_pack([(bundle, capture)])
+    read = next(p for p in pack['promotions'] if p['claim'] == 'memory_read')
+    assert pack['quorum'] == 1 and len(read['references']) == 1
+    assert {'target': 'memory.read_supported', 'value': True} in read['effects']
+    assert not any(x['target'] in ('memory.write_supported','programming') for p in pack['promotions'] for x in p['effects'])
+
+
+def test_automatic_update_checks_signature_and_applies_only_once(tmp_path, home, monkeypatch):
+    from guzzionboard.auto_protocol_updates import AutoProtocolUpdates
+    bundle, capture = bundle_for(tmp_path, install='a'*32, dtc_read=True)
+    envelope = sign(protocol_updates.build_update_pack([(bundle, capture)]))
+    pin(tmp_path, envelope)
+    class Workstation:
+        reloads = 0
+        def reload_catalog(self): self.reloads += 1
+    ws = Workstation()
+    monkeypatch.setattr(protocol_updates, 'fetch_pack', lambda: envelope)
+    updater = AutoProtocolUpdates(ws)
+    updater.check_once()
+    assert updater.status()['state'] == 'applied' and ws.reloads == 1
+    updater.check_once()
+    assert updater.status()['state'] == 'current' and ws.reloads == 1
+    assert protocol_updates.status()['applied']
+
+
+def test_automatic_update_rejects_untrusted_pack_and_missing_keys(tmp_path, home, monkeypatch):
+    from guzzionboard.auto_protocol_updates import AutoProtocolUpdates
+    class Workstation:
+        reloads = 0
+        def reload_catalog(self): self.reloads += 1
+    ws = Workstation(); updater = AutoProtocolUpdates(ws)
+    def must_not_fetch(): raise AssertionError('no trusted key means no network')
+    monkeypatch.setattr(protocol_updates, 'fetch_pack', must_not_fetch)
+    updater.check_once(); assert updater.status()['state'] == 'no_trusted_key'
+    bundle, capture = bundle_for(tmp_path, install='a'*32, dtc_read=True)
+    envelope = sign(protocol_updates.build_update_pack([(bundle, capture)]))
+    pin(tmp_path, envelope)
+    envelope['signature'] = '00' * 64
+    monkeypatch.setattr(protocol_updates, 'fetch_pack', lambda: envelope)
+    updater.check_once()
+    assert updater.status()['state'] == 'unavailable' and ws.reloads == 0
+    assert not protocol_updates.status()['applied']
+
+
+@pytest.mark.parametrize('detail', [
+    {'size': 0, 'sha256': 'ab'*32, 'region': 'flash'},
+    {'size': 32, 'sha256': 'not-a-hash', 'region': 'flash'},
+    {'size': 32, 'sha256': 'ab'*32, 'region': ''},
+])
+def test_incomplete_memory_result_never_produces_read_claim(detail):
+    events = confirmations.parse_capture(session_log())
+    events.append({'kind': 'action', 'name': 'memory_read_complete', 'detail': detail})
+    assert 'memory_read' not in confirmations.derive_claims(events)

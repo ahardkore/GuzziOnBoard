@@ -315,16 +315,18 @@ def derive_claims(events: list[dict]) -> dict[str, dict]:
             "keys": routines,
         }
 
-    memory_index, memory = _action(events, "memory_read_complete")
-    if memory is not None:
+    for memory_index, memory in enumerate(events):
+        if memory.get("kind") != "action" or memory.get("name") != "memory_read_complete":
+            continue
         detail = _detail(memory)
-        add(
-            "memory_read",
-            _window(events, memory_index) + [memory],
-            size=int(detail.get("size") or 0),
-            image_sha256=str(detail.get("sha256") or ""),
-            region=str(detail.get("region") or ""),
-        )
+        size, digest, region = detail.get("size"), detail.get("sha256"), detail.get("region")
+        if (type(size) is not int or size <= 0 or not isinstance(digest, str)
+                or not re.fullmatch(r"[0-9a-fA-F]{64}", digest)
+                or not isinstance(region, str) or not region.strip()):
+            continue
+        add("memory_read", _window(events, memory_index) + [memory],
+            size=size, image_sha256=digest, region=region)
+        break
 
     backup_index, backup = _action(events, "backup")
     if backup is not None and _detail(backup).get("verified"):

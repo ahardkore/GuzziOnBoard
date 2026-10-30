@@ -97,11 +97,10 @@ def _field_confirmation_notice(profile: EcuProfile) -> dict | None:
     return {
         "level": "info",
         "text": (
-            f"{profile.family}: {profile.confidence} as shipped, with read-level "
-            f"operations promoted by verified protocol update "
-            f"{promotion.get('pack') or 'unknown'} from {sessions} independent "
-            "field session(s) on real hardware. Writing and control actions are "
-            "unchanged by an update."
+            f"{profile.family}: {profile.confidence} as shipped. Signed protocol update "
+            f"{promotion.get('pack') or 'unknown'} includes {sessions} reported "
+            "field session(s); hardware origin is not independently verified. Check the "
+            "update's effects for its scope. Writing and control actions are unchanged."
         ),
     }
 

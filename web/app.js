@@ -2164,6 +2164,7 @@ window.addEventListener('beforeunload', () => {
     await refreshStatus();
     await loadProtocol();
     setInterval(() => { if (!state.polling) refreshStatus().catch(() => {}); }, 5000);
+    if (!isHostedDemo()) setInterval(pollAutomaticProtocolUpdate, 30000);
   } catch (err) {
     toast(`Could not reach the local server: ${err.message}`, 'bad');
   }
@@ -2179,11 +2180,27 @@ window.addEventListener('beforeunload', () => {
  *   * what this session could contribute - a frozen confirmation the operator
  *     attaches to an issue themselves. Nothing is uploaded from here.
  *
- * The UI never fetches a pack on its own: "Check" is the one network action
- * and it is a click, not a background poll.
+ * The local server checks for signed packs in the background; this window
+ * refreshes its catalog when an applied pack changes.
  */
 
 const protocol = { state: null, preview: null, envelope: null, bundle: null, busy: false };
+
+let seenAutomaticPack = null;
+async function pollAutomaticProtocolUpdate() {
+  try {
+    const data = await api('/api/protocol-updates');
+    const auto = data.automatic || {};
+    const digest = data.status?.applied_status?.pack?.sha256 || '';
+    if (auto.state === 'applied' && digest && digest !== seenAutomaticPack) {
+      seenAutomaticPack = digest;
+      await loadCatalog();
+      await refreshStatus();
+      await loadProtocol();
+      toast('A signed read-level protocol update was applied. Existing sessions are unchanged.', 'info');
+    }
+  } catch (_) { /* offline/local API failures will be shown by the normal status UI */ }
+}
 
 async function loadProtocol() {
   const out = $('#protocolOut');
@@ -2207,10 +2224,10 @@ async function loadProtocol() {
     const selection = data.selection;
     const promoted = selection && selection.field_confirmation
       && Object.keys(selection.field_confirmation).length
-      ? `<div class="gate-card ok"><h4>${esc(selection.family)} is promoted</h4>`
-        + `<p class="small">Read-level operations confirmed by `
-        + `<b>${esc(selection.field_confirmation.independent_sessions || 0)}</b> independent `
-        + `field session(s) on real hardware; family confidence stays `
+      ? `<div class="gate-card ok"><h4>${esc(selection.family)} has a signed field update</h4>`
+        + `<p class="small">Update references `
+        + `<b>${esc(selection.field_confirmation.independent_sessions || 0)}</b> `
+        + `reported field session(s); hardware origin is not independently provable. Check its effects for scope. Family confidence stays `
         + `<b>${esc(selection.confidence)}</b>, so control actions are unchanged.</p></div>`
       : '';
 
@@ -2222,6 +2239,8 @@ async function loadProtocol() {
       <div class="gate-card ${status.applied ? 'ok' : ''}">
         <h4>What this install is running</h4>
         <p class="small">${stateText}</p>
+        <p class="small">Automatic updates: <b>${esc(data.automatic?.state || 'unknown')}</b> — ${esc(data.automatic?.detail || '')}</p>
+        <p class="small">Read-report sharing: <b>${data.sharing?.configured ? 'configured' : 'not configured'}</b>; ${esc(data.sharing?.queued || 0)} queued. ${esc(data.sharing?.note || '')}</p>
         ${promotions.length ? `<p class="small">Promotions in force: ${promotions.map(([ecu, effects]) =>
           `<code>${esc(ecu)}</code> (${effects.map(esc).join(', ')})`).join(' · ')}</p>` : ''}
         <p class="small">Trusted keys: ${keys.length ? keys.map((k) => `<code>${esc(k)}</code>`).join(', ')
@@ -2410,7 +2429,7 @@ async function pinProtocolKey() {
       { method: 'POST', body: { key_id: id, public_key: hex } });
     out.innerHTML = `<div class="gate-card ok"><h4>Pinned <code>${esc(result.pinned)}</code></h4>
       <p class="small">A pack signed by this key can now be checked and applied. Nothing is
-      applied yet, and nothing is fetched automatically: a pin is a file you can read and a
+      applied yet. Automatic checks use only a pinned key: a pin is a file you can read and a
       key you can forget again.</p></div>`;
     if ($('#protocolKeyHex')) $('#protocolKeyHex').value = '';
     toast('Key pinned. Check a pack to preview exactly what it would change.', 'ok');

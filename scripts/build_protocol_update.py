@@ -4,7 +4,7 @@
 This is the review bench, not a build step. It runs where the private key
 lives, on bundles that arrived through a GitHub issue, and it refuses to emit
 anything until every claim can be recomputed from the capture that travels
-with it, every promotion has reached quorum on *independent* sessions, and
+with it, every promotion has reached the configured evidence quorum, and
 nothing in the pack reaches outside the read-level allowlist. Read
 ``docs/PROTOCOL_UPDATES.md`` for the review checklist it enforces.
 
@@ -182,7 +182,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="file holding the private seed (hex, 32 bytes)")
     parser.add_argument("--sequence", type=int, default=1,
                         help="monotonic pack number; installs refuse replays")
-    parser.add_argument("--quorum", type=int, default=2,
+    parser.add_argument("--quorum", type=int, default=1,
                         help="independent confirmations required per claim")
     parser.add_argument("--valid-days", type=int, default=400)
     parser.add_argument("--notes", default="", help="release notes for the pack")

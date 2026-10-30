@@ -1,11 +1,19 @@
 # Protocol updates — from one operator's confirmation to every install
 
+> **Current rollout:** An opt-in client and a deployable relay are implemented,
+> but no service has been deployed, no production token or release key has been
+> provisioned, and the bundled keyring is empty. Existing installs need an app
+> update and suitable configuration. See [hosted read sharing](HOSTED_READ_SHARING.md).
+> A single authenticated self-report is not independent proof of hardware, a
+> restorable image, or applicability to other variants or regions. The automatic
+> relay publishes region-specific provenance only: it does not promote
+> family-wide `verified-bench` confidence or enable writes.
+
 ## Status
 
-The mechanism described here is implemented, tested and reachable from the
-workstation UI and HTTP API. The evidence it distributes is not: the shipped
-catalog still lists one family at `verified-bench` (the IAW 5AM, on the
-strength of a published capture), and `guzzionboard/catalog/protocol_keys.json`
+The mechanism described here is implemented, synthetic-tested and reachable
+from the workstation UI and HTTP API. No relay is deployed. The shipped catalog
+lists the IAW 5AM at `verified-bench` on the strength of a published capture, and `guzzionboard/catalog/protocol_keys.json`
 ships **empty on purpose**. Nothing in this repository is trusted until a
 maintainer adds a key to that file, or an operator pins one locally.
 
@@ -22,26 +30,26 @@ The catalog is data, so "a new verified protocol" is a data change. One
 operator's session becomes every user's install like this:
 
 ```text
-real session           bundle + frozen capture      signed pack            every install
-   (this bike)  ──►   (quorum ≥ 2, independent) ──►  (release asset)  ──►  overlay on load
-        │                       │                          │                    │
-   capture.py            confirmations.py             signing.py          load_catalog()
-        │                       │                          │                    │
-        └── nothing is uploaded └── a reviewer recomputes  └── no server;  └── revert is one
-            by the app              every claim digest        a file + key     file delete
+physical read → optional minimized report → authenticated relay → signed pack
+                                                               → receiving installs
 ```
+
+Automatic submission needs explicit local consent, a configured HTTPS relay,
+physical transport, session recording, and a completed read with established
+region geometry. The relay's signing key must be pinned separately by receiving
+installations. The older manual confirmation/review route below remains available.
 
 Two publication routes carry *identical* promotions, and the code that makes
 them identical is `protocol_updates.catalog_fragment()`:
 
-* **the signed pack** — fast, opt-in, applied by installs that fetch it, and
-  only after they have pinned a key in advance;
+* **the signed pack** — automatically checked and applied when the install has
+  a trusted key and a compatible release asset; manual preview is also available;
 * **the committed catalog change** — slow, but it reaches every install in the
   next release and needs no trust infrastructure at all.
 
-There is no hosted service, no account, and no telemetry. The pack is a file
-with a signature; an install that never fetches anything still gets the
-promotion through the ordinary catalog.
+The relay is deployable but is not currently hosted. The manual pack remains a
+file with a signature; an install that never fetches updates can still receive
+catalog changes through an ordinary application release.
 
 ## 1. Capture — a session that can be checked
 
@@ -73,9 +81,9 @@ Two rules are enforced at build time, not downstream:
    confirmation is exactly the promotion this project refuses; that path runs
    through [`PHYSICAL_VALIDATION.md`](PHYSICAL_VALIDATION.md).
 
-Nothing is uploaded. The bundle and its capture are two files on the
-operator's disk until the operator attaches them to the issue that the
-"freeze this session" button pre-fills.
+Manual bundles and captures remain local until an operator submits them. If
+optional automatic read sharing is configured, a separate minimized report is
+sent after qualifying reads; see [the privacy details](HOSTED_READ_SHARING.md).
 
 HTTP: `POST /api/confirmations/build`, `POST /api/confirmations/verify`
 (recomputes a bundle's claims from the capture it names), and
@@ -89,9 +97,9 @@ cannot be aggregated even if its digests look plausible.
 
 A claim is promoted only when:
 
-* **quorum** — at least two confirmations carry it (`quorum` must be ≥ 2 by
-  definition: "one machine, one session and one mistake must not be able to
-  change the catalog for everybody");
+* **quorum** — at least one confirmation carries it by default (`quorum` ≥ 1);
+  the reviewer may configure a higher threshold. One report does not establish
+  applicability across ECUs, markets, model years or firmware versions;
 * **independence** — the confirmations have distinct install markers *and*
   distinct captures, so one operator submitting twice is not a quorum;
 * **no dispute** — an operator reporting "this does not reproduce" blocks that
@@ -157,7 +165,7 @@ cannot keep; the fix is either the missing definition or `--withhold
 
 | | signed pack | committed catalog change |
 | --- | --- | --- |
-| reaches | installs that opt in to fetching | every install, next release |
+| reaches | running installs with a trusted key and compatible catalog | installs that install the next release |
 | needs | a pinned key, TLS | nothing |
 | latency | minutes | a release |
 | produced by | `--out protocol-update.json` | `--print-catalog-fragment` / `--apply-catalog` |
@@ -175,16 +183,15 @@ fast lane, the catalog is the record. Publishing one without the other for long
 is a mistake, and the tool prints the fragment every time it builds a pack so
 the two can be compared by eye.
 
-## 6. Check and apply — two explicit steps
+## 6. Manual check and apply
 
 In the workstation UI this is the **Protocol evidence** panel in the Garage: a
 status card (what this install is running, which keys are pinned, where the
 pack comes from), the confirmations stored on this machine with *recompute* and
 *submit* links, a URL field for the check, an explicit **Apply exactly this
 pack (digest…)** button that appears only after a verified preview, and a
-**Trusted keys** section for pinning and forgetting keys by hand. Nothing is
-fetched until the check button is pressed, and the apply button always sends
-back the exact envelope that was previewed.
+**Trusted keys** section for pinning and forgetting keys by hand. The background worker also checks at startup and every four hours when a trusted
+key exists; the manual apply button sends back the exact envelope previewed.
 
 
 
@@ -277,7 +284,7 @@ particular:
 
 | level | means | may a pack set it? |
 | --- | --- | --- |
-| `verified-bench` | exercised against this ECU on a bench or a bike | yes, for a capability a quorum of confirmations exercised |
+| `verified-bench` | claimed as exercised against this ECU on a bench or a bike; supporting evidence and reviewer trust matter | yes, for a capability the confirmation exercised (model and software applicability remain limited) |
 | `verified-capture` | derived from a real recorded bus capture | yes |
 | `documented` | a primary manual or a mature open implementation says so | no |
 | `inferred` | reasonable, unverified | no (and it is not a promotion) |
@@ -295,9 +302,9 @@ most expensive:
   not that it is right. The effect allowlist, the review checklist and the
   written record (`applied.json`, the pack's own `references`) are what make a
   mistake visible and reversible.
-* **Quorum raises the bar; it does not prove truth.** Two independent sessions
-  can both be wrong, or an ECU can answer identically for reasons nobody
-  understood. That is why the outcome stays read-level.
+* **One confirmation is not universal proof.** A capture can be incomplete,
+  mistaken or apply only to one ECU revision. A higher quorum is optional, but
+  even multiple sessions can be wrong. The outcome stays read-level.
 * **A compromised operator machine can produce a convincing bundle.** It
   cannot produce a signature, and it cannot grant anything the allowlist does
   not contain.

@@ -354,6 +354,7 @@ class Api:
         #: The guided procedure currently being worked through, if any.
         self._run: procedures.ProcedureRun | None = None
         self.jobs = JobRunner()
+        self.auto_protocol_updates = None
         self._hdlan_lock = threading.Lock()
         self._yamaha_observation_lock = threading.Lock()
 
@@ -1664,8 +1665,12 @@ class Api:
                 not in confirmations_mod.SIM_TRANSPORTS,
                 "counts": active.counts,
             }
+        from .read_sharing import status as read_sharing_status
         return 200, {
             "status": status,
+            "sharing": read_sharing_status(),
+            "automatic": self.auto_protocol_updates.status() if self.auto_protocol_updates else {
+                "state": "not_running", "detail": "Automatic checks are not running in this server instance."},
             "selection": selection,
             "session": session,
             "confirmations": confirmations_mod.list_confirmations(),
@@ -1680,9 +1685,9 @@ class Api:
             "claimable": list(confirmations_mod.BASE_CLAIMS),
             "not_claimable": list(confirmations_mod.NOT_CLAIMABLE),
             "note": (
-                "A confirmation is built from the session log on this machine "
-                "and never uploaded. Applying a pack is a separate, explicit "
-                "step that quotes the digest you were shown."
+                "Confirmation bundles stay local unless manually submitted or "
+                "automated read sharing is explicitly configured. Published signed "
+                "read-level packs are checked when a trusted key is available."
             ),
         }
 
@@ -1726,13 +1731,17 @@ class Api:
                     "behind your back to satisfy an apply."
                 )
             envelope = protocol_updates_mod.fetch_pack(url)
-        result = protocol_updates_mod.apply_pack(envelope, expected_sha256=expected)
-        result["catalog"] = self.ws.reload_catalog()
+        from .auto_protocol_updates import UPDATE_LOCK
+        with UPDATE_LOCK:
+            result = protocol_updates_mod.apply_pack(envelope, expected_sha256=expected)
+            result["catalog"] = self.ws.reload_catalog()
         return 200, result
 
     def post_protocol_updates_revert(self, body: dict) -> tuple[int, dict]:
-        result = protocol_updates_mod.revert()
-        result["catalog"] = self.ws.reload_catalog()
+        from .auto_protocol_updates import UPDATE_LOCK
+        with UPDATE_LOCK:
+            result = protocol_updates_mod.revert()
+            result["catalog"] = self.ws.reload_catalog()
         return 200, result
 
     def post_protocol_updates_pin_key(self, body: dict) -> tuple[int, dict]:
@@ -2410,12 +2419,17 @@ def serve(host: str = "0.0.0.0", port: int = 8000, *, record: bool = True,
             f"  note: bound to {host} - other machines can reach this page, and "
             "requests from other web origins are still refused."
         )
-    server = ThreadingHTTPServer((host, port), make_handler(workstation, guard=guard))
+    handler = make_handler(workstation, guard=guard)
+    server = ThreadingHTTPServer((host, port), handler)
+    from .auto_protocol_updates import AutoProtocolUpdates
+    updates = AutoProtocolUpdates(workstation).start()
+    handler.api.auto_protocol_updates = updates
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nshutting down")
     finally:
+        updates.stop()
         workstation.disconnect()
         server.server_close()
 

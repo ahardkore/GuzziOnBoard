@@ -187,7 +187,7 @@
     <div class="flow-divider"><span class="flow-step">03 · Contribute</span><span>Optional: review evidence and confirm a real-world protocol update.</span></div>
     <article class="panel secondary-panel" id="protocolPanel">
       <h2>Protocol evidence — field confirmations &amp; updates</h2>
-      <p class="muted">The catalog is data, so a capability somebody confirms on a real motorcycle is a data update: two independent sessions, reviewed against one catalog revision, signed, and applied against a key you pinned in advance. Everything this app will do to an ECU follows from what is written here — never from a silent fetch.</p>
+      <p class="muted">One qualifying hardware confirmation can be used to build a read-level update. The desktop checks for published signed packs at startup and periodically, verifies the trusted key and catalog revision, then applies valid packs for future connections. With explicit consent and a configured hosted relay, one qualifying completed read can be reported and published automatically; no production relay or key is bundled. Automatic reports are self-reported, region-specific provenance, not independently verified hardware or family-wide proof. Without a trusted release key and published pack no update can be applied. Writing is never enabled by these updates.</p>
       <div id="protocolOut">Loading…</div>
       <div class="toolbar">
         <input type="text" id="protocolUrl" class="grow"
@@ -223,7 +223,7 @@
           <input type="checkbox" id="confirmationNoteChk"> include the model/year I selected
         </label>
       </div>
-      <p class="muted small">A confirmation stays on this machine as two files: the bundle and its frozen JSONL capture. Nothing is uploaded by GuzziOnBoard — the button opens a pre-filled issue and <em>you</em> attach them. Reviewers recompute every claim digest from that capture, so an edited bundle buys nothing. A simulated session cannot confirm anything about hardware, and writing is never claimable.</p>
+      <p class="muted small">A manual confirmation stays on this machine as two files: the bundle and its frozen JSONL capture. The button opens a pre-filled issue and <em>you</em> attach them. If automated read sharing is explicitly configured, a separate minimized read report is uploaded. Reviewers recompute every claim digest from that capture, so an edited bundle buys nothing. A simulated session cannot confirm anything about hardware, and writing is never claimable.</p>
       <div id="protocolActionOut"></div>
     </article>
   </section>

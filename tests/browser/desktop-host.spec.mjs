@@ -908,3 +908,13 @@ test('ECU image comparison is local and does not authorize a backup or write', a
   await expect(out).toContainText('non-empty');
   expect(page.failures).toEqual([]);
 });
+
+
+test('protocol panel shows automatic delivery and opt-in read sharing', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#protocolOut')).toContainText('Automatic updates:');
+  await expect(page.locator('#protocolOut')).toContainText('Read-report sharing:');
+  await expect(page.locator('#protocolOut')).toContainText('not configured');
+  await expect(page.locator('#protocolPanel')).toContainText('self-reported');
+  expect(page.failures).toEqual([]);
+});

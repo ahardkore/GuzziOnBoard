@@ -22,3 +22,18 @@ def test_ci_uses_node_22_for_worker_and_browser_tests():
 def test_python_test_jobs_install_virtual_can_dependency():
     for name in ("ci.yml", "desktop-build.yml"):
         assert "pip install -e '.[dev,hardware]'" in (WORKFLOWS / name).read_text(encoding="utf-8")
+
+
+def test_desktop_release_jobs_bundle_hardware_dependencies():
+    workflow = (WORKFLOWS / 'desktop-build.yml').read_text(encoding='utf-8')
+    for name in ('windows', 'linux'):
+        # Job ordering can evolve; isolate each top-level job by indentation.
+        import re
+        match = re.search(rf'^  {name}:\n(?:(?!^  [a-zA-Z0-9_-]+:).)*', workflow, re.M | re.S)
+        assert match, name
+        job = match.group()
+        assert 'pyserial python-can' in job
+        assert 'packaging/build.py --hardware ' in job
+    mac = workflow.split('\n  macos:', 1)[1]
+    assert 'pyserial python-can' in mac
+    assert 'packaging/build.py --hardware ' in mac

@@ -768,3 +768,12 @@ test('hosted catalog exposes Harley Delphi CAN as research, not simulated progra
   expect(profile.memory.write_supported).toBe(false);
   expect(profile.session.simulator_supported).toBe(false);
 });
+
+test('hosted Buell reader refuses access to serial hardware', async ({ page }) => {
+  await page.goto('/web/index.html');
+  await page.locator('[data-view="tools"]').click();
+  await page.locator('#buellPort').fill('/dev/ttyUSB0');
+  await page.locator('#buellConfirm').check();
+  await page.locator('#buellIdentify').click();
+  await expect(page.locator('#buellOut')).toContainText('hosted demo cannot access serial hardware');
+});

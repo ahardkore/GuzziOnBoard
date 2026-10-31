@@ -170,6 +170,7 @@ pip install -e '.[desktop,build]'
 python packaging/build.py                 # application folder in dist/
 python packaging/build.py --installer     # ... and the Windows installer
 python packaging/build.py --portable-zip  # ... and a portable archive
+python packaging/build.py --hardware      # bundle installed pyserial and python-can
 python packaging/build.py --skip-selftest # trust me (don't)
 ```
 
@@ -341,6 +342,14 @@ explicitly.
 **Starting over.** Uninstalling removes the program. Your session logs,
 backups and base maps are deliberately left in `~/.guzzionboard` (the
 uninstaller says so); delete that folder yourself if you want them gone.
+
+Desktop release CI installs and bundles `pyserial` and `python-can` using
+`--hardware`, and checks serial imports and a virtual CAN backend in the built application
+without connecting hardware. SocketCAN, SLCAN and PCAN modules are also collected;
+physical drivers and adapters are not tested by this check. Source users can install the hardware extra with
+`pip install -e '.[hardware]'`; a custom frozen build without `--hardware`
+remains intentionally hardware-free. Driver and adapter configuration are
+still the operator's responsibility.
 
 ## What is not true yet
 

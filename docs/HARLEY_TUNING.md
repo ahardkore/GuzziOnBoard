@@ -269,6 +269,14 @@ software, checksum, tune applicability, or flash readiness. Tests use synthetic
 headers; the source reports dyno work but does not establish GuzziOnBoard's
 integration or any universal Harley fitment.
 
+## Buell DDFI live read research
+
+An explicit Buell TTL-serial tool can identify compatible DDFI ECMs, request a
+runtime snapshot and read an operator-selected EEPROM page range. The tool is
+synthetic-tested only; it is not stock Harley J1850, a full backup, or tuning.
+See [BUELL_DDFI_RESEARCH.md](BUELL_DDFI_RESEARCH.md) for source scope, adapter,
+permissions, and the BUEIA/BUE1D definition-title discrepancy.
+
 ## Aftermarket rusEFI and Power Vision
 
 The rusEFI source includes a Harley engine configuration for its **own**

@@ -77,7 +77,9 @@ for extra in ("README.md", "docs"):
 # must be named here or a frozen build loses them.
 hiddenimports = []
 if os.environ.get("GOB_WITH_HARDWARE") == "1":
-    hiddenimports += ["serial", "serial.tools.list_ports", "can", "can.interfaces"]
+    hiddenimports += ["serial", "serial.tools.list_ports", "can", "can.interfaces",
+                      "can.interfaces.virtual", "can.interfaces.socketcan",
+                      "can.interfaces.slcan", "can.interfaces.pcan"]
 
 # Never bundle the test suite's browser tooling or other checkouts.
 excludes = ["playwright", "pytest", "PIL", "tkinter", "unittest"]

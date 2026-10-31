@@ -545,6 +545,19 @@
       <p class="muted small">Files can contain VINs, customer and license information. Only the first 98 bytes are read locally; the observed VIN slot is not read; filenames are not displayed or uploaded. Candidate fields may contain sensitive information, so review before sharing. The tool does not extract, decrypt, edit, validate or flash the tune. No source customer files are bundled. <a href="https://github.com/aaronlumen/Performance-Harley-Davidson-Tuning/tree/a3250e460e1781b8f594e1b400e5a05058d23534" target="_blank" rel="noopener noreferrer">Source collection</a>.</p>
     </article>
 
+    <article class="panel" id="buellDdfi">
+      <h2>Buell DDFI · live serial research</h2>
+      <p class="muted small">For compatible Buell DDFI / DDFI-2 / DDFI-3 ECMs using an appropriate Buell TTL serial or paired Bluetooth serial adapter, <strong>not ELM327/J1850, OBD or direct RS-232</strong>. 5 V TTL maximum; verify adapter voltage, wiring, grounding, bike and protocol before connecting. Opening a port may change control lines. This integration is synthetic-tested only; no physical bike has been tested.</p>
+      <label class="field"><span>Explicit Buell serial device</span><input id="buellPort" maxlength="255" placeholder="COM3 or /dev/ttyUSB0"></label>
+      <label class="field"><span>ECM protocol (verify before selecting)</span><select id="buellMode"><option value="stock">Stock / P&amp;A · 9600 baud</option><option value="factory_race">Factory race · 19200 baud</option></select></label>
+      <label class="field"><span>Exact ECM version (identify first)</span><input id="buellVersion" maxlength="64" placeholder="ECM version"></label>
+      <div class="toolbar"><label>EEPROM page <input type="number" id="buellPage" value="1" min="1" max="31"></label><label>Offset <input type="number" id="buellOffset" value="0" min="0" max="255"></label><label>Length (1–256) <input type="number" id="buellLength" value="16" min="1" max="256"></label></div>
+      <label class="check"><input type="checkbox" id="buellConfirm"> I verified the Buell ECM, TTL adapter and wiring, and understand this is a synthetic-tested read-only integration</label>
+      <div class="toolbar"><button class="btn" id="buellIdentify">Identify ECM</button><button class="btn" id="buellRuntime">Read runtime snapshot</button><button class="btn" id="buellRead">Read EEPROM range</button></div>
+      <pre id="buellOut" class="small" aria-live="polite">Not connected.</pre>
+      <p class="muted small">Each action reconnects, identifies and checks the ECM version. EEPROM pages and geometry are operator-selected and vary by ECM; page 0 and pages 32+ are excluded; the remaining numbers are not automatically verified as physical pages. A range is not a complete backup or flash authorization. Runtime layouts vary by ECM; a 100-byte BUEIA frame also shows source-described candidate values. No write, fault-clear, actuator, reset or tuning commands are sent. <a href="https://github.com/bkp123/ecmdroid/tree/2f17d29f5b08f67fb357ee8f2ec21e7ae930343e" target="_blank" rel="noopener noreferrer">EcmDroid source</a> · <a href="https://www.ecmspy.com/eeprom_info.shtml" target="_blank" rel="noopener noreferrer">EcmSpy protocol and wiring notes</a>.</p>
+    </article>
+
     <article class="panel" id="rusefiResearch">
       <h2>rusEFI aftermarket · live serial research</h2>
       <p class="muted small">For an explicitly selected <strong>aftermarket rusEFI controller</strong>, including one configured for a Harley engine; not for stock Delphi ECUs or a Power Vision tuner. Synthetic-tested only, not hardware-validated. Opening a serial port may change its control lines. Verify wiring, power, port and baud first; do not run alongside another tuning program.</p>
@@ -1214,6 +1227,7 @@
 <script src="juken-research.js"></script>
 <script src="harley-live-can.js"></script>
 <script src="yamaha-live-kline.js"></script>
+<script src="buell-ddfi.js"></script>
 <script src="rusefi-ini.js"></script>
 <script src="rusefi-read.js"></script>
 </body>

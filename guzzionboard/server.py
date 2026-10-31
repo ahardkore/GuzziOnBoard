@@ -31,6 +31,7 @@ from . import canlog
 from . import harley_hdlan_listen
 from . import yamaha_mt03_listen
 from . import rusefi_read
+from . import buell_ddfi
 from . import j2534
 from . import klinelog
 from . import logconvert
@@ -360,6 +361,7 @@ class Api:
         self._hdlan_lock = threading.Lock()
         self._yamaha_observation_lock = threading.Lock()
         self._rusefi_lock = threading.Lock()
+        self._buell_lock = threading.Lock()
 
     # -- catalog ----------------------------------------------------------
     def get_catalog(self, query: dict) -> tuple[int, dict]:
@@ -1989,6 +1991,21 @@ class Api:
             "instructions": "" if ok else adapter_mod.latency_fix_instructions(port),
         }
 
+    def post_tools_buell_ddfi(self, body: dict) -> tuple[int, dict]:
+        """Explicit TTL serial Buell version, runtime or bounded EEPROM GET."""
+        if body.get("confirm") is not True:
+            return 400, {"error": "Confirm the Buell ECM, compatible TTL adapter and wiring first."}
+        if not self._buell_lock.acquire(blocking=False):
+            return 409, {"error": "A Buell operation is already running."}
+        try:
+            with self.ws._lock:
+                if self.ws.service is not None and self.ws.service.connected:
+                    return 409, {"error": "Disconnect the current ECU session first."}
+                return 200, buell_ddfi.run(body.get("port"), body.get("mode"), body.get("action"),
+                                           body.get("version"), body.get("page"), body.get("offset"), body.get("length"))
+        finally:
+            self._buell_lock.release()
+
     def post_tools_rusefi_read(self, body: dict) -> tuple[int, dict]:
         """Explicitly selected aftermarket rusEFI USB port; identify or read one range."""
         if body.get("confirm") is not True:
@@ -2321,6 +2338,7 @@ ROUTES_POST = {
     "/api/adapter/latency": "post_adapter_latency",
     "/api/tools/canlog": "post_tools_canlog",
     "/api/tools/harley-hdlan-listen": "post_tools_harley_hdlan_listen",
+    "/api/tools/buell-ddfi": "post_tools_buell_ddfi",
     "/api/tools/rusefi-read": "post_tools_rusefi_read",
     "/api/tools/yamaha-mt03-listen": "post_tools_yamaha_mt03_listen",
     "/api/tools/klinelog": "post_tools_klinelog",

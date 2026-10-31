@@ -1077,3 +1077,37 @@ test('rusEFI INI import is local and signature lookup requires an explicit link'
   await expect(page.locator('#rusefiSignature')).toHaveValue('');
   expect(page.failures).toEqual([]);
 });
+
+test('desktop Buell DDFI live reader requires confirmation and exact ECM version', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  const calls = [];
+  await page.route('**/api/tools/buell-ddfi', async route => {
+    const request = route.request().postDataJSON(); calls.push(request);
+    const response = {version:'BUEIB310 12-11-03', mode:'stock', synthetic_tested:true};
+    if (request.action === 'runtime') Object.assign(response, {length:2, data_hex:'1234'});
+    if (request.action === 'read') Object.assign(response, {page:request.page, offset:request.offset, length:request.length, data_hex:'AABB'});
+    await route.fulfill({status:200, contentType:'application/json', body:JSON.stringify(response)});
+  });
+  await page.locator('#buellPort').fill('/dev/ttyUSB0');
+  await page.locator('#buellIdentify').click();
+  await expect(page.locator('#buellOut')).toContainText('Confirm');
+  expect(calls).toHaveLength(0);
+  await page.locator('#buellConfirm').check();
+  await page.locator('#buellIdentify').click();
+  await expect(page.locator('#buellVersion')).toHaveValue('BUEIB310 12-11-03');
+  await expect(page.locator('#buellConfirm')).not.toBeChecked();
+  await page.locator('#buellLength').fill('2');
+  await page.locator('#buellConfirm').check();
+  await page.locator('#buellRead').click();
+  await expect(page.locator('#buellOut')).toContainText('AABB');
+  await expect(page.locator('#buellOut')).toContainText('not a complete backup');
+  expect(calls[1]).toMatchObject({action:'read', mode:'stock', version:'BUEIB310 12-11-03', page:1, offset:0, length:2});
+  await page.locator('#buellRuntime').click();
+  await expect(page.locator('#buellOut')).toContainText('Runtime data');
+  expect(calls[2]).toMatchObject({action:'runtime', version:'BUEIB310 12-11-03'});
+  await page.locator('#buellMode').selectOption('factory_race');
+  await expect(page.locator('#buellVersion')).toHaveValue('');
+  await expect(page.locator('#buellConfirm')).not.toBeChecked();
+  expect(page.failures).toEqual([]);
+});

@@ -33,7 +33,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq innoextract p7zip-full file
+          sudo apt-get install -y -qq innoextract p7zip-full msitools file
           python3 -m venv "$RUNNER_TEMP/analyze-venv"
           "$RUNNER_TEMP/analyze-venv/bin/pip" -q install dnfile
       - name: Extract without executing installer
@@ -52,6 +52,30 @@ jobs:
             7z l "$RUNNER_TEMP/setup.exe" > "$RUNNER_TEMP/installer-list.txt" 2>&1 || true
             timeout 180 7z x -y -o"$RUNNER_TEMP/unpacked" "$RUNNER_TEMP/setup.exe" > "$RUNNER_TEMP/extract-log.txt" 2>&1 || true
           fi
+          # WiX Burn attached cabinet starts immediately after the bootstrap cabinet.
+          "$RUNNER_TEMP/analyze-venv/bin/python" - <<'PY'
+          import os, pathlib, struct
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])
+          source=(root/'setup.exe').read_bytes()
+          offset=source.find(b'MSCF', source.find(b'MSCF') + 4)
+          if offset < 0: raise SystemExit('attached cabinet not found')
+          size=struct.unpack_from('<I',source,offset+8)[0]
+          if size < 36 or offset+size > len(source): raise SystemExit('invalid cabinet size')
+          (root/'attached.cab').write_bytes(source[offset:offset+size])
+          PY
+          mkdir -p "$RUNNER_TEMP/unpacked/attached"
+          timeout 180 7z x -y -o"$RUNNER_TEMP/unpacked/attached" "$RUNNER_TEMP/attached.cab" > "$RUNNER_TEMP/attached-log.txt" 2>&1 || true
+          # MSI packages are data containers; msiextract does not run their custom actions.
+          mkdir -p "$RUNNER_TEMP/unpacked/msi"
+          for pkg in "$RUNNER_TEMP/unpacked/attached"/*; do
+            [ -f "$pkg" ] || continue
+            kind=$(file -b "$pkg")
+            if printf '%s' "$kind" | grep -qiE 'composite document|microsoft installer'; then
+              dest="$RUNNER_TEMP/unpacked/msi/$(basename "$pkg")"
+              mkdir -p "$dest"
+              timeout 180 msiextract -C "$dest" "$pkg" > "$RUNNER_TEMP/msi-log-$(basename "$pkg").txt" 2>&1 || true
+            fi
+          done
           cat > "$RUNNER_TEMP/audit.py" <<'PY'
           import base64, os, pathlib, re, subprocess
           import dnfile
@@ -72,7 +96,12 @@ jobs:
           listing=(root/'installer-list.txt').read_text(errors='replace')
           lines.extend(listing.splitlines()[:120])
           lines.extend(['', '## Extraction log'])
-          lines.extend((root/'extract-log.txt').read_text(errors='replace').splitlines()[-40:])
+          lines.extend((root/'extract-log.txt').read_text(errors='replace').splitlines()[-20:])
+          lines.extend(['', '## Attached cabinet extraction'])
+          lines.extend((root/'attached-log.txt').read_text(errors='replace').splitlines()[-30:])
+          for log in sorted(root.glob('msi-log-*')):
+              lines.append('## ' + log.name)
+              lines.extend(log.read_text(errors='replace').splitlines()[-12:])
           lines.extend(['', '## Extracted payload file types'])
           for p in files[:50]:
               fmt=subprocess.run(['file','-b',str(p)],capture_output=True,text=True).stdout.strip()

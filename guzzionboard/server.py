@@ -30,6 +30,9 @@ from . import adapter as adapter_mod
 from . import canlog
 from . import harley_hdlan_listen
 from . import yamaha_mt03_listen
+from . import rusefi_read
+from . import buell_ddfi
+from . import jetdrive
 from . import j2534
 from . import klinelog
 from . import logconvert
@@ -358,6 +361,9 @@ class Api:
         self.auto_protocol_updates = None
         self._hdlan_lock = threading.Lock()
         self._yamaha_observation_lock = threading.Lock()
+        self._rusefi_lock = threading.Lock()
+        self._buell_lock = threading.Lock()
+        self._jetdrive_lock = threading.Lock()
 
     # -- catalog ----------------------------------------------------------
     def get_catalog(self, query: dict) -> tuple[int, dict]:
@@ -411,6 +417,8 @@ class Api:
                 device=body.get("device", ""),
                 can_tx_id=body.get("can_tx_id", ""),
                 can_rx_id=body.get("can_rx_id", ""),
+                can_interface=body.get("can_interface", ""),
+                can_serial=body.get("can_serial", ""),
             )
         except (ValueError, CatalogError) as exc:
             return 400, {"error": str(exc)}
@@ -1040,6 +1048,16 @@ class Api:
         except ValueError:
             raise XdfError(f"address_base {base!r} is not a number") from None
 
+    @staticmethod
+    def _reject_centurion_container(image: FirmwareImage) -> None:
+        """Centurion files have not been decoded as raw ECU images."""
+        if (Path(image.path or "").suffix.lower() == ".ori"
+                or (image.data.startswith(b"Delphi") and image.data[6:7] in (b"\x00", b" "))):
+            raise TuningError(
+                "Centurion .ori or Delphi-like containers are not raw ECU images; "
+                "inspect their header locally instead of rendering or editing them as XDF data"
+            )
+
     def _map_source(self, body: dict) -> tuple[FirmwareImage, bool, dict | None]:
         """Resolve an explicit image or the protected base-map vault copy."""
         use_base = bool(body.get("use_base_map"))
@@ -1076,6 +1094,7 @@ class Api:
                     pass
         try:
             image = FirmwareImage.from_file(path)
+            self._reject_centurion_container(image)
         except OSError as exc:
             raise TuningError(str(exc)) from exc
         return image, bool(status and status.get("intact")), status
@@ -1188,7 +1207,9 @@ class Api:
             return 400, {"error": "an 'xdf' (title or .xdf path) is required"}
         try:
             before, after = FirmwareImage.from_file(a), FirmwareImage.from_file(b)
-        except OSError as exc:
+            self._reject_centurion_container(before)
+            self._reject_centurion_container(after)
+        except (OSError, TuningError) as exc:
             return 400, {"error": str(exc)}
         try:
             xdf = self._load_xdf(ref)
@@ -1526,6 +1547,103 @@ class Api:
                         "applied, no image was saved, and this is not a build or "
                         "authorization to program an ECU."),
         }
+
+    def post_maps_harley_research_export(self, body: dict) -> tuple[int, dict]:
+        """Export using the one source-described Delphi layout."""
+        return self._research_edit_export(body, delphi_layout=True)
+
+    def post_maps_research_export(self, body: dict) -> tuple[int, dict]:
+        """Export within an operator-declared file range, without ECU access."""
+        return self._research_edit_export(body, delphi_layout=False)
+
+    def _research_edit_export(self, body: dict, *, delphi_layout: bool) -> tuple[int, dict]:
+        """Create non-flash-ready bytes; no fitment or checksum is inferred."""
+        if body.get("accept_research_only") is not True:
+            return 400, {"error": "confirm the output is research-only and not flash-ready"}
+        status, preview = self.post_maps_research_preview(body)
+        if status != 200:
+            return status, preview
+        try:
+            if body.get("expected_candidate_sha256") != preview["candidate_sha256"]:
+                raise TuningError("reviewed candidate changed; preview the edits again")
+            source, _, _ = self._map_source(body)
+            if source.sha256 != preview["source"]["sha256"]:
+                raise TuningError("source image SHA-256 changed; render it again")
+            if not 0 < source.size <= 16 * 1024 * 1024:
+                raise TuningError("research images must be between 1 byte and 16 MiB")
+            if delphi_layout:
+                if source.size == 0x4000:
+                    start, end, layout = 0, 0x4000, "16 KiB tune"
+                elif source.size == 0x28000:
+                    start, end, layout = 0x1c000, 0x20000, "160 KiB calibration"
+                else:
+                    raise TuningError("Delphi research layout requires exactly 16 KiB or 160 KiB")
+            else:
+                def offset(name: str) -> int:
+                    value = body.get(name)
+                    text = str(value) if value is not None else ""
+                    if (isinstance(value, bool) or len(text) > 16
+                            or not re.fullmatch(r"(?:0[xX][0-9a-fA-F]+|[0-9]+)", text)):
+                        raise TuningError(f"{name} must be a non-negative decimal or hexadecimal file offset")
+                    return int(text, 16 if text.lower().startswith("0x") else 10)
+                start, end = offset("region_start"), offset("region_end")
+                if not 0 <= start < end <= source.size:
+                    raise TuningError("file range must have start < end and fit entirely within the image")
+                layout = "operator-declared file range (not verified)"
+            resolved = self._load_xdf(body["xdf"])
+            info = fitment(resolved.path)
+            if info.get("family") or info.get("research_only") or info.get("catalogued"):
+                raise TuningError("use an uncatalogued user-supplied XDF for this research export")
+            xdf_bytes = Path(resolved.path).read_bytes()
+            if hashlib.sha256(xdf_bytes).hexdigest() != preview["xdf"]["sha256"]:
+                raise TuningError("XDF SHA-256 changed; render it again")
+            xdf = XdfFile.from_string(xdf_bytes.decode("ISO-8859-1"))
+            candidate, changes = xdf.apply_changes(source, body.get("changes"), address_base=self._address_base(body))
+            candidate_hash = hashlib.sha256(candidate).hexdigest()
+            if candidate_hash != preview["candidate_sha256"]:
+                raise TuningError("reviewed candidate changed; preview the edits again")
+            if source.data == candidate:
+                raise TuningError("the reviewed edits do not change the source image")
+            if source.data[:start] != candidate[:start] or source.data[end:] != candidate[end:]:
+                raise TuningError("edits must stay inside the selected file region")
+            manifest = {
+                "schema": "guzzionboard.harley-research-edit/v1" if delphi_layout else "guzzionboard.research-edit/v1",
+                "research_only": True, "flash_ready": False,
+                "warning": "Not flash-ready: fitment, checksums and signatures are not verified or repaired.",
+                "layout": layout, "region_start": start, "region_end_exclusive": end,
+                "region_basis": "source-described" if delphi_layout else "operator-declared-not-verified",
+                "source": preview["source"], "xdf": preview["xdf"],
+                "address_base": preview["address_base"], "changes": changes,
+                "declared_checksums": preview["declared_checksums"],
+                "output_sha256": candidate_hash,
+            }
+            directory = resources.data_root() / "research" / ("harley-delphi" if delphi_layout else "user-defined")
+            directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+            prefix = "harley" if delphi_layout else "map"
+            stem = f"{prefix}-research-{candidate_hash[:12]}-{secrets.token_hex(8)}"
+            output = directory / (stem + ".bin")
+            report = directory / (stem + ".json")
+            # Exclusively create both outputs; never overwrite a source or prior export.
+            created_output = created_report = False
+            try:
+                descriptor = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                created_output = True
+                with os.fdopen(descriptor, "wb") as f:
+                    f.write(candidate)
+                descriptor = os.open(report, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                created_report = True
+                with os.fdopen(descriptor, "w", encoding="utf-8") as f:
+                    json.dump(manifest, f, indent=2)
+                    f.write("\n")
+            except OSError:
+                if created_output:
+                    output.unlink(missing_ok=True)
+                if created_report:
+                    report.unlink(missing_ok=True)
+                raise
+        except (XdfError, TuningError, OSError, UnicodeError) as exc:
+            return 400, {"error": str(exc)}
+        return 201, {"path": str(output), "manifest_path": str(report), "manifest": manifest}
 
     def post_maps_preview(self, body: dict) -> tuple[int, dict]:
         """Quantize and diff staged edits without writing a file."""
@@ -1877,6 +1995,57 @@ class Api:
             "instructions": "" if ok else adapter_mod.latency_fix_instructions(port),
         }
 
+    def post_tools_jetdrive(self, body: dict) -> tuple[int, dict]:
+        """Observe a bounded local Dynojet multicast window, optionally request metadata."""
+        if body.get("confirm") is not True:
+            return 400, {"error": "Confirm the local dyno network and observation limits."}
+        if not self._jetdrive_lock.acquire(blocking=False):
+            return 409, {"error": "A JetDrive observation is already running."}
+        try:
+            return 200, jetdrive.observe(body.get("group"), body.get("interface"), body.get("request_info", False))
+        finally:
+            self._jetdrive_lock.release()
+
+    def post_tools_buell_ddfi(self, body: dict) -> tuple[int, dict]:
+        """Explicit TTL serial Buell version, runtime or bounded EEPROM GET."""
+        if body.get("confirm") is not True:
+            return 400, {"error": "Confirm the Buell ECM, compatible TTL adapter and wiring first."}
+        if not self._buell_lock.acquire(blocking=False):
+            return 409, {"error": "A Buell operation is already running."}
+        try:
+            with self.ws._lock:
+                if self.ws.service is not None and self.ws.service.connected:
+                    return 409, {"error": "Disconnect the current ECU session first."}
+                return 200, buell_ddfi.run(body.get("port"), body.get("mode"), body.get("action"),
+                                           body.get("version"), body.get("page"), body.get("offset"), body.get("length"))
+        finally:
+            self._buell_lock.release()
+
+    def post_tools_rusefi_read(self, body: dict) -> tuple[int, dict]:
+        """Explicitly selected aftermarket rusEFI USB port; identify or read one range."""
+        if body.get("confirm") is not True:
+            return 400, {"error": "Confirm the rusEFI controller, port, wiring and limitations first."}
+        action = body.get("action")
+        if action not in ("identify", "read", "outputs"):
+            return 400, {"error": "Select identify, page read or output read."}
+        if not self._rusefi_lock.acquire(blocking=False):
+            return 409, {"error": "A rusEFI operation is already running."}
+        try:
+            with self.ws._lock:
+                if self.ws.service is not None and self.ws.service.connected:
+                    return 409, {"error": "Disconnect the current ECU session first."}
+                args = (body.get("port"), body.get("baud"))
+                if action == "identify":
+                    return 200, rusefi_read.run(*args)
+                if body.get("signature") is None:
+                    return 400, {"error": "Enter the exact signature from your matching rusEFI INI."}
+                return 200, rusefi_read.run(*args, body.get("signature"),
+                                             body.get("page") if action == "read" else 0,
+                                             body.get("offset"), body.get("length"),
+                                             kind="page" if action == "read" else "outputs")
+        finally:
+            self._rusefi_lock.release()
+
     def post_tools_yamaha_mt03_listen(self, body: dict) -> tuple[int, dict]:
         """Receive one bounded Yamaha dashboard stream window; send no request."""
         if body.get("confirm") is not True:
@@ -2165,6 +2334,8 @@ ROUTES_POST = {
     "/api/maps/analyze-log": "post_maps_analyze_log",
     "/api/maps/preview": "post_maps_preview",
     "/api/maps/research-preview": "post_maps_research_preview",
+    "/api/maps/harley-research-export": "post_maps_harley_research_export",
+    "/api/maps/research-export": "post_maps_research_export",
     "/api/maps/build": "post_maps_build",
     "/api/recommendations/validate": "post_recommendation_validate",
     "/api/physical-validation/validate": "post_physical_validation_validate",
@@ -2182,6 +2353,9 @@ ROUTES_POST = {
     "/api/adapter/latency": "post_adapter_latency",
     "/api/tools/canlog": "post_tools_canlog",
     "/api/tools/harley-hdlan-listen": "post_tools_harley_hdlan_listen",
+    "/api/tools/jetdrive": "post_tools_jetdrive",
+    "/api/tools/buell-ddfi": "post_tools_buell_ddfi",
+    "/api/tools/rusefi-read": "post_tools_rusefi_read",
     "/api/tools/yamaha-mt03-listen": "post_tools_yamaha_mt03_listen",
     "/api/tools/klinelog": "post_tools_klinelog",
     "/api/tools/z2dif": "post_tools_z2dif",

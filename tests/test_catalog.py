@@ -89,6 +89,8 @@ def test_local_identifiers_are_unique_within_a_family(catalog):
             assert len(ids) == 9 and ids.count(0x10) == 7 and ids.count(0xD1) == 2
         elif profile.id == "honda_cb500f_dashble":
             assert len(ids) == 9 and ids.count(0x11) == 7 and ids.count(0xD1) == 2
+        elif profile.id == "honda_ctx700_minidash":
+            assert len(ids) == 10 and ids.count(0x11) == 8 and ids.count(0xD1) == 2
         elif profile.id == "honda_pgmfi_research":
             assert len(ids) == 18 and all(ids.count(table) == 3 for table in (0x10, 0x11, 0x17))
         else:

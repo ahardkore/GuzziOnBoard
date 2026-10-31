@@ -88,7 +88,7 @@ jobs:
           python-version: '3.12'
           cache: pip
       - name: Install build dependencies
-        run: pip install pyinstaller pywebview
+        run: pip install pyinstaller pywebview pyserial python-can
       - name: Download the WebView2 bootstrapper (optional, for old machines)
         continue-on-error: true
         shell: pwsh
@@ -102,7 +102,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          python packaging/build.py --installer --portable-zip 2>&1 | tee build.log
+          python packaging/build.py --hardware --installer --portable-zip 2>&1 | tee build.log
       - name: Explain a failed build
         if: failure()
         shell: bash
@@ -247,7 +247,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-gi gir1.2-webkit2-4.1 libgtk-3-0 libwebkit2gtk-4.1-0 \
                                   libgl1 libxkbcommon0 libegl1
-          pip install pyinstaller
+          pip install pyinstaller pyserial python-can
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -259,7 +259,7 @@ jobs:
       - name: Build
         run: |
           set -o pipefail
-          python packaging/build.py --portable-zip 2>&1 | tee build.log
+          python packaging/build.py --hardware --portable-zip 2>&1 | tee build.log
       - name: Explain a failed build
         if: failure()
         run: |
@@ -328,11 +328,11 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-      - run: pip install pyinstaller pywebview
+      - run: pip install pyinstaller pywebview pyserial python-can
       - name: Build the .app bundle and archive it
         run: |
           set -o pipefail
-          python packaging/build.py --portable-zip 2>&1 | tee build.log
+          python packaging/build.py --hardware --portable-zip 2>&1 | tee build.log
       - name: Explain a failed build
         if: failure()
         run: |

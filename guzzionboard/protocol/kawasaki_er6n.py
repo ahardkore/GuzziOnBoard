@@ -14,7 +14,7 @@ class KawasakiER6nSession(KWP2000Session):
     """A deliberately closed request set, including the session startup."""
 
     # The source specifies the exact payload length for each read.
-    LENGTHS = {0x05: 2, 0x06: 1, 0x07: 1, 0x08: 1,
+    LENGTHS = {0x02: 1, 0x04: 2, 0x44: 4, 0x05: 2, 0x06: 1, 0x07: 1, 0x08: 1,
                0x09: 2, 0x0A: 1, 0x0B: 1, 0x0C: 2}
 
     def request(self, payload, *, timeout=None):
@@ -62,6 +62,15 @@ def decode_kawasaki_value(local_id: int, raw: bytes) -> float:
     if expected is None or len(raw) != expected:
         raise ProtocolError("unexpected ER-6n data length")
     a = raw[0]
+    if local_id == 0x02:
+        return int(a != 0)  # upstream presents this switch as boolean
+    if local_id == 0x04:
+        # C++ integer division truncates toward zero, including below closed TPS.
+        numerator = (int.from_bytes(raw, 'big') - 226) * 100
+        return (numerator // 635 if numerator >= 0 else -((-numerator) // 635)) + 2
+    if local_id == 0x44:
+        # Upstream displays hours plus whole minutes; semantics unconfirmed.
+        return (int.from_bytes(raw, 'big') // 60) / 60
     if local_id in (0x05, 0x09, 0x0C):
         value = a * 100 + raw[1]  # upstream uses decimal weighting, not 16-bit BE
         return value / 2 if local_id != 0x09 else value

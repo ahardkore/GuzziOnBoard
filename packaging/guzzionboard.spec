@@ -69,15 +69,22 @@ datas = [
     (str(SPEC_ROOT / "icons" / "guzzionboard.ico"), "packaging/icons"),
 ]
 datas.extend([(str(ROOT / "LICENSE"), "."), (str(ROOT / "LICENSES"), "LICENSES")])
-for extra in ("README.md", "docs"):
-    if (ROOT / extra).exists():
-        datas.append((str(ROOT / extra), extra))
+if (ROOT / "README.md").is_file():
+    datas.append((str(ROOT / "README.md"), "."))
+# Documentation is data, but archives, DLLs and ECU dumps uploaded alongside
+# it are not release assets. Include only the text docs and JSON schemas.
+for doc in (ROOT / "docs").rglob("*"):
+    if doc.is_file() and doc.suffix.lower() in {".md", ".json"}:
+        dest = Path("docs") / doc.parent.relative_to(ROOT / "docs")
+        datas.append((str(doc), str(dest)))
 
 # Optional hardware transports: imported lazily by the transports, so they
 # must be named here or a frozen build loses them.
 hiddenimports = []
 if os.environ.get("GOB_WITH_HARDWARE") == "1":
-    hiddenimports += ["serial", "serial.tools.list_ports", "can", "can.interfaces"]
+    hiddenimports += ["serial", "serial.tools.list_ports", "can", "can.interfaces",
+                      "can.interfaces.virtual", "can.interfaces.socketcan",
+                      "can.interfaces.slcan", "can.interfaces.pcan"]
 
 # Never bundle the test suite's browser tooling or other checkouts.
 excludes = ["playwright", "pytest", "PIL", "tkinter", "unittest"]

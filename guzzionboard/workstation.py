@@ -44,6 +44,8 @@ class Selection:
     profile: EcuProfile | None = None
     transport_kind: str = "simulator"
     device: str = ""
+    can_interface: str = ""
+    can_serial: str = ""
     #: CAN identifier overrides for this session (the catalog pair is
     #: unconfirmed on the CAN families, so the operator can try another).
     can_overrides: dict = field(default_factory=dict)
@@ -57,6 +59,8 @@ class Selection:
             "ecu": self.profile.as_dict() if self.profile else None,
             "transport": self.transport_kind,
             "device": self.device,
+            "can_interface": self.can_interface,
+            "can_serial": self.can_serial,
             "can_overrides": self.can_overrides,
         }
 
@@ -161,6 +165,8 @@ class Workstation:
         device: str = "",
         can_tx_id: str | int = "",
         can_rx_id: str | int = "",
+        can_interface: str = "",
+        can_serial: str = "",
     ) -> dict:
         with self._lock:
             if self.service is not None and self.service.connected:
@@ -188,6 +194,21 @@ class Workstation:
             else:
                 raise ValueError("select needs either an ecu id or a model and year")
 
+            if not isinstance(can_interface, str) or can_interface not in ("", "neovi", "slcan"):
+                raise ValueError("CAN interface must be profile default, SLCAN or Intrepid neoVI")
+            if not isinstance(can_serial, str):
+                raise ValueError("Intrepid serial must be text")
+            if can_interface and transport != "can":
+                raise ValueError("Selected CAN adapter requires physical CAN transport")
+            if can_interface != "neovi" and can_serial:
+                raise ValueError("Intrepid serial is only used with the neoVI interface")
+            if can_interface == "neovi":
+                from .transports.can import validate_neovi_selection
+                validate_neovi_selection(device, can_serial)
+            if can_interface == "slcan":
+                from .transports.can import validate_slcan_selection
+                validate_slcan_selection(device)
+
             overrides = {}
             for key, value in (("tx_id", can_tx_id), ("rx_id", can_rx_id)):
                 if value not in ("", None):
@@ -202,6 +223,8 @@ class Workstation:
                 profile=profile,
                 transport_kind=transport,
                 device=device,
+                can_interface=can_interface,
+                can_serial=can_serial,
                 can_overrides=overrides,
             )
             self.notices = self._selection_notices(entry, profile, transport)
@@ -384,7 +407,8 @@ class Workstation:
                 )
             return CanTransport(
                 channel=self.selection.device or spec.get("channel", "can0"),
-                interface=("pcan" if profile.id == "harley_delphi_can_uds" and self.selection.device.upper().startswith("PCAN_") else spec.get("interface", "socketcan")),
+                interface=(self.selection.can_interface or ("pcan" if profile.id == "harley_delphi_can_uds" and self.selection.device.upper().startswith("PCAN_") else spec.get("interface", "socketcan"))),
+                serial=self.selection.can_serial,
                 bitrate=spec["bitrate"],
                 tx_id=spec["tx_id"],
                 rx_id=spec["rx_id"],
@@ -523,6 +547,11 @@ class Workstation:
                 if (self.selection.transport_kind != "can" or mode != "read_only"
                         or (spec.get("bitrate"), spec.get("tx_id"), spec.get("rx_id")) != (500000, 0x764, 0x746)):
                     raise TransportUnavailable("Ninja 7 requires source-scoped CAN IDs and read-only mode")
+            if profile.session.get("protocol") == "honda-ctx700-minidash":
+                if self.selection.entry is not None:
+                    raise TransportUnavailable("Honda CTX700 requires an ECU-only selection; source year and ECU are unspecified")
+                if self.selection.transport_kind != "kline" or mode != "read_only":
+                    raise TransportUnavailable("Honda CTX700 supports physical K-Line and read-only mode only")
             if profile.session.get("protocol") == "honda-cb500f-dashble":
                 if self.selection.entry is not None:
                     raise TransportUnavailable("Honda CB500F DashBle requires an explicit ECU-only selection; source year and ECU are unspecified")
@@ -578,11 +607,15 @@ class Workstation:
                 if self.selection.transport_kind != "kline" or mode != "read_only":
                     raise TransportUnavailable("ER-6n KDS supports K-Line in read-only mode only; no simulator or CAN session")
             if profile.session.get("protocol") == "triumph-daytona-2012":
-                if (self.selection.entry is None or self.selection.make.casefold() != "triumph"
-                        or self.selection.model.casefold() != "daytona 675" or self.selection.year != 2012):
-                    raise TransportUnavailable("Daytona OBD requires the exact Triumph Daytona 675 2012 vehicle selection")
+                expected = {
+                    "triumph_daytona_675_2012": ("daytona 675", 2012),
+                    "triumph_bonneville_865_2009": ("bonneville 865 efi", 2009),
+                }.get(profile.id)
+                if (expected is None or self.selection.entry is None or self.selection.make.casefold() != "triumph"
+                        or (self.selection.model.casefold(), self.selection.year) != expected):
+                    raise TransportUnavailable("OBD requires the exact Triumph model and year selection")
                 if self.selection.transport_kind != "kline" or mode != "read_only":
-                    raise TransportUnavailable("Daytona OBD supports K-Line in read-only mode only; no simulator or CAN session")
+                    raise TransportUnavailable("Triumph OBD supports K-Line in read-only mode only; no simulator or CAN session")
             if (self.selection.transport_kind in self._SIM_TRANSPORTS
                     and profile.session.get("simulator_supported") is False):
                 raise TransportUnavailable(f"{profile.family}: no matching simulator is implemented")

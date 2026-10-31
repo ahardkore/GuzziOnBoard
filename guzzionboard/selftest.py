@@ -86,6 +86,23 @@ def run(*, export_dir: str | None = None, host: str = "127.0.0.1",
     """Run every check; return 0 when the installation is usable."""
     result = Result()
     result.say(f"GuzziOnBoard {__version__} self-test")
+    if os.environ.get("GOB_SELFTEST_REQUIRE_HARDWARE") == "1":
+        try:
+            import serial  # noqa: F401
+            import serial.tools.list_ports  # noqa: F401
+            import can  # noqa: F401
+            import can.interfaces  # noqa: F401
+            import can.interfaces.slcan  # noqa: F401 — dynamically loaded backend
+            # python-can loads backends dynamically; importing the top-level
+            # package alone cannot prove the frozen virtual backend was collected.
+            bus = can.Bus(interface="virtual", channel="gob-selftest")
+            try:
+                bus.send(can.Message(arbitration_id=0x123, data=b"\x01"))
+            finally:
+                bus.shutdown()
+            result.record(True, "bundled serial and virtual CAN modules work")
+        except Exception as exc:
+            result.record(False, "bundled serial and virtual CAN modules work", str(exc))
     with tempfile.TemporaryDirectory(prefix="guzzionboard-selftest-") as work:
         os.environ[resources.HOME_ENV] = work        # never touch real user data
         exports = Path(export_dir or (Path(work) / "exports"))

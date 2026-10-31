@@ -50,6 +50,47 @@ A matching definition, ECU-specific authentication/session implementation,
 calibration checksum/signature handling, robust read-back and recovery behavior
 are still needed for an integrated tuning and programming workflow.
 
+## Editing a user-supplied Delphi definition (local workstation)
+
+A separate research export is now available through **Firmware → Maps & tables**.
+It uses an XDF you provide and does not assert that its labels, scaling, byte
+order or fitment are correct. No Harley XDF or tune values are bundled.
+
+1. Put your XDF in `~/.guzzionboard/xdfs/` and click **Reload**. Clear **Only
+   definitions for this ECU** if it does not appear. Supply the absolute path to
+   a raw 16 KiB tune or 160 KiB calibration. Obtain these separately: the
+   application does not yet read Harley ECU memory. The XDF must describe the
+   selected file and be uncatalogued; other catalogued families and definitions
+   marked research-only cannot use this export.
+2. Check the displayed XDF address base. It is subtracted from XDF addresses to
+   locate bytes in the file. Blank uses a generic guess, **not** a Harley-specific
+   detection: enter the base required by your definition, then re-render. Neither
+   matching size nor an in-range table proves the definition matches the ECU.
+3. Stage your edits and choose **Preview edits for research**. After reviewing
+   the values and hashes, select **Export reviewed Delphi research copy** and
+   accept the warning. This option is local-only, not in the hosted demo. The
+   server recomputes the candidate from the hashed source and XDF, verifies it
+   matches the reviewed hash, and refuses edits outside the described 16 KiB tune
+   region. It creates new files under `~/.guzzionboard/research/harley-delphi/`
+   (or the configured app data directory): an image and a separate JSON manifest
+   with hashes, offset, declared checksum names and edits. Neither input is changed.
+
+For other user-supplied image sizes (up to 16 MiB), the same preview also
+provides **Export within my file range**. Enter the beginning and exclusive
+end as file offsets (decimal or hexadecimal), not device addresses. Both the
+range and XDF are operator assertions. The tool verifies every changed byte is
+inside that range and records it as **operator-declared, not verified**; it does
+not claim the range is a calibration region. These exports are saved under
+`research/user-defined` in the application data directory. This can support
+research on other Harley layouts or other makes, but it does not establish
+which ECU or motorcycle they belong to.
+
+This is **synthetic-tested**, not tested on a Harley. The exported copy is not
+flash-ready: no checksum or signature is checked or repaired, no matching is
+certified, and it provides no ECU security, memory read, write, recovery or tuning
+verification. The scope is the published layout, not every Harley. It does not
+relax the separate programming gates or override a catalogued XDF's restrictions.
+
 ## Additional diagnostic capture profiles
 
 [HarleyDroid EVO](https://github.com/QuickosssLabs/HarleyDroidEVO/tree/668b63efc05977eb65cb8e84e597ae2205355d4c)
@@ -202,3 +243,82 @@ read-only, nor replay a proprietary payload or claim it works across Harleys.
 The published sample does not establish target identity, firmware compatibility
 or checksum/recovery requirements for a safe flash. This integration has
 synthetic tests only and has not been tested on physical hardware.
+
+
+## Centurion files from the supplied tuning collection
+
+[Performance-Harley-Davidson-Tuning at a3250e4](https://github.com/aaronlumen/Performance-Harley-Davidson-Tuning/tree/a3250e460e1781b8f594e1b400e5a05058d23534)
+contains customer-associated Centurion `.ori` files and a GPL-3.0 license. It
+contains no XDFs or complete ECU communication implementation. We reviewed
+14 distinct `.ori` byte sequences: 11 begin with a Delphi-like header and three
+do not. Two bounded header slots at file offsets `0x3E` and `0x52` sometimes
+contain plausible part and calibration strings; these are **candidate fields**,
+not an official format specification. Blank, binary and unrecognized slots
+stay unknown. A missing header does not establish whether a file is encrypted,
+corrupt, or a different version. No customer files, VINs, registration files,
+tune bytes, or source executable code from that collection are bundled.
+
+**Tools → Harley Centurion · local header research** inspects only the first
+98 bytes of one or two locally selected files, displays the two candidate
+slots, and compares them where both are available. It does not read the observed VIN field, display or send filenames, write a file, interpret calibration values,
+or connect to a motorcycle. Candidate fields are unverified and could themselves contain sensitive data; review them before sharing. The XDF map render/build/diff endpoints refuse
+`.ori` files and Delphi-like containers, including a recognized header renamed
+to `.bin`: their internal tune layout has not been decoded. File name or two
+matching candidate fields are not enough to establish matching hardware,
+software, checksum, tune applicability, or flash readiness. Tests use synthetic
+headers; the source reports dyno work but does not establish GuzziOnBoard's
+integration or any universal Harley fitment.
+
+## Buell DDFI live read research
+
+An explicit Buell TTL-serial tool can identify compatible DDFI ECMs, request a
+runtime snapshot and read an operator-selected EEPROM page range. The tool is
+synthetic-tested only; it is not stock Harley J1850, a full backup, or tuning.
+See [BUELL_DDFI_RESEARCH.md](BUELL_DDFI_RESEARCH.md) for source scope, adapter,
+permissions, and the BUEIA/BUE1D definition-title discrepancy.
+
+## DynoAI and Power Vision PVV
+
+The desktop can observe bounded JetDrive multicast windows and edit a local
+user-supplied numeric PVV XML copy. The integrations were synthetic-tested;
+JetDrive data is unauthenticated and no physical dyno or ECU was tested. PVV
+export does not verify fitment, checksum, vendor acceptance or safe flashing.
+See [DYNOAI_AND_UPLOADS.md](DYNOAI_AND_UPLOADS.md).
+
+## Aftermarket rusEFI and Power Vision
+
+The rusEFI source includes a Harley engine configuration for its **own**
+aftermarket controllers, not a stock Delphi flash solution. The desktop has an
+explicit, synthetic-tested rusEFI signature / bounded page and live output read
+in Tools; it does not write or burn. The Power Vision article concerns the
+handheld tuner's USB file protocol, not the motorcycle ECU. See
+[RUSEFI_AND_POWERVISION_RESEARCH.md](RUSEFI_AND_POWERVISION_RESEARCH.md) for
+usage, testing and protocol limitations.
+
+## Flashing research leads and gaps
+
+[BitBox's Harley-Davidson Delphi module](https://www.bitsoftware.com/bitbox/catalog/13)
+reports read, write and automatic checksum handling for several **distinct**
+ECUs (including MT05 CAN, VooDoo CAN and MT21M TC265). Its capability listing
+is not a programming specification, source code, or permission to reuse its
+algorithms. [OldSkullTuning's Delphi XDF list](https://oldskulltuning.com/tunerpro-maps-for-all-harley-davidson-with-ecu-delphi/)
+reports J1850 and CAN map coverage; the separate
+[TC265 listing](https://oldskulltuning.com/harley-davidson-my2021-ecu-delphi-tc265-remap-with-tunerpro/)
+notes tables vary by software and calibration number. These sources motivate
+support for user-supplied definitions, not automatic fitment or write protocols.
+
+[HOSSTune's author described an open-source Harley programming project](https://www.1130cc.com/threads/any-open-source-delphi-software-yet.141387/),
+but its original `ToBeFrank/HOSSTune` GitHub repository returned 404 during this
+review and we could not inspect its code, license, ECU coverage or captures.
+A legitimately obtained source archive with its license would be useful to
+investigate; no HOSSTune code is included here.
+
+[HUD ECU Hacker](https://netcult.ch/elmue/HUD%20ECU%20Hacker/) explicitly
+states its generic Delphi MT05/MT05.2 flasher cannot flash the externally
+similar Harley MT05, which uses different hardware, firmware and wiring. Do
+not infer Harley flashing support from the non-Harley MT05 protocol. The
+source-described HarleyECUTool CAN sequence is narrower: it requires an
+ECU-specific opaque authentication payload and the public material does not
+establish a reusable calibration checksum or a complete, supported recovery
+path. These facts leave physical ECU reading and writing unimplemented, not
+merely hidden behind a confidence setting.

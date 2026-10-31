@@ -1,0 +1,175 @@
+{
+  "id": "triumph_bonneville_865_2009",
+  "family": "2009 Triumph Bonneville 865 EFI (source-reported)",
+  "display_name": "Triumph Bonneville 865 EFI 2009 (read-only OBD)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "2009",
+  "notes": "TrECU reports testing ISO 9141 OBD on one 2009 Triumph Bonneville 865 EFI. GuzziOnBoard adaptation is synthetic-tested only; ECU identity, firmware and market are unknown. Only supported mode 01 PIDs and stored mode 03 faults; no ECU ID, pending faults, clears, memory, tuning or simulator.",
+  "session": {
+    "protocol": "triumph-daytona-2012",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "TrECU reports testing OBD on one 2009 Bonneville 865 EFI. This implementation is synthetic-test-only; live values and fault interpretations are not hardware-verified."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Research-only profile; programming and checksum verification are not implemented."
+  },
+  "capabilities": [
+    "live",
+    "dtc_read"
+  ],
+  "sources": [
+    "https://github.com/singular0/trecu/tree/2969212aa4628d4e207c2858a29224cde53e6222",
+    "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32"
+  ],
+  "parameters": [
+    {
+      "key": "rpm",
+      "name": "Engine speed (unverified)",
+      "local_id": 12,
+      "unit": "rpm",
+      "length": 2,
+      "scale": 0.25,
+      "bias": 0,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "speed",
+      "name": "Speed (unverified)",
+      "local_id": 13,
+      "unit": "km/h",
+      "length": 1,
+      "scale": 1,
+      "bias": 0,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "tps",
+      "name": "Throttle (unverified)",
+      "local_id": 17,
+      "unit": "%",
+      "length": 1,
+      "scale": 0.39215686274509803,
+      "bias": 0,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "coolant",
+      "name": "Coolant temperature (unverified)",
+      "local_id": 5,
+      "unit": "°C",
+      "length": 1,
+      "scale": 1,
+      "bias": -40,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "airtemp",
+      "name": "Intake temperature (unverified)",
+      "local_id": 15,
+      "unit": "°C",
+      "length": 1,
+      "scale": 1,
+      "bias": -40,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "map",
+      "name": "Manifold pressure (unverified)",
+      "local_id": 11,
+      "unit": "kPa",
+      "length": 1,
+      "scale": 1,
+      "bias": 0,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "load",
+      "name": "Engine load (unverified)",
+      "local_id": 4,
+      "unit": "%",
+      "length": 1,
+      "scale": 0.39215686274509803,
+      "bias": 0,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "timing",
+      "name": "Timing advance (unverified)",
+      "local_id": 14,
+      "unit": "°",
+      "length": 1,
+      "scale": 0.5,
+      "bias": -64,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "trim",
+      "name": "Short-term fuel trim (unverified)",
+      "local_id": 6,
+      "unit": "%",
+      "length": 1,
+      "scale": 0.78125,
+      "bias": -100,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "o2_voltage",
+      "name": "O2 sensor 1 voltage (unverified)",
+      "local_id": 20,
+      "unit": "V",
+      "offset": 0,
+      "length": 1,
+      "scale": 0.005,
+      "bias": 0,
+      "digits": 3,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "battery",
+      "name": "Control module voltage (unverified)",
+      "local_id": 66,
+      "unit": "V",
+      "length": 2,
+      "scale": 0.001,
+      "bias": 0,
+      "digits": 3,
+      "default": false,
+      "confidence": "inferred"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "triumph-daytona-2012",
+    "address": 51,
+    "inter_byte_delay": 0.005
+  }
+}

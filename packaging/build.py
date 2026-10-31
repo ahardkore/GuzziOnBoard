@@ -110,9 +110,15 @@ def check_artifact(folder: Path, *, expect_worker: bool = True) -> None:
                      "guzzionboard/xdfs/catalog.json"):
         if not (root / relative).exists():
             raise SystemExit(f"missing application data: {relative}")
+    # Fail closed if an ECU dump, archive or native plugin slips into docs.
+    docs = root / "docs"
+    if docs.exists():
+        for path in docs.rglob("*"):
+            if path.is_file() and path.suffix.lower() not in {".md", ".json"}:
+                raise SystemExit(f"unexpected non-documentation release asset: {path.name}")
 
 
-def selftest(folder: Path, *, enabled: bool) -> Path | None:
+def selftest(folder: Path, *, enabled: bool, hardware: bool = False) -> Path | None:
     """Run the built app's own installation check; return its transcript."""
     if not enabled:
         return None
@@ -121,6 +127,8 @@ def selftest(folder: Path, *, enabled: bool) -> Path | None:
     # a stale build log has no business being installed on someone's laptop.
     transcript = folder.parent / f"{platform_tag()}-selftest.log"
     env = dict(os.environ)
+    if hardware:
+        env["GOB_SELFTEST_REQUIRE_HARDWARE"] = "1"
     env["GOB_SELFTEST_LOG"] = str(transcript)
     env["GUZZIONBOARD_HOME"] = str(Path(work_dir_for_run(folder)) / "selftest-data")
     print(f"+ {app} --selftest", flush=True)
@@ -145,7 +153,7 @@ def work_dir_for_run(folder: Path) -> Path:
 
 # ------------------------------------------------------------------ wrapping
 
-def wrap_macos(folder: Path, version: str, *, selftest_bundle: bool = False) -> None:
+def wrap_macos(folder: Path, version: str, *, selftest_bundle: bool = False, hardware: bool = False) -> None:
     """PyInstaller's BUNDLE already made the .app; report it, and check it.
 
     The bundle is not the same folder as the one PyInstaller wrote: BUNDLE
@@ -164,6 +172,8 @@ def wrap_macos(folder: Path, version: str, *, selftest_bundle: bool = False) -> 
     binary = app / "Contents" / "MacOS" / DIST_NAME
     env = dict(os.environ)
     transcript = folder.parent / f"{platform_tag()}-app-selftest.log"
+    if hardware:
+        env["GOB_SELFTEST_REQUIRE_HARDWARE"] = "1"
     env["GOB_SELFTEST_LOG"] = str(transcript)
     env["GUZZIONBOARD_HOME"] = str(Path(work_dir_for_run(folder)) / "selftest-data")
     print(f"+ {binary} --selftest", flush=True)
@@ -355,12 +365,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  application folder: {folder}")
 
     if platform.system() == "Darwin":
-        wrap_macos(folder, version, selftest_bundle=not args.skip_selftest)
+        wrap_macos(folder, version, selftest_bundle=not args.skip_selftest, hardware=args.hardware)
     elif platform.system() == "Linux":
         wrap_linux(folder, version)
 
     artifacts: list[Path] = []
-    selftest(folder, enabled=not args.skip_selftest)
+    selftest(folder, enabled=not args.skip_selftest, hardware=args.hardware)
     if args.portable_zip:
         if platform.system() == "Darwin" and (dist / f"{DIST_NAME}.app").is_dir():
             artifacts.append(archive_app(dist / f"{DIST_NAME}.app", version))

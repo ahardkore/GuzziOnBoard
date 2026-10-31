@@ -140,6 +140,20 @@
           <p class="muted small">Use the profile default first. The Honda CB500F DashBle entry is an explicit ECU-only option: its source does not specify the bike year or ECU and the integration is not hardware-tested. Auto waits 2.6 seconds after a failed fast attempt before slow init, so older ECUs do not mistake the fallback for the rest of a partial 5-baud address.</p>
         </div>
         <div id="canFields" hidden>
+          <label class="field" id="canInterfaceField">
+            <span>CAN adapter backend</span>
+            <select id="canInterface">
+              <option value="">Profile default (SocketCAN / PCAN)</option>
+              <option value="neovi">Intrepid neoVI / ValueCAN (source-run Python)</option>
+              <option value="slcan">SLCAN USB serial adapter</option>
+            </select>
+          </label>
+          <label class="field" id="canSerialField" hidden>
+            <span>Intrepid device serial (required)</span>
+            <input id="canSerial" maxlength="16" autocomplete="off" placeholder="Device serial number">
+          </label>
+          <p class="muted small" id="canIntrepidNote" hidden>Enter a single Intrepid CAN network name such as HSCAN (or its documented CAN network ID) in Device above, and the exact device serial here. Direct neoVI requires python_ics installed in the Python environment; standard packaged builds do not include it. On Linux, an externally configured Intrepid SocketCAN interface can use the profile default instead. Adapter support does not establish ECU compatibility; this integration is synthetic-tested only. The backend sets the CAN bitrate on the selected hardware. Use only Intrepid hardware with libicsneo.</p>
+          <p class="muted small" id="canSlcanNote" hidden>For classic-CAN SLCAN adapters, enter an explicit serial device above, such as COM5 or /dev/ttyACM0. The default serial speed is 115200; append @speed (e.g. COM5@115200) if needed. The adapter is configured for the selected ECU profile bitrate and transmits diagnostic requests. Synthetic-tested only; verify adapter wiring, firmware and bike compatibility. CAN-FD and automatic fitment are not provided.</p>
           <p class="muted small">Harley Delphi CAN identity research is available by source-listed vehicle or ECU-only override. This integration has synthetic tests only and may not work for a selected bike. It requires 500 kbit/s and fixed 0x7E0/0x7E8; enter an explicit SocketCAN channel (e.g. can0) or PCAN channel (e.g. PCAN_USBBUS1). This attempts tester-present, five raw identity DIDs and four raw source-observed DIDs; a response does not verify fitment and the source may require authentication. No ECU memory, security, or programming is provided.</p>
           <p class="muted small">Generic OBD-II 11-bit CAN is an explicit ECU-only option, not a claim of compatibility with the selected motorcycle. It needs a compatible CAN interface and correctly wired adapter, 500 kbit/s and a physical OBD ECU ID pair; this integration has not been hardware-tested. It reads supported standard live PIDs and emission-related stored faults, not ECU memory.</p>
           <label class="field">
@@ -318,6 +332,14 @@
       <div id="clearGate"></div>
     </article>
     <div id="faultList"></div>
+    <article class="panel" id="harleyCodeReference">
+      <h2>Harley trouble-code reference</h2>
+      <p class="muted small">Optionally select a local <a href="https://github.com/kakhamek/harley-davidson-trouble-codes/tree/68e74b58c351ef187ec282ee7e4e54eabc4eda1c" target="_blank" rel="noopener noreferrer">Harley trouble-codes JSON file</a> to look up codes. The source lists descriptions, not vehicle/year fitment or a diagnostic protocol; duplicate and nonstandard code strings are preserved. Nothing is uploaded or stored. Imported labels appear alongside matching live fault codes on the next read, and are not a diagnosis.</p>
+      <label class="field"><span>Local codes.json</span><input type="file" id="harleyCodeFile" accept=".json,application/json"></label>
+      <label class="field"><span>Code to look up</span><input type="text" id="harleyCodeQuery" maxlength="6" placeholder="P0107"></label>
+      <div class="toolbar"><button class="btn" id="harleyCodeClear">Clear local reference</button></div>
+      <pre class="small" id="harleyCodeOut" aria-live="polite">No reference loaded.</pre>
+    </article>
   </section>
 
   <!-- ====================================================== SERVICE -->
@@ -531,7 +553,73 @@
       <label class="inline"><input type="checkbox" id="harleyRegionReplaceConfirm"> The second file is a 16 KiB replacement for the first calibration; I understand the output is for research, not flashing</label>
       <div class="toolbar"><button class="btn" id="harleyRegionInspect">Inspect / compare locally</button><button class="btn" id="harleyRegionSave" disabled>Export 16 KiB research region</button><button class="btn" id="harleyRegionBuild" disabled>Build research calibration copy</button><button class="btn small" id="harleyRegionClear">Clear</button></div>
       <pre id="harleyRegionOut" class="small" aria-live="polite"></pre>
+      <p class="muted small">For an existing Power Vision, <a href="https://www.dynojet.com/downloads/power-vision-for-harley-davidson/" target="_blank" rel="noopener noreferrer">Dynojet's software and guides</a> describe a separate vendor workflow. GuzziOnBoard does not control Power Vision or certify these research exports for it; follow Dynojet's model, licensing and recovery guidance.</p>
       <p class="muted small">The published mapping is one source's layout, not a universal Harley definition. Files remain local; exported bytes are not verified or flash-ready. <a href="https://github.com/rob9206/lawflo/tree/6255518dc9118d960efa42d6d9dc975926bbd579/ZOOSH_ECU-main/HarleyECUTool" target="_blank" rel="noopener">Source and scope</a>; see <code>docs/HARLEY_TUNING.md</code>.</p>
+    </article>
+
+    <article class="panel" id="centurionResearch">
+      <h2>Harley Centurion · local header research</h2>
+      <p class="muted small">Inspect the candidate ECU-part and calibration fields of up to two user-supplied Delphi-like Centurion files. Field locations were observed in a limited source collection and may not apply to other versions. Unknown headers remain unknown; matching fields do not prove fitment, compatible tunes, checksum validity or flash readiness.</p>
+      <label class="field"><span>First Centurion file</span><input type="file" id="centurionFirst" accept=".ori,application/octet-stream"></label>
+      <label class="field"><span>Second Centurion file (optional)</span><input type="file" id="centurionSecond" accept=".ori,application/octet-stream"></label>
+      <div class="toolbar"><button class="btn" id="centurionInspect">Inspect headers locally</button><button class="btn small" id="centurionClear">Clear</button></div>
+      <pre id="centurionOut" class="small" aria-live="polite"></pre>
+      <p class="muted small">Files can contain VINs, customer and license information. Only the first 98 bytes are read locally; the observed VIN slot is not read; filenames are not displayed or uploaded. Candidate fields may contain sensitive information, so review before sharing. The tool does not extract, decrypt, edit, validate or flash the tune. No source customer files are bundled. <a href="https://github.com/aaronlumen/Performance-Harley-Davidson-Tuning/tree/a3250e460e1781b8f594e1b400e5a05058d23534" target="_blank" rel="noopener noreferrer">Source collection</a>.</p>
+    </article>
+
+    <article class="panel" id="pvvEditor">
+      <h2>Power Vision PVV · local table editor</h2>
+      <p class="muted small">Open a user-supplied PVV XML file, inspect its tables and make explicit numeric cell edits to a separate XML copy. Based on the PVV layout described by DynoAI; no Power Vision device connection. This editor does not verify vehicle or calibration fitment, checksum, vendor acceptance, safety limits, or ECU recovery. The source file is never overwritten and no file is uploaded. Synthetic tests only.</p>
+      <label class="field"><span>Local PVV XML file</span><input id="pvvFile" type="file" accept=".pvv,.xml,text/xml,application/xml"></label>
+      <label class="field"><span>Table or scalar</span><select id="pvvSelect" disabled><option value="">Open a PVV file first</option></select></label>
+      <p id="pvvDetails" class="small muted">No file loaded.</p>
+      <div id="pvvGrid" class="table-wrap"></div>
+      <p id="pvvChanges" class="small" aria-live="polite">No staged changes.</p>
+      <label class="check"><input type="checkbox" id="pvvConfirm"> I reviewed the staged edits and understand the copy is not verified or flash-ready</label>
+      <div class="toolbar"><button class="btn" id="pvvRevert" disabled>Revert staged edits</button><button class="btn" id="pvvExport" disabled>Export reviewed PVV copy</button><button class="btn" id="pvvClear">Clear PVV</button></div>
+      <p class="muted small">Use the vendor's supported software to determine whether the copy can be imported and whether any checksum or other corrections are required. Changed numeric values are not recommendations. XML formatting may change; unsupported items and metadata are retained but not validated.</p>
+    </article>
+
+    <article class="panel" id="jetdrivePanel">
+      <h2>Dynojet JetDrive · live network observation</h2>
+      <p class="muted small">Observe a three-second window of JetDrive-compatible multicast on your local dyno network. This is dyno telemetry, not a motorcycle ECU connection, tune writer, or authenticated source. Integration synthetic-tested only. Channel names and unit codes come from the provider and may be inaccurate; verify sensor mapping and timestamps independently before use.</p>
+      <label class="field"><span>Multicast group</span><select id="jetdriveGroup"><option value="224.0.2.10">224.0.2.10</option><option value="239.255.60.60">239.255.60.60</option></select></label>
+      <label class="field"><span>Local IPv4 interface (0.0.0.0 = system default)</span><input id="jetdriveInterface" value="0.0.0.0" maxlength="15"></label>
+      <label class="check"><input type="checkbox" id="jetdriveRequest"> Send one multicast channel-metadata request (otherwise receive only)</label>
+      <label class="check"><input type="checkbox" id="jetdriveConfirm"> I verified the dyno network and understand telemetry can be spoofed or mislabelled</label>
+      <div class="toolbar"><button class="btn" id="jetdriveCapture">Capture live window</button><button class="btn" id="jetdriveExport" disabled>Export current samples CSV</button></div>
+      <pre class="small" id="jetdriveOut" aria-live="polite">No current capture.</pre>
+      <p class="muted small">CSV contains only the current bounded window, in long format, with source IP and provider/channel identifiers. No stale sample fill, unit conversion or automatic tuning is performed; network identifiers may be sensitive. <a href="https://github.com/rob9206/DynoAI_3/tree/cc22636aafa40a0b4ce4c27b5e0cc50795012b87" target="_blank" rel="noopener noreferrer">DynoAI source</a>.</p>
+    </article>
+
+    <article class="panel" id="buellDdfi">
+      <h2>Buell DDFI · live serial research</h2>
+      <p class="muted small">For compatible Buell DDFI / DDFI-2 / DDFI-3 ECMs using an appropriate Buell TTL serial or paired Bluetooth serial adapter, <strong>not ELM327/J1850, OBD or direct RS-232</strong>. 5 V TTL maximum; verify adapter voltage, wiring, grounding, bike and protocol before connecting. Opening a port may change control lines. This integration is synthetic-tested only; no physical bike has been tested.</p>
+      <label class="field"><span>Explicit Buell serial device</span><input id="buellPort" maxlength="255" placeholder="COM3 or /dev/ttyUSB0"></label>
+      <label class="field"><span>ECM protocol (verify before selecting)</span><select id="buellMode"><option value="stock">Stock / P&amp;A · 9600 baud</option><option value="factory_race">Factory race · 19200 baud</option></select></label>
+      <label class="field"><span>Exact ECM version (identify first)</span><input id="buellVersion" maxlength="64" placeholder="ECM version"></label>
+      <div class="toolbar"><label>EEPROM page <input type="number" id="buellPage" value="1" min="1" max="31"></label><label>Offset <input type="number" id="buellOffset" value="0" min="0" max="255"></label><label>Length (1–256) <input type="number" id="buellLength" value="16" min="1" max="256"></label></div>
+      <label class="check"><input type="checkbox" id="buellConfirm"> I verified the Buell ECM, TTL adapter and wiring, and understand this is a synthetic-tested read-only integration</label>
+      <div class="toolbar"><button class="btn" id="buellIdentify">Identify ECM</button><button class="btn" id="buellRuntime">Read runtime snapshot</button><button class="btn" id="buellRead">Read EEPROM range</button></div>
+      <pre id="buellOut" class="small" aria-live="polite">Not connected.</pre>
+      <p class="muted small">Each action reconnects, identifies and checks the ECM version. EEPROM pages and geometry are operator-selected and vary by ECM; page 0 and pages 32+ are excluded; the remaining numbers are not automatically verified as physical pages. A range is not a complete backup or flash authorization. Runtime layouts vary by ECM; a 100-byte BUEIA frame also shows source-described candidate values. No write, fault-clear, actuator, reset or tuning commands are sent. <a href="https://github.com/bkp123/ecmdroid/tree/2f17d29f5b08f67fb357ee8f2ec21e7ae930343e" target="_blank" rel="noopener noreferrer">EcmDroid source</a> · <a href="https://www.ecmspy.com/eeprom_info.shtml" target="_blank" rel="noopener noreferrer">EcmSpy protocol and wiring notes</a>.</p>
+    </article>
+
+    <article class="panel" id="rusefiResearch">
+      <h2>rusEFI aftermarket · live serial research</h2>
+      <p class="muted small">For an explicitly selected <strong>aftermarket rusEFI controller</strong>, including one configured for a Harley engine; not for stock Delphi ECUs or a Power Vision tuner. Synthetic-tested only, not hardware-validated. Opening a serial port may change its control lines. Verify wiring, power, port and baud first; do not run alongside another tuning program.</p>
+      <label class="field"><span>rusEFI USB serial port</span><input id="rusefiPort" placeholder="COM3 or /dev/ttyACM0" maxlength="255"></label>
+      <label class="field"><span>Serial baud rate (choose for your controller)</span><select id="rusefiBaud"><option value="115200">115200</option><option value="230400">230400</option><option value="460800">460800</option><option value="921600">921600</option></select></label>
+      <label class="field"><span>Select your extracted rusEFI INI (optional, processed locally)</span><input type="file" id="rusefiIni" accept=".ini,text/plain"></label>
+      <p class="muted small" id="rusefiIniStatus" aria-live="polite">Select an INI from your installed firmware, board bundle or rusEFI lookup. Firmware snapshots can differ from your installed build.</p>
+      <label class="field"><span>Exact signature from matching rusEFI INI (required to read)</span><input id="rusefiSignature" maxlength="180" placeholder="rusEFI …"></label>
+      <p class="muted small"><a id="rusefiLookup" hidden target="_blank" rel="noopener noreferrer">Look up the identified signature on rusEFI</a> <span id="rusefiLookupNote">Identify a controller to generate a lookup link. Opening it sends the signature in the URL to rusEFI.</span></p>
+      <div class="toolbar"><label>Page <input type="number" id="rusefiPage" min="0" max="65535" value="0"></label><label>Offset <input type="number" id="rusefiOffset" min="0" max="65535" value="0"></label><label>Length (1–256) <input type="number" id="rusefiLength" min="1" max="256" value="32"></label></div>
+      <label class="check"><input type="checkbox" id="rusefiConfirm"> I selected an aftermarket rusEFI controller, checked the port/wiring, and understand this is synthetic-tested read research</label>
+      <div class="toolbar"><button class="btn" id="rusefiIdentify">Identify controller</button><button class="btn" id="rusefiRead">Read selected page range</button><button class="btn" id="rusefiOutputs">Read live output bytes</button></div>
+      <pre id="rusefiOut" class="small" aria-live="polite">Not connected.</pre>
+      <p class="muted small"><a href="https://rusefi.com/build_server/" target="_blank" rel="noopener noreferrer">rusEFI snapshot build server</a> · <a href="https://wiki.rusefi.com/INI-lookup-logic/" target="_blank" rel="noopener noreferrer">Signature lookup guide</a>. The INI parser only extracts a signature; it does not validate a definition's contents or authenticity.</p>
+      <p class="muted small">Each action opens and closes the selected local serial device. Identify sends a signature request; page and output reads verify that signature then request one bounded range. Live output is a raw snapshot; use the matching INI to interpret it. Result bytes are not decoded, not an ECU backup, and may be zeros when the controller is locked. The transport CRC is not a calibration checksum. No ECU write or burn command is sent. <a href="https://github.com/rusefi/rusefi/tree/5359cc971b60a9a0ee3f0f2a870dbb64f0ad36ef" target="_blank" rel="noopener noreferrer">rusEFI source</a>.</p>
     </article>
 
     <article class="panel" id="yamahaResearch">
@@ -946,9 +1034,11 @@
       </div>
       <div class="toolbar">
         <label class="inline">Image path <input type="text" id="mapsImagePath" placeholder="~/.guzzionboard/images/....bin" size="44"></label>
+        <label class="inline">XDF address base <input type="text" id="mapsAddressBase" placeholder="auto (or 0x0)" size="12"></label>
         <button class="btn primary" id="mapsRenderBtn">Render tables</button>
         <button class="btn" id="mapsValidateDefinitionBtn">Validate definition</button>
       </div>
+      <p class="muted small">Address base is subtracted from XDF addresses to locate bytes in the image. Blank uses an automatic guess; set it explicitly for a definition authored for a different address range. Re-render after changing it. Neither setting proves fitment.</p>
       <div class="toolbar">
         <label class="inline">Compare with <input type="text" id="mapsDiffPath" placeholder="second image, e.g. the factory backup" size="44"></label>
         <button class="btn" id="mapsDiffBtn">Diff</button>
@@ -1026,7 +1116,7 @@
           <input type="file" id="mapProjectFile" accept="application/json,.json" hidden>
         </div>
         <div id="mapResearchPreviewOut"></div>
-        <p class="muted small">Research preview works with a user-supplied XDF even when fitment is not recognized. It creates no image, performs no checksum repair, and does not establish ECU/software fitment. Projects contain paths, hashes, edits and log settings, but not firmware or log data. Reopening requires the exact source image, XDF and address base. Schema 1 and 2 projects must be recreated and reviewed because earlier versions may have interpreted XDF item layouts differently.</p>
+        <p class="muted small">Research preview works with a user-supplied XDF even when fitment is not recognized. It creates no image, performs no checksum repair, and does not establish ECU/software fitment. For the source-described Delphi 16 KiB tune or 160 KiB calibration layout, the local app can export the reviewed edits as a separate research copy with a manifest; no checksum is repaired and the copy is not flash-ready. Other image sizes can be exported locally using an operator-declared file range; this does not establish fitment. Projects contain paths, hashes, edits and log settings, but not firmware or log data. Reopening requires the exact source image, XDF and address base. Schema 1 and 2 projects must be recreated and reviewed because earlier versions may have interpreted XDF item layouts differently.</p>
         <details class="recommendation-packages">
           <summary><b>User/community recommendation packages</b></summary>
           <p class="muted small" id="mapPackageNote">No values are bundled or endorsed. Validated local packages are source-locked and still pass the same preview and liability gates.</p>
@@ -1180,8 +1270,15 @@
 <script src="bajaj-checksum.js"></script>
 <script src="cfmoto-checksum.js"></script>
 <script src="harley-tuning.js"></script>
+<script src="harley-centurion.js"></script>
 <script src="juken-research.js"></script>
 <script src="harley-live-can.js"></script>
 <script src="yamaha-live-kline.js"></script>
+<script src="harley-code-reference.js"></script>
+<script src="jetdrive.js"></script>
+<script src="pvv-editor.js"></script>
+<script src="buell-ddfi.js"></script>
+<script src="rusefi-ini.js"></script>
+<script src="rusefi-read.js"></script>
 </body>
 </html>

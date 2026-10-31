@@ -15,9 +15,9 @@
     "applied": false,
     "status": {}
    },
-   "ecu_count": 32,
-   "vehicle_count": 482,
-   "model_count": 406,
+   "ecu_count": 34,
+   "vehicle_count": 483,
+   "model_count": 407,
    "year_range": [
     1992,
     2026
@@ -1014,6 +1014,46 @@
      "field_confirmation": {}
     },
     {
+     "id": "honda_ctx700_minidash",
+     "family": "Honda CTX700 K-Line (source-reported)",
+     "display_name": "Honda CTX700 (read-only minidash tables)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "unknown",
+     "notes": "Minidash is intended for Honda CTX700; year, market and ECU are unspecified. ECU-only opt-in. This integration has synthetic tests only. Values and units are candidates. Injector raw is not a fuel-consumption measurement. No identity, DTCs, ECU memory, controls, programming or simulator.",
+     "capabilities": [
+      "live"
+     ],
+     "effective_capabilities": [
+      "live"
+     ],
+     "sources": [
+      "https://github.com/seife/honda-ecu-minidash/tree/016102471bbff50abeeeac5447593a3a1e93477d"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Source covers live diagnostic tables, not flash memory or programming."
+     },
+     "kline": {
+      "baud": 10400,
+      "init": "honda-ctx700-minidash",
+      "inter_byte_delay": 0
+     },
+     "can": {},
+     "session": {
+      "protocol": "honda-ctx700-minidash",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "tester_present_interval": 2.0,
+      "physical_evidence_note": "Minidash describes CTX700 use; year and ECU are unspecified. This adaptation is synthetic-tested only."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "honda_pgmfi_research",
      "family": "Honda Keihin PGM-FI K-Line (research)",
      "display_name": "Honda Keihin PGM-FI (raw diagnostic tables, read-only)",
@@ -1067,7 +1107,7 @@
      "transport": "kline",
      "confidence": "unknown",
      "years": "2006",
-     "notes": "Read-only KDS based on iKawa, whose author reports testing a 2006 ER-6n. GuzziOnBoard has not tested this implementation on a motorcycle. ECU part number, software and market unknown. No identification, DTCs, controls, memory access or simulator.",
+     "notes": "Read-only KDS based on iKawa, whose author reports testing a 2006 ER-6n. GuzziOnBoard has not tested this implementation on a motorcycle. ECU part number, software and market unknown. No identification, DTCs, controls, memory access or simulator. Optional throttle calibration, starter switch and elapsed counter are source-derived candidates; verify calibration and meaning for your ECU.",
      "capabilities": [
       "live"
      ],
@@ -1696,6 +1736,50 @@
      "field_confirmation": {}
     },
     {
+     "id": "triumph_bonneville_865_2009",
+     "family": "2009 Triumph Bonneville 865 EFI (source-reported)",
+     "display_name": "Triumph Bonneville 865 EFI 2009 (read-only OBD)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "2009",
+     "notes": "TrECU reports testing ISO 9141 OBD on one 2009 Triumph Bonneville 865 EFI. GuzziOnBoard adaptation is synthetic-tested only; ECU identity, firmware and market are unknown. Only supported mode 01 PIDs and stored mode 03 faults; no ECU ID, pending faults, clears, memory, tuning or simulator.",
+     "capabilities": [
+      "live",
+      "dtc_read"
+     ],
+     "effective_capabilities": [
+      "live",
+      "dtc_read"
+     ],
+     "sources": [
+      "https://github.com/singular0/trecu/tree/2969212aa4628d4e207c2858a29224cde53e6222",
+      "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Research-only profile; programming and checksum verification are not implemented."
+     },
+     "kline": {
+      "baud": 10400,
+      "init": "triumph-daytona-2012",
+      "address": 51,
+      "inter_byte_delay": 0.005
+     },
+     "can": {},
+     "session": {
+      "protocol": "triumph-daytona-2012",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "tester_present_interval": 2.0,
+      "physical_evidence_note": "TrECU reports testing OBD on one 2009 Bonneville 865 EFI. This implementation is synthetic-test-only; live values and fault interpretations are not hardware-verified."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "triumph_daytona_675_2012",
      "family": "2012 Triumph Daytona 675 Keihin (source-reported)",
      "display_name": "Triumph Daytona 675 2012 (read-only OBD)",
@@ -2012,6 +2096,24 @@
       "notes": "Target throttle 3.2-3.6 degrees. Never reset the Bellagio TPS electronically.",
       "confidence": "documented",
       "label": "Bellagio 940 (2007-2013)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Bonneville 865 EFI",
+    "variants": [
+     {
+      "make": "Triumph",
+      "model": "Bonneville 865 EFI",
+      "year_from": 2009,
+      "year_to": 2009,
+      "ecu": "triumph_bonneville_865_2009",
+      "displacement": "",
+      "tps": "",
+      "notes": "TrECU author reports ISO 9141 OBD testing on one 2009 Bonneville 865 EFI. This adaptation has synthetic tests only; no ECU identification, pending faults, clearing, memory or programming.",
+      "confidence": "inferred",
+      "label": "Bonneville 865 EFI (2009-2009)",
       "can": {}
      }
     ]
@@ -10926,6 +11028,13 @@
    },
    {
     "make": "Triumph",
+    "model": "Bonneville 865 EFI",
+    "year_from": 2009,
+    "year_to": 2009,
+    "ecu": "triumph_bonneville_865_2009"
+   },
+   {
+    "make": "Triumph",
     "model": "Daytona 675",
     "year_from": 2012,
     "year_to": 2012,
@@ -15728,6 +15837,192 @@
     ]
    },
    {
+    "id": "honda_ctx700_minidash",
+    "family": "Honda CTX700 K-Line (source-reported)",
+    "display_name": "Honda CTX700 (read-only minidash tables)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "unknown",
+    "notes": "Minidash is intended for Honda CTX700; year, market and ECU are unspecified. ECU-only opt-in. This integration has synthetic tests only. Values and units are candidates. Injector raw is not a fuel-consumption measurement. No identity, DTCs, ECU memory, controls, programming or simulator.",
+    "capabilities": [
+     "live"
+    ],
+    "effective_capabilities": [
+     "live"
+    ],
+    "sources": [
+     "https://github.com/seife/honda-ecu-minidash/tree/016102471bbff50abeeeac5447593a3a1e93477d"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Source covers live diagnostic tables, not flash memory or programming."
+    },
+    "kline": {
+     "baud": 10400,
+     "init": "honda-ctx700-minidash",
+     "inter_byte_delay": 0
+    },
+    "can": {},
+    "session": {
+     "protocol": "honda-ctx700-minidash",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "tester_present_interval": 2.0,
+     "physical_evidence_note": "Minidash describes CTX700 use; year and ECU are unspecified. This adaptation is synthetic-tested only."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": [
+     {
+      "key": "rpm",
+      "name": "Engine speed (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "rpm",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "tps_ctx",
+      "name": "Throttle position (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 2,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "coolant",
+      "name": "Coolant temperature (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "airtemp",
+      "name": "Intake temperature (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "map",
+      "name": "Manifold pressure (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "kPa",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "battery",
+      "name": "Battery voltage (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "V",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "speed",
+      "name": "Speed (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "km/h",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "injector_raw",
+      "name": "Injector value (raw source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "gear_status",
+      "name": "Gear / clutch status (source candidate)",
+      "local_id": 209,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {
+       "0": "In gear (candidate)",
+       "1": "Neutral or clutch (candidate)",
+       "3": "Kickstand down (candidate)"
+      },
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "engine_status",
+      "name": "Engine status byte (source candidate)",
+      "local_id": 209,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     }
+    ]
+   },
+   {
     "id": "honda_pgmfi_research",
     "family": "Honda Keihin PGM-FI K-Line (research)",
     "display_name": "Honda Keihin PGM-FI (raw diagnostic tables, read-only)",
@@ -16035,7 +16330,7 @@
     "transport": "kline",
     "confidence": "unknown",
     "years": "2006",
-    "notes": "Read-only KDS based on iKawa, whose author reports testing a 2006 ER-6n. GuzziOnBoard has not tested this implementation on a motorcycle. ECU part number, software and market unknown. No identification, DTCs, controls, memory access or simulator.",
+    "notes": "Read-only KDS based on iKawa, whose author reports testing a 2006 ER-6n. GuzziOnBoard has not tested this implementation on a motorcycle. ECU part number, software and market unknown. No identification, DTCs, controls, memory access or simulator. Optional throttle calibration, starter switch and elapsed counter are source-derived candidates; verify calibration and meaning for your ECU.",
     "capabilities": [
      "live"
     ],
@@ -16184,6 +16479,48 @@
       "min": null,
       "max": null,
       "confidence": "documented"
+     },
+     {
+      "key": "throttle_candidate",
+      "name": "Throttle position (source calibration candidate)",
+      "local_id": 4,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "starter_switch_candidate",
+      "name": "Starter switch (source candidate)",
+      "local_id": 2,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "elapsed_counter_candidate",
+      "name": "Elapsed counter (source candidate; meaning unverified)",
+      "local_id": 68,
+      "request_ids": [],
+      "unit": "h",
+      "group": "engine",
+      "digits": 2,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
      }
     ]
    },
@@ -17606,6 +17943,206 @@
       "group": "engine",
       "digits": 0,
       "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     }
+    ]
+   },
+   {
+    "id": "triumph_bonneville_865_2009",
+    "family": "2009 Triumph Bonneville 865 EFI (source-reported)",
+    "display_name": "Triumph Bonneville 865 EFI 2009 (read-only OBD)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "2009",
+    "notes": "TrECU reports testing ISO 9141 OBD on one 2009 Triumph Bonneville 865 EFI. GuzziOnBoard adaptation is synthetic-tested only; ECU identity, firmware and market are unknown. Only supported mode 01 PIDs and stored mode 03 faults; no ECU ID, pending faults, clears, memory, tuning or simulator.",
+    "capabilities": [
+     "live",
+     "dtc_read"
+    ],
+    "effective_capabilities": [
+     "live",
+     "dtc_read"
+    ],
+    "sources": [
+     "https://github.com/singular0/trecu/tree/2969212aa4628d4e207c2858a29224cde53e6222",
+     "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Research-only profile; programming and checksum verification are not implemented."
+    },
+    "kline": {
+     "baud": 10400,
+     "init": "triumph-daytona-2012",
+     "address": 51,
+     "inter_byte_delay": 0.005
+    },
+    "can": {},
+    "session": {
+     "protocol": "triumph-daytona-2012",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "tester_present_interval": 2.0,
+     "physical_evidence_note": "TrECU reports testing OBD on one 2009 Bonneville 865 EFI. This implementation is synthetic-test-only; live values and fault interpretations are not hardware-verified."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": [
+     {
+      "key": "rpm",
+      "name": "Engine speed (unverified)",
+      "local_id": 12,
+      "request_ids": [],
+      "unit": "rpm",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "speed",
+      "name": "Speed (unverified)",
+      "local_id": 13,
+      "request_ids": [],
+      "unit": "km/h",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "tps",
+      "name": "Throttle (unverified)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "coolant",
+      "name": "Coolant temperature (unverified)",
+      "local_id": 5,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "airtemp",
+      "name": "Intake temperature (unverified)",
+      "local_id": 15,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "map",
+      "name": "Manifold pressure (unverified)",
+      "local_id": 11,
+      "request_ids": [],
+      "unit": "kPa",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "load",
+      "name": "Engine load (unverified)",
+      "local_id": 4,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "timing",
+      "name": "Timing advance (unverified)",
+      "local_id": 14,
+      "request_ids": [],
+      "unit": "°",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "trim",
+      "name": "Short-term fuel trim (unverified)",
+      "local_id": 6,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "o2_voltage",
+      "name": "O2 sensor 1 voltage (unverified)",
+      "local_id": 20,
+      "request_ids": [],
+      "unit": "V",
+      "group": "engine",
+      "digits": 3,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "battery",
+      "name": "Control module voltage (unverified)",
+      "local_id": 66,
+      "request_ids": [],
+      "unit": "V",
+      "group": "engine",
+      "digits": 3,
+      "default": false,
       "states": {},
       "min": null,
       "max": null,
@@ -19410,6 +19947,19 @@
    "notes": "SV650overlay reports operation on 2007 SV650AK7. Source warns some conversions are inaccurate; this integration has synthetic tests only. Live data is read-only and candidate; no ECU ID, faults, memory or programming.",
    "confidence": "inferred",
    "label": "SV650AK7 (2007-2007)",
+   "can": {}
+  },
+  {
+   "make": "Triumph",
+   "model": "Bonneville 865 EFI",
+   "year_from": 2009,
+   "year_to": 2009,
+   "ecu": "triumph_bonneville_865_2009",
+   "displacement": "",
+   "tps": "",
+   "notes": "TrECU author reports ISO 9141 OBD testing on one 2009 Bonneville 865 EFI. This adaptation has synthetic tests only; no ECU identification, pending faults, clearing, memory or programming.",
+   "confidence": "inferred",
+   "label": "Bonneville 865 EFI (2009-2009)",
    "can": {}
   },
   {
@@ -26264,6 +26814,164 @@
     "note": "Unverified raw five-byte ECM ID candidate; not a confirmed part number or programming identity."
    }
   },
+  "honda_ctx700_minidash": {
+   "parameters": {
+    "rpm": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "tps_ctx": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 2,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "coolant": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "airtemp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "map": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "battery": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "speed": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "injector_raw": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "gear_status": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 209,
+     "states": {
+      "0": "In gear (candidate)",
+      "1": "Neutral or clutch (candidate)",
+      "3": "Kickstand down (candidate)"
+     }
+    },
+    "engine_status": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 209,
+     "states": {}
+    }
+   },
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "HondaCTX700K-Line(source-reported)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "honda-ctx700-minidash",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "Minidash describes CTX700 use; year and ECU are unspecified. This adaptation is synthetic-tested only."
+   },
+   "identification": {
+    "available": false
+   }
+  },
   "honda_pgmfi_research": {
    "parameters": {
     "table_10_raw": {
@@ -26627,6 +27335,45 @@
      "digits": 0,
      "dead": false,
      "local_id": 8,
+     "states": {}
+    },
+    "throttle_candidate": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 4,
+     "states": {}
+    },
+    "starter_switch_candidate": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 2,
+     "states": {}
+    },
+    "elapsed_counter_candidate": {
+     "offset": 0,
+     "length": 4,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 2,
+     "dead": false,
+     "local_id": 68,
      "states": {}
     }
    },
@@ -27783,6 +28530,173 @@
     "simulator_supported": false,
     "tester_present_interval": 1.0,
     "physical_evidence_note": "SV650overlay reports operating a 2007 SV650AK7; this implementation is synthetic-tested only."
+   },
+   "identification": {
+    "available": false
+   }
+  },
+  "triumph_bonneville_865_2009": {
+   "parameters": {
+    "rpm": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.25,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 12,
+     "states": {}
+    },
+    "speed": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 13,
+     "states": {}
+    },
+    "tps": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.39215686274509803,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "coolant": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": -40.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 5,
+     "states": {}
+    },
+    "airtemp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": -40.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 15,
+     "states": {}
+    },
+    "map": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 11,
+     "states": {}
+    },
+    "load": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.39215686274509803,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 4,
+     "states": {}
+    },
+    "timing": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.5,
+     "bias": -64.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 14,
+     "states": {}
+    },
+    "trim": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.78125,
+     "bias": -100.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 6,
+     "states": {}
+    },
+    "o2_voltage": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.005,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 3,
+     "dead": false,
+     "local_id": 20,
+     "states": {}
+    },
+    "battery": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.001,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 3,
+     "dead": false,
+     "local_id": 66,
+     "states": {}
+    }
+   },
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "2009TriumphBonneville865EFI(source-reported)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "triumph-daytona-2012",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "TrECU reports testing OBD on one 2009 Bonneville 865 EFI. This implementation is synthetic-test-only; live values and fault interpretations are not hardware-verified."
    },
    "identification": {
     "available": false

@@ -1395,6 +1395,15 @@
   },
   {
    "make": "Triumph",
+   "model": "Bonneville 865 EFI",
+   "year_from": 2009,
+   "year_to": 2009,
+   "ecu": "triumph_bonneville_865_2009",
+   "confidence": "inferred",
+   "notes": "TrECU author reports ISO 9141 OBD testing on one 2009 Bonneville 865 EFI. This adaptation has synthetic tests only; no ECU identification, pending faults, clearing, memory or programming."
+  },
+  {
+   "make": "Triumph",
    "model": "Daytona 675",
    "year_from": 2012,
    "year_to": 2012,

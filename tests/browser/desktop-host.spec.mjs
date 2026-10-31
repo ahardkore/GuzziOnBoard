@@ -1037,3 +1037,14 @@ test('desktop exposes synthetic-tested rusEFI serial identification and bounded 
   expect(requests[2]).toMatchObject({action: 'outputs', offset: 0, length: 3});
   expect(page.failures).toEqual([]);
 });
+
+test('desktop clearly separates Dynojet software from the Harley research export', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  const panel = page.locator('#harleyRegion');
+  await expect(panel).toContainText('GuzziOnBoard does not control Power Vision');
+  const link = panel.getByRole('link', {name: "Dynojet's software and guides"});
+  await expect(link).toHaveAttribute('href', 'https://www.dynojet.com/downloads/power-vision-for-harley-davidson/');
+  await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  expect(page.failures).toEqual([]);
+});

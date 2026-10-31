@@ -531,6 +531,7 @@
       <label class="inline"><input type="checkbox" id="harleyRegionReplaceConfirm"> The second file is a 16 KiB replacement for the first calibration; I understand the output is for research, not flashing</label>
       <div class="toolbar"><button class="btn" id="harleyRegionInspect">Inspect / compare locally</button><button class="btn" id="harleyRegionSave" disabled>Export 16 KiB research region</button><button class="btn" id="harleyRegionBuild" disabled>Build research calibration copy</button><button class="btn small" id="harleyRegionClear">Clear</button></div>
       <pre id="harleyRegionOut" class="small" aria-live="polite"></pre>
+      <p class="muted small">For an existing Power Vision, <a href="https://www.dynojet.com/downloads/power-vision-for-harley-davidson/" target="_blank" rel="noopener noreferrer">Dynojet's software and guides</a> describe a separate vendor workflow. GuzziOnBoard does not control Power Vision or certify these research exports for it; follow Dynojet's model, licensing and recovery guidance.</p>
       <p class="muted small">The published mapping is one source's layout, not a universal Harley definition. Files remain local; exported bytes are not verified or flash-ready. <a href="https://github.com/rob9206/lawflo/tree/6255518dc9118d960efa42d6d9dc975926bbd579/ZOOSH_ECU-main/HarleyECUTool" target="_blank" rel="noopener">Source and scope</a>; see <code>docs/HARLEY_TUNING.md</code>.</p>
     </article>
 
@@ -541,7 +542,7 @@
       <label class="field"><span>Second Centurion file (optional)</span><input type="file" id="centurionSecond" accept=".ori,application/octet-stream"></label>
       <div class="toolbar"><button class="btn" id="centurionInspect">Inspect headers locally</button><button class="btn small" id="centurionClear">Clear</button></div>
       <pre id="centurionOut" class="small" aria-live="polite"></pre>
-      <p class="muted small">Files can contain VINs, customer and license information. Only the first 98 bytes are read locally; The observed VIN slot is not read; filenames are not displayed or uploaded. Candidate fields may contain sensitive information, so review before sharing. The tool does not extract, decrypt, edit, validate or flash the tune. No source customer files are bundled. <a href="https://github.com/aaronlumen/Performance-Harley-Davidson-Tuning/tree/a3250e460e1781b8f594e1b400e5a05058d23534" target="_blank" rel="noopener noreferrer">Source collection</a>.</p>
+      <p class="muted small">Files can contain VINs, customer and license information. Only the first 98 bytes are read locally; the observed VIN slot is not read; filenames are not displayed or uploaded. Candidate fields may contain sensitive information, so review before sharing. The tool does not extract, decrypt, edit, validate or flash the tune. No source customer files are bundled. <a href="https://github.com/aaronlumen/Performance-Harley-Davidson-Tuning/tree/a3250e460e1781b8f594e1b400e5a05058d23534" target="_blank" rel="noopener noreferrer">Source collection</a>.</p>
     </article>
 
     <article class="panel" id="rusefiResearch">

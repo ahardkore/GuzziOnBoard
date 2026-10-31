@@ -114,3 +114,26 @@ def test_bueia_runtime_adx_offsets_are_exact_and_scoped(monkeypatch):
     assert result['bueia_candidates'] == {'rpm': 2500, 'throttle_percent': 50.196, 'battery_volts': 12.5, 'engine_temp_c': 85.0, 'air_temp_c': 25.0}
     assert buell._bueia_runtime('BUEIB310 12-11-03', bytes(data)) is None
     assert buell._bueia_runtime('BUEIA123', bytes(data[:-1])) is None
+
+
+def test_buell_optional_repeat_compares_full_ranges_and_discards_mismatch(monkeypatch):
+    first, second = bytes(range(16)), bytes(range(4))
+    conn = FakeSerial([reply(VERSION.encode()), reply(first), reply(second), reply(first), reply(second)])
+    install(monkeypatch, conn)
+    result = buell.run('/dev/ttyUSB0', 'stock', 'read', VERSION, 2, 30, 20, True)
+    assert result['data_hex'] == (first + second).hex().upper()
+    assert result['repeated_match'] is True and conn.closed
+    assert conn.sent[1:3] == conn.sent[3:5]  # two complete passes, never SET
+    conn = FakeSerial([reply(VERSION.encode()), reply(first), reply(second), reply(first), reply(b'xxxx')])
+    install(monkeypatch, conn)
+    with pytest.raises(TransportError, match='disagree; all data discarded'):
+        buell.run('/dev/ttyUSB0', 'stock', 'read', VERSION, 2, 30, 20, True)
+    assert conn.closed
+
+
+def test_buell_repeat_setting_is_strict_and_read_only(monkeypatch):
+    conn = FakeSerial([]); calls = install(monkeypatch, conn)
+    for action, repeat in [('identify', True), ('runtime', True), ('read', 'true'), ('read', 1)]:
+        with pytest.raises(ValueError, match='Repeat comparison'):
+            buell.run('/dev/ttyUSB0', 'stock', action, VERSION, 1, 0, 1, repeat)
+    assert not calls

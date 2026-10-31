@@ -52,6 +52,7 @@ from .maps import (
     available_xdfs,
     fitment,
     group_xdfs,
+    read_xdf_bytes,
 )
 from .checksums import (
     PLUGIN_DIR as CHECKSUM_PLUGIN_DIR,
@@ -923,6 +924,7 @@ class Api:
             research = bool(prog.profile.memory.get("research_read_only"))
             image = prog.read_region(region, progress=report,
                                      experimental_confirmation=body.get("confirm_research_read") is True)
+            research = research or image.source == "research-read"
             suffix = f"research-read-{secrets.token_hex(6)}" if research else "read"
             path = image.save(prog.image_dir / f"{prog.profile.id}-{region}-{suffix}.bin")
             return {"path": str(path), "describe": image.describe(), "research_only": research}
@@ -1520,7 +1522,7 @@ class Api:
             # Parse and fingerprint the same bytes; a definition changing
             # between separate reads must not make the hash describe another file.
             xdf_path = Path(resolved.path)
-            xdf_bytes = xdf_path.read_bytes()
+            xdf_bytes = read_xdf_bytes(xdf_path)
             xdf_hash = hashlib.sha256(xdf_bytes).hexdigest()
             xdf = XdfFile.from_string(xdf_bytes.decode("ISO-8859-1"))
             xdf.path = str(xdf_path)
@@ -1594,7 +1596,7 @@ class Api:
             info = fitment(resolved.path)
             if info.get("family") or info.get("research_only") or info.get("catalogued"):
                 raise TuningError("use an uncatalogued user-supplied XDF for this research export")
-            xdf_bytes = Path(resolved.path).read_bytes()
+            xdf_bytes = read_xdf_bytes(resolved.path)
             if hashlib.sha256(xdf_bytes).hexdigest() != preview["xdf"]["sha256"]:
                 raise TuningError("XDF SHA-256 changed; render it again")
             xdf = XdfFile.from_string(xdf_bytes.decode("ISO-8859-1"))
@@ -2017,7 +2019,8 @@ class Api:
                 if self.ws.service is not None and self.ws.service.connected:
                     return 409, {"error": "Disconnect the current ECU session first."}
                 return 200, buell_ddfi.run(body.get("port"), body.get("mode"), body.get("action"),
-                                           body.get("version"), body.get("page"), body.get("offset"), body.get("length"))
+                                           body.get("version"), body.get("page"), body.get("offset"), body.get("length"),
+                                           body.get("compare_repeat", False))
         finally:
             self._buell_lock.release()
 

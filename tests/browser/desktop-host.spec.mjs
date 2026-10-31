@@ -847,6 +847,16 @@ test('Honda PGM-FI and GSX-R1000 appear as read-only source-scoped attempts', as
     ['Harley-Davidson','FLSTC Heritage Softail Classic',2011,'harley_delphi_can_uds'],
     ['Harley-Davidson','XL1200X Forty-Eight',2022,'harley_delphi_can_uds'],
     ['Honda','CRF110F',2024,'honda_pgmfi_research'],
+    ['Honda','Vario 125 Techno FI',2014,'honda_pgmfi_research'],
+    ['Honda','CB150R StreetFire',2017,'honda_pgmfi_research'],
+    ['Honda','CBR150R FI',2018,'honda_pgmfi_research'],
+    ['Honda','Supra X 125 Helm-In',2019,'honda_pgmfi_research'],
+    ['Honda','CRF250R',2012,'honda_pgmfi_research'],
+    ['Honda','CRF250RX',2020,'honda_pgmfi_research'],
+    ['Suzuki','GSX-R600',2023,'suzuki_sds_gsxr_research'],
+    ['Suzuki','GSX-R750',2017,'suzuki_sds_gsxr_research'],
+    ['Kawasaki','Ninja 400',2019,'kawasaki_kds_research'],
+    ['Kawasaki','ZX-14R Ninja',2014,'kawasaki_kds_research'],
     ['Kawasaki','Ninja 300',2014,'kawasaki_kds_research'],
   ]) {
     await page.selectOption('#makeSelect',make);
@@ -1095,7 +1105,7 @@ test('desktop Buell DDFI live reader requires confirmation and exact ECM version
     const request = route.request().postDataJSON(); calls.push(request);
     const response = {version:'BUEIB310 12-11-03', mode:'stock', synthetic_tested:true};
     if (request.action === 'runtime') Object.assign(response, {length:2, data_hex:'1234'});
-    if (request.action === 'read') Object.assign(response, {page:request.page, offset:request.offset, length:request.length, data_hex:'AABB'});
+    if (request.action === 'read') Object.assign(response, {page:request.page, offset:request.offset, length:request.length, data_hex:'AABB', repeated_match:request.compare_repeat});
     await route.fulfill({status:200, contentType:'application/json', body:JSON.stringify(response)});
   });
   await page.locator('#buellPort').fill('/dev/ttyUSB0');
@@ -1107,11 +1117,13 @@ test('desktop Buell DDFI live reader requires confirmation and exact ECM version
   await expect(page.locator('#buellVersion')).toHaveValue('BUEIB310 12-11-03');
   await expect(page.locator('#buellConfirm')).not.toBeChecked();
   await page.locator('#buellLength').fill('2');
+  await page.locator('#buellCompare').check();
   await page.locator('#buellConfirm').check();
   await page.locator('#buellRead').click();
   await expect(page.locator('#buellOut')).toContainText('AABB');
   await expect(page.locator('#buellOut')).toContainText('not a complete backup');
-  expect(calls[1]).toMatchObject({action:'read', mode:'stock', version:'BUEIB310 12-11-03', page:1, offset:0, length:2});
+  await expect(page.locator('#buellOut')).toContainText('Two range reads matched');
+  expect(calls[1]).toMatchObject({action:'read', mode:'stock', version:'BUEIB310 12-11-03', page:1, offset:0, length:2, compare_repeat:true});
   await page.locator('#buellRuntime').click();
   await expect(page.locator('#buellOut')).toContainText('Runtime data');
   expect(calls[2]).toMatchObject({action:'runtime', version:'BUEIB310 12-11-03'});
@@ -1293,4 +1305,110 @@ test('Bonneville source-scoped live OBD is selectable with programming blocked',
   expect(result.selection.body.ecu.memory.write_supported).toBe(false);
   expect(result.service.status).toBe(501);
   expect(result.service.body.error).toContain('read-only mode');
+});
+
+test('generic Kawasaki and Suzuki K-Line attempts are explicit ECU-only selections', async ({page}) => {
+  await page.goto('/');
+  await page.waitForSelector('#ecuOverride option[value="kawasaki_kds_generic_research"]', {state: 'attached'});
+  await page.getByText('Override: pick an ECU family directly').click();
+  for (const ecu of ['kawasaki_kds_generic_research', 'suzuki_sds_generic_research']) {
+    await page.selectOption('#ecuOverride', ecu);
+    const request = await page.evaluate(() => selectionRequest());
+    expect(request.ecu).toBe(ecu);
+    expect(request).not.toHaveProperty('model');
+    expect(request).not.toHaveProperty('year');
+    expect(request).not.toHaveProperty('make');
+    const info = await page.evaluate(async (id) => {
+      const response = await fetch('/api/select', {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ecu: id, transport:'kline'})});
+      return response.json();
+    }, ecu);
+    expect(info.ecu.capabilities).toEqual(['live']);
+    expect(info.ecu.memory.read_supported).toBe(false);
+    expect(info.ecu.memory.write_supported).toBe(false);
+    expect(info.ecu.session.physical_evidence_note).toContain('Synthetic');
+  }
+});
+
+test('Yamaha and Indian live CAN sources require explicit selection and confirmation', async ({page}) => {
+  await page.goto('/');
+  await page.locator('[data-view="discovery"]').click();
+  const calls=[];
+  let release;
+  const held = new Promise(resolve => { release = resolve; });
+  await page.route('**/api/tools/harley-hdlan-listen', async route => {
+    calls.push(route.request().postDataJSON());
+    if (calls.length > 1) await held;
+    await route.fulfill({json:{events:[{id:'0x18F00400',raw:'0000001027000082',values:{rpm_candidate:1250}}],frames_received:1,invalid_length_frames:0}});
+  });
+  try {
+    await page.selectOption('#harleyLiveProfile', 'indian_springfield_2017');
+    await page.locator('#harleyLiveConfirm').check();
+    await page.locator('#harleyLiveStart').click();
+    await expect(page.locator('#harleyLiveOut')).toContainText('rpm_candidate: 1250');
+    expect(calls[0]).toEqual({channel:'can0',profile:'indian_springfield_2017',confirm:true});
+    await page.selectOption('#harleyLiveProfile', 'yamaha_r9_2026');
+    await expect(page.locator('#harleyLiveConfirm')).not.toBeChecked();
+    await expect(page.locator('#harleyLiveOut')).toContainText('Selection changed');
+  } finally { release(); }
+});
+
+test('desktop OpenETV research runs locally and marks cells requiring review', async ({page}) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  await page.locator('#etvEngine').fill('RPM,0,50,100\n1000,-10,100,80');
+  await page.locator('#etvRequest').fill('RPM,0,50,100\n1000,-20,95,110');
+  await page.locator('#etvCalculate').click();
+  await expect(page.locator('#etvOut')).toContainText('1000,0,47.7,50');
+  await expect(page.locator('#etvOut')).toContainText('1000,below_min,non_monotonic,saturated');
+  await expect(page.locator('#etvOut')).toContainText('not a validated or flash-ready tune');
+});
+
+test('2017 V-Strom source-unverified SDS attempt is selectable, without programming', async ({page}) => {
+  await page.goto('/');
+  await page.evaluate(() => fetch('/api/disconnect', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}));
+  await page.selectOption('#makeSelect','Suzuki');
+  await page.selectOption('#modelSelect','V-Strom DL650XAL7');
+  await page.selectOption('#yearSelect','2017');
+  await expect(page.locator('#resolveResult')).toContainText('synthetic');
+  const result = await page.evaluate(async () => {
+    const post=async (path, body)=>{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return {status:r.status,body:await r.json()}};
+    return {selection:await post('/api/select',{make:'Suzuki',model:'V-Strom DL650XAL7',year:2017,transport:'kline'}), service:await post('/api/connect',{mode:'service'})};
+  });
+  expect(result.selection.body.ecu.id).toBe('suzuki_dl650_2017_research');
+  expect(result.selection.body.ecu.session.physical_evidence_note).toContain('not verified');
+  expect(result.selection.body.ecu.memory.read_supported).toBe(false);
+  expect(result.selection.body.ecu.memory.write_supported).toBe(false);
+  expect(result.service.status).toBe(501);
+});
+
+test('physical 5AM partial read warning is shown before reading', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="firmware"]').click();
+  await page.evaluate(() => renderMemoryCapabilities({
+    capabilities: { ecu: '5am', family: 'IAW 5AM', protocol: 'iaw_transfer',
+      read_supported: true, write_supported: false,
+      partial_read_note: 'Experimental 5AM source-derived read: blocks 2–5 are FF placeholders, not read. Not a verified backup, base map, or flash-ready image.',
+      regions: {flash: {size: 311296}} }, base_map: {intact: false}, checkpoints: {}
+  }));
+  await expect(page.locator('#memCaps')).toContainText('experimental partial read');
+  await expect(page.locator('#memCaps')).toContainText('blocks 2–5 are FF placeholders');
+  await expect(page.locator('#backupBtn')).toBeDisabled();
+  await expect(page.locator('#baseMapSaveBtn')).toBeDisabled();
+  await expect(page.locator('#readBtn')).toBeEnabled();
+});
+
+test('desktop Power Vision log mapping requires an explicit cylinder AFR', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('body')).toHaveAttribute('data-desktop', '1');
+  await page.locator('[data-view="firmware"]').click();
+  await page.locator('.map-log-tools > summary').click();
+  await page.locator('#mapLogFile').setInputFiles({
+    name: 'synthetic-pv.csv', mimeType: 'text/csv',
+    buffer: Buffer.from('RPM,MAP,TP,AFR1,AFR2,Set AFR\n2000,60,20,15,14.8,14.2\n'),
+  });
+  await expect(page.locator('#mapLogSummary')).toContainText('synthetic-pv.csv');
+  await expect(page.locator('#mapLogMeasured')).toHaveValue('');
+  await expect(page.locator('#mapLogTarget')).toHaveValue('Set AFR');
+  await page.locator('#mapLogMeasured').selectOption('AFR1');
+  await expect(page.locator('#mapLogMeasured')).toHaveValue('AFR1');
 });

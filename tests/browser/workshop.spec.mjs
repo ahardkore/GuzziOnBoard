@@ -783,3 +783,24 @@ test('hosted JetDrive capture cannot access the dyno network', async ({ page }) 
   await page.locator('#jetdriveConfirm').check(); await page.locator('#jetdriveCapture').click();
   await expect(page.locator('#jetdriveOut')).toContainText('hosted demo cannot access the local dyno network');
 });
+
+test('offline OpenETV research calculates and rejects stale or invalid tables', async ({page}) => {
+  await openTools(page);
+  await page.locator('#etvEngine').fill('RPM,0,25,50,100\n1000,-10,50,100,90\n2000,-10,50,100,100');
+  await page.locator('#etvRequest').fill('RPM,0,25,50,100\n1000,-20,20,95,100\n2000,-20,20,95,100');
+  await page.locator('#etvThreshold').fill('1000');
+  await page.locator('#etvCalculate').click();
+  const out=page.locator('#etvOut');
+  await expect(out).toContainText('1000,0,12.5,47.5,50');
+  await expect(out).toContainText('2000,0,12.5,47.5,100');
+  await expect(out).toContainText('"non_monotonic":1');
+  await expect(out).toContainText('not a validated or flash-ready tune');
+  await page.locator('#etvEngine').fill('RPM,0,0\n1000,1,2');
+  await expect(out).toContainText('Inputs changed');
+  await page.locator('#etvCalculate').click();
+  await expect(out).toContainText('strictly ascending');
+  await expect(out).not.toContainText('Candidate throttle');
+  await page.locator('#etvEngine').fill('RPM,0,50\n1000,0,0');
+  await page.locator('#etvCalculate').click();
+  await expect(out).toContainText('no nonzero rows');
+});

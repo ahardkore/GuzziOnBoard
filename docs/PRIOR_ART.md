@@ -61,8 +61,9 @@ This retires the `iaw5am-affine-hypothesis` in `guzzionboard/security.py` —
 the real function is not affine, so the fitted line agrees with the two
 samples and diverges everywhere else. Honest confidence level: **documented**
 (mature open-source tool, reproduced against both its own published pairs) —
-not `verified-bench` until someone feeds a real Guzzi 5AM a seed and this
-function's answer unlocks it. The algorithm is expected to be shared by the
+not `verified-bench` for GuzziOnBoard until this integration is tested on a
+real ECU. Onboard-logger separately reports a successful Guzzi 5AM write using
+5am_util, which is upstream evidence of that utility's unlock. The algorithm is expected to be shared by the
 59M (IAW5xWriter covers both), and is *not* assumed to hold for 7SM, MIU G3 or
 the CAN families.
 
@@ -124,10 +125,11 @@ needs this.**
   done with `termios2`/`BOTHER`; pyserial accepts these rates on Linux.
 - Login (27) happens before download on the read path too.
 - 20 blocks × 16 KiB = 320 KiB file; blocks 2–5 are *not requested* and are
-  filled with `0xFF` (5am_util behaviour on Ducati-fit ECUs — whether Guzzi
-  5AMs serve those blocks is untested; our catalog's region data comes from a
-  real HW610 dump and disagrees, so treat the 0xFF fill as tool behaviour,
-  not ECU geometry).
+  filled with `0xFF`. A later Guzzi HW610 source uses the same convention.
+  These bytes are placeholders, not evidence of actual contents. The previous
+  contiguous GuzziOnBoard region description was not sufficient to establish
+  the missing pages or validate its old read sequence; see the updated
+  physical-read limitations in `SOURCE_CODE_REAUDIT.md`.
 - Block setup `36 11 00 FE 02 01 <block>`, then `36 21 <off16> 00 20` reads
   32 bytes at a time.
 
@@ -252,11 +254,11 @@ projects have met vehicles:
 | Project | What it is | What we take |
 |---|---|---|
 | [`aster94/Keyword-Protocol-2000`](https://github.com/aster94/Keyword-Protocol-2000) | Arduino KWP2000 client, tested on Suzuki/Kawasaki/Yamaha/Honda | real-bike K-Line init timing, 5-baud slow init edge cases, pacing constants; diff against our `kline.py` before first contact |
-| [`python-udsoncan`](https://github.com/pylessard/python-udsoncan) + [`python-isotp`](https://github.com/pylessard/python-isotp) | the canonical Python UDS + ISO-TP stack | oracle for our `protocol/isotp.py`: run both against the same frames in CI; UDS semantics (NRC handling, `responsePending`) for the CAN families |
+| [`python-udsoncan`](https://github.com/pylessard/python-udsoncan) + [`python-isotp`](https://github.com/pylessard/python-can-isotp) | the canonical Python UDS + ISO-TP stack | oracle for our `protocol/isotp.py`: run both against the same frames in CI; UDS semantics (NRC handling, `responsePending`) for the CAN families |
 | [`slava-fm/moto-service-tool`](https://github.com/slava-fm/moto-service-tool) | Swift, ELM327-based UDS/KWP tool for a modern Ducati (Panigale V2), incl. service reset | the closest published analogue to our MIU G4 / 11MP problem: modern CAN motorcycle, ELM327-class adapter, UDS over ISO-TP — see its adapter quirks and service-reset sequences |
 | [`rnd-ash/OpenVehicleDiag`](https://github.com/rnd-ash/OpenVehicleDiag) | Rust diagnostic platform, J2534 + SocketCAN, UDS/KWP2000 | architecture reference (server/job/UI separation mirrors ours); their session handling for UDS over CAN |
 | [`cedricp/ddt4all`](https://github.com/cedricp/ddt4all) | Renault/Nissan DDT tool, huge ECU parameter databases | the "everything is data" pattern our catalog follows, at scale; their JSON parameter format is a good template if our identifier tables grow request semantics |
-| [`collin82/SavvyCAN`](https://github.com/collin82/SavvyCAN) | CAN capture/replay | the instrument for gap #2 below |
+| [`collin80/SavvyCAN`](https://github.com/collin80/SavvyCAN) | CAN capture/replay | the instrument for gap #2 below |
 
 Not everything J2534-adjacent matters to us (jakka351/OpenJ2534 is only
 relevant if pass-thru hardware support is ever wanted).
@@ -300,7 +302,7 @@ relevant if pass-thru hardware support is ever wanted).
 
 | # | Gap (from PROTOCOL_NOTES) | Program | Action | Done when |
 |---|---|---|---|---|
-| 1 | No verified SecurityAccess key | 5am_util (§1.1) | register `iaw5am-kwp-divmod`, retire affine hypothesis | provider ships, one bench unlock on a real 5AM promotes it to `verified` |
+| 1 | No verified SecurityAccess key | 5am_util (§1.1) | register `iaw5am-kwp-divmod`, retire affine hypothesis | provider ships; upstream reports a Guzzi write, but this integration has not been bench-tested |
 | 2 | MIU G4 / 11MP CAN transport and application are unpublished | Service/commercial records, GuzziCanDiag + SavvyCAN (§2, §4) | Continue project-owned archive research or controlled maintainer bench capture; do not probe a customer bike | A reproducible family-specific capture or primary definition establishes bitrate, IDs, addressing, transport, session, and payloads. Until then the profiles have no CAN defaults or capabilities and fail before transport construction. The offline capture analyser remains available for existing research logs. |
 | 3 | Most non-5AM application identifiers remain incomplete | OEM MIU G3 tables, IAW Scan 2, ScanST, GuzziDiag/IAWDiag records | Preserve only values established by a primary definition, source, or reproducible session; keep the rest unavailable | 16M now has evidence-bounded read-only support and 7SM has captured identity only. MIU G3's OEM RLI names remain non-executable raw research metadata; 15M, 15RC, 59M, P8 and the remaining families expose no guessed operations. |
 | 4 | Physical transports have not met project-controlled hardware | aster94 lib, RPMSensorEmu, AdapterTest (§4, §6) | Diff timing against prior art, then use maintainer-owned bench ECUs and a wheel emulator | One full evidence-preserving session per enabled family on controlled hardware. `cansim` validates generic ISO-TP mechanics only and makes no claim about a Piaggio CAN application. |
@@ -381,12 +383,12 @@ rather than fitting a constant.
 
 ## 9. Is GuzziDiag open source? (GitHub survey, 2026-10)
 
-Asked directly, and searched directly. **No.** GuzziDiag, IAWDiag and
-GuzziCanDiag are freeware binaries from von-der-salierburg.de; no source has
-ever been published. A GitHub-wide search for the tools returns exactly one
-repository, `MerrimanInd/guzzidiag-nix` — a Nix flake that *packages the
-closed binary*, nothing more. So §8 stands: the per-family identifier tables
-are not reachable by reading somebody's source.
+The reviewed vendor tools are distributed as prebuilt binaries. The pinned
+`MerrimanInd/guzzidiag-nix` repository packages those binaries; it does not
+contain their application protocol source. This is not a proof that source
+has never been published elsewhere, or that there is only one related GitHub
+repository. Independent projects do contain code for particular IAW families;
+see the detailed, revision-pinned findings in `SOURCE_CODE_REAUDIT.md`.
 
 The search was still worth doing, because the neighbours are real:
 
@@ -441,4 +443,4 @@ the same source.
   andreibaw/Honda_K-Line_KWP2000 (searched 2026-10)
 - aster94/Keyword-Protocol-2000, python-udsoncan, python-isotp,
   slava-fm/moto-service-tool, rnd-ash/OpenVehicleDiag, cedricp/ddt4all,
-  collin82/SavvyCAN — see §4 links
+  collin80/SavvyCAN — see §4 links

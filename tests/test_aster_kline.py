@@ -275,7 +275,8 @@ def test_suzuki_gsxr_research_does_not_replace_prior_specific_models():
     c=load_catalog()
     assert c.resolve('GSX-R600',2011,'Suzuki')[1].id=='suzuki_gsxr600_2011'
     assert c.resolve('GSX-R1000',2004,'Suzuki')[1].id=='suzuki_gsxr1000_2004'
-    assert not c.find('GSX-R750',2017,'Suzuki')
+    assert c.resolve('GSX-R750',2017,'Suzuki')[1].id == 'suzuki_sds_gsxr_research'
+    assert not c.find('GSX-R750',2018,'Suzuki')
 
 
 def test_kds_research_raw_read_does_not_promote_sensor_or_safety_state():
@@ -303,7 +304,7 @@ def test_kds_research_bad_reply_stays_error(bad):
 
 def test_kds_all_vendor_models_select_synthetic_read_only(monkeypatch):
     models=[v for v in load_catalog().vehicles if v.ecu=='kawasaki_kds_research']
-    assert len({v.model for v in models})==37
+    assert len({v.model for v in models})==39
     for bike in models:
         for year in range(bike.year_from,bike.year_to + 1):
             w=Workstation(record=False)
@@ -321,3 +322,131 @@ def test_kds_all_vendor_models_select_synthetic_read_only(monkeypatch):
     c=load_catalog()
     assert c.resolve('ER-6n',2006,'Kawasaki')[1].id=='kawasaki_er6n_2006'
     assert c.resolve('Versys 650',2012,'Kawasaki')[1].id=='kawasaki_versys650_2012'
+
+
+@pytest.mark.parametrize('model,years', [
+    ('GSX-R600', list(range(2004, 2006)) + list(range(2017, 2024))),
+    ('GSX-R750', [2004, 2005, 2017]),
+])
+def test_new_aim_suzuki_ranges_execute_raw_snapshot_with_fake_ecu(monkeypatch, model, years):
+    """Synthetic exchanges, not a hardware test or a memory read."""
+    for year in years:
+        w = Workstation(record=False)
+        selected = w.select(make='Suzuki', model=model, year=year, transport='kline')
+        assert selected['ecu']['id'] == 'suzuki_sds_gsxr_research'
+        assert not selected['ecu']['memory']['read_supported']
+        t = FakeTransport(0x12, [reply(0x12, 0x61, 8, *range(50))])
+        monkeypatch.setattr(w, '_build_transport', lambda: t)
+        w.connect(mode='read_only')
+        sample = w.require_service().read_parameters()[0]
+        assert sample.raw == bytes(range(50)) and sample.value is None and not sample.error
+        assert t.conn.sent == [bytes.fromhex('80 12 f1 02 21 08 ae')]
+        w.disconnect()
+
+
+def test_extended_suzuki_ranges_are_bounded_and_do_not_override_special_profiles():
+    c = load_catalog()
+    assert not c.find('GSX-R600', 2003, 'Suzuki')
+    assert not c.find('GSX-R600', 2024, 'Suzuki')
+    assert not c.find('GSX-R750', 2018, 'Suzuki')
+    assert c.resolve('GSX-R600', 2011, 'Suzuki')[1].id == 'suzuki_gsxr600_2011'
+    assert c.resolve('GSX-R1000', 2004, 'Suzuki')[1].id == 'suzuki_gsxr1000_2004'
+
+
+@pytest.mark.parametrize('profile,target,payload,expected', [
+    ('kawasaki_kds_generic_research', 0x11,
+     [reply(0x11, 0x50, 0x80), reply(0x11, 0x61, 9, 1, 2)], b'\x01\x02'),
+    ('suzuki_sds_generic_research', 0x12,
+     [reply(0x12, 0x61, 8, *range(40))], bytes(range(40))),
+])
+def test_generic_ecu_only_kline_research_is_read_only_and_returns_raw(monkeypatch, profile, target, payload, expected):
+    w = Workstation(record=False)
+    selected = w.select(ecu=profile, transport='kline')
+    assert selected['ecu']['session']['simulator_supported'] is False
+    assert 'synthetic' in selected['ecu']['session']['physical_evidence_note'].lower()
+    assert selected['ecu']['capabilities'] == ['live']
+    assert not selected['ecu']['memory']['read_supported']
+    assert not selected['ecu']['memory']['write_supported']
+    with pytest.raises(TransportUnavailable, match='read-only'):
+        w.connect(mode='service')
+    t = FakeTransport(target, payload)
+    monkeypatch.setattr(w, '_build_transport', lambda: t)
+    w.connect(mode='read_only')
+    svc = w.require_service()
+    sample = svc.read_parameters()[0]
+    assert sample.raw == expected and sample.value is None and not sample.error
+    assert not svc.gate.state.identified and svc.gate.state.battery_v is None
+    for command in (b'\x23\x00', b'\x27\x01', b'\x14', b'\x34', b'\x31\x01'):
+        with pytest.raises(PermissionError):
+            svc.session.request(command)
+    w.disconnect()
+    assert t.conn.closed
+
+
+@pytest.mark.parametrize('profile,target', [('kawasaki_kds_generic_research', 0x11),
+                                            ('suzuki_sds_generic_research', 0x12)])
+def test_generic_kline_attempt_never_treats_an_uncatalogued_model_as_evidence(profile, target):
+    w = Workstation(record=False)
+    with pytest.raises(ValueError, match='not cataloged'):
+        w.select(make='Suzuki', model='GSX-R600', year=2011, ecu=profile, transport='kline')
+    w.select(ecu=profile, transport='simulator')
+    with pytest.raises(TransportUnavailable):
+        w.connect()
+    t = FakeTransport(target, [], wake=reply(target, 0xc1, 0xea))
+    with pytest.raises(ProtocolError):
+        service(profile, t).connect()
+    assert t.conn.closed and not t.conn.sent
+    t = FakeTransport(target, [])
+    t.baud = 9600
+    with pytest.raises(TransportUnavailable, match='10400'):
+        service(profile, t).connect()
+    assert not t.opened
+
+
+def test_generic_suzuki_accepts_bounded_raw_lengths_but_not_empty_or_oversized():
+    for size in (1, 40, 50, 60):
+        t = FakeTransport(0x12, [reply(0x12, 0x61, 8, *([1] * size))])
+        s = service('suzuki_sds_generic_research', t); s.connect()
+        sample = s.read_parameters()[0]
+        assert len(sample.raw) == size and sample.value is None and not sample.error
+        s.disconnect()
+    for size in (0, 61):
+        t = FakeTransport(0x12, [reply(0x12, 0x61, 8, *([1] * size))])
+        s = service('suzuki_sds_generic_research', t); s.connect()
+        sample = s.read_parameters()[0]
+        assert sample.raw == b'' and sample.value is None and sample.error
+        s.disconnect()
+
+
+def test_dl650_gateway_candidate_is_scoped_raw_and_read_only(monkeypatch):
+    """The upstream project explicitly says its 2017 bike hasn't been tested."""
+    w = Workstation(record=False)
+    selected = w.select(make='Suzuki', model='V-Strom DL650XAL7', year=2017, transport='kline')
+    assert selected['ecu']['id'] == 'suzuki_dl650_2017_research'
+    assert 'not verified' in selected['ecu']['session']['physical_evidence_note'].lower()
+    assert not selected['ecu']['memory']['read_supported'] and not selected['ecu']['memory']['write_supported']
+    with pytest.raises(TransportUnavailable, match='read-only'):
+        w.connect(mode='service')
+    payload = bytes(range(52))
+    t = FakeTransport(0x12, [reply(0x12, 0x61, 8, *payload)])
+    monkeypatch.setattr(w, '_build_transport', lambda: t)
+    w.connect(mode='read_only')
+    sample = w.require_service().read_parameters()[0]
+    assert sample.raw == payload and sample.value is None and not sample.error
+    assert t.conn.sent == [bytes.fromhex('80 12 f1 02 21 08 ae')]
+    with pytest.raises(PermissionError): w.require_service().session.request(b'\x14\xff\x00')
+    w.disconnect()
+    c = load_catalog()
+    assert not c.find('V-Strom DL650XAL7', 2016, 'Suzuki')
+    assert not c.find('V-Strom DL650XAL7', 2018, 'Suzuki')
+    w.select(ecu='suzuki_dl650_2017_research', transport='kline')
+    with pytest.raises(TransportUnavailable, match='exact 2017'):
+        w.connect(mode='read_only')
+
+
+def test_dl650_candidate_rejects_unexpected_wake_keywords():
+    t = FakeTransport(0x12, [], wake=reply(0x12, 0xc1, 0x00, 0x00))
+    s = service('suzuki_dl650_2017_research', t)
+    with pytest.raises(ProtocolError, match='source-specific key bytes'):
+        s.connect()
+    assert t.conn.closed and not t.conn.sent

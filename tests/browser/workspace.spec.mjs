@@ -191,3 +191,26 @@ test('passive CAN byte statistics require filtering and report observations only
   await expect(page.locator('#canlogOut')).toContainText('not a signal definition or vehicle identification');
   await expect(page.locator('#canlogOut')).toContainText('0x80');
 });
+
+test('Yamaha R9 source decoder is opt-in and keeps frame boundaries', async ({page}) => {
+  await page.goto('/web/index.html');
+  const text = ['(1.0) can0 27C#0C80000A830000', '(2.0) can0 512#A0500000', '(3.0) can0 27C#0102',
+    '(4.0) can0 0000027C#0C80000A830000', '5.0 T11 27C 0C 80 00 0A 83 00 00'].join('\n');
+  const result = await page.evaluate(async text => {
+    const send = body => fetch('/api/tools/canlog', {method:'POST', headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r => r.json());
+    return {without: await send({text}), withDecoder: await send({text, decoder:'yamaha_r9_2026'})};
+  }, text);
+  expect(result.without.decoder).toBeUndefined();
+  expect(result.withDecoder.decoder).toMatchObject({recognized_frames:2, invalid_length_frames:1, ignored_tx_frames:1});
+  expect(result.withDecoder.decoder.events.map(x => x.values)).toEqual([
+    {rpm_candidate:1250, gear_raw_candidate:3, tcs_setting_candidate:5, pwr_setting_candidate:3},
+    {coolant_c_candidate:70, air_c_candidate:20},
+  ]);
+  await page.locator('[data-view="discovery"]').click();
+  await page.locator('#canlogText').locator('..').locator('summary').click();
+  await page.locator('#canlogText').fill(text);
+  await page.selectOption('#canlogDecoder', 'yamaha_r9_2026');
+  await page.locator('#canlogPasteBtn').click();
+  await expect(page.locator('#canlogOut')).toContainText('Yamaha R9 2026 research decoder');
+  await expect(page.locator('#canlogOut')).toContainText('rpm_candidate: 1250');
+});

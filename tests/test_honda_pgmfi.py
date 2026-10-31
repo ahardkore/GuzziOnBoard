@@ -189,5 +189,65 @@ def test_hondaecu_source_models_attempt_raw_table_with_fake_ecu(monkeypatch,mode
 def test_honda_source_does_not_fill_missing_years():
     c=load_catalog()
     assert not c.find('MSX125',2015,'Honda')
-    assert not c.find('CRF250R',2012,'Honda')
+    assert c.resolve('CRF250R',2012,'Honda')[1].id == 'honda_pgmfi_research'
+    assert not c.find('CRF250R',2009,'Honda')
     assert not c.find('CRF110F',2018,'Honda')
+
+
+@pytest.mark.parametrize('model,years', [
+    ('Vario 125 Techno FI', range(2012, 2016)),
+    ('CB150R StreetFire', range(2012, 2022)),
+    ('CBR150R FI', range(2014, 2021)),
+    ('Supra X 125 Helm-In', range(2014, 2021)),
+])
+def test_wrt_listed_keihin_models_attempt_raw_read_with_synthetic_ecu(monkeypatch, model, years):
+    """28 model/year combinations, not 28 distinct models or hardware tests."""
+    for year in years:
+        w = Workstation(record=False)
+        selected = w.select(make='Honda', model=model, year=year, transport='kline')
+        assert selected['ecu']['id'] == 'honda_pgmfi_research'
+        assert 'synthetic' in selected['ecu']['session']['physical_evidence_note'].lower()
+        assert not selected['ecu']['memory']['read_supported']
+        t = FakeKLine(response(0x10, b'\x01\x02'))
+        monkeypatch.setattr(w, '_build_transport', lambda: t)
+        w.connect(mode='read_only')
+        sample = w.require_service().read_parameters(['table_10_raw'])[0]
+        assert sample.raw == b'\x01\x02' and sample.value is None and not sample.error
+        assert t.connection.sent == [bytes.fromhex('72 05 71 10 08')]
+        w.disconnect()
+
+
+def test_wrt_listed_models_do_not_claim_outside_years():
+    c = load_catalog()
+    for model, year in [('Vario 125 Techno FI', 2016), ('CB150R StreetFire', 2022),
+                        ('CBR150R FI', 2013), ('Supra X 125 Helm-In', 2021)]:
+        assert not c.find(model, year, 'Honda')
+
+
+@pytest.mark.parametrize('model,years', [
+    ('CRF250R', [2010, 2012, *range(2016, 2023)]),
+    ('CRF250RX', range(2019, 2023)),
+])
+def test_hrc_crf_model_years_attempt_read_with_fake_ecu(monkeypatch, model, years):
+    """The HRC tool's tuning capabilities are not implemented here."""
+    for year in years:
+        w = Workstation(record=False)
+        selected = w.select(make='Honda', model=model, year=year, transport='kline')
+        assert selected['ecu']['id'] == 'honda_pgmfi_research'
+        assert not selected['ecu']['memory']['read_supported']
+        assert not selected['ecu']['memory']['write_supported']
+        t = FakeKLine(response(0x10, b'\x01\x02'))
+        monkeypatch.setattr(w, '_build_transport', lambda: t)
+        w.connect(mode='read_only')
+        sample = w.require_service().read_parameters(['table_10_raw'])[0]
+        assert sample.raw == b'\x01\x02' and sample.value is None and not sample.error
+        assert t.connection.sent == [bytes.fromhex('72 05 71 10 08')]
+        w.disconnect()
+
+
+def test_hrc_crf_model_years_are_bounded():
+    c = load_catalog()
+    assert not c.find('CRF250R', 2009, 'Honda')
+    assert not c.find('CRF250R', 2023, 'Honda')
+    assert not c.find('CRF250RX', 2018, 'Honda')
+    assert not c.find('CRF250RX', 2023, 'Honda')

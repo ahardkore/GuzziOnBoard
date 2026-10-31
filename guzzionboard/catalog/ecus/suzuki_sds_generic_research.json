@@ -1,0 +1,50 @@
+{
+  "id": "suzuki_sds_generic_research",
+  "family": "Suzuki SDS K-Line (ECU-only research)",
+  "display_name": "Suzuki SDS (ECU-only raw attempt)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "ECU-only, not model-specific",
+  "notes": "Opt-in ECU-only raw diagnostic attempt for a Kawasaki KDS or Suzuki SDS K-Line ECU. The source reports broad protocol support for its own implementation, but this integration and exact ECU compatibility are synthetic-tested only. Verify the ECU, diagnostic bus and adapter; a failed handshake or unsupported response stops the attempt. No verified sensors, ECU identity, faults, memory, programming or simulator.",
+  "session": {
+    "protocol": "suzuki-sds-gsxr-research",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 1.0,
+    "physical_evidence_note": "ECU-only research attempt; no particular motorcycle or ECU fitment is asserted. Synthetic tests only, not a hardware test."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No memory or programming operations."
+  },
+  "capabilities": [
+    "live"
+  ],
+  "sources": [
+    "https://support.aimshop.com/downloads/stockEcu/bike/suzuki/Suzuki_SDS_Protocol_102_eng.pdf",
+    "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3",
+    "https://store.aim-sportline.com/en/others/237-suzuki-sports-bike-dedicated-cable.html",
+    "https://github.com/HerrRiebmann/KDS2Bluetooth/tree/bb8be32a6ed54d995c838bb58af528731fc8fae1"
+  ],
+  "parameters": [
+    {
+      "key": "raw_snapshot",
+      "name": "Raw SDS sensor snapshot (meaning unverified)",
+      "local_id": 8,
+      "unit": "",
+      "default": true,
+      "confidence": "unknown"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "suzuki-sds-gsxr-research",
+    "inter_byte_delay": 0.005
+  }
+}

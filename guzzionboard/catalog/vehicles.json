@@ -29,7 +29,13 @@
   "https://www.dynojet.com/harley-davidson-power-vision-delphi-j1850-black-1/",
   "https://orebrobildiagnos.se/en/product/obd-scan-tool-for-kawasaki-motorcycles/",
   "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
-  "https://www.dynojet.com/power-vision-3-for-2019-2020-honda-crf110f-pv3-16-07/"
+  "https://www.dynojet.com/power-vision-3-for-2019-2020-honda-crf110f-pv3-16-07/",
+  "https://github.com/abyryn/AMQC-WRT-Diagnosis/tree/8b72c7d444c2171e14b9d1cbe6df4c016b0685dd: Indonesian Honda PGM-FI K-Line source-listed model/year/ECU candidates; diagnostic frames differ from our implementation",
+  "https://store.aim-sportline.com/en/others/237-suzuki-sports-bike-dedicated-cable.html",
+  "https://www.aimtechnologies.com/aim-support/docs/SoloDL_HondaCRF-HDS_250dal2010+450dal2009_100_eng.pdf",
+  "https://www.honda.co.jp/HRC/products/racingkit/crf250r/settingtool/",
+  "https://www.amazon.com/AMHTDOL-Diagnostic-Connector-Motorcycles-Compatible/dp/B0GVTYHT94",
+  "https://github.com/sunsided/suzuki-sds-obdii-gateway/tree/20644c2e21ca2a867e086409c7f130230a7327d7: 2017 DL650XAL7 SDS gateway, explicitly unverified on bike"
  ],
  "vehicles": [
   {
@@ -4718,6 +4724,232 @@
    "ecu": "honda_pgmfi_research",
    "confidence": "unknown",
    "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "Vario 125 Techno FI",
+   "year_from": 2012,
+   "year_to": 2015,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "WRT Garage lists Indonesian Vario 125 Techno FI 2012-2015 with Keihin 38770-KZR-601 and fast-init K-Line. Source framing differs from this implementation. Source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. Verify market and ECU label. Synthetic tests only; no memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB150R StreetFire",
+   "year_from": 2012,
+   "year_to": 2014,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "WRT Garage lists Indonesian CB150R StreetFire 2012-2014 with Keihin 38770-K15-903 and fast-init K-Line. Source framing differs from this implementation. Source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. Verify market and ECU label. Synthetic tests only; no memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CB150R StreetFire",
+   "year_from": 2015,
+   "year_to": 2021,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "WRT Garage lists Indonesian CB150R StreetFire 2015-2021 with Keihin 38770-K15-G01 and fast-init K-Line. Source framing differs from this implementation. Source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. Verify market and ECU label. Synthetic tests only; no memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CBR150R FI",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "WRT Garage lists Indonesian CBR150R FI 2014-2020 with Keihin 38770-K45-N01 and fast-init K-Line. Source framing differs from this implementation. Source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. Verify market and ECU label. Synthetic tests only; no memory reading or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "Supra X 125 Helm-In",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "honda_pgmfi_research",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "WRT Garage lists Indonesian Supra X 125 Helm-In 2014-2020 with Keihin 38770-K41-N01 and fast-init K-Line. Source framing differs from this implementation. Source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. Verify market and ECU label. Synthetic tests only; no memory reading or programming."
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-R600",
+   "year_from": 2004,
+   "year_to": 2005,
+   "ecu": "suzuki_sds_gsxr_research",
+   "confidence": "unknown",
+   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation’s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-R600",
+   "year_from": 2017,
+   "year_to": 2023,
+   "ecu": "suzuki_sds_gsxr_research",
+   "confidence": "unknown",
+   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation’s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-R750",
+   "year_from": 2004,
+   "year_to": 2005,
+   "ecu": "suzuki_sds_gsxr_research",
+   "confidence": "unknown",
+   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation’s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-R750",
+   "year_from": 2017,
+   "year_to": 2017,
+   "ecu": "suzuki_sds_gsxr_research",
+   "confidence": "unknown",
+   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation’s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF250R",
+   "year_from": 2010,
+   "year_to": 2010,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "AiM lists CRF 250 models with the PGM-FI setting tool for HDS_TAB10 over K-Line; Honda HRC lists this model/year for its setting tool. This is not confirmation of the exact table requests or ECU compatibility of this implementation. Synthetic tests only; raw read-only diagnostic attempt, not ECU memory or programming. Verify market and connector."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF250R",
+   "year_from": 2012,
+   "year_to": 2012,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "AiM lists CRF 250 models with the PGM-FI setting tool for HDS_TAB10 over K-Line; Honda HRC lists this model/year for its setting tool. This is not confirmation of the exact table requests or ECU compatibility of this implementation. Synthetic tests only; raw read-only diagnostic attempt, not ECU memory or programming. Verify market and connector."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF250R",
+   "year_from": 2016,
+   "year_to": 2022,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "AiM lists CRF 250 models with the PGM-FI setting tool for HDS_TAB10 over K-Line; Honda HRC lists this model/year for its setting tool. This is not confirmation of the exact table requests or ECU compatibility of this implementation. Synthetic tests only; raw read-only diagnostic attempt, not ECU memory or programming. Verify market and connector."
+  },
+  {
+   "make": "Honda",
+   "model": "CRF250RX",
+   "year_from": 2019,
+   "year_to": 2022,
+   "ecu": "honda_pgmfi_research",
+   "confidence": "unknown",
+   "notes": "AiM lists CRF 250 models with the PGM-FI setting tool for HDS_TAB10 over K-Line; Honda HRC lists this model/year for its setting tool. This is not confirmation of the exact table requests or ECU compatibility of this implementation. Synthetic tests only; raw read-only diagnostic attempt, not ECU memory or programming. Verify market and connector."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja 300",
+   "year_from": 2016,
+   "year_to": 2017,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "Adapter seller lists this model/year for a Kawasaki KDS K-Line adapter; connector variants and ECU support vary. The separate Aster-derived raw requests are not documented for this model. This is a read-only diagnostic attempt with synthetic tests only; no ECU memory or programming. Verify connector and K-Line before attempting."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja 400",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "Adapter seller lists this model/year for a Kawasaki KDS K-Line adapter; connector variants and ECU support vary. The separate Aster-derived raw requests are not documented for this model. This is a read-only diagnostic attempt with synthetic tests only; no ECU memory or programming. Verify connector and K-Line before attempting."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja 650",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "Adapter seller lists this model/year for a Kawasaki KDS K-Line adapter; connector variants and ECU support vary. The separate Aster-derived raw requests are not documented for this model. This is a read-only diagnostic attempt with synthetic tests only; no ECU memory or programming. Verify connector and K-Line before attempting."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Ninja 1000",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "Adapter seller lists this model/year for a Kawasaki KDS K-Line adapter; connector variants and ECU support vary. The separate Aster-derived raw requests are not documented for this model. This is a read-only diagnostic attempt with synthetic tests only; no ECU memory or programming. Verify connector and K-Line before attempting."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "ZX-6R Ninja",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "Adapter seller lists this model/year for a Kawasaki KDS K-Line adapter; connector variants and ECU support vary. The separate Aster-derived raw requests are not documented for this model. This is a read-only diagnostic attempt with synthetic tests only; no ECU memory or programming. Verify connector and K-Line before attempting."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "ZX-10R Ninja",
+   "year_from": 2011,
+   "year_to": 2020,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "Adapter seller lists this model/year for a Kawasaki KDS K-Line adapter; connector variants and ECU support vary. The separate Aster-derived raw requests are not documented for this model. This is a read-only diagnostic attempt with synthetic tests only; no ECU memory or programming. Verify connector and K-Line before attempting."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "ZX-14R Ninja",
+   "year_from": 2012,
+   "year_to": 2016,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "Adapter seller lists this model/year for a Kawasaki KDS K-Line adapter; connector variants and ECU support vary. The separate Aster-derived raw requests are not documented for this model. This is a read-only diagnostic attempt with synthetic tests only; no ECU memory or programming. Verify connector and K-Line before attempting."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z250",
+   "year_from": 2015,
+   "year_to": 2016,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "Adapter seller lists this model/year for a Kawasaki KDS K-Line adapter; connector variants and ECU support vary. The separate Aster-derived raw requests are not documented for this model. This is a read-only diagnostic attempt with synthetic tests only; no ECU memory or programming. Verify connector and K-Line before attempting."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z800",
+   "year_from": 2015,
+   "year_to": 2016,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "Adapter seller lists this model/year for a Kawasaki KDS K-Line adapter; connector variants and ECU support vary. The separate Aster-derived raw requests are not documented for this model. This is a read-only diagnostic attempt with synthetic tests only; no ECU memory or programming. Verify connector and K-Line before attempting."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z1000",
+   "year_from": 2016,
+   "year_to": 2016,
+   "ecu": "kawasaki_kds_research",
+   "confidence": "unknown",
+   "notes": "Adapter seller lists this model/year for a Kawasaki KDS K-Line adapter; connector variants and ECU support vary. The separate Aster-derived raw requests are not documented for this model. This is a read-only diagnostic attempt with synthetic tests only; no ECU memory or programming. Verify connector and K-Line before attempting."
+  },
+  {
+   "make": "Suzuki",
+   "model": "V-Strom DL650XAL7",
+   "year_from": 2017,
+   "year_to": 2017,
+   "ecu": "suzuki_dl650_2017_research",
+   "confidence": "unknown",
+   "notes": "Source proposes this bike and explicitly reports no bike verification. This integration has synthetic tests only; raw live SDS attempt, no memory or tuning."
   }
  ]
 }

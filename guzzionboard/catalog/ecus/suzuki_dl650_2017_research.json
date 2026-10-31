@@ -1,0 +1,47 @@
+{
+  "id": "suzuki_dl650_2017_research",
+  "family": "Suzuki V-Strom DL650XAL7 2017 (SDS research)",
+  "display_name": "Suzuki V-Strom DL650XAL7 2017 (raw SDS attempt)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "2017",
+  "notes": "Source implements a 2017 DL650XAL7 SDS-to-OBD gateway but explicitly reports nothing verified against the bike. This separate integration has synthetic tests only. Only a bounded raw 21 08 snapshot is attempted; no sensor interpretation, ECU identity, faults, memory, programming or simulator.",
+  "session": {
+    "protocol": "suzuki-sds-gsxr-research",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 1.0,
+    "physical_evidence_note": "Source explicitly states it has not verified its implementation against the bike; GuzziOnBoard integration has synthetic tests only."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No memory or programming operations."
+  },
+  "capabilities": [
+    "live"
+  ],
+  "sources": [
+    "https://github.com/sunsided/suzuki-sds-obdii-gateway/tree/20644c2e21ca2a867e086409c7f130230a7327d7"
+  ],
+  "parameters": [
+    {
+      "key": "raw_snapshot",
+      "name": "Raw SDS sensor snapshot (meaning unverified)",
+      "local_id": 8,
+      "unit": "",
+      "default": true,
+      "confidence": "unknown"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "suzuki-sds-gsxr-research",
+    "inter_byte_delay": 0.005
+  }
+}

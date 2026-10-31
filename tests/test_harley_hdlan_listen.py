@@ -133,3 +133,41 @@ def test_ducati_mitsubishi_live_broadcasts_reuse_offline_decoder(monkeypatch):
 def test_ducati_window_does_not_reuse_stale_frames(monkeypatch):
     bus=Bus([]); setup_bus(monkeypatch,bus)
     assert listen.listen('can0','ducati_mitsubishi')['events'] == []
+
+
+def test_yamaha_r9_live_observation_exact_frame_sizes_and_receive_only(monkeypatch):
+    bus = Bus([msg(0x27c, [0x0c, 0x80, 0, 0x0a, 0x83, 0, 0]),
+               msg(0x512, [160, 80, 0, 0]), msg(0x27c, [0]*8),
+               msg(0x512, [0]*4, is_rx=False), msg(0x27c, [0]*7, is_extended_id=True)])
+    calls = setup_bus(monkeypatch, bus)
+    result = listen.listen('can0', 'yamaha_r9_2026')
+    assert {f['can_id'] for f in calls[0]['can_filters']} == {0x27c, 0x512}
+    events = {e['id']: e['values'] for e in result['events']}
+    assert events['0x27C'] == {'rpm_candidate': 1250, 'gear_raw_candidate': 3,
+                                'tcs_setting_candidate': 5, 'pwr_setting_candidate': 3}
+    assert events['0x512'] == {'coolant_c_candidate': 70, 'air_c_candidate': 20}
+    assert result['invalid_length_frames'] == 1
+    assert not bus.send_called and bus.shutdown_called
+
+
+def test_indian_springfield_j1939_filters_sources_and_unavailable_values(monkeypatch):
+    # Priority may vary; PGN + source must match, and frames must be extended.
+    bus = Bus([msg(0x18f00400, [0,0,0,0x10,0x27,0,0,130], is_extended_id=True),
+               msg(0x18feee00, [120,0,0,0,0,0,0,0], is_extended_id=True),
+               msg(0x18fef10b, [0,0,0x64,0,0,0,0,0], is_extended_id=True),
+               msg(0x18fefc00, [0,0xff,0,0,0,0,0,0], is_extended_id=True),
+               msg(0x18febf0b, [0xff,0xff,0,0,0,0,0,0], is_extended_id=True),
+               msg(0x18fef100, [0]*8, is_extended_id=True),  # wrong source for speed
+               msg(0x18f00400, [0]*7, is_extended_id=True),
+               msg(0x18f00400, [0]*8),
+               msg(0x18f00400, [0]*8, is_extended_id=True, is_rx=False)])
+    calls = setup_bus(monkeypatch, bus)
+    result = listen.listen('can0', 'indian_springfield_2017')
+    assert all(f['extended'] and f['can_mask'] == 0x03ffffff for f in calls[0]['can_filters'])
+    events = {e['pgn']:e['values'] for e in result['events']}
+    assert events[61444] == {'rpm_candidate': 1250, 'engine_demand_percent_candidate': 5}
+    assert events[65262] == {'cylinder_head_c_candidate': 80}
+    assert events[65265] == {'rear_speed_kmh_candidate': 100}
+    assert events[65276] == {'fuel_percent_candidate': None}
+    assert events[65215] == {'front_speed_kmh_candidate': None}
+    assert result['invalid_length_frames'] == 1 and not bus.send_called and bus.shutdown_called

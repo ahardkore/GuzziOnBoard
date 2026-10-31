@@ -354,3 +354,20 @@ def test_refusal_reasons_are_human_readable(profile):
     reason = decision.reason()
     assert "identified" in reason
     assert len(reason) > 30
+
+
+def test_repeated_programming_enable_does_not_forget_prior_mode():
+    gate = SafetyGate(mode=Mode.READ_ONLY)
+    gate.enable_programming(gate.PROGRAMMING_ACKNOWLEDGEMENT)
+    gate.enable_programming(gate.PROGRAMMING_ACKNOWLEDGEMENT)
+    gate.disable_programming()
+    assert gate.mode is Mode.READ_ONLY and not gate.allow_programming
+
+
+def test_read_guard_cannot_arm_a_mutating_routine_even_if_requested():
+    gate = SafetyGate(mode=Mode.READ_ONLY)
+    guard = gate.session_guard({Service.TRANSFER_DATA, Service.REQUEST_ROUTINE_RESULTS,
+                                Service.START_ROUTINE_BY_LOCAL_ID}, purpose='read')
+    assert guard(Service.TRANSFER_DATA)
+    assert not guard(Service.REQUEST_ROUTINE_RESULTS)
+    assert not guard(Service.START_ROUTINE_BY_LOCAL_ID)

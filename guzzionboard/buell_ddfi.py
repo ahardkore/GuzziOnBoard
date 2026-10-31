@@ -94,7 +94,8 @@ def _integer(value: object, field: str, low: int, high: int) -> int:
 
 
 def run(port: object, mode: object, action: object, expected: object = None,
-        page: object = None, offset: object = None, length: object = None) -> dict:
+        page: object = None, offset: object = None, length: object = None,
+        compare_repeat: object = False) -> dict:
     device = _port(port)
     if mode not in ('stock', 'factory_race'):
         raise ValueError('Choose stock/P&A or factory-race protocol explicitly.')
@@ -102,6 +103,8 @@ def run(port: object, mode: object, action: object, expected: object = None,
         raise ValueError('Choose identify, runtime or EEPROM read.')
     if action != 'identify' and (not isinstance(expected, str) or not 5 <= len(expected) <= 64):
         raise ValueError('Enter the exact ECM version reported by identify.')
+    if type(compare_repeat) is not bool or (compare_repeat and action != 'read'):
+        raise ValueError('Repeat comparison must be a boolean used only for an EEPROM read.')
     if action == 'read':
         page = _integer(page, 'page', 1, 31)  # exclude page zero and the known virtual/service page 0x20 and above
         offset = _integer(offset, 'offset', 0, 255)
@@ -137,14 +140,20 @@ def run(port: object, mode: object, action: object, expected: object = None,
                 result.update(kind='runtime', data_hex=data.hex().upper(), length=len(data),
                               bueia_candidates=_bueia_runtime(version, data))
             if action == 'read':
-                data = bytearray()
-                while len(data) < length:
-                    n = min(16, length - len(data))
-                    chunk = _exchange(conn, ecm, bytes((0x52, offset + len(data), page, n)))
-                    if len(chunk) != n:
-                        raise TransportError('EEPROM response length mismatch; partial data discarded.')
-                    data.extend(chunk)
-                result.update(kind='page', page=page, offset=offset, length=length, data_hex=data.hex().upper())
+                def read_range():
+                    data = bytearray()
+                    while len(data) < length:
+                        n = min(16, length - len(data))
+                        chunk = _exchange(conn, ecm, bytes((0x52, offset + len(data), page, n)))
+                        if len(chunk) != n:
+                            raise TransportError('EEPROM response length mismatch; partial data discarded.')
+                        data.extend(chunk)
+                    return data
+                data = read_range()
+                if compare_repeat and data != read_range():
+                    raise TransportError('Repeated EEPROM reads disagree; all data discarded.')
+                result.update(kind='page', page=page, offset=offset, length=length,
+                              data_hex=data.hex().upper(), repeated_match=compare_repeat)
             return result
         finally:
             conn.close()

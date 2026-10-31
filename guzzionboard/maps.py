@@ -58,6 +58,45 @@ class XdfError(Exception):
     """An XDF or image could not be interpreted."""
 
 
+# Generous limits for user-supplied definitions. Checked before constructing
+# axis labels, layout positions, or an XML tree, not just before rendering.
+MAX_XDF_BYTES = 8 * 1024 * 1024
+MAX_XDF_AXIS = 65_536
+MAX_XDF_CELLS = 262_144
+MAX_XDF_NODES = 100_000
+MAX_XDF_DEPTH = 64
+
+
+class _BoundedXmlTree(ET.TreeBuilder):
+    def __init__(self):
+        super().__init__()
+        self.nodes = 0
+        self.depth = 0
+
+    def start(self, tag, attrs):
+        self.nodes += 1
+        self.depth += 1
+        if self.nodes > MAX_XDF_NODES or self.depth > MAX_XDF_DEPTH:
+            raise XdfError("XDF XML structure exceeds supported limits")
+        return super().start(tag, attrs)
+
+    def end(self, tag):
+        self.depth -= 1
+        return super().end(tag)
+
+
+def read_xdf_bytes(path: str | Path) -> bytes:
+    """Read a bounded XDF once, preserving the bytes used for its digest."""
+    try:
+        with Path(path).open('rb') as file:
+            raw = file.read(MAX_XDF_BYTES + 1)
+    except OSError as exc:
+        raise XdfError(f"cannot read {path}: {exc}") from exc
+    if len(raw) > MAX_XDF_BYTES:
+        raise XdfError("XDF exceeds the 8 MiB definition limit")
+    return raw
+
+
 # --------------------------------------------------------------------------
 # The MATH equation: "X/4096", "X*0.05859372", ...
 # --------------------------------------------------------------------------
@@ -67,7 +106,7 @@ class XdfError(Exception):
 # references other locations and is reported as unsupported rather than
 # guessed at.
 
-_MATH_ALLOWED = re.compile(r"^[Xx0-9+\-*/()., ]+$")
+_MATH_ALLOWED = re.compile(r"^[Xx0-9+\-*/(). ]+$")
 
 
 def _math_equation(node: ET.Element) -> str:
@@ -80,14 +119,17 @@ def _math_equation(node: ET.Element) -> str:
 
 def eval_math(equation: str, x: float) -> float:
     """Evaluate a TunerPro MATH equation for one raw value."""
-    if not _MATH_ALLOWED.match(equation or ""):
+    if not isinstance(equation, str) or len(equation) > 256 or not _MATH_ALLOWED.fullmatch(equation):
         raise XdfError(f"unsupported equation {equation!r}")
     text = equation.replace(" ", "").replace("X", "(X)").replace("x", "(X)")
-    if "**" in text:
+    if "**" in text or "//" in text:
         raise XdfError(f"unsupported equation {equation!r}")
     try:
-        return float(eval(text, {"__builtins__": {}}, {"X": float(x)}))  # noqa: S307
-    except (ArithmeticError, ValueError, SyntaxError) as exc:
+        result = float(eval(text, {"__builtins__": {}}, {"X": float(x)}))  # noqa: S307
+        if not math.isfinite(result):
+            raise ValueError("non-finite result")
+        return result
+    except (ArithmeticError, ValueError, TypeError, SyntaxError, RecursionError) as exc:
         raise XdfError(f"equation {equation!r} failed on {x}: {exc}") from exc
 
 
@@ -225,7 +267,10 @@ def _int(text: str | None, default: int = 0) -> int:
     """XDF numbers are C-style: 0x1EEC0, 200702, -32."""
     if text is None:
         return default
-    return int(str(text).strip(), 0)
+    try:
+        return int(str(text).strip(), 0)
+    except (ValueError, TypeError, OverflowError) as exc:
+        raise XdfError(f"invalid XDF integer {text!r}") from exc
 
 
 def _normalise_id(value: str | None) -> str:
@@ -276,6 +321,9 @@ class Embedded:
         )
 
     def validate_layout(self) -> None:
+        if (not 1 <= self.rows <= MAX_XDF_AXIS or not 1 <= self.cols <= MAX_XDF_AXIS
+                or self.rows * self.cols > MAX_XDF_CELLS):
+            raise XdfError("embedded dimensions exceed supported XDF limits")
         # Reject layouts whose semantics are not supported rather than rounding
         # bit offsets or guessing the interaction of column-major and strides.
         for stride, used in ((self.major_stride_bits, self.rows > 1),
@@ -398,6 +446,8 @@ class Axis:
               float_default: bool = False) -> "Axis":
         units = (node.findtext("units") or "").strip()
         count = max(1, _int(node.findtext("indexcount"), 1))
+        if count > MAX_XDF_AXIS:
+            raise XdfError("axis exceeds supported XDF limit")
         labels: dict[int, str] = {}
         for label in node.findall("LABEL"):
             labels[_int(label.get("index"))] = (label.get("value") or "").strip()
@@ -618,20 +668,22 @@ class XdfFile:
     @classmethod
     def from_file(cls, path: str | Path) -> "XdfFile":
         path = Path(path)
-        try:
-            raw = path.read_bytes()
-            text = raw.decode("ISO-8859-1")
-        except OSError as exc:
-            raise XdfError(f"cannot read {path}: {exc}") from exc
-        xdf = cls.from_string(text)
+        raw = read_xdf_bytes(path)
+        xdf = cls.from_string(raw.decode("ISO-8859-1"))
         xdf.path = str(path)
         xdf.file_sha256 = hashlib.sha256(raw).hexdigest()
         return xdf
 
     @classmethod
     def from_string(cls, text: str) -> "XdfFile":
+        if not isinstance(text, str) or len(text) > MAX_XDF_BYTES:
+            raise XdfError("XDF exceeds the 8 MiB definition limit or is not text")
+        # Entity expansion is not needed by XDF; standard predefined/numeric
+        # XML entities still work. Reject all declarations before parsing.
+        if re.search(r"<!\s*(?:DOCTYPE|ENTITY)\b", text, re.IGNORECASE):
+            raise XdfError("XDF DTD and entity declarations are not supported")
         try:
-            root = ET.fromstring(text)
+            root = ET.fromstring(text, parser=ET.XMLParser(target=_BoundedXmlTree()))
         except ET.ParseError as exc:
             raise XdfError(f"not valid XDF/XML: {exc}") from exc
 

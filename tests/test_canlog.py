@@ -397,3 +397,16 @@ def test_harley_hdlan_rpm_fallback_and_output_limit():
     assert result["events"][1]["values"]["rpm_candidate"] is None
     assert result["events"][2]["values"] == {"speed_kmh_candidate": 100, "source_byte_index": 2}
     assert len(result["events"]) == 200 and result["omitted_events"] == 7
+
+
+def test_yamaha_r9_source_decoder_is_opt_in_and_uses_exact_frames():
+    from guzzionboard.canlog import analyze_capture_text
+    capture = '\n'.join(['(1.0) can0 27C#0C80000A830000', '(2.0) can0 512#A0500000',
+                         '(3.0) can0 27C#0102', '(4.0) can0 0000027C#0C80000A830000',
+                         '5.0 T11 27C 0C 80 00 0A 83 00 00'])
+    assert 'decoder' not in analyze_capture_text(capture)
+    result = analyze_capture_text(capture, decoder='yamaha_r9_2026')['decoder']
+    assert (result['recognized_frames'], result['invalid_length_frames'], result['ignored_tx_frames']) == (2, 1, 1)
+    assert result['events'][0]['values'] == {'rpm_candidate': 1250, 'gear_raw_candidate': 3,
+                                             'tcs_setting_candidate': 5, 'pwr_setting_candidate': 3}
+    assert result['events'][1]['values'] == {'coolant_c_candidate': 70, 'air_c_candidate': 20}

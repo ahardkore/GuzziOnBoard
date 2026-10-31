@@ -103,6 +103,10 @@ class KLineConnection(Connection):
     #: Collected for the session log: bytes the cable echoed back at us.
     last_echo: bytes = b""
 
+    def set_baudrate(self, baud: int) -> None:
+        """Switch an already-open UART after an ECU acknowledges its new rate."""
+        self.port.baudrate = baud
+
     def write(self, data: bytes) -> None:
         self.port.reset_input_buffer()
         if self.inter_byte_delay > 0:

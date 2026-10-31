@@ -73,3 +73,16 @@ The protocol, serial device, runtime fields and UI were tested with **synthetic
 fixtures only**. No physical Buell ECU or adapter was tested. Source-reported
 capabilities are not a claim that this integration has full tuning, fault
 reading, a complete backup, checksum repair, writing, or recovery support.
+
+## Optional repeated range comparison
+
+The range reader can now make two complete passes and discard all returned data
+if they differ. This idea follows the double-read verification in
+[XBTune `xbtune-core/src/read.rs` at c592b11](https://github.com/kz6fittycent/XBTune/blob/c592b11b17e1a3cd5f55f8bc726f2890d892d63b/crates/xbtune-core/src/read.rs),
+GPL-3.0-or-later. The code was not copied. XBTune also implements complete
+version-specific page layouts and a guarded burn with a pre-read and readback;
+those features are **not** present in GuzziOnBoard's bounded range reader. Its
+README reports a test on a 2005 XB9SX/BUEIB; other ECMs are simulator-tested.
+This does not test our adaptation. Two equal replies improve confidence against
+some transient corruption but cannot prove address association, page geometry,
+ECM identity, full backup completeness, write compatibility or safety.

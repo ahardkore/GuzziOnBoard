@@ -43,8 +43,10 @@ Two wire protocols are supported, selected per ECU family by the catalog:
         -> 31 01 00 40 00 04 FF FF <sum16>   arm programming with the checksum
         -> 33 01                program
 
-    The readable region observed on a 5AM runs from 0x4000 to 0x50000; the
-    bootloader below 0x4000 is not reachable this way.
+    Physical 5AM reads use a block-selected 0x4000..0x7fff window. The
+    region-shaped output omits block 0 and synthesizes blocks 2-5 as FF;
+    it is a partial research result, not a verified complete backup. The
+    simulator's contiguous model does not establish physical compatibility.
 """
 from __future__ import annotations
 
@@ -214,6 +216,11 @@ class ProgrammingService:
             "security_available": self._security_available(),
             "hardware_note": memory.get("hardware_note", ""),
             "research_read_only": bool(memory.get("research_read_only")),
+            "partial_read_note": (
+                "Experimental 5AM source-derived read: blocks 2–5 are FF placeholders, not read. "
+                "Not a verified backup, base map, or flash-ready image. Reconnect after reading."
+                if self.profile.id == "5am" and self.diag.transport.is_physical else ""
+            ),
             "estimated_read_minutes": memory.get("approx_read_minutes"),
         }
 
@@ -263,20 +270,32 @@ class ProgrammingService:
 
         baud = spec.get("baud_switch")
         if baud:
+            # 5am_util and onboard-logger send the switch itself from 0x01,
+            # then wait for the last old-rate stop bit before re-rating UART.
+            set_baud = getattr(session.connection, "set_baudrate", None)
+            if self.diag.transport.is_physical and not callable(set_baud):
+                raise ProgrammingError("this physical connection cannot switch the required baud rate")
+            old_source = session.source
+            session.source = baud.get("tester_address", old_source)
             payload = [Service.START_DIAGNOSTIC_SESSION, baud["session"], *baud.get("params", [])]
             frame = session.try_request(payload)
             steps.append(
                 {"step": "baud switch", "ok": frame is not None,
                  "response": frame.hex() if frame else "rejected"}
             )
-            if frame is not None and "tester_address" in baud:
-                # The 5AM transcript shows the tester address becoming 0x01
-                # after the switch; everything afterwards uses the new pair.
-                session.source = baud["tester_address"]
-                steps.append(
-                    {"step": f"tester address -> 0x{baud['tester_address']:02X}",
-                     "ok": True, "response": ""}
-                )
+            if frame is None:
+                session.source = old_source
+                raise ProgrammingError("ECU did not confirm the baud switch; reconnect before retrying")
+            if self.diag.transport.is_physical:
+                self._wait(0.06)
+                try:
+                    set_baud(baud["baud"])
+                except Exception as exc:
+                    raise ProgrammingError("adapter baud switch failed; reconnect before retrying") from exc
+            steps.append(
+                {"step": f"tester address -> 0x{session.source:02X}",
+                 "ok": True, "response": ""}
+            )
 
         self.log.action("programming_session", {"steps": steps})
         return {"steps": steps}
@@ -342,6 +361,7 @@ class ProgrammingService:
 
     def unlock(self, *, allow_unverified: bool = False) -> dict:
         """SecurityAccess seed/key exchange."""
+        self.unlocked = False
         spec = self.spec.get("security", {})
         if not spec.get("required"):
             self.unlocked = True
@@ -362,6 +382,8 @@ class ProgrammingService:
             session.source = spec["source"]
         try:
             seed_frame = session.request([Service.SECURITY_ACCESS, level])
+            if len(seed_frame.data) < 2 or seed_frame.data[0] != level:
+                raise ProgrammingError("SecurityAccess seed response is empty or has the wrong level")
             seed = bytes(seed_frame.data[1:])
             self.log.action(
                 "security_seed",
@@ -373,7 +395,9 @@ class ProgrammingService:
 
             key = provider(seed)
             try:
-                session.request([Service.SECURITY_ACCESS, level + 1, *key])
+                reply = session.request([Service.SECURITY_ACCESS, level + 1, *key])
+                if not reply.data or reply.data[0] != level + 1:
+                    raise ProgrammingError("SecurityAccess key response has the wrong level")
             except NegativeResponse as exc:
                 self.log.error("security_key", f"{provider.name}: {exc}")
                 raise ProgrammingError(
@@ -403,7 +427,17 @@ class ProgrammingService:
         allow_unverified_key: bool = False,
         experimental_confirmation: bool = False,
     ) -> FirmwareImage:
-        """Read a whole region into a :class:`FirmwareImage`."""
+        """Read a region without interleaving diagnostics or keepalives."""
+        with self.diag._lock:
+            return self._read_region_locked(
+                region_name, progress=progress, allow_unverified_key=allow_unverified_key,
+                experimental_confirmation=experimental_confirmation,
+            )
+
+    def _read_region_locked(
+        self, region_name: str, *, progress: ProgressFn | None,
+        allow_unverified_key: bool, experimental_confirmation: bool,
+    ) -> FirmwareImage:
         self._progress_fn = progress
         memory = self.profile.memory or {}
         if not memory.get("read_supported"):
@@ -439,21 +473,28 @@ class ProgrammingService:
             raise ProgrammingError(f"unknown programming protocol {protocol!r}")
 
         started = time.time()
-        data = reader(region)
+        # The documented source selects 16 KiB blocks and synthesizes four
+        # unserved blocks. Keep that physically useful read separate from the
+        # simulator's earlier, contiguous model and never attest it as a backup.
+        partial_5am = self.profile.id == "5am" and self.diag.transport.is_physical
+        data = self._read_5am_source_blocks(region) if partial_5am else reader(region)
         image = FirmwareImage(
             data=data,
             ecu_id=self.profile.id,
             region=region_name,
-            source="read",
+            source="research-read" if partial_5am else "read",
             identity=dict(self.diag.identity.fields),
             meta={
                 "protocol": protocol,
                 "duration_s": round(time.time() - started, 1),
                 "region": region.as_dict(),
+                **({"verified_backup": False, "synthetic_blocks": [2, 3, 4, 5],
+                    "note": "Source-derived partial 5AM read: blocks 2-5 are filled with FF, not read. Response headers do not establish block association; not a verified backup or flash-ready image. Reconnect after reading."}
+                   if partial_5am else {}),
             },
         )
         self.log.action(
-            "memory_read_complete",
+            "research_memory_read_complete" if partial_5am else "memory_read_complete",
             {"region": region_name, "size": image.size,
              "sha256": image.sha256, "duration_s": image.meta["duration_s"]},
         )
@@ -552,6 +593,40 @@ class ProgrammingService:
             session.write_guard = self.gate.session_guard()
         return out
 
+    def _read_5am_source_blocks(self, region: Region) -> bytearray:
+        """Source-derived 5AM region read, with inaccessible blocks marked FF.
+
+        Follows 5am_util's block selector/window, also used by onboard-logger.
+        No address echo is established by those readers: this is not a proven
+        complete backup, even if repeated reads agree.
+        """
+        if (region.name, region.start, region.size, region.block) != ("flash", 0x4000, 0x4C000, 0x20):
+            raise ProgrammingError("unexpected 5AM region geometry for source-derived read")
+        session = self.diag._require()
+        out = bytearray()
+        session.write_guard = self.gate.session_guard({Service.TRANSFER_DATA}, purpose="read")
+        try:
+            for block in range(1, 20):
+                if block in range(2, 6):
+                    out.extend(b"\xff" * 0x4000)
+                    self._emit("research-read", len(out), region.size, f"block {block}: FF placeholder, not read")
+                    continue
+                setup = session.request([Service.TRANSFER_DATA, 0x11, 0, 0xFE, 2, 1, block])
+                if not setup.data or setup.data[0] != 0x11:
+                    raise ProtocolError(f"5AM block {block} setup response mismatch")
+                for offset in range(0x4000, 0x8000, 0x20):
+                    frame = session.request([Service.TRANSFER_DATA, 0x21, 0, offset >> 8, offset & 0xff, 0x20])
+                    # The four response metadata bytes have no independently
+                    # verified address/length semantics in the cited reader.
+                    if len(frame.data) != 5 + 0x20 or frame.data[0] != 0x21:
+                        raise ProtocolError(f"invalid 5AM read response at block {block}, offset 0x{offset:04X}")
+                    out.extend(frame.data[5:])
+                    self.diag._touch()
+                    self._emit("research-read", len(out), region.size, f"block {block}, 0x{offset:04X}; partial unverified image")
+        finally:
+            session.write_guard = self.gate.session_guard()
+        return out
+
     # -- backup -----------------------------------------------------------
     def backup(
         self, region_name: str = "flash", *, progress: ProgressFn | None = None,
@@ -565,6 +640,8 @@ class ProgrammingService:
         """
         if (self.profile.memory or {}).get("research_read_only"):
             raise ProgrammingError("Experimental Honda reads cannot create a verified backup or base map")
+        if self.profile.id == "5am" and self.diag.transport.is_physical:
+            raise ProgrammingError("The physical 5AM source-derived read is partial and cannot create a verified backup or base map; use Read for an experimental image")
 
         first = self.read_region(
             region_name, progress=progress, allow_unverified_key=allow_unverified_key
@@ -861,6 +938,7 @@ class ProgrammingService:
                 Service.WRITE_MEMORY_BY_ADDRESS,
                 Service.WRITE_DATA_BY_LOCAL_ID,
                 Service.START_ROUTINE_BY_LOCAL_ID,
+                Service.REQUEST_ROUTINE_RESULTS,  # 5AM erase/program trigger
             }
             session.write_guard = self.gate.session_guard(armed)
             try:

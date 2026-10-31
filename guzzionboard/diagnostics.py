@@ -157,7 +157,12 @@ class DiagnosticsService:
             if exact_method in ("aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research"):
                 expected = {"aster-versys-2012": "kawasaki_versys650_2012", "kawasaki-kds-research": "kawasaki_kds_research",
                             "aster-gsxr600-2011": "suzuki_gsxr600_2011", "suzuki-gsxr1000-2004": "suzuki_gsxr1000_2004", "suzuki-sv650ak7-2007": "suzuki_sv650ak7_2007", "suzuki-sv650-2003": "suzuki_sv650_2003", "suzuki-sds-gsxr-research": "suzuki_sds_gsxr_research"}[exact_method]
-                if (self.profile.id != expected or self.transport.name != "kline"
+                permitted_profiles = {expected}
+                if exact_method == "kawasaki-kds-research":
+                    permitted_profiles.add("kawasaki_kds_generic_research")
+                elif exact_method == "suzuki-sds-gsxr-research":
+                    permitted_profiles.update({"suzuki_sds_generic_research", "suzuki_dl650_2017_research"})
+                if (self.profile.id not in permitted_profiles or self.transport.name != "kline"
                         or not self.transport.is_physical or self.gate.mode != Mode.READ_ONLY
                         or getattr(self.transport, "baud", 10400) != 10400):
                     raise TransportUnavailable("Source-scoped K-Line requires its exact profile, 10400 baud, and read-only physical transport")
@@ -296,10 +301,17 @@ class DiagnosticsService:
                     wake_ok = (len(wake.payload) == 3 and wake.payload[0] == 0xc1
                                if exact_method in ("suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research")
                                else wake.payload == b"\xc1\xea\x8f")
+                    if self.profile.id == "suzuki_dl650_2017_research":
+                        # This project's proposed DL650 handshake is specifically C1 EA 8F.
+                        wake_ok = wake.payload == b"\xc1\xea\x8f"
                     if (not self.init_result.handshake_complete or wake.target != 0xF1
                             or wake.source != target or not wake_ok):
                         raise ProtocolError("Source-scoped K-Line requires addressed C1 and source-specific key bytes")
                     cls = {"aster-versys-2012": Versys2012Session, "kawasaki-kds-research": KawasakiKdsResearchSession, "aster-gsxr600-2011": Gsxr6002011Session, "suzuki-gsxr1000-2004": Gsxr10002004Session, "suzuki-sv650ak7-2007": Sv650Ak7Session, "suzuki-sv650-2003": Sv6502003Session, "suzuki-sds-gsxr-research": SuzukiGsxrResearchSession}[exact_method]
+                    if self.profile.id in ("suzuki_sds_generic_research", "suzuki_dl650_2017_research"):
+                        # Some SDS ECUs have different snapshot sizes; preserve
+                        # bounded raw bytes rather than guessing a sensor layout.
+                        cls = Gsxr10002004Session
                     self.session = cls(connection=self.connection, target=target, source=0xF1,
                                        on_frame=self.log.frame, write_guard=lambda _: False)
                     if target == 0x11:
@@ -467,6 +479,19 @@ class DiagnosticsService:
                     f"{self.profile.family}: identification request is not validated"
                 )
             session = self._require()
+            # Re-identification can fail or reveal a different ECU. Never keep
+            # previous session evidence armed while the new exchange runs.
+            self.identity = None
+            self.gate.state.identified = False
+            self.gate.state.ecu_confidence = "unknown"
+            self.gate.state.ecu_hardware = ""
+            self.gate.state.engine_running = None
+            self.gate.state.battery_v = None
+            self.gate.invalidate_confirmations()
+            self.gate.state.verified_backup = False
+            self.gate.state.backup_path = ""
+            self.gate.state.base_map = False
+            self.gate.state.base_map_path = ""
             spec = self.profile.identification
             fields = {}
 
@@ -1033,8 +1058,13 @@ class DiagnosticsService:
                 "response": frame.hex(),
                 "follow_up": routine.follow_up,
             }
-            # Best effort: many IAW families do not implement 0x33 at all.
-            results = session.routine_results(routine.local_id)
+            # 0x33 can be a trigger on some ECUs, so allow it only as the
+            # explicitly authorized follow-up to this selected routine.
+            session.write_guard = self.gate.session_guard({Service.REQUEST_ROUTINE_RESULTS})
+            try:
+                results = session.routine_results(routine.local_id)
+            finally:
+                session.write_guard = self.gate.session_guard()
             if results is not None:
                 result["routine_results"] = results.hex()
             self.log.action("routine", result)

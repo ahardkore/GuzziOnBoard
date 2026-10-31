@@ -333,6 +333,9 @@ test('hosted CAN capture analysis filters IDs and reports passive counts', async
 });
 
 test('Atlas axis-aware interpolation uses staged axes and refuses invalid axes atomically', async ({ page }) => {
+  // This exercises repeated edits on a large real XDF; headless CI can exceed
+  // the standard two-minute limit even when every assertion succeeds.
+  test.slow();
   await openEditor(page);
   const table = await page.evaluate(() => {
     const item = maps.render.tables.find((candidate) => candidate.rows >= 3 && candidate.cols >= 3
@@ -421,4 +424,21 @@ test('Atlas interpolation validates ascending, descending, malformed and extreme
   for (const key of ['duplicate', 'nonmonotonic', 'missing', 'blank', 'overflow']) expect(typeof result[key]).toBe('string');
   expect(result.tie).toBe(10);
   expect(result.afterTie).toBe(30);
+});
+
+test('XDF parser bounds XML and rejects oversized axes in the browser', async ({page}) => {
+  await page.goto('/web/index.html');
+  const result = await page.evaluate(() => {
+    const lab = window.GUZZI_DEMO.lab;
+    const errors = [];
+    for (const input of ['<!DOCTYPE XDFFORMAT [<!ENTITY x "test">]><XDFFORMAT/>', '<x>'.repeat(65) + '</x>'.repeat(65), '<x><y></x>', '<x>', '<x/><!--']) {
+      try { lab.parseXml(input); errors.push('accepted'); } catch (e) { errors.push(e.message); }
+    }
+    const xdf = lab.parseXdf('<XDFFORMAT><XDFHEADER/><XDFTABLE><title>oversize</title><XDFAXIS id="x"><indexcount>999999999</indexcount></XDFAXIS><XDFAXIS id="z"><EMBEDDEDDATA mmedaddress="0"/></XDFAXIS></XDFTABLE><XDFCONSTANT><title>ok</title><EMBEDDEDDATA mmedaddress="0"/></XDFCONSTANT></XDFFORMAT>');
+    return {errors, unsupported:xdf.unsupported};
+  });
+  expect(result.errors[0]).toContain('DTD and entity');
+  expect(result.errors[1]).toContain('structure');
+  for (const error of result.errors.slice(2)) expect(error).toContain('not valid XDF/XML');
+  expect(result.unsupported[0].reason).toContain('axis exceeds');
 });

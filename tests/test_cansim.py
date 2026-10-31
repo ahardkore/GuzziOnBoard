@@ -101,10 +101,10 @@ def test_connection_close_stops_the_bridge_thread(catalog):
 
 def test_negative_responses_cross_the_bus(catalog):
     """An unmapped service must come back as a clean 0x7F, not a timeout."""
-    from guzzionboard.protocol.kwp2000 import NegativeResponse
+    from guzzionboard.protocol.kwp2000 import NegativeResponse, Service
 
     service, _ecu = build(catalog, "miug4")
     service.connect()
     with pytest.raises(NegativeResponse, match="not supported"):
-        service.session.request([0x71, 0x01])   # not mapped in this profile
+        service.session.request([Service.REQUEST_UPLOAD])  # known, unimplemented service
     service.disconnect()

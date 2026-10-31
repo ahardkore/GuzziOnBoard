@@ -367,6 +367,11 @@ class FirmwareImage:
         """
         findings: list[Finding] = []
         spec = (profile.memory or {}).get("regions", {}).get(region, {})
+        if self.meta.get("verified_backup") is False:
+            findings.append(Finding(
+                "fatal", "experimental_read",
+                "This experimental or partial read is not a flash-ready image or verified backup.",
+            ))
 
         # -- size ---------------------------------------------------------
         expected = spec.get("size")

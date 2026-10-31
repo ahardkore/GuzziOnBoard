@@ -15,7 +15,7 @@
     "applied": false,
     "status": {}
    },
-   "ecu_count": 32,
+   "ecu_count": 33,
    "vehicle_count": 482,
    "model_count": 406,
    "year_range": [
@@ -1014,6 +1014,46 @@
      "field_confirmation": {}
     },
     {
+     "id": "honda_ctx700_minidash",
+     "family": "Honda CTX700 K-Line (source-reported)",
+     "display_name": "Honda CTX700 (read-only minidash tables)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "unknown",
+     "notes": "Minidash is intended for Honda CTX700; year, market and ECU are unspecified. ECU-only opt-in. This integration has synthetic tests only. Values and units are candidates. Injector raw is not a fuel-consumption measurement. No identity, DTCs, ECU memory, controls, programming or simulator.",
+     "capabilities": [
+      "live"
+     ],
+     "effective_capabilities": [
+      "live"
+     ],
+     "sources": [
+      "https://github.com/seife/honda-ecu-minidash/tree/016102471bbff50abeeeac5447593a3a1e93477d"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Source covers live diagnostic tables, not flash memory or programming."
+     },
+     "kline": {
+      "baud": 10400,
+      "init": "honda-ctx700-minidash",
+      "inter_byte_delay": 0
+     },
+     "can": {},
+     "session": {
+      "protocol": "honda-ctx700-minidash",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "tester_present_interval": 2.0,
+      "physical_evidence_note": "Minidash describes CTX700 use; year and ECU are unspecified. This adaptation is synthetic-tested only."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "honda_pgmfi_research",
      "family": "Honda Keihin PGM-FI K-Line (research)",
      "display_name": "Honda Keihin PGM-FI (raw diagnostic tables, read-only)",
@@ -1067,7 +1107,7 @@
      "transport": "kline",
      "confidence": "unknown",
      "years": "2006",
-     "notes": "Read-only KDS based on iKawa, whose author reports testing a 2006 ER-6n. GuzziOnBoard has not tested this implementation on a motorcycle. ECU part number, software and market unknown. No identification, DTCs, controls, memory access or simulator.",
+     "notes": "Read-only KDS based on iKawa, whose author reports testing a 2006 ER-6n. GuzziOnBoard has not tested this implementation on a motorcycle. ECU part number, software and market unknown. No identification, DTCs, controls, memory access or simulator. Optional throttle calibration, starter switch and elapsed counter are source-derived candidates; verify calibration and meaning for your ECU.",
      "capabilities": [
       "live"
      ],
@@ -15728,6 +15768,192 @@
     ]
    },
    {
+    "id": "honda_ctx700_minidash",
+    "family": "Honda CTX700 K-Line (source-reported)",
+    "display_name": "Honda CTX700 (read-only minidash tables)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "unknown",
+    "notes": "Minidash is intended for Honda CTX700; year, market and ECU are unspecified. ECU-only opt-in. This integration has synthetic tests only. Values and units are candidates. Injector raw is not a fuel-consumption measurement. No identity, DTCs, ECU memory, controls, programming or simulator.",
+    "capabilities": [
+     "live"
+    ],
+    "effective_capabilities": [
+     "live"
+    ],
+    "sources": [
+     "https://github.com/seife/honda-ecu-minidash/tree/016102471bbff50abeeeac5447593a3a1e93477d"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Source covers live diagnostic tables, not flash memory or programming."
+    },
+    "kline": {
+     "baud": 10400,
+     "init": "honda-ctx700-minidash",
+     "inter_byte_delay": 0
+    },
+    "can": {},
+    "session": {
+     "protocol": "honda-ctx700-minidash",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "tester_present_interval": 2.0,
+     "physical_evidence_note": "Minidash describes CTX700 use; year and ECU are unspecified. This adaptation is synthetic-tested only."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": [
+     {
+      "key": "rpm",
+      "name": "Engine speed (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "rpm",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "tps_ctx",
+      "name": "Throttle position (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 2,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "coolant",
+      "name": "Coolant temperature (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "airtemp",
+      "name": "Intake temperature (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "map",
+      "name": "Manifold pressure (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "kPa",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "battery",
+      "name": "Battery voltage (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "V",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "speed",
+      "name": "Speed (source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "km/h",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "injector_raw",
+      "name": "Injector value (raw source candidate)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "gear_status",
+      "name": "Gear / clutch status (source candidate)",
+      "local_id": 209,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {
+       "0": "In gear (candidate)",
+       "1": "Neutral or clutch (candidate)",
+       "3": "Kickstand down (candidate)"
+      },
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "engine_status",
+      "name": "Engine status byte (source candidate)",
+      "local_id": 209,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     }
+    ]
+   },
+   {
     "id": "honda_pgmfi_research",
     "family": "Honda Keihin PGM-FI K-Line (research)",
     "display_name": "Honda Keihin PGM-FI (raw diagnostic tables, read-only)",
@@ -16035,7 +16261,7 @@
     "transport": "kline",
     "confidence": "unknown",
     "years": "2006",
-    "notes": "Read-only KDS based on iKawa, whose author reports testing a 2006 ER-6n. GuzziOnBoard has not tested this implementation on a motorcycle. ECU part number, software and market unknown. No identification, DTCs, controls, memory access or simulator.",
+    "notes": "Read-only KDS based on iKawa, whose author reports testing a 2006 ER-6n. GuzziOnBoard has not tested this implementation on a motorcycle. ECU part number, software and market unknown. No identification, DTCs, controls, memory access or simulator. Optional throttle calibration, starter switch and elapsed counter are source-derived candidates; verify calibration and meaning for your ECU.",
     "capabilities": [
      "live"
     ],
@@ -16184,6 +16410,48 @@
       "min": null,
       "max": null,
       "confidence": "documented"
+     },
+     {
+      "key": "throttle_candidate",
+      "name": "Throttle position (source calibration candidate)",
+      "local_id": 4,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "starter_switch_candidate",
+      "name": "Starter switch (source candidate)",
+      "local_id": 2,
+      "request_ids": [],
+      "unit": "",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "elapsed_counter_candidate",
+      "name": "Elapsed counter (source candidate; meaning unverified)",
+      "local_id": 68,
+      "request_ids": [],
+      "unit": "h",
+      "group": "engine",
+      "digits": 2,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
      }
     ]
    },
@@ -26264,6 +26532,164 @@
     "note": "Unverified raw five-byte ECM ID candidate; not a confirmed part number or programming identity."
    }
   },
+  "honda_ctx700_minidash": {
+   "parameters": {
+    "rpm": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "tps_ctx": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 2,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "coolant": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "airtemp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "map": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "battery": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "speed": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "injector_raw": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "gear_status": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 209,
+     "states": {
+      "0": "In gear (candidate)",
+      "1": "Neutral or clutch (candidate)",
+      "3": "Kickstand down (candidate)"
+     }
+    },
+    "engine_status": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 209,
+     "states": {}
+    }
+   },
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "HondaCTX700K-Line(source-reported)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "honda-ctx700-minidash",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "Minidash describes CTX700 use; year and ECU are unspecified. This adaptation is synthetic-tested only."
+   },
+   "identification": {
+    "available": false
+   }
+  },
   "honda_pgmfi_research": {
    "parameters": {
     "table_10_raw": {
@@ -26627,6 +27053,45 @@
      "digits": 0,
      "dead": false,
      "local_id": 8,
+     "states": {}
+    },
+    "throttle_candidate": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 4,
+     "states": {}
+    },
+    "starter_switch_candidate": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 2,
+     "states": {}
+    },
+    "elapsed_counter_candidate": {
+     "offset": 0,
+     "length": 4,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 2,
+     "dead": false,
+     "local_id": 68,
      "states": {}
     }
    },

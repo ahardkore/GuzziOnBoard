@@ -523,6 +523,11 @@ class Workstation:
                 if (self.selection.transport_kind != "can" or mode != "read_only"
                         or (spec.get("bitrate"), spec.get("tx_id"), spec.get("rx_id")) != (500000, 0x764, 0x746)):
                     raise TransportUnavailable("Ninja 7 requires source-scoped CAN IDs and read-only mode")
+            if profile.session.get("protocol") == "honda-ctx700-minidash":
+                if self.selection.entry is not None:
+                    raise TransportUnavailable("Honda CTX700 requires an ECU-only selection; source year and ECU are unspecified")
+                if self.selection.transport_kind != "kline" or mode != "read_only":
+                    raise TransportUnavailable("Honda CTX700 supports physical K-Line and read-only mode only")
             if profile.session.get("protocol") == "honda-cb500f-dashble":
                 if self.selection.entry is not None:
                     raise TransportUnavailable("Honda CB500F DashBle requires an explicit ECU-only selection; source year and ECU are unspecified")

@@ -94,6 +94,28 @@ class HondaCB500FDashSession(HondaCBR600RRSession):
     FIELDS = {'rpm': (0, 2), 'tps_raw': (3, 1), 'coolant': (5, 1),
               'airtemp': (7, 1), 'map': (9, 1), 'battery': (12, 1), 'speed': (13, 1)}
 
+class HondaCTX700Session(HondaCBR600RRSession):
+    """CTX700 tables, adapted from seife/honda-ecu-minidash (MIT).
+
+    Revision 01610247, copyright 2026 Stefan Seyfried; see
+    LICENSES/Honda-ECU-Minidash-MIT.txt. Source does not state year/ECU.
+    This adaptation is synthetic-tested only; data and units are candidates.
+    """
+    TABLE_LENGTHS = {0x11: 25, 0xD1: 11}
+    SENSOR_TABLE = 0x11
+    FIELDS = {'rpm': (0, 2), 'tps_ctx': (3, 1), 'coolant': (5, 1),
+              'airtemp': (7, 1), 'map': (9, 1), 'battery': (12, 1),
+              'speed': (13, 1), 'injector_raw': (14, 2)}
+
+
+def decode_honda_ctx(key, raw):
+    if key == 'tps_ctx':
+        return raw[0] / 16
+    if key == 'injector_raw':
+        return int.from_bytes(raw, 'big')
+    return decode_honda(key, raw)
+
+
 # Source-scoped, experimental MGZ-A03 image read. These constants come from
 # HondaECU's ECM ID table and a 256 KiB source image, not from this project
 # testing a physical ECU. The security/read framing follows WiseNoodle's

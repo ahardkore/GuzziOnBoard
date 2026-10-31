@@ -5,7 +5,7 @@
   "transport": "kline",
   "confidence": "unknown",
   "years": "2006",
-  "notes": "Read-only KDS based on iKawa, whose author reports testing a 2006 ER-6n. GuzziOnBoard has not tested this implementation on a motorcycle. ECU part number, software and market unknown. No identification, DTCs, controls, memory access or simulator.",
+  "notes": "Read-only KDS based on iKawa, whose author reports testing a 2006 ER-6n. GuzziOnBoard has not tested this implementation on a motorcycle. ECU part number, software and market unknown. No identification, DTCs, controls, memory access or simulator. Optional throttle calibration, starter switch and elapsed counter are source-derived candidates; verify calibration and meaning for your ECU.",
   "session": {
     "protocol": "kawasaki-er6n",
     "physical_supported": true,
@@ -42,7 +42,7 @@
       "key": "coolant",
       "name": "Coolant temperature",
       "local_id": 6,
-      "unit": "\u00b0C",
+      "unit": "°C",
       "length": 1,
       "digits": 1,
       "default": true,
@@ -52,7 +52,7 @@
       "key": "air_temp",
       "name": "Intake air temperature",
       "local_id": 7,
-      "unit": "\u00b0C",
+      "unit": "°C",
       "length": 1,
       "digits": 1,
       "default": true,
@@ -107,6 +107,36 @@
       "digits": 0,
       "default": true,
       "confidence": "documented"
+    },
+    {
+      "key": "throttle_candidate",
+      "name": "Throttle position (source calibration candidate)",
+      "local_id": 4,
+      "unit": "%",
+      "length": 2,
+      "digits": 0,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "starter_switch_candidate",
+      "name": "Starter switch (source candidate)",
+      "local_id": 2,
+      "unit": "",
+      "length": 1,
+      "digits": 0,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "elapsed_counter_candidate",
+      "name": "Elapsed counter (source candidate; meaning unverified)",
+      "local_id": 68,
+      "unit": "h",
+      "length": 4,
+      "digits": 2,
+      "default": false,
+      "confidence": "inferred"
     }
   ],
   "actuators": [],

@@ -885,7 +885,7 @@ function selectionRequest() {
   const ecuOverride = $('#ecuOverride').value;
   const body = ecuOverride
     ? { ecu: ecuOverride, transport: currentTransport(), device: $('#deviceInput').value,
-        ...(!['generic_obd_can_11bit', 'honda_cb500f_dashble', 'harley_delphi_can_uds'].includes(ecuOverride) && $('#modelSelect').value && $('#yearSelect').value ? {
+        ...(!['generic_obd_can_11bit', 'honda_cb500f_dashble', 'honda_ctx700_minidash', 'harley_delphi_can_uds'].includes(ecuOverride) && $('#modelSelect').value && $('#yearSelect').value ? {
           make: $('#makeSelect').value, model: $('#modelSelect').value,
           year: parseInt($('#yearSelect').value, 10),
         } : {}) }
@@ -941,7 +941,7 @@ async function connect() {
       await api('/api/checklist', { method: 'POST', body: { accepted: $('#checklistAccept').checked } });
     }
     const initMethod = currentTransport() === 'kline' ? $('#initMethod').value : '';
-    if (['kawasaki_er6n_2006', 'triumph_daytona_675_2012', 'kawasaki_versys650_2012', 'kawasaki_kds_research', 'suzuki_gsxr600_2011', 'honda_cbr600rr_2005', 'honda_cb500f_dashble', 'honda_pgmfi_research', 'suzuki_gsxr1000_2004', 'suzuki_sv650ak7_2007', 'suzuki_sv650_2003', 'suzuki_sds_gsxr_research'].includes(selection.ecu?.id) && initMethod) {
+    if (['kawasaki_er6n_2006', 'triumph_daytona_675_2012', 'kawasaki_versys650_2012', 'kawasaki_kds_research', 'suzuki_gsxr600_2011', 'honda_cbr600rr_2005', 'honda_cb500f_dashble', 'honda_ctx700_minidash', 'honda_pgmfi_research', 'suzuki_gsxr1000_2004', 'suzuki_sv650ak7_2007', 'suzuki_sv650_2003', 'suzuki_sds_gsxr_research'].includes(selection.ecu?.id) && initMethod) {
       throw new Error('This model requires ECU profile default handshake; select it before connecting.');
     }
     Prefs.set('initMethod', initMethod);

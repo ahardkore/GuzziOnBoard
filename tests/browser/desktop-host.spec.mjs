@@ -1199,3 +1199,21 @@ test('local Harley code references augment live results only while loaded', asyn
   await expect(page.locator('#faultList')).toContainText('Existing source');
   expect(page.failures).toEqual([]);
 });
+
+test('Honda CTX700 opt-in is ECU-only and shows source limitations', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForSelector('#ecuOverride option[value="honda_ctx700_minidash"]', {state: 'attached'});
+  await page.getByText('Override: pick an ECU family directly').click();
+  await page.selectOption('#ecuOverride', 'honda_ctx700_minidash');
+  const request = await page.evaluate(() => selectionRequest());
+  expect(request.ecu).toBe('honda_ctx700_minidash');
+  expect(request).not.toHaveProperty('model');
+  expect(request).not.toHaveProperty('year');
+  const selected = await page.evaluate(async body => {
+    const r = await fetch('/api/select', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+    return r.json();
+  }, {...request, transport: 'kline'});
+  expect(selected.ecu.notes).toContain('synthetic tests only');
+  expect(selected.ecu.memory.read_supported).toBe(false);
+  expect(selected.ecu.memory.write_supported).toBe(false);
+});

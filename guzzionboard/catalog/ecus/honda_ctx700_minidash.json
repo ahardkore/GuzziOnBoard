@@ -1,0 +1,144 @@
+{
+  "id": "honda_ctx700_minidash",
+  "family": "Honda CTX700 K-Line (source-reported)",
+  "display_name": "Honda CTX700 (read-only minidash tables)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "unknown",
+  "notes": "Minidash is intended for Honda CTX700; year, market and ECU are unspecified. ECU-only opt-in. This integration has synthetic tests only. Values and units are candidates. Injector raw is not a fuel-consumption measurement. No identity, DTCs, ECU memory, controls, programming or simulator.",
+  "session": {
+    "protocol": "honda-ctx700-minidash",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "Minidash describes CTX700 use; year and ECU are unspecified. This adaptation is synthetic-tested only."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Source covers live diagnostic tables, not flash memory or programming."
+  },
+  "capabilities": [
+    "live"
+  ],
+  "sources": [
+    "https://github.com/seife/honda-ecu-minidash/tree/016102471bbff50abeeeac5447593a3a1e93477d"
+  ],
+  "parameters": [
+    {
+      "key": "rpm",
+      "name": "Engine speed (source candidate)",
+      "local_id": 17,
+      "unit": "rpm",
+      "length": 2,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "tps_ctx",
+      "name": "Throttle position (source candidate)",
+      "local_id": 17,
+      "unit": "%",
+      "length": 1,
+      "digits": 2,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "coolant",
+      "name": "Coolant temperature (source candidate)",
+      "local_id": 17,
+      "unit": "°C",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "airtemp",
+      "name": "Intake temperature (source candidate)",
+      "local_id": 17,
+      "unit": "°C",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "map",
+      "name": "Manifold pressure (source candidate)",
+      "local_id": 17,
+      "unit": "kPa",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "battery",
+      "name": "Battery voltage (source candidate)",
+      "local_id": 17,
+      "unit": "V",
+      "length": 1,
+      "digits": 1,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "speed",
+      "name": "Speed (source candidate)",
+      "local_id": 17,
+      "unit": "km/h",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    },
+    {
+      "key": "injector_raw",
+      "name": "Injector value (raw source candidate)",
+      "local_id": 17,
+      "unit": "",
+      "length": 2,
+      "digits": 0,
+      "default": false,
+      "confidence": "inferred"
+    },
+    {
+      "key": "gear_status",
+      "name": "Gear / clutch status (source candidate)",
+      "local_id": 209,
+      "unit": "",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred",
+      "states": {
+        "0": "In gear (candidate)",
+        "1": "Neutral or clutch (candidate)",
+        "3": "Kickstand down (candidate)"
+      }
+    },
+    {
+      "key": "engine_status",
+      "name": "Engine status byte (source candidate)",
+      "local_id": 209,
+      "unit": "",
+      "length": 1,
+      "digits": 0,
+      "default": true,
+      "confidence": "inferred"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "honda-ctx700-minidash",
+    "inter_byte_delay": 0
+  }
+}

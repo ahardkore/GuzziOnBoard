@@ -64,7 +64,7 @@ def test_exact_source_requests_and_values(monkeypatch):
     assert t.conn.sent[1] == bytes.fromhex('80 11 f1 02 21 09 ae')
     before = list(t.conn.sent)
     with pytest.raises(PermissionError): s.session.request([0x14, 0xff, 0])
-    with pytest.raises(PermissionError): s.session.request([0x21, 0x44])
+    with pytest.raises(PermissionError): s.session.request([0x21, 0x45])
     s.disconnect()
     assert t.conn.sent == before  # no unverified stop/clear/actuation commands
     assert t.conn.closed
@@ -119,3 +119,20 @@ def test_transport_exception_closes_connection():
     with pytest.raises(RuntimeError, match='adapter disconnected'):
         service(t).connect()
     assert t.conn.closed
+
+
+def test_new_ikawa_candidates_synthetic(monkeypatch):
+    monkeypatch.setattr('guzzionboard.protocol.kawasaki_er6n.time.sleep', lambda _: None)
+    monkeypatch.setattr(DiagnosticsService, '_start_keepalive', lambda _: None)
+    t = FakeKLine([response(0x50, 0x80), response(0x61, 4, 0x03, 0x5c),
+                   response(0x61, 2, 2), response(0x61, 0x44, 0, 0, 0x0e, 0x74)])
+    s = service(t); s.connect()
+    samples = s.read_parameters(['throttle_candidate', 'starter_switch_candidate', 'elapsed_counter_candidate'])
+    assert [x.value for x in samples] == [101, 1, 1.02]
+    assert t.conn.sent[1:] == [bytes.fromhex('80 11 f1 02 21 04 a9'),
+                               bytes.fromhex('80 11 f1 02 21 02 a7'),
+                               bytes.fromhex('80 11 f1 02 21 44 e9')]
+    assert decode_kawasaki_value(4, b'\x00\x00') == -33
+    assert decode_kawasaki_value(0x44, b'\xff\xff\xff\xff') == (0xffffffff // 60) / 60
+    with pytest.raises(ProtocolError): decode_kawasaki_value(0x44, b'\x00')
+    s.disconnect()

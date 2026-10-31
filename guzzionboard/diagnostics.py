@@ -17,7 +17,7 @@ from .catalog import Catalog, EcuProfile, Parameter, load_catalog
 from .protocol.legacy_iaw import LegacyIAWSession
 from .protocol.kawasaki_er6n import KawasakiER6nSession, decode_kawasaki_value
 from .protocol.aster_kline import AsterKLineSession, Versys2012Session, KawasakiKdsResearchSession, Gsxr6002011Session, Gsxr10002004Session, SuzukiGsxrResearchSession, Sv6502003Session, Sv650Ak7Session, decode_versys, decode_gsxr, decode_sv650ak7
-from .protocol.honda_cbr600rr import HondaCBR600RRSession, HondaCB500FDashSession, decode_honda
+from .protocol.honda_cbr600rr import HondaCBR600RRSession, HondaCB500FDashSession, HondaCTX700Session, decode_honda, decode_honda_ctx
 from .protocol.honda_pgmfi import HondaPgmfiSession
 from .protocol.kawasaki_ninja7 import KawasakiNinja7Session
 from .protocol.triumph_daytona import TriumphDaytonaSession
@@ -146,10 +146,10 @@ class DiagnosticsService:
                 method = "can"
             if exact_method == "harley-j1850-harleydroid" and (self.transport.name != "elm_j1850" or not self.transport.is_physical or self.gate.mode.value != "read_only"):
                 raise TransportUnavailable("Harley J1850 requires the ELM serial transport and read-only mode")
-            if exact_method in ("kawasaki-er6n", "triumph-daytona-2012", "harley-j1850-harleydroid", "aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research", "honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-pgmfi-research") and method != exact_method:
+            if exact_method in ("kawasaki-er6n", "triumph-daytona-2012", "harley-j1850-harleydroid", "aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research", "honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research") and method != exact_method:
                 raise TransportUnavailable(f"{self.profile.family} requires its profile-default initialization")
-            if exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-pgmfi-research"):
-                expected = {"honda-cbr600rr-2005": "honda_cbr600rr_2005", "honda-cb500f-dashble": "honda_cb500f_dashble", "honda-pgmfi-research": "honda_pgmfi_research"}[exact_method]
+            if exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research"):
+                expected = {"honda-cbr600rr-2005": "honda_cbr600rr_2005", "honda-cb500f-dashble": "honda_cb500f_dashble", "honda-ctx700-minidash": "honda_ctx700_minidash", "honda-pgmfi-research": "honda_pgmfi_research"}[exact_method]
                 if (self.profile.id != expected or self.transport.name != "kline"
                         or not self.transport.is_physical or self.gate.mode != Mode.READ_ONLY
                         or getattr(self.transport, "baud", 10400) != 10400):
@@ -280,13 +280,13 @@ class DiagnosticsService:
                     self.connection = None
                     self.session = None
                     raise
-            elif exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-pgmfi-research"):
+            elif exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research"):
                 if (self.init_result.protocol != "honda-cbr600rr" or not self.init_result.handshake_complete
                         or self.init_result.response != bytes.fromhex("02 04 00 fa")):
                     self.connection.close()
                     self.connection = None
                     raise ProtocolError("Honda profile requires the exact initialization response")
-                cls = {"honda-cbr600rr-2005": HondaCBR600RRSession, "honda-cb500f-dashble": HondaCB500FDashSession, "honda-pgmfi-research": HondaPgmfiSession}[exact_method]
+                cls = {"honda-cbr600rr-2005": HondaCBR600RRSession, "honda-cb500f-dashble": HondaCB500FDashSession, "honda-ctx700-minidash": HondaCTX700Session, "honda-pgmfi-research": HondaPgmfiSession}[exact_method]
                 self.session = cls(connection=self.connection, on_frame=self.log.frame, write_guard=lambda _: False)
             elif exact_method in ("aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research"):
                 from .protocol.kwp2000 import decode_frame
@@ -698,7 +698,8 @@ class DiagnosticsService:
                                         error=errors[param.local_id])
                     else:
                         raw = snapshots[param.local_id][param.key]
-                        value = decode_honda(param.key, raw)
+                        value = (decode_honda_ctx(param.key, raw) if isinstance(session, HondaCTX700Session)
+                                 else decode_honda(param.key, raw))
                         value = round(value, param.digits) if param.digits else int(round(value))
                         text = param.states.get(str(int(value)), "") if param.states else ""
                         sample = Sample(param.key, param.name, param.local_id, raw, value, param.unit, text=text)

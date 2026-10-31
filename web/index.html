@@ -946,9 +946,11 @@
       </div>
       <div class="toolbar">
         <label class="inline">Image path <input type="text" id="mapsImagePath" placeholder="~/.guzzionboard/images/....bin" size="44"></label>
+        <label class="inline">XDF address base <input type="text" id="mapsAddressBase" placeholder="auto (or 0x0)" size="12"></label>
         <button class="btn primary" id="mapsRenderBtn">Render tables</button>
         <button class="btn" id="mapsValidateDefinitionBtn">Validate definition</button>
       </div>
+      <p class="muted small">Address base is subtracted from XDF addresses to locate bytes in the image. Blank uses an automatic guess; set it explicitly for a definition authored for a different address range. Re-render after changing it. Neither setting proves fitment.</p>
       <div class="toolbar">
         <label class="inline">Compare with <input type="text" id="mapsDiffPath" placeholder="second image, e.g. the factory backup" size="44"></label>
         <button class="btn" id="mapsDiffBtn">Diff</button>
@@ -1026,7 +1028,7 @@
           <input type="file" id="mapProjectFile" accept="application/json,.json" hidden>
         </div>
         <div id="mapResearchPreviewOut"></div>
-        <p class="muted small">Research preview works with a user-supplied XDF even when fitment is not recognized. It creates no image, performs no checksum repair, and does not establish ECU/software fitment. Projects contain paths, hashes, edits and log settings, but not firmware or log data. Reopening requires the exact source image, XDF and address base. Schema 1 and 2 projects must be recreated and reviewed because earlier versions may have interpreted XDF item layouts differently.</p>
+        <p class="muted small">Research preview works with a user-supplied XDF even when fitment is not recognized. It creates no image, performs no checksum repair, and does not establish ECU/software fitment. For the source-described Delphi 16 KiB tune or 160 KiB calibration layout, the local app can export the reviewed edits as a separate research copy with a manifest; no checksum is repaired and the copy is not flash-ready. Projects contain paths, hashes, edits and log settings, but not firmware or log data. Reopening requires the exact source image, XDF and address base. Schema 1 and 2 projects must be recreated and reviewed because earlier versions may have interpreted XDF item layouts differently.</p>
         <details class="recommendation-packages">
           <summary><b>User/community recommendation packages</b></summary>
           <p class="muted small" id="mapPackageNote">No values are bundled or endorsed. Validated local packages are source-locked and still pass the same preview and liability gates.</p>

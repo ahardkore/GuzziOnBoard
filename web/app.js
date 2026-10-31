@@ -3424,10 +3424,9 @@ function mapVisualizationHtml(table, matrix, min, max) {
 
 function mapsNotices(render) {
   const out = [];
-  const base = render.address_base ? (
-    `Rendered with address base 0x${render.address_base.toString(16)} — `
-    + 'the image is a region read, the XDF addresses the full device.') : null;
-  if (base) out.push(`<p class="muted small">${esc(base)}</p>`);
+  const base = `Rendered with XDF address base 0x${Number(render.address_base || 0).toString(16)}. `
+    + 'The base is subtracted from XDF addresses; it does not establish fitment.';
+  out.push(`<p class="muted small">${esc(base)}</p>`);
   if (render.unsupported?.length) {
     out.push(`<div class="gate-card warn"><h4>${render.unsupported.length} item(s) not interpreted</h4>`
       + render.unsupported.map((u) => `<p class="small">${esc(u.title || 'untitled')}: ${esc(u.reason)}</p>`).join('')
@@ -4361,7 +4360,7 @@ $('#mapsBaseBtn').onclick = async () => {
   $('#mapsOut').innerHTML = '<p class="muted">Loading the protected base map…</p>';
   try {
     renderMapsResult(await api('/api/maps/render', {
-      method: 'POST', body: { use_base_map: true, region: 'flash', xdf },
+      method: 'POST', body: { use_base_map: true, region: 'flash', xdf, address_base: $('#mapsAddressBase').value.trim() || null },
     }));
     toast('Protected base map loaded. Select values, then edit or transform them.', 'ok');
   } catch (err) {
@@ -4416,12 +4415,13 @@ $('#mapResearchPreviewBtn').onclick = async () => {
   const version = ++researchPreviewVersion;
   const selectedXdf = $('#xdfSelect').value;
   try {
-    const result = await api('/api/maps/research-preview', { method: 'POST', body: {
+    const body = {
       xdf: $('#xdfSelect').value, path: source.path, use_base_map: !!source.is_base_map,
       region: 'flash', address_base: maps.render.address_base,
       expected_source_sha256: source.sha256, expected_xdf_sha256: maps.render.xdf.sha256,
-      changes: [...maps.changes.values()],
-    } });
+      changes: [...maps.changes.values()].map((change) => ({ ...change })),
+    };
+    const result = await api('/api/maps/research-preview', { method: 'POST', body });
     if (version !== researchPreviewVersion || selectedXdf !== $('#xdfSelect').value) return;
     const rows = result.changes.slice(0, 40).map((c) => `<tr><td>${esc(c.title)}</td>
       <td>${mapChangeLocation(c)}</td><td>${esc(fmtValue(c.before))}</td>
@@ -4432,7 +4432,31 @@ $('#mapResearchPreviewBtn').onclick = async () => {
       Candidate bytes SHA-256 (no checksum repair) <code>${esc(result.candidate_sha256)}</code></p>
       <p class="small">${result.changes.length} change(s); ${result.changes.filter((c) => c.quantized).length} quantized. XDF checksum declarations: ${esc(result.declared_checksums.join(', ') || 'none (does not prove no checksum exists)')}.</p>
       <div class="table-wrap"><table class="data"><thead><tr><th>Item</th><th>Cell</th><th>Before</th><th>Requested</th><th>Stored</th></tr></thead><tbody>${rows}</tbody></table></div>
-      ${result.changes.length > 40 ? '<p class="small">Showing the first 40 changes.</p>' : ''}</div>`;
+      ${result.changes.length > 40 ? '<p class="small">Showing the first 40 changes.</p>' : ''}
+      ${!isHostedDemo() && [0x4000, 0x28000].includes(result.source.bytes)
+        ? '<button class="btn danger" id="harleyResearchExportBtn">Export reviewed Delphi research copy…</button>' : ''}</div>`;
+    const exportButton = $('#harleyResearchExportBtn');
+    if (exportButton) exportButton.onclick = async () => {
+      const accepted = await confirmDialog('Export Delphi research copy?',
+        '<p>This uses the source-described Delphi 16 KiB tune layout, not automatic bike identification. '
+        + 'Fitment, checksums, signatures and ECU writing are not established. '
+        + 'The output is a research copy and is <b>not flash-ready</b>; the original remains unchanged.</p>',
+        'Export research copy');
+      if (!accepted || version !== researchPreviewVersion || selectedXdf !== $('#xdfSelect').value) return;
+      exportButton.disabled = true;
+      try {
+        const saved = await api('/api/maps/harley-research-export', { method: 'POST', body: {
+          ...body, expected_candidate_sha256: result.candidate_sha256, accept_research_only: true,
+        } });
+        if (version !== researchPreviewVersion) return;
+        out.insertAdjacentHTML('beforeend', `<div class="gate-card warn"><h4>Research copy saved · not flash-ready</h4>
+          <p class="small">Image: <code>${esc(saved.path)}</code><br>Manifest: <code>${esc(saved.manifest_path)}</code><br>
+          SHA-256: <code>${esc(saved.manifest.output_sha256)}</code></p>
+          <p class="small">No ECU was contacted and no checksum was repaired.</p></div>`);
+      } catch (err) {
+        if (version === researchPreviewVersion) toast(`Research export refused: ${err.message}`, 'bad');
+      } finally { if (version === researchPreviewVersion) exportButton.disabled = false; }
+    };
   } catch (err) {
     if (version !== researchPreviewVersion || selectedXdf !== $('#xdfSelect').value) return;
     out.innerHTML = `<div class="gate-card bad"><h4>Research preview refused</h4><p class="small">${esc(err.message)}</p></div>`;
@@ -4838,7 +4862,7 @@ $('#mapsValidateDefinitionBtn').onclick = async () => {
   $('#xdfValidationOut').innerHTML = '<p class="muted small">Validating definition structure and renderability…</p>';
   try {
     const report = await api('/api/maps/validate-definition', {
-      method: 'POST', body: { xdf, ...(path ? { path } : {}) },
+      method: 'POST', body: { xdf, ...(path ? { path } : {}), address_base: $('#mapsAddressBase').value.trim() || null },
     });
     const levelLabel = { fatal: 'FAIL', warn: 'WARN', ok: 'OK' };
     $('#xdfValidationOut').innerHTML = `<details open class="gate-card ${report.ok ? (report.warnings ? 'warn' : 'ok') : 'bad'}">
@@ -4883,12 +4907,12 @@ $('#mapsRenderBtn').onclick = async () => {
     if (!go) return;
   }
   if (!path) return toast('Give the path of an image to render.', 'bad');
-  if (!path.startsWith('/') && !path.startsWith('~')) {
-    return toast('Give an absolute path, e.g. /home/you/.guzzionboard/images/5am-flash-read.bin', 'bad');
+  if (!path.startsWith('/') && !path.startsWith('~') && !/^[a-z]:[\\/]/i.test(path) && !path.startsWith('\\\\')) {
+    return toast('Give an absolute image path, such as C:\\Users\\you\\image.bin or /home/you/image.bin.', 'bad');
   }
   $('#mapsOut').innerHTML = '<p class="muted">Rendering…</p>';
   try {
-    renderMapsResult(await api('/api/maps/render', { method: 'POST', body: { path, xdf } }));
+    renderMapsResult(await api('/api/maps/render', { method: 'POST', body: { path, xdf, address_base: $('#mapsAddressBase').value.trim() || null } }));
   } catch (err) {
     $('#mapsOut').innerHTML = `<div class="gate-card bad"><h4>Could not render</h4><p class="small">${esc(err.message)}</p></div>`;
   }
@@ -4903,7 +4927,7 @@ $('#mapsDiffBtn').onclick = async () => {
   $('#mapsOut').innerHTML = '<p class="muted">Comparing…</p>';
   try {
     const d = await api('/api/maps/diff', {
-      method: 'POST', body: { path_a: a, path_b: b, xdf },
+      method: 'POST', body: { path_a: a, path_b: b, xdf, address_base: $('#mapsAddressBase').value.trim() || null },
     });
     if (d.identical) {
       $('#mapsOut').innerHTML = '<div class="gate-card ok"><h4>No differences</h4>'

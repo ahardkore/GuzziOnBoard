@@ -50,6 +50,37 @@ A matching definition, ECU-specific authentication/session implementation,
 calibration checksum/signature handling, robust read-back and recovery behavior
 are still needed for an integrated tuning and programming workflow.
 
+## Editing a user-supplied Delphi definition (local workstation)
+
+A separate research export is now available through **Firmware → Maps & tables**.
+It uses an XDF you provide and does not assert that its labels, scaling, byte
+order or fitment are correct. No Harley XDF or tune values are bundled.
+
+1. Put your XDF in `~/.guzzionboard/xdfs/` and click **Reload**. Clear **Only
+   definitions for this ECU** if it does not appear. Supply the absolute path to
+   a raw 16 KiB tune or 160 KiB calibration. Obtain these separately: the
+   application does not yet read Harley ECU memory. The XDF must describe the
+   selected file and be uncatalogued; other catalogued families and definitions
+   marked research-only cannot use this export.
+2. Check the displayed XDF address base. It is subtracted from XDF addresses to
+   locate bytes in the file. Blank uses a generic guess, **not** a Harley-specific
+   detection: enter the base required by your definition, then re-render. Neither
+   matching size nor an in-range table proves the definition matches the ECU.
+3. Stage your edits and choose **Preview edits for research**. After reviewing
+   the values and hashes, select **Export reviewed Delphi research copy** and
+   accept the warning. This option is local-only, not in the hosted demo. The
+   server recomputes the candidate from the hashed source and XDF, verifies it
+   matches the reviewed hash, and refuses edits outside the described 16 KiB tune
+   region. It creates new files under `~/.guzzionboard/research/harley-delphi/`
+   (or the configured app data directory): an image and a separate JSON manifest
+   with hashes, offset, declared checksum names and edits. Neither input is changed.
+
+This is **synthetic-tested**, not tested on a Harley. The exported copy is not
+flash-ready: no checksum or signature is checked or repaired, no matching is
+certified, and it provides no ECU security, memory read, write, recovery or tuning
+verification. The scope is the published layout, not every Harley. It does not
+relax the separate programming gates or override a catalogued XDF's restrictions.
+
 ## Additional diagnostic capture profiles
 
 [HarleyDroid EVO](https://github.com/QuickosssLabs/HarleyDroidEVO/tree/668b63efc05977eb65cb8e84e597ae2205355d4c)

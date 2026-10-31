@@ -1527,6 +1527,82 @@ class Api:
                         "authorization to program an ECU."),
         }
 
+    def post_maps_harley_research_export(self, body: dict) -> tuple[int, dict]:
+        """Export a reviewed Delphi-layout edit as an explicitly non-flashable copy.
+
+        This is not the programming build route. No fitment, checksum, identity,
+        ECU communications or write authorization can be inferred from it.
+        """
+        if body.get("accept_research_only") is not True:
+            return 400, {"error": "confirm the output is research-only and not flash-ready"}
+        status, preview = self.post_maps_research_preview(body)
+        if status != 200:
+            return status, preview
+        try:
+            if body.get("expected_candidate_sha256") != preview["candidate_sha256"]:
+                raise TuningError("reviewed candidate changed; preview the edits again")
+            source, _, _ = self._map_source(body)
+            if source.sha256 != preview["source"]["sha256"]:
+                raise TuningError("source image SHA-256 changed; render it again")
+            if source.size == 0x4000:
+                start, end, layout = 0, 0x4000, "16 KiB tune"
+            elif source.size == 0x28000:
+                start, end, layout = 0x1c000, 0x20000, "160 KiB calibration"
+            else:
+                raise TuningError("Delphi research layout requires exactly 16 KiB or 160 KiB")
+            resolved = self._load_xdf(body["xdf"])
+            info = fitment(resolved.path)
+            if info.get("family") or info.get("research_only") or info.get("catalogued"):
+                raise TuningError("use an uncatalogued user-supplied Delphi XDF for this research export")
+            xdf_bytes = Path(resolved.path).read_bytes()
+            if hashlib.sha256(xdf_bytes).hexdigest() != preview["xdf"]["sha256"]:
+                raise TuningError("XDF SHA-256 changed; render it again")
+            xdf = XdfFile.from_string(xdf_bytes.decode("ISO-8859-1"))
+            candidate, changes = xdf.apply_changes(source, body.get("changes"), address_base=self._address_base(body))
+            candidate_hash = hashlib.sha256(candidate).hexdigest()
+            if candidate_hash != preview["candidate_sha256"]:
+                raise TuningError("reviewed candidate changed; preview the edits again")
+            if source.data == candidate:
+                raise TuningError("the reviewed edits do not change the source image")
+            if source.data[:start] != candidate[:start] or source.data[end:] != candidate[end:]:
+                raise TuningError("edits must stay inside the selected Delphi tune region")
+            manifest = {
+                "schema": "guzzionboard.harley-research-edit/v1",
+                "research_only": True, "flash_ready": False,
+                "warning": "Not flash-ready: fitment, checksums and signatures are not verified or repaired.",
+                "layout": layout, "tune_offset": start, "tune_bytes": end - start,
+                "source": preview["source"], "xdf": preview["xdf"],
+                "address_base": preview["address_base"], "changes": changes,
+                "declared_checksums": preview["declared_checksums"],
+                "output_sha256": candidate_hash,
+            }
+            directory = resources.data_root() / "research" / "harley-delphi"
+            directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+            stem = f"harley-research-{candidate_hash[:12]}-{secrets.token_hex(8)}"
+            output = directory / (stem + ".bin")
+            report = directory / (stem + ".json")
+            # Exclusively create both outputs; never overwrite a source or prior export.
+            created_output = created_report = False
+            try:
+                descriptor = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                created_output = True
+                with os.fdopen(descriptor, "wb") as f:
+                    f.write(candidate)
+                descriptor = os.open(report, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                created_report = True
+                with os.fdopen(descriptor, "w", encoding="utf-8") as f:
+                    json.dump(manifest, f, indent=2)
+                    f.write("\n")
+            except OSError:
+                if created_output:
+                    output.unlink(missing_ok=True)
+                if created_report:
+                    report.unlink(missing_ok=True)
+                raise
+        except (XdfError, TuningError, OSError, UnicodeError) as exc:
+            return 400, {"error": str(exc)}
+        return 201, {"path": str(output), "manifest_path": str(report), "manifest": manifest}
+
     def post_maps_preview(self, body: dict) -> tuple[int, dict]:
         """Quantize and diff staged edits without writing a file."""
         ref = body.get("xdf")
@@ -2165,6 +2241,7 @@ ROUTES_POST = {
     "/api/maps/analyze-log": "post_maps_analyze_log",
     "/api/maps/preview": "post_maps_preview",
     "/api/maps/research-preview": "post_maps_research_preview",
+    "/api/maps/harley-research-export": "post_maps_harley_research_export",
     "/api/maps/build": "post_maps_build",
     "/api/recommendations/validate": "post_recommendation_validate",
     "/api/physical-validation/validate": "post_physical_validation_validate",

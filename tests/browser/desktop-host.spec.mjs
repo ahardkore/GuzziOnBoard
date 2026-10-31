@@ -918,3 +918,50 @@ test('protocol panel shows automatic delivery and opt-in read sharing', async ({
   await expect(page.locator('#protocolPanel')).toContainText('self-reported');
   expect(page.failures).toEqual([]);
 });
+
+test('desktop exports a reviewed synthetic Harley Delphi tune as a research copy', async ({ page }) => {
+  const root = resolve('.desktop-test-data');
+  const definitions = join(root, 'xdfs');
+  mkdirSync(definitions, { recursive: true });
+  const xdfPath = join(definitions, 'Harley_user_synthetic.xdf');
+  const imagePath = join(root, 'harley-synthetic-source.bin');
+  const image = Buffer.alloc(0x4000);
+  image.set([10, 20, 30, 40], 0x20);
+  writeFileSync(imagePath, image);
+  writeFileSync(xdfPath, `<XDFFORMAT version="1.60"><XDFHEADER><deftitle>Synthetic Harley</deftitle>
+    <DEFAULTS signed="0" lsbfirst="0"/><REGION size="0x4000"/></XDFHEADER>
+    <XDFTABLE uniqueid="fuel"><title>Synthetic table</title>
+    <XDFAXIS id="x"><indexcount>2</indexcount></XDFAXIS>
+    <XDFAXIS id="y"><indexcount>2</indexcount></XDFAXIS>
+    <XDFAXIS id="z"><EMBEDDEDDATA mmedaddress="0x40020" mmedelementsizebits="8"
+      mmedrowcount="2" mmedcolcount="2"/><MATH equation="X"/></XDFAXIS>
+    </XDFTABLE><XDFCHECKSUM><title>Unknown</title></XDFCHECKSUM></XDFFORMAT>`);
+  await page.goto('/');
+  await page.locator('[data-view="firmware"]').click();
+  await page.locator('#xdfOnlyFitting').uncheck();
+  await page.locator('#mapsRefreshBtn').click();
+  await page.locator('#xdfSelect').selectOption('Harley_user_synthetic.xdf');
+  await page.locator('#mapsImagePath').fill(imagePath);
+  await page.locator('#mapsAddressBase').fill('0x40000');
+  await page.locator('#mapsRenderBtn').click();
+  if (await page.locator('#modal').isVisible()) await page.locator('#modalConfirm').click();
+  const cell = page.locator('[data-map-kind="table"][data-map-id="fuel"][data-map-row="0"][data-map-col="1"]');
+  await expect(cell).toHaveAttribute('data-map-value', '20');
+  await expect(page.locator('#mapsOut')).toContainText('address base 0x40000');
+  await cell.dblclick();
+  await page.locator('#mapEditValue').fill('25');
+  await page.locator('#modalConfirm').click();
+  await page.locator('#mapResearchPreviewBtn').click();
+  await expect(page.locator('#harleyResearchExportBtn')).toBeVisible();
+  await page.locator('#harleyResearchExportBtn').click();
+  await expect(page.locator('#modal')).toContainText('not flash-ready');
+  const response = page.waitForResponse((r) => r.url().includes('/api/maps/harley-research-export') && r.status() === 201);
+  await page.locator('#modalConfirm').click();
+  const saved = await (await response).json();
+  await expect(page.locator('#mapResearchPreviewOut')).toContainText('Research copy saved · not flash-ready');
+  expect(readFileSync(imagePath)).toEqual(image);
+  const modified = readFileSync(saved.path);
+  expect(modified[0x21]).toBe(25);
+  expect(JSON.parse(readFileSync(saved.manifest_path)).flash_ready).toBe(false);
+  expect(page.failures.filter((error) => !/server responded with a status of 409/.test(error))).toEqual([]);
+});

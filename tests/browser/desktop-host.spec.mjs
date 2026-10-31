@@ -963,5 +963,18 @@ test('desktop exports a reviewed synthetic Harley Delphi tune as a research copy
   const modified = readFileSync(saved.path);
   expect(modified[0x21]).toBe(25);
   expect(JSON.parse(readFileSync(saved.manifest_path)).flash_ready).toBe(false);
+  await page.locator('#researchRegionStart').fill('0x20');
+  await page.locator('#researchRegionEnd').fill('0x24');
+  await page.locator('#userResearchExportBtn').click();
+  await expect(page.locator('#modal')).toContainText('end exclusive');
+  const customResponse = page.waitForResponse((r) => r.url().includes('/api/maps/research-export') && r.status() === 201);
+  await page.locator('#modalConfirm').click();
+  const custom = await (await customResponse).json();
+  const manifest = JSON.parse(readFileSync(custom.manifest_path));
+  expect(manifest.region_basis).toBe('operator-declared-not-verified');
+  expect(manifest.region_start).toBe(0x20);
+  expect(manifest.region_end_exclusive).toBe(0x24);
+  expect(readFileSync(custom.path)[0x21]).toBe(25);
+  expect(readFileSync(imagePath)).toEqual(image);
   expect(page.failures.filter((error) => !/server responded with a status of 409/.test(error))).toEqual([]);
 });

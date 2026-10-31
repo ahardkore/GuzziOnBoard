@@ -112,3 +112,40 @@ def test_export_never_overwrites_or_deletes_existing_file(fixture, monkeypatch, 
     status, _ = api.post_maps_harley_research_export({**body, 'accept_research_only': True,
                                 'expected_candidate_sha256': preview['candidate_sha256']})
     assert status == 400 and existing.read_bytes() == b'not to be touched'
+
+
+def test_user_declared_range_supports_other_image_sizes(fixture):
+    api, body, source, xdf = fixture(0x280000, 0x120020)
+    original = source.read_bytes()
+    status, preview = api.post_maps_research_preview(body)
+    assert status == 200
+    body.update(accept_research_only=True, expected_candidate_sha256=preview['candidate_sha256'],
+                region_start='0x120000', region_end='0x121000')
+    status, result = api.post_maps_research_export(body)
+    assert status == 201
+    candidate = Path(result['path']).read_bytes()
+    assert candidate[0x120021] == 25 and source.read_bytes() == original
+    assert candidate[:0x120000] == original[:0x120000]
+    assert candidate[0x121000:] == original[0x121000:]
+    manifest = json.loads(Path(result['manifest_path']).read_text())
+    assert manifest['region_start'] == 0x120000 and manifest['region_end_exclusive'] == 0x121000
+    assert manifest['region_basis'] == 'operator-declared-not-verified'
+    assert manifest['research_only'] and not manifest['flash_ready']
+    assert manifest['output_sha256'] == sha(candidate)
+    assert api.post_maps_preview(body)[0] == 400
+
+
+def test_user_range_is_explicit_bounded_and_candidate_locked(fixture):
+    api, body, source, xdf = fixture(0x8000, 0x20)
+    _, preview = api.post_maps_research_preview(body)
+    body.update(accept_research_only=True, expected_candidate_sha256=preview['candidate_sha256'],
+                region_start=0, region_end='0x8000')
+    for changes in ({'region_start': None}, {'region_start': True}, {'region_start': '-1'},
+                    {'region_start': '1.5'}, {'region_start': '9' * 5000}, {'region_start': '0x8000'},
+                    {'region_start': '0', 'region_end': '0'}, {'region_end': '0x8001'},
+                    {'region_start': '0x22', 'region_end': '0x8000'},
+                    {'expected_candidate_sha256': '0' * 64}, {'accept_research_only': False}):
+        assert api.post_maps_research_export({**body, **changes})[0] == 400
+    assert api.post_maps_research_export(body)[0] == 201
+    xdf.write_text(xdf.read_text().replace('Synthetic table', 'Changed table'))
+    assert api.post_maps_research_export(body)[0] == 400

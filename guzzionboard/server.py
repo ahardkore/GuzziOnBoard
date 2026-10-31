@@ -1528,11 +1528,15 @@ class Api:
         }
 
     def post_maps_harley_research_export(self, body: dict) -> tuple[int, dict]:
-        """Export a reviewed Delphi-layout edit as an explicitly non-flashable copy.
+        """Export using the one source-described Delphi layout."""
+        return self._research_edit_export(body, delphi_layout=True)
 
-        This is not the programming build route. No fitment, checksum, identity,
-        ECU communications or write authorization can be inferred from it.
-        """
+    def post_maps_research_export(self, body: dict) -> tuple[int, dict]:
+        """Export within an operator-declared file range, without ECU access."""
+        return self._research_edit_export(body, delphi_layout=False)
+
+    def _research_edit_export(self, body: dict, *, delphi_layout: bool) -> tuple[int, dict]:
+        """Create non-flash-ready bytes; no fitment or checksum is inferred."""
         if body.get("accept_research_only") is not True:
             return 400, {"error": "confirm the output is research-only and not flash-ready"}
         status, preview = self.post_maps_research_preview(body)
@@ -1544,16 +1548,31 @@ class Api:
             source, _, _ = self._map_source(body)
             if source.sha256 != preview["source"]["sha256"]:
                 raise TuningError("source image SHA-256 changed; render it again")
-            if source.size == 0x4000:
-                start, end, layout = 0, 0x4000, "16 KiB tune"
-            elif source.size == 0x28000:
-                start, end, layout = 0x1c000, 0x20000, "160 KiB calibration"
+            if not 0 < source.size <= 16 * 1024 * 1024:
+                raise TuningError("research images must be between 1 byte and 16 MiB")
+            if delphi_layout:
+                if source.size == 0x4000:
+                    start, end, layout = 0, 0x4000, "16 KiB tune"
+                elif source.size == 0x28000:
+                    start, end, layout = 0x1c000, 0x20000, "160 KiB calibration"
+                else:
+                    raise TuningError("Delphi research layout requires exactly 16 KiB or 160 KiB")
             else:
-                raise TuningError("Delphi research layout requires exactly 16 KiB or 160 KiB")
+                def offset(name: str) -> int:
+                    value = body.get(name)
+                    text = str(value) if value is not None else ""
+                    if (isinstance(value, bool) or len(text) > 16
+                            or not re.fullmatch(r"(?:0[xX][0-9a-fA-F]+|[0-9]+)", text)):
+                        raise TuningError(f"{name} must be a non-negative decimal or hexadecimal file offset")
+                    return int(text, 16 if text.lower().startswith("0x") else 10)
+                start, end = offset("region_start"), offset("region_end")
+                if not 0 <= start < end <= source.size:
+                    raise TuningError("file range must have start < end and fit entirely within the image")
+                layout = "operator-declared file range (not verified)"
             resolved = self._load_xdf(body["xdf"])
             info = fitment(resolved.path)
             if info.get("family") or info.get("research_only") or info.get("catalogued"):
-                raise TuningError("use an uncatalogued user-supplied Delphi XDF for this research export")
+                raise TuningError("use an uncatalogued user-supplied XDF for this research export")
             xdf_bytes = Path(resolved.path).read_bytes()
             if hashlib.sha256(xdf_bytes).hexdigest() != preview["xdf"]["sha256"]:
                 raise TuningError("XDF SHA-256 changed; render it again")
@@ -1565,20 +1584,22 @@ class Api:
             if source.data == candidate:
                 raise TuningError("the reviewed edits do not change the source image")
             if source.data[:start] != candidate[:start] or source.data[end:] != candidate[end:]:
-                raise TuningError("edits must stay inside the selected Delphi tune region")
+                raise TuningError("edits must stay inside the selected file region")
             manifest = {
-                "schema": "guzzionboard.harley-research-edit/v1",
+                "schema": "guzzionboard.harley-research-edit/v1" if delphi_layout else "guzzionboard.research-edit/v1",
                 "research_only": True, "flash_ready": False,
                 "warning": "Not flash-ready: fitment, checksums and signatures are not verified or repaired.",
-                "layout": layout, "tune_offset": start, "tune_bytes": end - start,
+                "layout": layout, "region_start": start, "region_end_exclusive": end,
+                "region_basis": "source-described" if delphi_layout else "operator-declared-not-verified",
                 "source": preview["source"], "xdf": preview["xdf"],
                 "address_base": preview["address_base"], "changes": changes,
                 "declared_checksums": preview["declared_checksums"],
                 "output_sha256": candidate_hash,
             }
-            directory = resources.data_root() / "research" / "harley-delphi"
+            directory = resources.data_root() / "research" / ("harley-delphi" if delphi_layout else "user-defined")
             directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-            stem = f"harley-research-{candidate_hash[:12]}-{secrets.token_hex(8)}"
+            prefix = "harley" if delphi_layout else "map"
+            stem = f"{prefix}-research-{candidate_hash[:12]}-{secrets.token_hex(8)}"
             output = directory / (stem + ".bin")
             report = directory / (stem + ".json")
             # Exclusively create both outputs; never overwrite a source or prior export.
@@ -2242,6 +2263,7 @@ ROUTES_POST = {
     "/api/maps/preview": "post_maps_preview",
     "/api/maps/research-preview": "post_maps_research_preview",
     "/api/maps/harley-research-export": "post_maps_harley_research_export",
+    "/api/maps/research-export": "post_maps_research_export",
     "/api/maps/build": "post_maps_build",
     "/api/recommendations/validate": "post_recommendation_validate",
     "/api/physical-validation/validate": "post_physical_validation_validate",

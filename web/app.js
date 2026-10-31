@@ -4434,7 +4434,39 @@ $('#mapResearchPreviewBtn').onclick = async () => {
       <div class="table-wrap"><table class="data"><thead><tr><th>Item</th><th>Cell</th><th>Before</th><th>Requested</th><th>Stored</th></tr></thead><tbody>${rows}</tbody></table></div>
       ${result.changes.length > 40 ? '<p class="small">Showing the first 40 changes.</p>' : ''}
       ${!isHostedDemo() && [0x4000, 0x28000].includes(result.source.bytes)
-        ? '<button class="btn danger" id="harleyResearchExportBtn">Export reviewed Delphi research copy…</button>' : ''}</div>`;
+        ? '<button class="btn danger" id="harleyResearchExportBtn">Export reviewed Delphi research copy…</button>' : ''}
+      ${!isHostedDemo() ? `<div class="toolbar"><label class="inline">Editable file start <input id="researchRegionStart" size="12" placeholder="e.g. 0x4000"></label>
+        <label class="inline">End, exclusive <input id="researchRegionEnd" size="12" placeholder="e.g. 0x8000"></label>
+        <button class="btn danger" id="userResearchExportBtn">Export within my file range…</button></div>
+        <p class="muted small">For other ECU images, enter the intended file offsets (decimal or hex). The range is your assertion, not auto-detected fitment. The result remains research only, not flash-ready.</p>` : ''}</div>`;
+    const userExport = $('#userResearchExportBtn');
+    if (userExport) userExport.onclick = async () => {
+      const start = $('#researchRegionStart').value.trim();
+      const end = $('#researchRegionEnd').value.trim();
+      if (!/^(?:0x[0-9a-f]+|[0-9]+)$/i.test(start) || !/^(?:0x[0-9a-f]+|[0-9]+)$/i.test(end)) {
+        return toast('Enter the beginning and exclusive end as decimal or hexadecimal file offsets.', 'bad');
+      }
+      const accepted = await confirmDialog('Export research copy for this file range?',
+        `<p>You selected file offsets <code>${esc(start)}</code> to <code>${esc(end)}</code> (end exclusive). `
+        + 'The range and definition are your assertion, not proof of ECU fitment. No ECU is contacted, '
+        + 'and checksums and signatures are not repaired. This output is <b>not flash-ready</b>.</p>',
+        'Export research copy');
+      if (!accepted || version !== researchPreviewVersion || selectedXdf !== $('#xdfSelect').value) return;
+      userExport.disabled = true;
+      try {
+        const saved = await api('/api/maps/research-export', { method: 'POST', body: {
+          ...body, region_start: start, region_end: end,
+          expected_candidate_sha256: result.candidate_sha256, accept_research_only: true,
+        } });
+        if (version !== researchPreviewVersion) return;
+        out.insertAdjacentHTML('beforeend', `<div class="gate-card warn"><h4>Research copy saved · not flash-ready</h4>
+          <p class="small">Image: <code>${esc(saved.path)}</code><br>Manifest: <code>${esc(saved.manifest_path)}</code><br>
+          SHA-256: <code>${esc(saved.manifest.output_sha256)}</code></p>
+          <p class="small">No ECU was contacted and no checksum was repaired.</p></div>`);
+      } catch (err) {
+        if (version === researchPreviewVersion) toast(`Research export refused: ${err.message}`, 'bad');
+      } finally { if (version === researchPreviewVersion) userExport.disabled = false; }
+    };
     const exportButton = $('#harleyResearchExportBtn');
     if (exportButton) exportButton.onclick = async () => {
       const accepted = await confirmDialog('Export Delphi research copy?',

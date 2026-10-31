@@ -75,6 +75,16 @@ order or fitment are correct. No Harley XDF or tune values are bundled.
    (or the configured app data directory): an image and a separate JSON manifest
    with hashes, offset, declared checksum names and edits. Neither input is changed.
 
+For other user-supplied image sizes (up to 16 MiB), the same preview also
+provides **Export within my file range**. Enter the beginning and exclusive
+end as file offsets (decimal or hexadecimal), not device addresses. Both the
+range and XDF are operator assertions. The tool verifies every changed byte is
+inside that range and records it as **operator-declared, not verified**; it does
+not claim the range is a calibration region. These exports are saved under
+`research/user-defined` in the application data directory. This can support
+research on other Harley layouts or other makes, but it does not establish
+which ECU or motorcycle they belong to.
+
 This is **synthetic-tested**, not tested on a Harley. The exported copy is not
 flash-ready: no checksum or signature is checked or repaired, no matching is
 certified, and it provides no ECU security, memory read, write, recovery or tuning
@@ -233,3 +243,31 @@ read-only, nor replay a proprietary payload or claim it works across Harleys.
 The published sample does not establish target identity, firmware compatibility
 or checksum/recovery requirements for a safe flash. This integration has
 synthetic tests only and has not been tested on physical hardware.
+
+## Flashing research leads and gaps
+
+[BitBox's Harley-Davidson Delphi module](https://www.bitsoftware.com/bitbox/catalog/13)
+reports read, write and automatic checksum handling for several **distinct**
+ECUs (including MT05 CAN, VooDoo CAN and MT21M TC265). Its capability listing
+is not a programming specification, source code, or permission to reuse its
+algorithms. [OldSkullTuning's Delphi XDF list](https://oldskulltuning.com/tunerpro-maps-for-all-harley-davidson-with-ecu-delphi/)
+reports J1850 and CAN map coverage; the separate
+[TC265 listing](https://oldskulltuning.com/harley-davidson-my2021-ecu-delphi-tc265-remap-with-tunerpro/)
+notes tables vary by software and calibration number. These sources motivate
+support for user-supplied definitions, not automatic fitment or write protocols.
+
+[HOSSTune's author described an open-source Harley programming project](https://www.1130cc.com/threads/any-open-source-delphi-software-yet.141387/),
+but its original `ToBeFrank/HOSSTune` GitHub repository returned 404 during this
+review and we could not inspect its code, license, ECU coverage or captures.
+A legitimately obtained source archive with its license would be useful to
+investigate; no HOSSTune code is included here.
+
+[HUD ECU Hacker](https://netcult.ch/elmue/HUD%20ECU%20Hacker/) explicitly
+states its generic Delphi MT05/MT05.2 flasher cannot flash the externally
+similar Harley MT05, which uses different hardware, firmware and wiring. Do
+not infer Harley flashing support from the non-Harley MT05 protocol. The
+source-described HarleyECUTool CAN sequence is narrower: it requires an
+ECU-specific opaque authentication payload and the public material does not
+establish a reusable calibration checksum or a complete, supported recovery
+path. These facts leave physical ECU reading and writing unimplemented, not
+merely hidden behind a confidence setting.

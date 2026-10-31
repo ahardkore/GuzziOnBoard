@@ -1245,3 +1245,25 @@ test('Intrepid CAN selection requires explicit serial and single network', async
   await page.selectOption('#canInterface', '');
   expect((await page.evaluate(() => selectionRequest()))).not.toHaveProperty('can_serial');
 });
+
+test('SLCAN classic-CAN adapter uses explicit port and preserves profile scope', async ({ page }) => {
+  await page.goto('/');
+  await page.getByText('Override: pick an ECU family directly').click();
+  await page.selectOption('#ecuOverride', 'harley_delphi_can_uds');
+  const can = page.locator('input[name="transport"][value="can"]');
+  if (await can.isEnabled()) await can.check();
+  else await can.evaluate(el => { el.checked = true; el.dispatchEvent(new Event('change', {bubbles:true})); });
+  await page.selectOption('#canInterface', 'slcan');
+  await expect(page.locator('#canSlcanNote')).toContainText('Synthetic-tested only');
+  await page.locator('#deviceInput').fill('COM5@115200');
+  const body = await page.evaluate(() => selectionRequest());
+  expect(body).toMatchObject({ecu:'harley_delphi_can_uds',transport:'can',device:'COM5@115200',can_interface:'slcan'});
+  expect(body).not.toHaveProperty('can_serial');
+  const result = await page.evaluate(async body => {
+    const r = await fetch('/api/select',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    return {status:r.status, json:await r.json()};
+  }, body);
+  expect(result.status).toBe(200);
+  expect(result.json.ecu.memory.read_supported).toBe(false);
+  expect(result.json.ecu.memory.write_supported).toBe(false);
+});

@@ -783,10 +783,12 @@ function onTransportChange() {
   $('#elmFields').hidden = kind !== 'elm_j1850';
   $('#canFields').hidden = !['can', 'cansim'].includes(kind);
   const intrepid = kind === 'can' && $('#canInterface').value === 'neovi';
+  const slcan = kind === 'can' && $('#canInterface').value === 'slcan';
   $('#canInterfaceField').hidden = kind !== 'can';
   $('#canSerialField').hidden = !intrepid;
   $('#canIntrepidNote').hidden = !intrepid;
-  $('#deviceInput').placeholder = intrepid ? 'HSCAN' : kind === 'can' ? 'can0' : '/dev/ttyUSB0';
+  $('#canSlcanNote').hidden = !slcan;
+  $('#deviceInput').placeholder = intrepid ? 'HSCAN' : slcan ? '/dev/ttyACM0' : kind === 'can' ? 'can0' : '/dev/ttyUSB0';
   if (['can', 'cansim'].includes(kind) && !$('#canTxId').value) {
     const spec = (state.resolved && state.resolved.ecu_detail && state.resolved.ecu_detail.can) || {};
     if (spec.tx_id !== undefined && spec.rx_id !== undefined) {
@@ -904,9 +906,9 @@ function selectionRequest() {
   if (['can', 'cansim'].includes(currentTransport())) {
     body.can_tx_id = $('#canTxId').value.trim();
     body.can_rx_id = $('#canRxId').value.trim();
-    if (currentTransport() === 'can' && $('#canInterface').value === 'neovi') {
-      body.can_interface = 'neovi';
-      body.can_serial = $('#canSerial').value.trim();
+    if (currentTransport() === 'can' && $('#canInterface').value) {
+      body.can_interface = $('#canInterface').value;
+      if (body.can_interface === 'neovi') body.can_serial = $('#canSerial').value.trim();
     }
   }
 

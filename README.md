@@ -109,6 +109,9 @@ guzzionboard-desktop                     # or: guzzionboard --desktop
 guzzionboard-desktop --selftest         # installation check
 ```
 
+SLCAN USB serial adapters can also be selected for classic CAN in hardware-enabled
+desktop builds. Setup and limitations: [EcuBus-Pro research](docs/ECUBUS_PRO_RESEARCH.md).
+
 Intrepid neoVI/ValueCAN is an optional source-run CAN backend; standard desktop
 builds do not bundle its runtime. Linux desktop builds can also use an externally
 configured Intrepid SocketCAN interface. See [Intrepid hardware](docs/INTREPID_HARDWARE.md)

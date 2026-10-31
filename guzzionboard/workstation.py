@@ -194,17 +194,20 @@ class Workstation:
             else:
                 raise ValueError("select needs either an ecu id or a model and year")
 
-            if not isinstance(can_interface, str) or can_interface not in ("", "neovi"):
-                raise ValueError("CAN interface must be profile default or Intrepid neoVI")
+            if not isinstance(can_interface, str) or can_interface not in ("", "neovi", "slcan"):
+                raise ValueError("CAN interface must be profile default, SLCAN or Intrepid neoVI")
             if not isinstance(can_serial, str):
                 raise ValueError("Intrepid serial must be text")
-            if can_interface == "neovi" and transport != "can":
-                raise ValueError("Intrepid neoVI requires physical CAN transport")
+            if can_interface and transport != "can":
+                raise ValueError("Selected CAN adapter requires physical CAN transport")
             if can_interface != "neovi" and can_serial:
                 raise ValueError("Intrepid serial is only used with the neoVI interface")
             if can_interface == "neovi":
                 from .transports.can import validate_neovi_selection
                 validate_neovi_selection(device, can_serial)
+            if can_interface == "slcan":
+                from .transports.can import validate_slcan_selection
+                validate_slcan_selection(device)
 
             overrides = {}
             for key, value in (("tx_id", can_tx_id), ("rx_id", can_rx_id)):

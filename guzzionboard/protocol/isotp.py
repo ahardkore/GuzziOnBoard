@@ -2,6 +2,10 @@
 
 Used by the CAN transport for the newer Moto Guzzi ECUs (MIU G4, Marelli 11MP).
 Kept free of any CAN library import so it can be unit tested on its own.
+
+Classic-CAN framing validation informed by ecubus/EcuBus-Pro cantp.ts,
+Apache-2.0, revision ca3207801b34ded99b67b8b12b5d4547b5a868e8.
+See LICENSES/EcuBus-Pro-Apache-2.0.txt. This is not a CAN-FD implementation.
 """
 from __future__ import annotations
 
@@ -27,16 +31,20 @@ class IsoTpError(Exception):
 
 
 def encode_single(payload: bytes, *, dlc: int = 8, padding: int = 0xAA) -> bytes:
-    if len(payload) > dlc - 1:
+    if not 1 <= len(payload) <= dlc - 1:
         raise IsoTpError(f"{len(payload)} bytes do not fit in a single frame")
     frame = bytes([len(payload)]) + payload
     return frame.ljust(dlc, bytes([padding]))
 
 
 def segment(payload: bytes, *, dlc: int = 8, padding: int = 0xAA) -> list[bytes]:
-    """Split ``payload`` into ISO-TP frames (single, or first + consecutive)."""
+    """Split a non-empty classic-CAN payload into ISO-TP frames."""
+    if not 2 <= dlc <= 8 or not 0 <= padding <= 255 or not payload:
+        raise IsoTpError("invalid classic ISO-TP DLC, padding or empty payload")
     if len(payload) <= dlc - 1:
         return [encode_single(payload, dlc=dlc, padding=padding)]
+    if dlc != 8:
+        raise IsoTpError("multi-frame classic ISO-TP requires 8-byte frames")
     if len(payload) > 0xFFF:
         raise IsoTpError("payload exceeds the 4095 byte classic ISO-TP limit")
 
@@ -85,41 +93,59 @@ class Reassembler:
         Returns ``(payload, reply)``: ``payload`` once a message is complete,
         and ``reply`` when the transport must send a flow-control frame.
         """
-        if not frame:
-            raise IsoTpError("empty CAN frame")
-        pci = (frame[0] >> 4) & 0x0F
+        try:
+            if not frame or len(frame) > 8:
+                raise IsoTpError("empty or oversized classic CAN frame")
+            pci = (frame[0] >> 4) & 0x0F
 
-        if pci == PCIType.SINGLE:
-            length = frame[0] & 0x0F
-            if length == 0 or length > len(frame) - 1:
-                raise IsoTpError(f"bad single-frame length {length}")
-            return bytes(frame[1 : 1 + length]), None
+            if pci == PCIType.SINGLE:
+                if self.active:
+                    raise IsoTpError("single frame during an active ISO-TP transfer")
+                length = frame[0] & 0x0F
+                if length == 0 or length > len(frame) - 1:
+                    raise IsoTpError(f"bad single-frame length {length}")
+                return bytes(frame[1 : 1 + length]), None
 
-        if pci == PCIType.FIRST:
-            self.expected = ((frame[0] & 0x0F) << 8) | frame[1]
-            self.buffer = bytearray(frame[2:])
-            self.index = 0
-            return None, flow_control()
+            if pci == PCIType.FIRST:
+                if self.active:
+                    raise IsoTpError("first frame during an active ISO-TP transfer")
+                if len(frame) != 8:
+                    raise IsoTpError("truncated first ISO-TP frame")
+                length = ((frame[0] & 0x0F) << 8) | frame[1]
+                if length <= 7:
+                    raise IsoTpError("invalid first-frame payload length")
+                self.expected = length
+                self.buffer = bytearray(frame[2:])
+                self.index = 0
+                return None, flow_control()
 
-        if pci == PCIType.CONSECUTIVE:
-            if not self.active:
-                raise IsoTpError("consecutive frame without a first frame")
-            self.index = (self.index + 1) & 0x0F
-            if (frame[0] & 0x0F) != self.index:
-                raise IsoTpError(
-                    f"ISO-TP sequence error: got {frame[0] & 0x0F}, expected {self.index}"
-                )
-            self.buffer += frame[1:]
-            if len(self.buffer) >= self.expected:
-                payload = bytes(self.buffer[: self.expected])
-                self.reset()
-                return payload, None
-            return None, None
+            if pci == PCIType.CONSECUTIVE:
+                if not self.active:
+                    raise IsoTpError("consecutive frame without a first frame")
+                if len(frame) < 2:
+                    raise IsoTpError("empty consecutive ISO-TP frame")
+                remaining = self.expected - len(self.buffer)
+                if len(frame) - 1 < min(7, remaining):
+                    raise IsoTpError("truncated consecutive ISO-TP frame")
+                self.index = (self.index + 1) & 0x0F
+                if (frame[0] & 0x0F) != self.index:
+                    raise IsoTpError(
+                        f"ISO-TP sequence error: got {frame[0] & 0x0F}, expected {self.index}"
+                    )
+                self.buffer += frame[1:]
+                if len(self.buffer) >= self.expected:
+                    payload = bytes(self.buffer[: self.expected])
+                    self.reset()
+                    return payload, None
+                return None, None
 
-        if pci == PCIType.FLOW_CONTROL:
-            return None, None
+            if pci == PCIType.FLOW_CONTROL:
+                return None, None
 
-        raise IsoTpError(f"unknown ISO-TP PCI 0x{pci:X}")
+            raise IsoTpError(f"unknown ISO-TP PCI 0x{pci:X}")
+        except IsoTpError:
+            self.reset()
+            raise
 
     def reset(self) -> None:
         self.expected = 0

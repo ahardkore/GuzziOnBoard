@@ -92,6 +92,7 @@ def run(*, export_dir: str | None = None, host: str = "127.0.0.1",
             import serial.tools.list_ports  # noqa: F401
             import can  # noqa: F401
             import can.interfaces  # noqa: F401
+            import can.interfaces.slcan  # noqa: F401 — dynamically loaded backend
             # python-can loads backends dynamically; importing the top-level
             # package alone cannot prove the frozen virtual backend was collected.
             bus = can.Bus(interface="virtual", channel="gob-selftest")

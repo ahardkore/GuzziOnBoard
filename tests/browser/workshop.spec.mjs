@@ -777,3 +777,9 @@ test('hosted Buell reader refuses access to serial hardware', async ({ page }) =
   await page.locator('#buellIdentify').click();
   await expect(page.locator('#buellOut')).toContainText('hosted demo cannot access serial hardware');
 });
+
+test('hosted JetDrive capture cannot access the dyno network', async ({ page }) => {
+  await page.goto('/web/index.html'); await page.locator('[data-view="tools"]').click();
+  await page.locator('#jetdriveConfirm').check(); await page.locator('#jetdriveCapture').click();
+  await expect(page.locator('#jetdriveOut')).toContainText('hosted demo cannot access the local dyno network');
+});

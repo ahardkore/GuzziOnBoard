@@ -32,6 +32,7 @@ from . import harley_hdlan_listen
 from . import yamaha_mt03_listen
 from . import rusefi_read
 from . import buell_ddfi
+from . import jetdrive
 from . import j2534
 from . import klinelog
 from . import logconvert
@@ -362,6 +363,7 @@ class Api:
         self._yamaha_observation_lock = threading.Lock()
         self._rusefi_lock = threading.Lock()
         self._buell_lock = threading.Lock()
+        self._jetdrive_lock = threading.Lock()
 
     # -- catalog ----------------------------------------------------------
     def get_catalog(self, query: dict) -> tuple[int, dict]:
@@ -1991,6 +1993,17 @@ class Api:
             "instructions": "" if ok else adapter_mod.latency_fix_instructions(port),
         }
 
+    def post_tools_jetdrive(self, body: dict) -> tuple[int, dict]:
+        """Observe a bounded local Dynojet multicast window, optionally request metadata."""
+        if body.get("confirm") is not True:
+            return 400, {"error": "Confirm the local dyno network and observation limits."}
+        if not self._jetdrive_lock.acquire(blocking=False):
+            return 409, {"error": "A JetDrive observation is already running."}
+        try:
+            return 200, jetdrive.observe(body.get("group"), body.get("interface"), body.get("request_info", False))
+        finally:
+            self._jetdrive_lock.release()
+
     def post_tools_buell_ddfi(self, body: dict) -> tuple[int, dict]:
         """Explicit TTL serial Buell version, runtime or bounded EEPROM GET."""
         if body.get("confirm") is not True:
@@ -2338,6 +2351,7 @@ ROUTES_POST = {
     "/api/adapter/latency": "post_adapter_latency",
     "/api/tools/canlog": "post_tools_canlog",
     "/api/tools/harley-hdlan-listen": "post_tools_harley_hdlan_listen",
+    "/api/tools/jetdrive": "post_tools_jetdrive",
     "/api/tools/buell-ddfi": "post_tools_buell_ddfi",
     "/api/tools/rusefi-read": "post_tools_rusefi_read",
     "/api/tools/yamaha-mt03-listen": "post_tools_yamaha_mt03_listen",

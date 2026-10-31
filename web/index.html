@@ -318,6 +318,14 @@
       <div id="clearGate"></div>
     </article>
     <div id="faultList"></div>
+    <article class="panel" id="harleyCodeReference">
+      <h2>Harley trouble-code reference</h2>
+      <p class="muted small">Optionally select a local <a href="https://github.com/kakhamek/harley-davidson-trouble-codes/tree/68e74b58c351ef187ec282ee7e4e54eabc4eda1c" target="_blank" rel="noopener noreferrer">Harley trouble-codes JSON file</a> to look up codes. The source lists descriptions, not vehicle/year fitment or a diagnostic protocol; duplicate and nonstandard code strings are preserved. Nothing is uploaded or stored. Imported labels appear alongside matching live fault codes on the next read, and are not a diagnosis.</p>
+      <label class="field"><span>Local codes.json</span><input type="file" id="harleyCodeFile" accept=".json,application/json"></label>
+      <label class="field"><span>Code to look up</span><input type="text" id="harleyCodeQuery" maxlength="6" placeholder="P0107"></label>
+      <div class="toolbar"><button class="btn" id="harleyCodeClear">Clear local reference</button></div>
+      <pre class="small" id="harleyCodeOut" aria-live="polite">No reference loaded.</pre>
+    </article>
   </section>
 
   <!-- ====================================================== SERVICE -->
@@ -543,6 +551,31 @@
       <div class="toolbar"><button class="btn" id="centurionInspect">Inspect headers locally</button><button class="btn small" id="centurionClear">Clear</button></div>
       <pre id="centurionOut" class="small" aria-live="polite"></pre>
       <p class="muted small">Files can contain VINs, customer and license information. Only the first 98 bytes are read locally; the observed VIN slot is not read; filenames are not displayed or uploaded. Candidate fields may contain sensitive information, so review before sharing. The tool does not extract, decrypt, edit, validate or flash the tune. No source customer files are bundled. <a href="https://github.com/aaronlumen/Performance-Harley-Davidson-Tuning/tree/a3250e460e1781b8f594e1b400e5a05058d23534" target="_blank" rel="noopener noreferrer">Source collection</a>.</p>
+    </article>
+
+    <article class="panel" id="pvvEditor">
+      <h2>Power Vision PVV · local table editor</h2>
+      <p class="muted small">Open a user-supplied PVV XML file, inspect its tables and make explicit numeric cell edits to a separate XML copy. Based on the PVV layout described by DynoAI; no Power Vision device connection. This editor does not verify vehicle or calibration fitment, checksum, vendor acceptance, safety limits, or ECU recovery. The source file is never overwritten and no file is uploaded. Synthetic tests only.</p>
+      <label class="field"><span>Local PVV XML file</span><input id="pvvFile" type="file" accept=".pvv,.xml,text/xml,application/xml"></label>
+      <label class="field"><span>Table or scalar</span><select id="pvvSelect" disabled><option value="">Open a PVV file first</option></select></label>
+      <p id="pvvDetails" class="small muted">No file loaded.</p>
+      <div id="pvvGrid" class="table-wrap"></div>
+      <p id="pvvChanges" class="small" aria-live="polite">No staged changes.</p>
+      <label class="check"><input type="checkbox" id="pvvConfirm"> I reviewed the staged edits and understand the copy is not verified or flash-ready</label>
+      <div class="toolbar"><button class="btn" id="pvvRevert" disabled>Revert staged edits</button><button class="btn" id="pvvExport" disabled>Export reviewed PVV copy</button><button class="btn" id="pvvClear">Clear PVV</button></div>
+      <p class="muted small">Use the vendor's supported software to determine whether the copy can be imported and whether any checksum or other corrections are required. Changed numeric values are not recommendations. XML formatting may change; unsupported items and metadata are retained but not validated.</p>
+    </article>
+
+    <article class="panel" id="jetdrivePanel">
+      <h2>Dynojet JetDrive · live network observation</h2>
+      <p class="muted small">Observe a three-second window of JetDrive-compatible multicast on your local dyno network. This is dyno telemetry, not a motorcycle ECU connection, tune writer, or authenticated source. Integration synthetic-tested only. Channel names and unit codes come from the provider and may be inaccurate; verify sensor mapping and timestamps independently before use.</p>
+      <label class="field"><span>Multicast group</span><select id="jetdriveGroup"><option value="224.0.2.10">224.0.2.10</option><option value="239.255.60.60">239.255.60.60</option></select></label>
+      <label class="field"><span>Local IPv4 interface (0.0.0.0 = system default)</span><input id="jetdriveInterface" value="0.0.0.0" maxlength="15"></label>
+      <label class="check"><input type="checkbox" id="jetdriveRequest"> Send one multicast channel-metadata request (otherwise receive only)</label>
+      <label class="check"><input type="checkbox" id="jetdriveConfirm"> I verified the dyno network and understand telemetry can be spoofed or mislabelled</label>
+      <div class="toolbar"><button class="btn" id="jetdriveCapture">Capture live window</button><button class="btn" id="jetdriveExport" disabled>Export current samples CSV</button></div>
+      <pre class="small" id="jetdriveOut" aria-live="polite">No current capture.</pre>
+      <p class="muted small">CSV contains only the current bounded window, in long format, with source IP and provider/channel identifiers. No stale sample fill, unit conversion or automatic tuning is performed; network identifiers may be sensitive. <a href="https://github.com/rob9206/DynoAI_3/tree/cc22636aafa40a0b4ce4c27b5e0cc50795012b87" target="_blank" rel="noopener noreferrer">DynoAI source</a>.</p>
     </article>
 
     <article class="panel" id="buellDdfi">
@@ -1227,6 +1260,9 @@
 <script src="juken-research.js"></script>
 <script src="harley-live-can.js"></script>
 <script src="yamaha-live-kline.js"></script>
+<script src="harley-code-reference.js"></script>
+<script src="jetdrive.js"></script>
+<script src="pvv-editor.js"></script>
 <script src="buell-ddfi.js"></script>
 <script src="rusefi-ini.js"></script>
 <script src="rusefi-read.js"></script>

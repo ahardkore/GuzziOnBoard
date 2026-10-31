@@ -1652,6 +1652,7 @@ async function readDtcs() {
       <div class="fault-code">${esc(d.code)}</div>
       <div class="fault-info">
         <strong>${esc(d.description || 'No description in the catalog for this code')}</strong>
+        ${window.harleyCodeReference?.lookup(d.code).map((description) => `<small class="local-harley-reference">Local Harley reference (fitment unverified): ${esc(description)}</small>`).join('') || ''}
         <small>${d.status_byte == null ? 'status byte not supplied' : `status byte 0x${d.status_byte.toString(16).toUpperCase().padStart(2, '0')}`}
           · kind ${esc(d.kind)}${d.warning_indicator ? ' · warning lamp' : ''}</small>
       </div>

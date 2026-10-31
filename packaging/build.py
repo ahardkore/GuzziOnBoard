@@ -110,6 +110,12 @@ def check_artifact(folder: Path, *, expect_worker: bool = True) -> None:
                      "guzzionboard/xdfs/catalog.json"):
         if not (root / relative).exists():
             raise SystemExit(f"missing application data: {relative}")
+    # Fail closed if an ECU dump, archive or native plugin slips into docs.
+    docs = root / "docs"
+    if docs.exists():
+        for path in docs.rglob("*"):
+            if path.is_file() and path.suffix.lower() not in {".md", ".json"}:
+                raise SystemExit(f"unexpected non-documentation release asset: {path.name}")
 
 
 def selftest(folder: Path, *, enabled: bool, hardware: bool = False) -> Path | None:

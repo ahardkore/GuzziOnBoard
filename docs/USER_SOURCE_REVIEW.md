@@ -4,7 +4,9 @@ Reviewed 2026-10-29. Linked claims are those of the source; the GuzziOnBoard
 integration is not necessarily hardware-tested. Sources are pinned where
 possible. GPL reuse retains attribution and license terms; contributing changes
 upstream is not required. Third-party firmware, customer files, commercial
-assets and authentication captures are not bundled.
+assets and authentication captures are not intentionally bundled. Five previously
+tracked uploads under `docs/` were included by the former desktop packaging rule;
+the current rule excludes non-documentation files.
 
 | Source | Finding and use in this project |
 | --- | --- |
@@ -13,6 +15,9 @@ assets and authentication captures are not bundled.
 | [HarleyDroid original `0268f3c`](https://github.com/stelian42/HarleyDroid/tree/0268f3cbfe4432b6f5b1e911181aea6c1181d5b9) | GPL-3.0-or-later J1850 observer and diagnostics; already integrated through the EVO fork. Not a Buell DDFI EEPROM protocol. |
 | [Buell BUEIA V5 definitions `61136c6`](https://github.com/Snoman002/Engine-Tune-Repository-TunerPro-EFIlive-TunerCat/tree/61136c6d0d59506d60a01b4ff7176679d9903fd4/Buell/BUEIA_ECU/Software) | EcmSpy-attributed ADX/XDF; no repository license. ADX helps identify runtime messages and candidate offsets; XDF title and description disagree. Not bundled. Combined with EcmDroid and EcmSpy protocol research in a synthetic-tested read-only Buell live tool; see `BUELL_DDFI_RESEARCH.md`. |
 | [2017 Sportster CAN `835a1bc`](https://github.com/earnaz/Harley-Davidson-CAN-Bus/tree/835a1bccb1cdee0369e120f4a134fbb0bde3564d) | MIT source already integrated as explicit receive-only Sportster observation; no factory tuning protocol. |
+| [DynoAI_3 `cc22636`](https://github.com/rob9206/DynoAI_3/tree/cc22636aafa40a0b4ce4c27b5e0cc50795012b87) | MIT, copyright DynoAI. Source-described JetDrive multicast packet handling adapted into an explicitly bounded live observer; local PVV numeric table editor uses its documented XML layout. No actual dyno or ECU tested, no ECU writes. See `DYNOAI_AND_UPLOADS.md`. |
+| [Harley trouble codes `68e74b5`](https://github.com/kakhamek/harley-davidson-trouble-codes/tree/68e74b58c351ef187ec282ee7e4e54eabc4eda1c) | 178 descriptions, including duplicate and nonstandard codes. No license file; not bundled. Local user-selected JSON lookup can supplement live faults as unverified-fitment references. |
+| [Six uploaded files `9a5d6012`](https://github.com/ahardkore/GuzziOnBoard/commit/9a5d6012) | Five match files already in `docs/`; sixth is a TunerPro DLL pack. Suzuki XDF rendered on the uploaded Hayabusa-size image; 14CUX checksum DLL and MTX binaries were not executed. No ECU fitment, checksum or writing inferred. See `DYNOAI_AND_UPLOADS.md`. |
 | [rusEFI `5359cc9`](https://github.com/rusefi/rusefi/tree/5359cc971b60a9a0ee3f0f2a870dbb64f0ad36ef) | Open-source aftermarket ECU with Harley engine configuration; not stock Delphi. Root license states GPL-3.0 and extra usage terms. Independently implemented bounded, synthetic-tested serial reads; no source or tunes copied. See `RUSEFI_AND_POWERVISION_RESEARCH.md`. |
 | [rusEFI snapshot build server](https://rusefi.com/build_server/) | Board-specific snapshots and bundles, not factory Harley firmware. The desktop can locally extract a signature from a selected INI and generate a user-clicked lookup link; no bundle, firmware or program is automatically downloaded or installed. See `RUSEFI_AND_POWERVISION_RESEARCH.md`. |
 | [Power Vision security research](https://therealunicornsecurity.github.io/Powervision-2/) | Reverse engineering of the tuner's USB file service, not the bike ECU. Example passwords/keys explicitly fake; article has a checksum description discrepancy. No code, credentials, or exploits copied. |

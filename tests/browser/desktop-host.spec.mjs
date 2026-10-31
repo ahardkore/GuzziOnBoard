@@ -1111,3 +1111,91 @@ test('desktop Buell DDFI live reader requires confirmation and exact ECM version
   await expect(page.locator('#buellConfirm')).not.toBeChecked();
   expect(page.failures).toEqual([]);
 });
+
+test('JetDrive live window requires consent and clears stale samples', async ({ page }) => {
+  await page.goto('/'); await page.locator('[data-view="tools"]').click();
+  const calls = [];
+  await page.route('**/api/tools/jetdrive', async route => {
+    calls.push(route.request().postDataJSON());
+    await route.fulfill({status:200, contentType:'application/json', body:JSON.stringify({packets:1, invalid_packets:0, dropped:0, limit_reached:false, metadata_requested:false, samples:[{source:'192.168.0.2', provider:4660, provider_name:'=bad_formula', sequence:1, id:1, channel_name:'RPM', unit_code:8, timestamp_ms:1000, value:1600}]})});
+  });
+  await page.locator('#jetdriveCapture').click();
+  await expect(page.locator('#jetdriveOut')).toContainText('Confirm'); expect(calls).toHaveLength(0);
+  await page.locator('#jetdriveConfirm').check(); await page.locator('#jetdriveCapture').click();
+  await expect(page.locator('#jetdriveOut')).toContainText('RPM');
+  await expect(page.locator('#jetdriveOut')).toContainText('1600');
+  await expect(page.locator('#jetdriveExport')).toBeEnabled();
+  await page.evaluate(() => { window.gobDesktop.saveText = async (name, content) => { window.__jetCsv = content; return {name, dir:'synthetic'}; }; });
+  await page.locator('#jetdriveExport').click();
+  expect(await page.evaluate(() => window.__jetCsv)).toContain("'=bad_formula");
+  expect(calls[0]).toMatchObject({group:'224.0.2.10', interface:'0.0.0.0', request_info:false, confirm:true});
+  await page.locator('#jetdriveGroup').selectOption('239.255.60.60');
+  await expect(page.locator('#jetdriveExport')).toBeDisabled();
+  await expect(page.locator('#jetdriveOut')).not.toContainText('1600');
+  await expect(page.locator('#jetdriveConfirm')).not.toBeChecked();
+  expect(page.failures).toEqual([]);
+});
+
+test('local Harley trouble code JSON keeps duplicates and escapes untrusted descriptions', async ({ page }) => {
+  await page.goto('/'); await page.locator('[data-view="faults"]').click();
+  const json = {codes:[{code:'P0107',description:'First reference'},{code:'P0107',description:'<img src=x onerror=alert(1)>'},{code:'P691',description:'Short source code'}]};
+  await page.locator('#harleyCodeFile').setInputFiles({name:'codes.json', mimeType:'application/json', buffer:Buffer.from(JSON.stringify(json))});
+  await expect(page.locator('#harleyCodeOut')).toContainText('3 reference entries');
+  await page.locator('#harleyCodeQuery').fill('p0107');
+  await expect(page.locator('#harleyCodeOut')).toContainText('First reference');
+  await expect(page.locator('#harleyCodeOut')).toContainText('<img src=x');
+  await expect(page.locator('#harleyCodeOut img')).toHaveCount(0);
+  await page.locator('#harleyCodeQuery').fill('P691');
+  await expect(page.locator('#harleyCodeOut')).toContainText('Short source code');
+  await page.locator('#harleyCodeClear').click();
+  await expect(page.locator('#harleyCodeOut')).toContainText('No reference loaded');
+  expect(page.failures).toEqual([]);
+});
+
+test('PVV local editor stages explicit numeric changes and exports a reviewed XML copy', async ({ page }) => {
+  await page.goto('/'); await page.locator('[data-view="tools"]').click();
+  const xml = `<?xml version="1.0"?><PVV><Metadata source="synthetic"/><Item name="Fuel &amp; test" units="%"><Columns units="kPa"><Col label="20"/><Col label="40"/></Columns><Rows units="RPM"><Row label="1000"><Cell value="10"/><Cell value="20"/></Row></Rows></Item><Item name="Scalar"><Columns><Col label="0"/></Columns><Rows><Row label="0"><Cell value="1"/></Row></Rows></Item><Item name="unsupported"/></PVV>`;
+  await page.locator('#pvvFile').setInputFiles({name:'test.pvv', mimeType:'application/xml', buffer:Buffer.from(xml)});
+  await expect(page.locator('#pvvDetails')).toContainText('Fuel & test');
+  await expect(page.locator('#pvvChanges')).toContainText('1 unsupported');
+  await page.locator('#pvvGrid input').first().fill('12.5');
+  await expect(page.locator('#pvvChanges')).toContainText('10 → 12.5');
+  await expect(page.locator('#pvvExport')).toBeDisabled();
+  await page.locator('#pvvSelect').selectOption('1');
+  await page.locator('#pvvGrid input').first().fill('NaN');
+  await expect(page.locator('#pvvChanges')).toContainText('Invalid numeric');
+  await page.locator('#pvvConfirm').check();
+  await expect(page.locator('#pvvExport')).toBeDisabled();
+  await page.locator('#pvvGrid input').first().fill('2');
+  await expect(page.locator('#pvvChanges')).toContainText('2 staged');
+  await page.evaluate(() => { window.gobDesktop.saveText = async (name, content) => { window.__pvvExport = {name, content}; return {name, dir:'synthetic'}; }; });
+  await page.locator('#pvvConfirm').check(); await page.locator('#pvvExport').click();
+  const saved = await page.evaluate(() => window.__pvvExport);
+  expect(saved.name).toMatch(/\.pvv$/);
+  const result = await page.evaluate((raw) => {
+    const root = new DOMParser().parseFromString(raw, 'application/xml');
+    return {values:Array.from(root.querySelectorAll('Cell')).map(c => c.getAttribute('value')), meta:root.querySelector('Metadata').getAttribute('source'), items:root.querySelectorAll('Item').length};
+  }, saved.content);
+  expect(result).toEqual({values:['12.5','20','2'],meta:'synthetic',items:3});
+  await page.locator('#pvvRevert').click(); await expect(page.locator('#pvvChanges')).toContainText('No staged changes');
+  await expect(page.locator('#pvvExport')).toBeDisabled();
+  await page.locator('#pvvFile').setInputFiles({name:'bad.pvv', mimeType:'application/xml', buffer:Buffer.from('<!DOCTYPE PVV [<!ENTITY x "bad">]><PVV/>')});
+  await expect(page.locator('#pvvDetails')).toContainText('DTD and entity');
+  expect(page.failures).toEqual([]);
+});
+
+test('local Harley code references augment live results only while loaded', async ({ page }) => {
+  await page.goto('/');
+  await page.route('**/api/dtcs', route => route.fulfill({status:200, contentType:'application/json', body:JSON.stringify({format:'harley-j1850', dtcs:[{code:'P0107',description:'Existing source', status_byte:null,kind:'unknown',status:'unknown'}], context:{}, modules:{}, clear:{allowed:false, checks:[]}})}));
+  await page.locator('[data-view="faults"]').click();
+  await page.locator('#harleyCodeFile').setInputFiles({name:'codes.json', mimeType:'application/json', buffer:Buffer.from(JSON.stringify({codes:[{code:'P0107',description:'<img src=x onerror=alert(1)>'}]}))});
+  await expect(page.locator('#harleyCodeOut')).toContainText('1 reference entries');
+  await page.evaluate(() => readDtcs());
+  await expect(page.locator('#faultList')).toContainText('Existing source');
+  await expect(page.locator('#faultList')).toContainText('Local Harley reference');
+  await expect(page.locator('#faultList img')).toHaveCount(0);
+  await page.locator('#harleyCodeClear').click();
+  await expect(page.locator('#faultList')).not.toContainText('Local Harley reference');
+  await expect(page.locator('#faultList')).toContainText('Existing source');
+  expect(page.failures).toEqual([]);
+});

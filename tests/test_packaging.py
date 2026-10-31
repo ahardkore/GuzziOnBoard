@@ -537,3 +537,22 @@ def test_desktop_bundles_licenses_and_atlas_provenance():
     assert 'GNU AFFERO GENERAL PUBLIC LICENSE' in (ROOT / 'LICENSE').read_text(encoding='utf-8')
     assert 'Copyright (c) 2026 ahardkore' in (ROOT / 'LICENSES/GuzziOnBoard-MIT.txt').read_text(encoding='utf-8')
     assert '91499280f20a81cabdd891c5e0ca70143bb8c800' in (ROOT / 'vendor/atlas/README.md').read_text(encoding='utf-8')
+
+
+def test_artifact_rejects_non_documentation_uploads_in_docs(tmp_path):
+    build = _load_build_module()
+    suffix = '.exe' if sys.platform == 'win32' else ''
+    folder = tmp_path / 'app'; root = folder / '_internal'
+    for name in ('web/index.html', 'web/desktop-bridge.js', 'guzzionboard/catalog/ecus/5am.json', 'guzzionboard/xdfs/catalog.json', 'docs/note.md', 'docs/schemas/test.json'):
+        path = root / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_text('ok')
+    (folder / f'GuzziOnBoard{suffix}').write_text('')
+    (folder / f'GuzziOnBoard-worker{suffix}').write_text('')
+    build.check_artifact(folder)
+    for name in ('image.bin', 'archive.ZIP', 'native.dll'):
+        path = root / 'docs' / name; path.write_bytes(b'not a document')
+        with pytest.raises(SystemExit, match='unexpected non-documentation release asset'):
+            build.check_artifact(folder)
+        path.unlink()
+    spec = SPEC.read_text(encoding='utf-8')
+    assert 'doc.suffix.lower() in {".md", ".json"}' in spec
+    assert 'for extra in ("README.md", "docs")' not in spec

@@ -277,6 +277,14 @@ synthetic-tested only; it is not stock Harley J1850, a full backup, or tuning.
 See [BUELL_DDFI_RESEARCH.md](BUELL_DDFI_RESEARCH.md) for source scope, adapter,
 permissions, and the BUEIA/BUE1D definition-title discrepancy.
 
+## DynoAI and Power Vision PVV
+
+The desktop can observe bounded JetDrive multicast windows and edit a local
+user-supplied numeric PVV XML copy. The integrations were synthetic-tested;
+JetDrive data is unauthenticated and no physical dyno or ECU was tested. PVV
+export does not verify fitment, checksum, vendor acceptance or safe flashing.
+See [DYNOAI_AND_UPLOADS.md](DYNOAI_AND_UPLOADS.md).
+
 ## Aftermarket rusEFI and Power Vision
 
 The rusEFI source includes a Harley engine configuration for its **own**

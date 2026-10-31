@@ -33,7 +33,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq innoextract p7zip-full msitools file
+          sudo apt-get install -y -qq innoextract p7zip-full msitools file unrtf
           python3 -m venv "$RUNNER_TEMP/analyze-venv"
           "$RUNNER_TEMP/analyze-venv/bin/pip" -q install dnfile
       - name: Extract without executing installer
@@ -144,6 +144,65 @@ jobs:
                       lines.append('### ' + str(p.relative_to(data)))
                       lines.extend('- ' + x[:600] for x in found[:90])
               except Exception as exc: lines.append(f'- Metadata parse skipped {p.name}: {type(exc).__name__}')
+          lines.extend(['', '## Installed application details'])
+          import hashlib, collections, xml.etree.ElementTree as ET
+          apps=list(data.rglob('MyTune.exe'))
+          if apps:
+              app=apps[0]
+              lines.append('- MyTune.exe SHA256: '+hashlib.sha256(app.read_bytes()).hexdigest())
+              try:
+                  pe=dnfile.dnPE(str(app))
+                  md=pe.net.mdtables
+                  for name in ('TypeDef','MethodDef','Field','ImplMap','AssemblyRef','ManifestResource'):
+                      tbl=getattr(md,name,None)
+                      lines.append(f'- {name} rows: {len(tbl.rows) if tbl else 0}')
+                  lines.append('### Namespaces')
+                  counts=collections.Counter(str(t.TypeNamespace) for t in md.TypeDef.rows)
+                  lines.extend(f'- {name or "<empty>"}: {count}' for name,count in counts.most_common(35))
+                  lines.append('### Named MyTune types and fields')
+                  for t in md.TypeDef.rows:
+                      n=str(t.TypeNamespace)+'.'+str(t.TypeName)
+                      if not n.startswith('MyTune.'): continue
+                      fs=[]
+                      for i in t.FieldList:
+                          try: fs.append(str(i.row.Name))
+                          except Exception: pass
+                      ms=[]
+                      for i in t.MethodList:
+                          try: ms.append(str(i.row.Name))
+                          except Exception: pass
+                      lines.append('- '+n+'; fields: '+', '.join(fs[:40])+'; methods: '+', '.join(ms[:25]))
+                  lines.append('### Managed resources')
+                  if md.ManifestResource:
+                      for r in md.ManifestResource.rows[:100]: lines.append('- '+str(r.Name))
+                  lines.append('### Assembly references')
+                  if md.AssemblyRef:
+                      for r in md.AssemblyRef.rows: lines.append('- '+str(r.Name))
+                  lines.append('### Native imports')
+                  if md.ImplMap:
+                      for r in md.ImplMap.rows[:100]:
+                          try: lines.append('- '+str(r.ImportScope.row.Name)+'!'+str(r.ImportName))
+                          except Exception: pass
+              except Exception as e: lines.append('- Managed detail parse failed: '+type(e).__name__)
+              lines.append('### Relevant plaintext identifiers')
+              terms=re.compile(r'\b(harley|j1850|j2534|obd|sert|canbus|protocol|ftdi|serialport|ecu|fuel moto|tune file|licen[sc]e)\b',re.I)
+              seen=set()
+              for enc in ('-a','-el'):
+                  proc=subprocess.run(['strings',enc,str(app)],capture_output=True,text=True,errors='replace',timeout=30)
+                  for line in proc.stdout.splitlines():
+                      if terms.search(line) and 3<len(line)<140 and line not in seen:
+                          # Avoid exporting paths, URLs, keys or long product text.
+                          if re.search(r'https?://|\\|/|token|password|secret|key=',line,re.I): continue
+                          seen.add(line); lines.append('- '+line[:120])
+                          if len(seen)>=55: break
+          lines.extend(['', '## EULA: limited inspection of restriction language'])
+          for eula in data.rglob('EULA.rtf'):
+              text=subprocess.run(['unrtf','--text',str(eula)],capture_output=True,text=True,errors='replace').stdout
+              for sentence in re.split(r'(?<=[.!?])\s+',text):
+                  if re.search(r'(?i)reverse.engineer|decompil|disassembl|redistribut|license|copyright|copying',sentence):
+                      clean=' '.join(sentence.split())
+                      if clean: lines.append('- '+clean[:400])
+                      if sum(x.startswith('- ') for x in lines[-30:])>=18: break
           lines.extend(['', '## Other likely data and documentation'])
           for p in files:
               if p.suffix.lower() in ('.xml','.json','.ini','.cfg','.txt','.db','.sqlite','.html','.pdf'):

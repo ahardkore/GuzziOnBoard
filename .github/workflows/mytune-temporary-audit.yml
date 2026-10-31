@@ -115,15 +115,6 @@ jobs:
                   if i<0: break
                   positions.append(hex(i)); pos=i+1
               if positions: lines.append(f'- {label}: {positions}')
-          lines.extend(['', '## Installer identification strings'])
-          pattern=re.compile(r'(installshield|inno setup|nullsoft|wix bundle|burn|\.msi|\.cab|mytune|harley)',re.I)
-          seen=set()
-          for encoding in ('-a','-el'):
-              proc=subprocess.run(['strings',encoding,str(root/'setup.exe')],capture_output=True,text=True,errors='replace',timeout=30)
-              for line in proc.stdout.splitlines():
-                  if pattern.search(line) and len(line)<250 and line not in seen:
-                      seen.add(line); lines.append('- '+line[:200])
-                      if len(seen)>=60: break
           lines.extend(['', '## Managed metadata: matching type and method names'])
           for p in files:
               if p.suffix.lower() not in ('.exe','.dll') or p.stat().st_size > 120_000_000: continue
@@ -184,25 +175,37 @@ jobs:
                           try: lines.append('- '+str(r.ImportScope.row.Name)+'!'+str(r.ImportName))
                           except Exception: pass
               except Exception as e: lines.append('- Managed detail parse failed: '+type(e).__name__)
-              lines.append('### Relevant plaintext identifiers')
-              terms=re.compile(r'\b(harley|j1850|j2534|obd|sert|canbus|protocol|ftdi|serialport|ecu|fuel moto|tune file|licen[sc]e)\b',re.I)
-              seen=set()
-              for enc in ('-a','-el'):
-                  proc=subprocess.run(['strings',enc,str(app)],capture_output=True,text=True,errors='replace',timeout=30)
-                  for line in proc.stdout.splitlines():
-                      if terms.search(line) and 3<len(line)<140 and line not in seen:
-                          # Avoid exporting paths, URLs, keys or long product text.
-                          if re.search(r'https?://|\\|/|token|password|secret|key=',line,re.I): continue
-                          seen.add(line); lines.append('- '+line[:120])
-                          if len(seen)>=55: break
+              lines.append('### Embedded resource entries')
+              for resource in pe.net.resources:
+                  entries=getattr(resource.data,'entries',None)
+                  if entries is None: continue
+                  lines.append('- '+str(resource.name)+': '+str(len(entries))+' entries')
+                  for entry in entries[:30]:
+                      name=getattr(entry,'name',None)
+                      if name is None: name=getattr(getattr(entry,'struct',None),'Name',None)
+                      if isinstance(name,bytes): name=name.decode('utf-8','replace')
+                      if name: lines.append('  - '+str(name)[:150])
+              lines.append('### Installed app plaintext indicator counts')
+              for term in ('J1850','J2534','FTD2XX','Sert','PowerVision','TwinScan','Harley','LogReader','SerialPort','PassThru','USB'):
+                  raw=app.read_bytes()
+                  count=raw.lower().count(term.lower().encode())+raw.lower().count(term.lower().encode('utf-16le'))
+                  lines.append(f'- {term}: {count}')
           lines.extend(['', '## EULA: limited inspection of restriction language'])
           for eula in data.rglob('EULA.rtf'):
               text=subprocess.run(['unrtf','--text',str(eula)],capture_output=True,text=True,errors='replace').stdout
-              for sentence in re.split(r'(?<=[.!?])\s+',text):
-                  if re.search(r'(?i)reverse.engineer|decompil|disassembl|redistribut|license|copyright|copying',sentence):
-                      clean=' '.join(sentence.split())
-                      if clean: lines.append('- '+clean[:400])
-                      if sum(x.startswith('- ') for x in lines[-30:])>=18: break
+              text=' '.join(text.split())
+              for label,pattern in [('reverse engineering',r'reverse[ -]?engineer'),('decompilation',r'decompil'),('disassembly',r'disassembl'),('redistribution',r'redistribut'),('license',r'license agreement')]:
+                  match=re.search(pattern,text,re.I)
+                  if match:
+                      lines.append(f'- {label}: present; context: '+text[max(0,match.start()-130):min(len(text),match.end()+230)])
+                  else: lines.append(f'- {label}: not located by literal text search')
+          lines.extend(['', '## Bundle manifest payload references'])
+          try:
+              manifest=ET.parse(data/'0')
+              for elem in manifest.iter():
+                  if elem.tag.endswith('Payload') or elem.tag.endswith('MsiPackage') or elem.tag.endswith('ExePackage'):
+                      lines.append('- '+elem.tag.split('}')[-1]+': '+', '.join(f'{k}={v}' for k,v in elem.attrib.items() if k in ('Name','FilePath','FileSize','Id','SourcePath')))
+          except Exception as e: lines.append('- manifest parse failed: '+type(e).__name__)
           lines.extend(['', '## Other likely data and documentation'])
           for p in files:
               if p.suffix.lower() in ('.xml','.json','.ini','.cfg','.txt','.db','.sqlite','.html','.pdf'):

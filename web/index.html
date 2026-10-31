@@ -550,11 +550,15 @@
       <p class="muted small">For an explicitly selected <strong>aftermarket rusEFI controller</strong>, including one configured for a Harley engine; not for stock Delphi ECUs or a Power Vision tuner. Synthetic-tested only, not hardware-validated. Opening a serial port may change its control lines. Verify wiring, power, port and baud first; do not run alongside another tuning program.</p>
       <label class="field"><span>rusEFI USB serial port</span><input id="rusefiPort" placeholder="COM3 or /dev/ttyACM0" maxlength="255"></label>
       <label class="field"><span>Serial baud rate (choose for your controller)</span><select id="rusefiBaud"><option value="115200">115200</option><option value="230400">230400</option><option value="460800">460800</option><option value="921600">921600</option></select></label>
+      <label class="field"><span>Select your extracted rusEFI INI (optional, processed locally)</span><input type="file" id="rusefiIni" accept=".ini,text/plain"></label>
+      <p class="muted small" id="rusefiIniStatus" aria-live="polite">Select an INI from your installed firmware, board bundle or rusEFI lookup. Firmware snapshots can differ from your installed build.</p>
       <label class="field"><span>Exact signature from matching rusEFI INI (required to read)</span><input id="rusefiSignature" maxlength="180" placeholder="rusEFI …"></label>
+      <p class="muted small"><a id="rusefiLookup" hidden target="_blank" rel="noopener noreferrer">Look up the identified signature on rusEFI</a> <span id="rusefiLookupNote">Identify a controller to generate a lookup link. Opening it sends the signature in the URL to rusEFI.</span></p>
       <div class="toolbar"><label>Page <input type="number" id="rusefiPage" min="0" max="65535" value="0"></label><label>Offset <input type="number" id="rusefiOffset" min="0" max="65535" value="0"></label><label>Length (1–256) <input type="number" id="rusefiLength" min="1" max="256" value="32"></label></div>
       <label class="check"><input type="checkbox" id="rusefiConfirm"> I selected an aftermarket rusEFI controller, checked the port/wiring, and understand this is synthetic-tested read research</label>
       <div class="toolbar"><button class="btn" id="rusefiIdentify">Identify controller</button><button class="btn" id="rusefiRead">Read selected page range</button><button class="btn" id="rusefiOutputs">Read live output bytes</button></div>
       <pre id="rusefiOut" class="small" aria-live="polite">Not connected.</pre>
+      <p class="muted small"><a href="https://rusefi.com/build_server/" target="_blank" rel="noopener noreferrer">rusEFI snapshot build server</a> · <a href="https://wiki.rusefi.com/INI-lookup-logic/" target="_blank" rel="noopener noreferrer">Signature lookup guide</a>. The INI parser only extracts a signature; it does not validate a definition's contents or authenticity.</p>
       <p class="muted small">Each action opens and closes the selected local serial device. Identify sends a signature request; page and output reads verify that signature then request one bounded range. Live output is a raw snapshot; use the matching INI to interpret it. Result bytes are not decoded, not an ECU backup, and may be zeros when the controller is locked. The transport CRC is not a calibration checksum. No ECU write or burn command is sent. <a href="https://github.com/rusefi/rusefi/tree/5359cc971b60a9a0ee3f0f2a870dbb64f0ad36ef" target="_blank" rel="noopener noreferrer">rusEFI source</a>.</p>
     </article>
 
@@ -1210,6 +1214,7 @@
 <script src="juken-research.js"></script>
 <script src="harley-live-can.js"></script>
 <script src="yamaha-live-kline.js"></script>
+<script src="rusefi-ini.js"></script>
 <script src="rusefi-read.js"></script>
 </body>
 </html>

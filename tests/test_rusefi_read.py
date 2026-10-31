@@ -133,3 +133,15 @@ def test_fixed_framing_vector_and_transport_failures(monkeypatch):
     assert conn.closed
     conn = Serial([valid, response(bytes([0, 0]))]); install(monkeypatch, conn)
     assert mod.run('/dev/ttyACM0', 115200, SIGNATURE, 0, 0, 2)['data_hex'] == '0000'  # not proof of unlocked content
+
+
+def test_ini_parser_and_lookup_synthetic():
+    import shutil
+    import subprocess
+    from pathlib import Path
+    if not shutil.which('node'):
+        pytest.skip('Node.js required')
+    harness = Path(__file__).with_name('rusefi-ini-harness.cjs')
+    result = subprocess.run(['node', str(harness)], capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stderr
+    assert 'synthetic INI tests passed' in result.stdout

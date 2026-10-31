@@ -1048,3 +1048,32 @@ test('desktop clearly separates Dynojet software from the Harley research export
   await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   expect(page.failures).toEqual([]);
 });
+
+test('rusEFI INI import is local and signature lookup requires an explicit link', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  const signature = 'rusEFI master.2024.02.02.alphax-4chan.1293678056';
+  const postRequests = [];
+  await page.route('**/api/tools/rusefi-read', async route => {
+    postRequests.push(route.request().postDataJSON());
+    await route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({signature, synthetic_tested: true})});
+  });
+  await page.locator('#rusefiIni').setInputFiles({name:'rusefi.ini', mimeType:'text/plain', buffer:Buffer.from(`[TunerStudio]\nsignature = "${signature}"\n`)});
+  await expect(page.locator('#rusefiSignature')).toHaveValue(signature);
+  await expect(page.locator('#rusefiIniStatus')).toContainText('loaded locally');
+  expect(postRequests).toHaveLength(0);
+  await page.locator('#rusefiPort').fill('/dev/ttyACM0');
+  await page.locator('#rusefiConfirm').check();
+  await page.locator('#rusefiIdentify').click();
+  const link = page.locator('#rusefiLookup');
+  await expect(link).toBeVisible();
+  await expect(link).toHaveAttribute('href', 'https://rusefi.com/online/ini/rusefi/master/2024/02/02/alphax-4chan/1293678056.ini');
+  await expect(page.locator('#rusefiLookupNote')).toContainText('sends the signature');
+  await page.locator('#rusefiPort').fill('/dev/ttyACM1');
+  await expect(link).toBeHidden();
+  await expect(page.locator('#rusefiConfirm')).not.toBeChecked();
+  await page.locator('#rusefiIni').setInputFiles({name:'bad.ini', mimeType:'text/plain', buffer:Buffer.from('[TunerStudio]\nsignature = @@TS_SIGNATURE@@')});
+  await expect(page.locator('#rusefiIniStatus')).toContainText('INI not loaded');
+  await expect(page.locator('#rusefiSignature')).toHaveValue('');
+  expect(page.failures).toEqual([]);
+});

@@ -18,6 +18,35 @@ only the first three. Identify returns a signature; for either read, provide
 that exact signature **from the matching rusEFI INI** and the range described by
 that INI. A successful signature check is not cryptographic authentication.
 
+### Finding the matching INI
+
+The [rusEFI build server](https://rusefi.com/build_server/) publishes
+board-specific **snapshot** bundles, not a universal motorcycle tune or a
+replacement for the firmware already on the controller. rusEFI describes these
+as changing builds that may be less stable than releases; see its
+[release process](https://wiki.rusefi.com/Release-Process/). A current bundle's
+INI does not necessarily match a controller running an older build. The bundle
+may include firmware and executable tools; GuzziOnBoard does not download,
+install, or flash them.
+
+In the rusEFI desktop tool, identify the selected controller first. For common
+signature formats, the tool offers an explicit link generated using the official
+[INI lookup rule](https://wiki.rusefi.com/INI-lookup-logic/). Opening it sends
+the signature to rusEFI; the file may be unavailable, and custom formats may
+require manual lookup. Alternatively, find the matching `rusefi.ini` from the
+installed firmware, controller's exposed storage (where provided), or correct
+board bundle; extract it yourself. Selecting the INI locally imports only the
+unambiguous, quoted `[TunerStudio]` signature (up to 2 MiB). It is not uploaded,
+saved, parsed as executable code, or used to install firmware. A matching string
+is not authentication and the tool does **not** validate INI contents, determine
+page geometry, decode tables, or automatically authorize any ECU write. It
+still requires confirmation and rechecks the live signature for every read.
+
+The lookup URL and INI reader have synthetic tests; the reader also accepted a
+source-template INI with a synthetic resolved signature. No build-server bundle
+or real controller was tested. Some versions or conditional definitions are
+unsupported; the user can enter a signature manually.
+
 Use an explicitly selected USB serial port and supported baud; each operation
 opens and closes it. Opening a serial port can affect DTR/RTS, so check the
 hardware first. Read lengths are bounded to 1–256 bytes per request and a

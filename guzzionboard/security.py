@@ -2,20 +2,22 @@
 
 KWP2000 service 0x27 is a seed/key handshake: the ECU sends a challenge and
 the tester must answer with a key derived by a manufacturer algorithm. Those
-algorithms are proprietary and are not published.
+algorithms are often proprietary; some have been published or reverse engineered.
 
 **This project ships one working algorithm - for the IAW 5AM, transcribed
 from the open-source 5am_util flashing tool - and no verified algorithm for
 any Moto Guzzi ECU.** "Working" means it reproduces every published seed/key
 pair and is what a tool that really flashed these ECUs used; "not verified"
-means nobody has confirmed it unlocks a Guzzi-fitted 5AM, so it is never
-selected automatically. On top of that:
+means the GuzziOnBoard integration has not confirmed it on hardware, so it
+is never selected automatically. Onboard-logger reports a successful Guzzi
+5AM write using the reference utility; this is upstream evidence, not a test
+of this integration. On top of that:
 
 * a stable :class:`KeyProvider` interface;
 * a registry so a provider can be supplied without touching the core;
 * a plugin loader that reads a provider from a local file, so anyone who has
   legitimately obtained the algorithm for their own ECU can drop it in;
-* the 5AM provider, unverified on Guzzi hardware and disabled by default.
+* the 5AM provider, unverified in this integration and disabled by default.
 
 Why not guess? A wrong key costs nothing on the first attempt (the ECU answers
 ``invalidKey``), but most ECUs lock out after a few tries and some impose a
@@ -125,9 +127,9 @@ def describe_all() -> dict:
 #
 #     (bswap16(X+1) div 161) << 24 | (bswap16(X) mod 200) << 16 | 0x6927
 #
-# Why it is registered unverified: it provably matches the two published
-# pairs and is the algorithm a successful flashing tool actually shipped, but
-# nobody has fed it a seed from a *Guzzi-fitted* 5AM and confirmed the unlock.
+# Why it is registered unverified: the algorithm matches the two published
+# pairs and onboard-logger reports a successful write to a Guzzi-fitted 5AM
+# using the original utility, but this integration has not been hardware-tested.
 # The 59M is expected to share it (IAW5xReader/Writer treat 5AM and 59M as one
 # family); no such claim is made for the 15x, 7SM or MIU families.
 
@@ -154,8 +156,9 @@ register(
             "Transcribed from calc_key() in 5am_util's main.c and reproducing "
             "both seed/key pairs published in that tool's transcript. It is "
             "the algorithm of a tool that has flashed IAW 5AM ECUs "
-            "successfully, but it has not been confirmed against a "
-            "Guzzi-fitted 5AM, so it is not chosen automatically. Repeated "
+            "successfully, including a source-reported Guzzi 5AM write. "
+            "GuzziOnBoard has not tested this integration on hardware, so it "
+            "is not chosen automatically. Repeated "
             "wrong keys can lock the security gate."
         ),
         source="5am_util main.c calc_key() via docs/PRIOR_ART.md 1.1",

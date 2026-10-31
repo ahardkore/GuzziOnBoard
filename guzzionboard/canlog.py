@@ -661,7 +661,7 @@ def summarize_payload_bytes(frames: list[CanFrame], limit: int = 100) -> dict:
 
 def _capture_report(frames: list[CanFrame], fmt: str, warnings: list[str], ids: str,
                     decoder: str = "", byte_stats: bool = False) -> dict:
-    if decoder not in ("", "ducati_panigale_mitsubishi", "harley_hdlan_community"):
+    if decoder not in ("", "ducati_panigale_mitsubishi", "harley_hdlan_community", "yamaha_r9_2026"):
         raise CanLogError("unknown offline telemetry decoder")
     if not isinstance(byte_stats, bool):
         raise CanLogError("byte statistics setting must be true or false")
@@ -681,6 +681,9 @@ def _capture_report(frames: list[CanFrame], fmt: str, warnings: list[str], ids: 
         result["decoder"] = decode_capture(frames)
     elif decoder == "harley_hdlan_community":
         from .harley_hdlan_can import decode_capture
+        result["decoder"] = decode_capture(frames)
+    elif decoder == "yamaha_r9_2026":
+        from .yamaha_r9_can import decode_capture
         result["decoder"] = decode_capture(frames)
     if ids.strip():
         warnings.append("ID filter applied before analysis; omitted traffic may change or invalidate candidate pairs. IDs match either frame format.")

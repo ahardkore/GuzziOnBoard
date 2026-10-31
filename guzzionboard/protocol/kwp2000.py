@@ -67,6 +67,10 @@ MUTATING_SERVICES = frozenset(
         Service.CLEAR_DIAGNOSTIC_INFORMATION,
         Service.IO_CONTROL_BY_LOCAL_ID,
         Service.START_ROUTINE_BY_LOCAL_ID,
+        Service.STOP_ROUTINE_BY_LOCAL_ID,
+        # On the 5AM, 0x33 can trigger a previously armed erase/program, not
+        # just retrieve results. Arm it explicitly for the chosen operation.
+        Service.REQUEST_ROUTINE_RESULTS,
         Service.WRITE_DATA_BY_LOCAL_ID,
         Service.REQUEST_DOWNLOAD,
         Service.TRANSFER_DATA,
@@ -416,6 +420,8 @@ class KWP2000Session:
             self.on_frame(direction, raw)
 
     def _check_guard(self, service: int) -> None:
+        if self.write_guard is not None and service not in Service._value2member_map_:
+            raise PermissionError(f"unknown service 0x{service:02X} blocked by the safety gate")
         if service in MUTATING_SERVICES and self.write_guard is not None:
             if not self.write_guard(service):
                 raise PermissionError(
@@ -430,6 +436,8 @@ class KWP2000Session:
         ``responsePending``, which is retried transparently.
         """
         payload = bytes(payload)
+        if not payload:
+            raise ProtocolError("payload must contain at least a service identifier")
         service = payload[0]
         self._check_guard(service)
 
@@ -448,14 +456,24 @@ class KWP2000Session:
                 )
             self._log("rx", bytes(data))
             frame = decode_frame(data)
-            if frame.is_negative:
+            if self.addressed:
+                # The IAW programming simulator uses tester address 0x01
+                # for requests while replying to the original 0xF1. Permit
+                # either destination in that case; still require the ECU source.
+                reply_targets = {self.source}
+                if self.source == 0x01:
+                    reply_targets.add(TESTER_ADDRESS)
+                if frame.target not in reply_targets or frame.source != self.target:
+                    raise ProtocolError("response address does not match the selected ECU and tester")
+            elif frame.target is not None or frame.source is not None:
+                raise ProtocolError("addressed response to an unaddressed session")
+            if frame.service == NEGATIVE_RESPONSE:
+                if len(frame.payload) != 3 or frame.payload[1] != service:
+                    raise ProtocolError("negative response does not match the request")
                 if frame.nrc == RESPONSE_PENDING:
                     continue  # ECU asked for more time
                 raise NegativeResponse(frame.payload[1], frame.nrc or 0)
-            if frame.service != (service | 0x40) and service not in (
-                Service.START_COMMUNICATION,
-                Service.STOP_COMMUNICATION,
-            ):
+            if frame.service != (service | 0x40):
                 raise ProtocolError(
                     f"response service 0x{frame.service:02X} does not answer "
                     f"request 0x{service:02X}"
@@ -512,7 +530,9 @@ class KWP2000Session:
 
     def read_ecu_identification(self, option: int = 0x80) -> bytes:
         frame = self.request([Service.READ_ECU_IDENTIFICATION, option])
-        return frame.data[1:] if frame.data else b""
+        if not frame.data or frame.data[0] != option:
+            raise ProtocolError("ReadEcuIdentification option echo mismatch")
+        return frame.data[1:]
 
     def read_data_by_local_id(self, local_id: int) -> bytes:
         """``21 <rli>`` -> ``61 <rli> <value...>``; returns the value bytes."""
@@ -549,11 +569,15 @@ class KWP2000Session:
     def security_access(self, level: int, key_fn: Callable[[bytes], bytes]) -> bool:
         """Seed/key exchange. ``key_fn`` turns the seed into the key."""
         seed_frame = self.request([Service.SECURITY_ACCESS, level])
+        if len(seed_frame.data) < 2 or seed_frame.data[0] != level:
+            raise ProtocolError("SecurityAccess seed response is empty or has the wrong level")
         seed = seed_frame.data[1:]
         if not any(seed):
             return True  # already unlocked: ECU returns an all-zero seed
         key = key_fn(bytes(seed))
-        self.request([Service.SECURITY_ACCESS, level + 1, *key])
+        reply = self.request([Service.SECURITY_ACCESS, level + 1, *key])
+        if not reply.data or reply.data[0] != level + 1:
+            raise ProtocolError("SecurityAccess key response has the wrong level")
         return True
 
     def read_memory_by_address(self, address: int, size: int, *, addr_bytes: int = 3) -> bytes:

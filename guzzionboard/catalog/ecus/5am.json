@@ -71,7 +71,7 @@
         "writable": false,
         "addr_bytes": 3,
         "expect_vector_table": true,
-        "note": "0x4000-0x50000. The bootloader below 0x4000 is not reachable over K-Line. Observed directly in a 5AM HW610 dump."
+        "note": "0x4000-0x50000 output region. Physical source-derived reads select 16 KiB blocks and fill blocks 2-5 with FF without reading them; they are partial research images, not verified backups or flash-ready files. The simulator uses a different contiguous-memory model."
       },
       "eeprom": {
         "start": 0,
@@ -83,7 +83,7 @@
     },
     "programming": {
       "protocol": "iaw_transfer",
-      "confidence": "verified-capture",
+      "confidence": "source-derived-physical-read-unverified-integration",
       "session": 133,
       "baud_switch": {
         "session": 12,
@@ -98,7 +98,7 @@
         "required": true,
         "level": 1,
         "seed_bytes": 4,
-        "note": "Seed is a 16-bit value X followed by X+1. Algorithm transcribed from 5am_util main.c calc_key() and registered as iaw5am-kwp-divmod (unverified on Guzzi hardware). See docs/PRIOR_ART.md 1.1.",
+        "note": "Seed is a 16-bit value X followed by X+1. Algorithm transcribed from 5am_util main.c calc_key(); onboard-logger reports a successful Guzzi 5AM write using that utility. GuzziOnBoard has not hardware-tested this integration, so its provider remains opt-in. See docs/PRIOR_ART.md 1.1.",
         "source": 1
       },
       "read": {
@@ -110,7 +110,8 @@
           1,
           0
         ],
-        "block_subfn": 33
+        "block_subfn": 33,
+        "note": "Physical path follows 5am_util and onboard-logger block selection; the four skipped blocks are placeholders, not evidence of their contents. Simulation models a separate contiguous reader."
       },
       "write": {
         "confidence": "documented",

@@ -1,6 +1,6 @@
 """Operator opt-in for unverified SecurityAccess key providers.
 
-No shipped key algorithm is bench-verified on Guzzi-fitted hardware, so the
+No shipped key integration is bench-verified by GuzziOnBoard, so the
 provider registry refuses unverified providers by default. In-process tests
 pass ``allow_unverified_key=True`` directly; users of the app could not —
 until the gate grew an explicit, audited, session-scoped acceptance. These

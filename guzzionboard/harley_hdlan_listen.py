@@ -12,6 +12,8 @@ import time
 from .canlog import CanFrame
 from .harley_hdlan_can import MIN_LENGTH, decode_capture
 from .ducati_panigale_can import decode_capture as decode_ducati
+from .yamaha_r9_can import FRAME_LENGTHS as R9_LENGTH, decode_capture as decode_r9
+from .indian_springfield_can import FILTER_IDS as INDIAN_IDS, MASK as INDIAN_MASK, decode_capture as decode_indian
 from .transports.can import _require_can
 from .transports.base import TransportError
 
@@ -49,16 +51,18 @@ def decode_sportster(frames):
 def listen(channel: str, profile: str = "community") -> dict:
     if not isinstance(channel, str) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,15}', channel):
         raise ValueError('Enter a valid existing SocketCAN interface name (1–15 characters).')
-    if profile not in ('community', 'sportster_2017', 'ducati_mitsubishi'):
+    if profile not in ('community', 'sportster_2017', 'ducati_mitsubishi', 'yamaha_r9_2026', 'indian_springfield_2017'):
         raise ValueError('Unknown CAN observation profile.')
-    filters = MIN_LENGTH if profile == 'community' else DUCATI_LENGTH if profile == 'ducati_mitsubishi' else SPORTSTER_LENGTH
+    filters = {'community': MIN_LENGTH, 'ducati_mitsubishi': DUCATI_LENGTH,
+               'sportster_2017': SPORTSTER_LENGTH, 'yamaha_r9_2026': R9_LENGTH,
+               'indian_springfield_2017': INDIAN_IDS}[profile]
     can = _require_can()
     try:
         # SocketCAN bitrate and controller listen-only mode must already be
         # configured by the OS/operator. Do not configure or transmit here.
         bus = can.interface.Bus(interface='socketcan', channel=channel,
-                                can_filters=[{'can_id': i, 'can_mask': 0x7ff, 'extended': False}
-                                             for i in filters])
+                                can_filters=[{'can_id': i, 'can_mask': INDIAN_MASK if profile == 'indian_springfield_2017' else 0x7ff,
+                                              'extended': profile == 'indian_springfield_2017'} for i in filters])
     except Exception as exc:
         raise TransportError(f'Cannot open SocketCAN interface {channel}: {exc}') from exc
     latest: dict[int, CanFrame] = {}
@@ -73,24 +77,29 @@ def listen(channel: str, profile: str = "community") -> dict:
             if msg is None:
                 break
             count += 1
-            if (getattr(msg, 'is_extended_id', False) or getattr(msg, 'is_remote_frame', False)
-                    or getattr(msg, 'is_error_frame', False) or getattr(msg, 'is_fd', False)
-                    or getattr(msg, 'is_rx', True) is False or msg.arbitration_id not in filters):
+            if ((bool(getattr(msg, 'is_extended_id', False)) != (profile == 'indian_springfield_2017'))
+                    or getattr(msg, 'is_remote_frame', False) or getattr(msg, 'is_error_frame', False)
+                    or getattr(msg, 'is_fd', False) or getattr(msg, 'is_rx', True) is False
+                    or ((msg.arbitration_id & INDIAN_MASK) if profile == 'indian_springfield_2017' else msg.arbitration_id) not in filters):
                 continue
             data = bytes(msg.data)
-            valid_length = (len(data) in SPORTSTER_LENGTH[msg.arbitration_id] if profile == 'sportster_2017'
+            valid_length = (len(data) == 8 if profile == 'indian_springfield_2017'
+                            else len(data) in SPORTSTER_LENGTH[msg.arbitration_id] if profile == 'sportster_2017'
+                            else len(data) == R9_LENGTH[msg.arbitration_id] if profile == 'yamaha_r9_2026'
                             else filters[msg.arbitration_id] <= len(data) <= 8)
             if not valid_length:
                 invalid += 1
                 continue
             latest[msg.arbitration_id] = CanFrame(float(getattr(msg, 'timestamp', 0.0)),
-                                                   msg.arbitration_id, False, data, 'Rx')
+                                                   msg.arbitration_id, profile == 'indian_springfield_2017', data, 'Rx')
     except Exception as exc:
         raise TransportError(f'SocketCAN receive failed: {exc}') from exc
     finally:
         bus.shutdown()
     events = (decode_capture(latest.values())['events'] if profile == 'community'
               else decode_ducati(latest.values())['events'] if profile == 'ducati_mitsubishi'
+              else decode_r9(latest.values())['events'] if profile == 'yamaha_r9_2026'
+              else decode_indian(latest.values()) if profile == 'indian_springfield_2017'
               else decode_sportster(latest.values()))
     return {'channel': channel, 'profile': profile, 'duration_seconds': DURATION, 'frames_received': count,
             'invalid_length_frames': invalid, 'frame_limit_reached': count >= MAX_FRAMES,

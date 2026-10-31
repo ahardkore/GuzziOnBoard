@@ -111,9 +111,9 @@ def test_a_wrong_key_is_reported_without_retrying(service):
 def test_no_verified_key_algorithm_ships_for_any_guzzi_ecu():
     """Honesty check: nothing is marked verified until a bench ECU says so.
 
-    The 5AM algorithm from 5am_util is real and reproduces its published
-    pairs, but 'verified' means confirmed on a Guzzi-fitted ECU, which has
-    not happened yet.
+    The 5AM algorithm reproduces published pairs and the upstream utility
+    reports a Guzzi write; GuzziOnBoard itself has not tested the integration
+    on hardware.
     """
     for ecu_id in ("5am", "7sm", "15m", "15rc", "miug3"):
         assert not [p for p in providers_for(ecu_id) if p.verified]
@@ -641,3 +641,153 @@ def test_read_succeeds_when_optional_report_thread_cannot_start(service, monkeyp
     monkeypatch.setattr(threading.Thread, 'start', unavailable)
     image = service.read_region('flash')
     assert image.source == 'read' and image.size == service.profile.memory['regions']['flash']['size']
+
+
+def test_failed_reidentification_clears_all_vehicle_evidence_and_confirmations(service, monkeypatch):
+    diag, gate = service.diag, service.gate
+    gate.state.battery_v = 13
+    gate.state.engine_running = False
+    gate.state.verified_backup = gate.state.base_map = True
+    gate.state.backup_path, gate.state.base_map_path = 'old-backup', 'old-base'
+    gate._tokens['old'] = ('write:flash', 0)
+    def fail(_option):
+        raise ProtocolError('synthetic interrupted identification')
+    from guzzionboard.protocol.kwp2000 import ProtocolError
+    monkeypatch.setattr(diag.session, 'read_ecu_identification', fail)
+    with pytest.raises(ProtocolError, match='interrupted'):
+        diag.identify()
+    assert diag.identity is None and not gate.state.identified
+    assert not gate.state.ecu_hardware and gate.state.ecu_confidence == 'unknown'
+    assert gate.state.battery_v is None and gate.state.engine_running is None
+    assert not gate.state.verified_backup and not gate.state.base_map
+    assert not gate.state.backup_path and not gate.state.base_map_path and not gate._tokens
+
+
+@pytest.mark.parametrize('payload', [b'\x67', b'\x67\x01', b'\x67\x02\x00'])
+def test_programming_unlock_does_not_accept_malformed_seed(service, monkeypatch, payload):
+    from guzzionboard.protocol.kwp2000 import decode_frame, encode_request
+    session = service.diag._require()
+    calls = []
+    def fake_request(request):
+        calls.append(bytes(request))
+        return decode_frame(encode_request(payload, target=0xf1, source=0x10))
+    monkeypatch.setattr(session, 'request', fake_request)
+    service.unlocked = True  # A previous unlock is not evidence for this exchange.
+    with pytest.raises(ProgrammingError, match='seed'):
+        service.unlock()
+    assert not service.unlocked and len(calls) == 1
+
+
+def test_5am_source_block_read_uses_selected_windows_and_labels_gaps(service, monkeypatch):
+    from types import SimpleNamespace
+    calls = []
+
+    class SourceSession:
+        write_guard = None
+        block = 0
+
+        def request(self, payload):
+            calls.append(bytes(payload))
+            if payload[1] == 0x11:
+                self.block = payload[-1]
+                return SimpleNamespace(data=bytes([0x11, 0x02]))
+            # Four metadata bytes are deliberately not treated as an address.
+            return SimpleNamespace(data=bytes([0x21, 0, 0, 0, 0]) + bytes([self.block]) * 32)
+
+    session = SourceSession()
+    monkeypatch.setattr(service.diag, "_require", lambda: session)
+    result = service._read_5am_source_blocks(service.region("flash"))
+    assert len(result) == 0x4C000
+    assert result[:0x4000] == b"\x01" * 0x4000
+    assert result[0x4000:0x14000] == b"\xff" * 0x10000
+    assert result[0x14000:0x18000] == b"\x06" * 0x4000
+    assert result[-0x4000:] == b"\x13" * 0x4000
+    setups = [p[-1] for p in calls if p[1] == 0x11]
+    assert setups == [1, *range(6, 20)]
+    reads = [p for p in calls if p[1] == 0x21]
+    assert len(reads) == 15 * 512
+    assert reads[0] == bytes.fromhex("36 21 00 40 00 20")
+    assert reads[511] == bytes.fromhex("36 21 00 7f e0 20")
+    assert reads[512] == reads[0]
+
+
+def test_5am_source_read_rejects_short_or_wrong_subfunction(service, monkeypatch):
+    from types import SimpleNamespace
+    from guzzionboard.protocol.kwp2000 import ProtocolError
+
+    class BadSession:
+        write_guard = None
+        def request(self, payload):
+            return SimpleNamespace(data=b"\x11\x02" if payload[1] == 0x11 else b"\x21\x00")
+
+    session = BadSession()
+    monkeypatch.setattr(service.diag, "_require", lambda: session)
+    with pytest.raises(ProtocolError, match="invalid 5AM read response"):
+        service._read_5am_source_blocks(service.region("flash"))
+    assert session.write_guard is not None
+
+
+def test_5am_physical_baud_switch_changes_source_before_request(service, monkeypatch):
+    from guzzionboard.protocol.kwp2000 import decode_frame
+    session = service.diag._require()
+    tx = []
+    old_write = session.connection.write
+    monkeypatch.setattr(session.connection, "write", lambda raw: (tx.append(raw), old_write(raw))[1])
+    speeds = []
+    monkeypatch.setattr(session.connection, "set_baudrate", speeds.append, raising=False)
+    monkeypatch.setattr(service.diag.transport, "is_physical", True)
+    waits = []
+    monkeypatch.setattr(service, "_wait", waits.append)
+    service.enter_programming_session()
+    switch = next(decode_frame(raw) for raw in tx if decode_frame(raw).payload == bytes.fromhex("10 0c 0c 09"))
+    assert switch.source == 1
+    assert speeds == [64200]
+    assert waits == [0.06]
+
+
+def test_5am_physical_partial_read_is_not_promoted_to_backup_or_evidence(service, monkeypatch):
+    monkeypatch.setattr(service.diag.transport, "is_physical", True)
+    monkeypatch.setattr(service, "enter_programming_session", lambda: {})
+    monkeypatch.setattr(service, "unlock", lambda **kw: {})
+    monkeypatch.setattr(service, "_read_5am_source_blocks", lambda region: bytearray(b"\xff" * region.size))
+    image = service.read_region()
+    assert image.source == "research-read"
+    assert image.meta["verified_backup"] is False
+    assert image.meta["synthetic_blocks"] == [2, 3, 4, 5]
+    with pytest.raises(ProgrammingError, match="partial.*verified backup"):
+        service.backup()
+
+
+def test_partial_5am_sidecar_refuses_flash_validation(service, tmp_path):
+    partial = FirmwareImage(data=b"\xff" * 0x4C000, ecu_id="5am", region="flash",
+                            source="research-read", meta={"verified_backup": False})
+    path = partial.save(tmp_path / "partial.bin")
+    reloaded = FirmwareImage.from_file(path)
+    findings = reloaded.validate_for(service.profile)
+    assert any(f.level == "fatal" and f.check == "experimental_read" for f in findings)
+
+
+def test_5am_failed_baud_switch_does_not_continue(service, monkeypatch):
+    session = service.diag._require()
+    original = session.try_request
+    monkeypatch.setattr(session, "try_request", lambda payload, **kw: None if list(payload) == [0x10, 0x0c, 0x0c, 0x09] else original(payload, **kw))
+    speeds = []
+    monkeypatch.setattr(session.connection, "set_baudrate", speeds.append, raising=False)
+    monkeypatch.setattr(service.diag.transport, "is_physical", True)
+    with pytest.raises(ProgrammingError, match="did not confirm the baud switch"):
+        service.enter_programming_session()
+    assert speeds == []
+    assert session.source == 0xF1
+
+
+def test_memory_read_holds_session_lock_through_transfer(service, monkeypatch):
+    locked = []
+    def read_blocks(region):
+        locked.append(service.diag._lock._is_owned())
+        return bytearray(b"\xff" * region.size)
+    monkeypatch.setattr(service.diag.transport, "is_physical", True)
+    monkeypatch.setattr(service, "enter_programming_session", lambda: {})
+    monkeypatch.setattr(service, "unlock", lambda **kw: {})
+    monkeypatch.setattr(service, "_read_5am_source_blocks", read_blocks)
+    service.read_region()
+    assert locked == [True]

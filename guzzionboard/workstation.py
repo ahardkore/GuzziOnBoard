@@ -571,16 +571,27 @@ class Workstation:
                 if self.selection.transport_kind != "kline" or mode != "read_only":
                     raise TransportUnavailable("Honda PGM-FI research supports physical K-Line and read-only mode only")
             if profile.session.get("protocol") == "kawasaki-kds-research":
-                if (self.selection.entry is None or self.selection.make.casefold() != "kawasaki"
+                if profile.id == "kawasaki_kds_generic_research":
+                    if self.selection.entry is not None:
+                        raise TransportUnavailable("Generic Kawasaki KDS requires an explicit ECU-only selection")
+                elif (self.selection.entry is None or self.selection.make.casefold() != "kawasaki"
                         or self.selection.entry.ecu != profile.id):
                     raise TransportUnavailable("Kawasaki KDS research requires a source-listed vehicle")
                 if self.selection.transport_kind != "kline" or mode != "read_only":
                     raise TransportUnavailable("Kawasaki KDS research supports physical K-Line and read-only mode only")
             if profile.session.get("protocol") == "suzuki-sds-gsxr-research":
-                ranges = {"gsx-r600": (2006, 2016), "gsx-r750": (2006, 2016),
+                ranges = {"gsx-r600": (2004, 2023), "gsx-r750": (2004, 2017),
                           "gsx-r1000": (2005, 2016), "gsx-r1300 hayabusa": (2008, 2016)}
                 bounds = ranges.get(self.selection.model.casefold())
-                if (self.selection.entry is None or self.selection.make.casefold() != "suzuki"
+                if profile.id == "suzuki_sds_generic_research":
+                    if self.selection.entry is not None:
+                        raise TransportUnavailable("Generic Suzuki SDS requires an explicit ECU-only selection")
+                elif profile.id == "suzuki_dl650_2017_research":
+                    if (self.selection.entry is None or self.selection.make.casefold() != "suzuki"
+                            or self.selection.model.casefold() != "v-strom dl650xal7"
+                            or self.selection.year != 2017 or self.selection.entry.ecu != profile.id):
+                        raise TransportUnavailable("DL650XAL7 research requires the exact 2017 vehicle selection")
+                elif (self.selection.entry is None or self.selection.make.casefold() != "suzuki"
                         or self.selection.entry.ecu != profile.id or bounds is None
                         or self.selection.year is None or not bounds[0] <= self.selection.year <= bounds[1]):
                     raise TransportUnavailable("Suzuki SDS research requires a source-listed model and year")

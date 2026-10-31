@@ -9,15 +9,15 @@ reason is named.
 
 | Operation | State |
 |---|---|
-| Read flash, IAW 5AM | Implemented against a verified wire capture. Needs a SecurityAccess key provider. |
+| Read flash, IAW 5AM | Source-derived physical partial read attempt, with four blocks filled `FF` rather than read. Requires a SecurityAccess key provider. Synthetic integration tests only; not a verified backup. |
 | Read flash, 7SM / 15M / 15RC / MIU G3 | Generic memory framework exists, but these family profiles expose no read capability because session, security, and/or region geometry are incomplete. |
 | Read flash, P8 / 16M | Not exposed: no validated in-circuit read sequence is available here. P8 maps commonly live on a socketed EPROM that can be preserved with a programmer. |
 | Read EEPROM, non-5AM families | Generic framework only; no incomplete family profile declares a hardware capability. |
-| Backup with verification | Fully working. |
+| Backup with verification | Simulated flow tested. Physical 5AM partial reads cannot be marked verified backups or stored as base maps. |
 | Image validation | Fully working. |
 | Write / erase / program | Fully implemented against the documented 5am_util sequence and simulator-tested. Disabled against hardware pending a bench-confirmed key and physical-layer validation. |
-| Write verification by read-back | Fully working. |
-| Interrupted-write recovery | Fully working. |
+| Write verification by read-back | Simulator-tested; not established on physical GuzziOnBoard integrations. |
+| Interrupted-write recovery | Checkpoints and advice exist; actual hardware recovery is not established. |
 
 ## Why writing is gated rather than absent
 
@@ -57,10 +57,10 @@ preconditions are:
 
 Eight green lights and the write proceeds. Seven and it does not. The remaining
 red light on every Guzzi family today is the first one, and that is an
-evidence problem, not a policy one. For the 5AM the evidence is now one bench
-session away: the key algorithm and the full write sequence are transcribed
-and simulator-tested (`docs/PRIOR_ART.md` 1.1-1.5); what is missing is a real
-ECU saying yes.
+evidence problem, not a policy one. For the 5AM the key algorithm and write sequence are transcribed and
+simulator-tested. Upstream onboard-logger reports a completed write on a Guzzi
+5AM, but GuzziOnBoard itself has not been bench tested and its physical read
+is partial, so that upstream result does not establish a working restore here.
 
 ## Rehearsing the whole thing on the simulator
 
@@ -80,7 +80,11 @@ capability overlay exists only while the simulator session exists —
 
 ## The 5AM read sequence
 
-Taken from a published `5am_util` transcript, byte for byte:
+The following is the beginning of a published `5am_util` transcript. The
+physical GuzziOnBoard path sends the baud-switch request from tester `0x01`,
+then switches its serial port to 64200 baud after the response. It selects each
+16 KiB block separately and reads within a `0x4000..0x7fff` window; it does
+not use the simulator's old contiguous bank model:
 
 ```
 ->  81                          StartCommunication
@@ -95,11 +99,14 @@ Taken from a published `5am_util` transcript, byte for byte:
 <-  67 01 27 88 27 89           seed
 ->  27 02 DA 78 69 27           sendKey
 <-  67 02
-->  36 11 00 FE 02 01 00        TransferData, setup
+->  36 11 00 FE 02 01 00        TransferData, select block 0 (source transcript)
 <-  76 11 02
 ->  36 21 00 40 00 20           read 0x20 bytes at 0x004000
 <-  76 21 40 00 00 20 FA 00 00 02 FA 00 04 40 ...
 ```
+
+GuzziOnBoard returns the region beginning with block 1, so its first block
+selection differs from this block-0 transcript example.
 
 Two things are worth noticing.
 
@@ -166,10 +173,15 @@ simulator reproduces it.
 
 ### Region geometry
 
-The readable region runs `0x4000` to `0x50000`, which is 311,296 bytes. The
-often-quoted figure of 327,680 bytes (`0x50000`) is the whole device including
-the bootloader below `0x4000`, and that part is not reachable over K-Line.
-A read takes about 20 minutes at 32 bytes per block.
+The region-shaped output spans `0x4000..0x50000`, or 311,296 bytes. The
+source reader selects blocks 1 and 6–19 and fills blocks 2–5 with `FF`; those
+64 KiB are placeholders, **not captured contents**. Block 0 is not included
+in this region-shaped output. Source response metadata has not been shown to
+correlate every reply to its requested block/address, so this remains an
+experimental partial image, not an attested full read, verified backup, base
+map or flash-ready file. It does not generate shared read provenance. Reconnect
+after the rate-switched read before another operation. The original upstream reader takes approximately 20 minutes for its full 16-block
+attempt; GuzziOnBoard hardware timing has not been measured.
 
 ## The SecurityAccess key
 
@@ -192,9 +204,9 @@ key = (bswap16(X+1) div 161) << 24 | (bswap16(X) mod 200) << 16 | 0x6927
 ```
 
 It is registered `verified=False` and never selected automatically. "Working"
-means it provably matches the published pairs and is the algorithm a tool
-that really flashed IAW 5AM ECUs shipped; **not verified** means nobody has
-fed it a seed from a Guzzi-fitted 5AM and confirmed the unlock. The 59M is
+means it matches the published pairs and is the algorithm a tool
+that reports flashing a Guzzi-fitted IAW 5AM used; **not verified** here means
+the GuzziOnBoard integration has not confirmed it on hardware. The 59M is
 expected to share it (one family in the GuzziDiag tooling); no claim is made
 for the 15x, 7SM or MIU families.
 

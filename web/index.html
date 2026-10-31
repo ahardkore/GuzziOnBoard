@@ -519,6 +519,15 @@
       <p class="muted small">Interpretations are candidate values, not proof of vehicle fitment or frame authenticity. <a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/EXTERNAL_MOTORCYCLE_RESEARCH.md" target="_blank" rel="noopener">Sources, licenses and limitations</a>.</p>
     </article>
 
+    <article class="panel" id="etvResearch">
+      <h2>Ride-by-wire torque inversion · offline research</h2>
+      <p class="muted small">Adapted from <a href="https://github.com/silviosackewitz-code/OpenETV/tree/6b781e4fc11e5994531c367eb897f16d1a33318f" target="_blank" rel="noopener noreferrer">OpenETV</a>: estimate throttle opening from user-supplied engine torque and rider torque request tables. CSV rows are RPM, columns are throttle % (engine) or grip % (request), cells are Nm. Synthetic-tested only. Output is a model, not a measurement or flash-ready tune; verify exact ECU, units, map axes, actuator limits and control strategy, and validate on a dyno before riding. This tool does not identify an ECU, modify an image, or send commands.</p>
+      <label class="field"><span>Engine torque CSV (first cell label, remaining header cells throttle %)</span><textarea id="etvEngine" rows="5" placeholder="RPM,0,50,100&#10;1000,-10,50,100&#10;2000,-10,60,110"></textarea></label>
+      <label class="field"><span>Rider request CSV (first cell label, remaining header cells grip %)</span><textarea id="etvRequest" rows="5" placeholder="RPM,0,50,100&#10;1000,-10,50,100&#10;2000,-10,60,110"></textarea></label>
+      <div class="toolbar"><label>High-RPM threshold <input type="number" id="etvThreshold" value="8000" min="0" max="100000" step="1"></label><label>Peak torque tolerance (Nm) <input type="number" id="etvTolerance" value="0.3" min="0" max="1000000" step="any"></label><button class="btn" id="etvCalculate">Calculate candidate</button></div>
+      <pre id="etvOut" class="small" aria-live="polite">No calculation.</pre>
+    </article>
+
     <article class="panel" id="tuningResearch">
       <h2>Multi-brand tuning research</h2>
       <p class="muted small">Research links are not supported tuning definitions. No maps, firmware, write commands or checksum repair are bundled for these bikes. A matching ECU, exact software, definition, checksum and legal use must be independently verified; a passing checksum alone does not establish fitment or safety.</p>
@@ -599,6 +608,7 @@
       <label class="field"><span>ECM protocol (verify before selecting)</span><select id="buellMode"><option value="stock">Stock / P&amp;A · 9600 baud</option><option value="factory_race">Factory race · 19200 baud</option></select></label>
       <label class="field"><span>Exact ECM version (identify first)</span><input id="buellVersion" maxlength="64" placeholder="ECM version"></label>
       <div class="toolbar"><label>EEPROM page <input type="number" id="buellPage" value="1" min="1" max="31"></label><label>Offset <input type="number" id="buellOffset" value="0" min="0" max="255"></label><label>Length (1–256) <input type="number" id="buellLength" value="16" min="1" max="256"></label></div>
+      <label class="check"><input type="checkbox" id="buellCompare"> Read this range twice and reject differences (slower; not a verified backup)</label>
       <label class="check"><input type="checkbox" id="buellConfirm"> I verified the Buell ECM, TTL adapter and wiring, and understand this is a synthetic-tested read-only integration</label>
       <div class="toolbar"><button class="btn" id="buellIdentify">Identify ECM</button><button class="btn" id="buellRuntime">Read runtime snapshot</button><button class="btn" id="buellRead">Read EEPROM range</button></div>
       <pre id="buellOut" class="small" aria-live="polite">Not connected.</pre>
@@ -869,7 +879,7 @@
       </details>
       <div class="toolbar">
         <label class="inline">Filter IDs (hex, optional) <input id="canlogFilter" type="text" placeholder="7E0, 7E8" size="24"></label>
-        <label class="inline">Offline decoder <select id="canlogDecoder"><option value="">None</option><option value="ducati_panigale_mitsubishi">Ducati Mitsubishi (research only)</option><option value="harley_hdlan_community">Harley HDLAN community (best-effort)</option></select></label>
+        <label class="inline">Offline decoder <select id="canlogDecoder"><option value="">None</option><option value="ducati_panigale_mitsubishi">Ducati Mitsubishi (research only)</option><option value="harley_hdlan_community">Harley HDLAN community (best-effort)</option><option value="yamaha_r9_2026">Yamaha R9 2026 (source-specific research)</option></select></label>
         <label class="inline"><input id="canlogByteStats" type="checkbox"> Summarize raw byte changes</label>
       </div>
       <div class="toolbar" id="canlogFileControls">
@@ -889,13 +899,13 @@
 
     <article class="panel" id="harleyLiveCan">
       <h2>Motorcycle CAN · live broadcast observation</h2>
-      <p class="muted small">Observe candidate broadcast values from an already configured Linux SocketCAN interface. Select the source profile for your bike; mappings are best-effort and vary by model/year. The Ducati source uses 500 kbit/s. No ECU diagnostic request, identification, DTC, memory read or tuning is provided. Never use these values for riding or safety decisions. This application sends no CAN frames, but a normal CAN controller may acknowledge traffic; configure hardware listen-only mode separately if required.</p>
-      <label class="field"><span>Observation source (not automatic vehicle identification)</span><select id="harleyLiveProfile"><option value="community">HarleyDroid HDLAN community candidates</option><option value="sportster_2017">2017 XL1200X Sportster · source-described raw frames</option><option value="ducati_mitsubishi">Ducati Mitsubishi · Panigale / Multistrada 1200 / Diavel candidates</option></select></label>
+      <p class="muted small">Observe candidate broadcast values from an already configured Linux SocketCAN interface. Select the source profile for your bike; mappings are best-effort and vary by model/year. The Ducati and Yamaha R9 sources use 500 kbit/s; the Indian Springfield source uses 250 kbit/s J1939. The R9 source reports that its diagnostic bus only delivers these frames while a node acknowledges them. No ECU diagnostic request, identification, DTC, memory read or tuning is provided. Never use these values for riding or safety decisions. This application sends no CAN frames, but a normal CAN controller may acknowledge traffic; configure hardware listen-only mode separately if required.</p>
+      <label class="field"><span>Observation source (not automatic vehicle identification)</span><select id="harleyLiveProfile"><option value="community">HarleyDroid HDLAN community candidates</option><option value="sportster_2017">2017 XL1200X Sportster · source-described raw frames</option><option value="ducati_mitsubishi">Ducati Mitsubishi · Panigale / Multistrada 1200 / Diavel candidates</option><option value="yamaha_r9_2026">Yamaha R9 2026 · source-described CAN candidates</option><option value="indian_springfield_2017">Indian Springfield 2017 · J1939 candidates</option></select></label>
       <label class="field"><span>Existing SocketCAN interface (bitrate configured in the OS)</span><input id="harleyLiveChannel" value="can0" maxlength="15"></label>
       <label class="check"><input type="checkbox" id="harleyLiveConfirm"> I confirmed the adapter, wiring, bus configuration and research-only limitations</label>
       <div class="toolbar"><button class="btn" id="harleyLiveStart">Start observation</button><button class="btn small" id="harleyLiveStop" disabled>Stop</button></div>
       <pre id="harleyLiveOut" class="small" aria-live="polite">Not observing.</pre>
-      <p class="muted small">The current two-second window only is shown; absent values are not reused. The hosted demo cannot access CAN hardware. <a href="https://github.com/QuickosssLabs/HarleyDroidEVO/tree/668b63efc05977eb65cb8e84e597ae2205355d4c" target="_blank" rel="noopener">Community mapping source</a>.</p>
+      <p class="muted small">The current two-second window only is shown; absent values are not reused. The hosted demo cannot access CAN hardware. <a href="https://github.com/QuickosssLabs/HarleyDroidEVO/tree/668b63efc05977eb65cb8e84e597ae2205355d4c" target="_blank" rel="noopener">Community mapping source</a> · <a href="https://github.com/DeziderMesko/motocan/tree/acdb1464e327363a7be52a53134f34d0ca2d4e62" target="_blank" rel="noopener">Yamaha R9 source</a> · <a href="https://github.com/Prinsessen/indian-thunderstroke-canbus/tree/15799596e463" target="_blank" rel="noopener">Indian Springfield source</a>.</p>
     </article>
 
     <article class="panel" id="yamahaLiveKline">
@@ -1079,7 +1089,7 @@
         <div id="mapBuildChanges"><p class="muted small">No staged changes. Render a map and select table values or constants.</p></div>
         <details class="map-log-tools">
           <summary><b>Offline log overlay &amp; bounded fuel-correction review</b></summary>
-          <p class="muted small">Import a CSV containing time, load/RPM, and separately measured and target AFR. When a time column is selected, ECU state is interpolated at the measured-wideband time minus the explicitly configured delay; gaps, unsettled cells, excessive axis rates, and insufficient aligned cell dwell are rejected. Analysis never changes the image and caps proposed fuel changes. Confirm the selected table really controls fuel quantity under the logged conditions.</p>
+          <p class="muted small">Import a CSV containing time, load/RPM, and separately measured and target AFR. When a time column is selected, ECU state is interpolated at the measured-wideband time minus the explicitly configured delay; gaps, unsettled cells, excessive axis rates, and insufficient aligned cell dwell are rejected. Analysis never changes the image and caps proposed fuel changes. Confirm the selected table really controls fuel quantity under the logged conditions, and match the log axes and cylinder to the table. These inputs require AFR, not lambda; no lambda conversion is performed.</p>
           <div class="toolbar">
             <label class="inline">Log CSV <input type="file" id="mapLogFile" accept="text/csv,.csv"></label>
             <span class="muted small" id="mapLogSummary">No log loaded.</span>
@@ -1270,6 +1280,7 @@
 <script src="bajaj-checksum.js"></script>
 <script src="cfmoto-checksum.js"></script>
 <script src="harley-tuning.js"></script>
+<script src="openetv-research.js"></script>
 <script src="harley-centurion.js"></script>
 <script src="juken-research.js"></script>
 <script src="harley-live-can.js"></script>

@@ -892,7 +892,7 @@ function selectionRequest() {
   const ecuOverride = $('#ecuOverride').value;
   const body = ecuOverride
     ? { ecu: ecuOverride, transport: currentTransport(), device: $('#deviceInput').value,
-        ...(!['generic_obd_can_11bit', 'honda_cb500f_dashble', 'honda_ctx700_minidash', 'harley_delphi_can_uds'].includes(ecuOverride) && $('#modelSelect').value && $('#yearSelect').value ? {
+        ...(!['generic_obd_can_11bit', 'honda_cb500f_dashble', 'honda_ctx700_minidash', 'harley_delphi_can_uds', 'kawasaki_kds_generic_research', 'suzuki_sds_generic_research'].includes(ecuOverride) && $('#modelSelect').value && $('#yearSelect').value ? {
           make: $('#makeSelect').value, model: $('#modelSelect').value,
           year: parseInt($('#yearSelect').value, 10),
         } : {}) }
@@ -2489,7 +2489,7 @@ function renderMemoryCapabilities(data) {
   const rows = [
     ['ECU', `${esc(c.family)} <span class="muted">(${esc(c.ecu)})</span>`],
     ['Protocol', `<code>${esc(c.protocol)}</code>`],
-    ['Read supported', c.research_read_only ? '<b class="warn">experimental MGZ-A03 only</b>' : yesno(c.read_supported)],
+    ['Read supported', c.research_read_only ? '<b class="warn">experimental MGZ-A03 only</b>' : c.partial_read_note ? '<b class="warn">experimental partial read</b>' : yesno(c.read_supported)],
     ['Write supported', c.simulated
       ? (c.write_supported ? '<b class="ok">yes <span class="muted">(sim&nbsp;)</span></b>' : yesno(false))
       : yesno(c.write_supported)],
@@ -2504,6 +2504,7 @@ function renderMemoryCapabilities(data) {
   }
   if (c.write_blocked_reason) rows.push(['Why not writable', esc(c.write_blocked_reason)]);
   if (c.hardware_note) rows.push(['Hardware notes', esc(c.hardware_note)]);
+  if (c.partial_read_note) rows.push(['Partial read warning', esc(c.partial_read_note)]);
 
   $('#memCaps').innerHTML = rows
     .map(([k, v], i) => `<div${i >= 5 ? ' class="full"' : ''}>`
@@ -2533,7 +2534,7 @@ function renderMemoryCapabilities(data) {
   }).join('');
 
   const canRead = c.read_supported;
-  $('#backupBtn').disabled = !canRead || c.research_read_only;
+  $('#backupBtn').disabled = !canRead || c.research_read_only || !!c.partial_read_note;
   $('#readBtn').disabled = !canRead;
   $('#validateBtn').disabled = false;
 
@@ -2548,7 +2549,7 @@ function renderMemoryCapabilities(data) {
   $('#checkpointOut').innerHTML = pending.join('');
 
   fw.acknowledgement = data.acknowledgement || '';
-  renderBaseMap(data.base_map, canRead && !c.research_read_only);
+  renderBaseMap(data.base_map, canRead && !c.research_read_only && !c.partial_read_note);
   renderWriteGate();
 }
 
@@ -2681,6 +2682,7 @@ function renderMemoryProgress(job) {
       <div class="gate-card ok">
         <h4>${esc(job.name)} complete</h4>
         ${r.research_only ? '<p><b>Experimental research file — not a verified backup or flash-ready image.</b></p>' : ''}
+        ${d.meta?.note ? `<p>${esc(d.meta.note)}</p>` : ''}
         ${r.verified !== undefined
           ? `<p>Two reads compared: <b>${r.verified ? 'identical' : 'DIFFERENT'}</b>
              (${r.attempts} attempts)</p>` : ''}
@@ -4232,7 +4234,9 @@ function renderMapLogControls() {
   const options = maps.logHeaders.map((header) => `<option value="${esc(header)}">${esc(header)}</option>`).join('');
   const previous = Object.fromEntries(['mapLogX', 'mapLogY', 'mapLogMeasured', 'mapLogTarget', 'mapLogTime']
     .map((id) => [id, $(`#${id}`).value]));
-  ['mapLogX', 'mapLogY', 'mapLogMeasured', 'mapLogTarget'].forEach((id) => { $(`#${id}`).innerHTML = options; });
+  ['mapLogX', 'mapLogY', 'mapLogMeasured', 'mapLogTarget'].forEach((id) => {
+    $(`#${id}`).innerHTML = '<option value="">— choose a column —</option>' + options;
+  });
   $('#mapLogTime').innerHTML = '<option value="">— no time alignment —</option>' + options;
   const choose = (id, expressions) => {
     const select = $(`#${id}`);
@@ -4243,9 +4247,11 @@ function renderMapLogControls() {
     if (match) select.value = match;
   };
   choose('mapLogX', [/rpm/i, /speed/i]);
-  choose('mapLogY', [/throttle/i, /tps/i, /load/i, /pressure/i, /map/i]);
-  choose('mapLogMeasured', [/measured.*afr/i, /wideband/i, /^afr$/i, /lambda.*meas/i]);
-  choose('mapLogTarget', [/target.*afr/i, /command.*afr/i, /lambda.*target/i]);
+  choose('mapLogY', [/throttle/i, /tps/i, /^tp$/i, /load/i, /pressure/i, /map/i]);
+  // These inputs are AFR, not lambda. Cylinder-specific AFR1/AFR2 must be
+  // selected by the operator after checking the chosen table's cylinder.
+  choose('mapLogMeasured', [/measured.*afr/i, /afr.*measured/i, /wideband.*afr/i, /^afr$/i]);
+  choose('mapLogTarget', [/target.*afr/i, /command.*afr/i, /^(?:set|desired)[ _-]*afr$/i]);
   choose('mapLogTime', [/^time$/i, /timestamp/i, /^time[_ ]?(s|ms)$/i, /elapsed/i]);
   const setTimeControlState = () => {
     const disabled = !$('#mapLogTime').value;
@@ -4817,6 +4823,9 @@ $('#mapLogAnalyzeBtn').onclick = async () => {
   if (!maps.render?.source || !maps.logRows.length) return toast('Render a source map and load a CSV first.', 'bad');
   const measured = $('#mapLogMeasured').value;
   const target = $('#mapLogTarget').value;
+  if (!$('#mapLogX').value || !$('#mapLogY').value) {
+    return toast('Choose the X and Y log columns to match the selected table axes.', 'bad');
+  }
   if (!measured || !target || measured === target) {
     return toast('Measured AFR and target AFR must be separate, explicit log columns.', 'bad');
   }
@@ -5091,8 +5100,8 @@ function renderCanlog(result) {
     ${result.byte_stats.groups.map((group) => `<h4>${esc(group.id)} · ${group.extended ? '29-bit' : '11-bit'} · ${esc(group.direction)}</h4>
       <p class="small">${group.frames} frame(s) · lengths ${esc(group.lengths.join(', '))} · ${group.skipped_frames} empty or oversized frame(s) skipped</p>
       <div class="table-wrap"><table><thead><tr><th>Byte (1-based)</th><th>Samples</th><th>Min</th><th>Max</th><th>Changes</th><th>Observed varying bits</th></tr></thead><tbody>${group.bytes.map((byte) => `<tr><td>${byte.index}</td><td>${byte.samples}</td><td>${hexByte(byte.minimum)}</td><td>${hexByte(byte.maximum)}</td><td>${byte.changes}</td><td>${hexByte(byte.varying_mask)}</td></tr>`).join('')}</tbody></table></div>`).join('')}</details>` : '';
-  const decoded = result.decoder ? `<div class="gate-card warn"><h4>${result.decoder.profile === 'harley_hdlan_community' ? 'Harley HDLAN community decoder (best-effort)' : 'Ducati Mitsubishi research decoder'} · offline only</h4>
-    <p class="small">${result.decoder.profile === 'harley_hdlan_community' ? 'Not vehicle identification. HDLAN RPM and layouts are tentative in the source.' : 'Not vehicle identification or a Guzzi profile.'} Verify each signal against the exact vehicle and raw data. ${result.decoder.recognized_frames} matching frame(s); ${result.decoder.invalid_length_frames} invalid-length and ${result.decoder.ignored_tx_frames} transmitted frame(s) ignored; ${result.decoder.omitted_events} additional events omitted. Unknown directions may include transmitted frames.</p>
+  const decoded = result.decoder ? `<div class="gate-card warn"><h4>${result.decoder.profile === 'harley_hdlan_community' ? 'Harley HDLAN community decoder (best-effort)' : result.decoder.profile === 'yamaha_r9_2026' ? 'Yamaha R9 2026 research decoder' : 'Ducati Mitsubishi research decoder'} · offline only</h4>
+    <p class="small">${result.decoder.profile === 'harley_hdlan_community' ? 'Not vehicle identification. HDLAN RPM and layouts are tentative in the source.' : result.decoder.profile === 'yamaha_r9_2026' ? 'Not vehicle identification. One source motorcycle; no physical test of this integration.' : 'Not vehicle identification or a Guzzi profile.'} Verify each signal against the exact vehicle and raw data. ${result.decoder.recognized_frames} matching frame(s); ${result.decoder.invalid_length_frames} invalid-length and ${result.decoder.ignored_tx_frames} transmitted frame(s) ignored; ${result.decoder.omitted_events} additional events omitted. Unknown directions may include transmitted frames.</p>
     <div class="table-wrap"><table><thead><tr><th>Time (s)</th><th>ID / direction</th><th>Raw bytes</th><th>Candidate values</th></tr></thead><tbody>${result.decoder.events.map((event) => `<tr><td>${esc(event.timestamp)}</td><td>${esc(event.id)} / ${esc(event.direction)}</td><td><code>${esc(event.raw)}</code></td><td>${Object.entries(event.values).map(([key, value]) => `${esc(key)}: ${esc(value)}`).join(' · ')}</td></tr>`).join('')}</tbody></table></div></div>` : '';
   const head = `
     <div class="gate-card ${result.diagnostic_traffic_found ? 'ok' : 'warn'}">

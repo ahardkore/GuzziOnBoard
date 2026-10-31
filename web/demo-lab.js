@@ -358,46 +358,63 @@
   }
 
   function parseXml(text) {
+    if (typeof text !== 'string' || text.length > 8 * 1024 * 1024) {
+      throw new Error('XDF exceeds the 8 MiB definition limit or is not text');
+    }
+    if (/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(text)) {
+      throw new Error('XDF DTD and entity declarations are not supported');
+    }
     var root = { tag: '#root', attrs: {}, children: [], text: '' };
     var stack = [root];
+    var nodeCount = 0;
     var i = 0;
     var attrRe = /([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*("([^"]*)"|'([^']*)')/g;
     while (i < text.length) {
       var lt = text.indexOf('<', i);
-      if (lt < 0) break;
+      if (lt < 0) {
+        if (text.slice(i).trim()) throw new Error('not valid XDF/XML: trailing text');
+        break;
+      }
       if (lt > i) {
         var chunk = text.slice(i, lt);
         if (chunk.trim()) stack[stack.length - 1].text += unescapeXml(chunk);
       }
       if (text.substr(lt, 4) === '<!--') {
         i = text.indexOf('-->', lt);
-        i = i < 0 ? text.length : i + 3;
+        if (i < 0) throw new Error('not valid XDF/XML: unclosed comment');
+        i += 3;
         continue;
       }
       if (text.substr(lt, 9) === '<![CDATA[') {
         var cend = text.indexOf(']]>', lt);
-        cend = cend < 0 ? text.length : cend;
+        if (cend < 0) throw new Error('not valid XDF/XML: unclosed CDATA');
         stack[stack.length - 1].text += text.slice(lt + 9, cend);
         i = cend + 3;
         continue;
       }
       if (text.charAt(lt + 1) === '?' || text.charAt(lt + 1) === '!') {
         i = text.indexOf('>', lt);
-        i = i < 0 ? text.length : i + 1;
+        if (i < 0) throw new Error('not valid XDF/XML: unclosed declaration');
+        i += 1;
         continue;
       }
       var gt = text.indexOf('>', lt);
-      if (gt < 0) break;
+      if (gt < 0) throw new Error('not valid XDF/XML: unclosed tag');
       var inner = text.slice(lt + 1, gt);
       i = gt + 1;
       if (inner.charAt(0) === '/') {
-        if (stack.length > 1) stack.pop();
+        if (stack.length <= 1 || inner.slice(1).trim() !== stack[stack.length - 1].tag) {
+          throw new Error('not valid XDF/XML: mismatched closing tag');
+        }
+        stack.pop();
         continue;
       }
       var selfClosing = inner.charAt(inner.length - 1) === '/';
       if (selfClosing) inner = inner.slice(0, -1);
       var space = inner.search(/\s/);
       var tag = space < 0 ? inner : inner.slice(0, space);
+      nodeCount++;
+      if (nodeCount > 100000 || stack.length > 64) throw new Error('XDF XML structure exceeds supported limits');
       var node = { tag: tag, attrs: {}, children: [], text: '' };
       if (space >= 0) {
         var rest = inner.slice(space);
@@ -410,7 +427,10 @@
       stack[stack.length - 1].children.push(node);
       if (!selfClosing) stack.push(node);
     }
-    return root.children.length ? root.children[0] : root;
+    if (stack.length !== 1 || root.children.length !== 1 || root.text.trim()) {
+      throw new Error('not valid XDF/XML: missing closing tag or invalid root');
+    }
+    return root.children[0];
   }
 
   function kids(node, tag) {
@@ -436,7 +456,7 @@
   function compileMath(equation) {
     var text = String(equation || 'X').trim() || 'X';
     if (text === 'X' || text === 'x') return function (x) { return x; };
-    if (!MATH_ALLOWED.test(text) || text.indexOf('**') >= 0) {
+    if (text.length > 256 || !MATH_ALLOWED.test(text) || text.indexOf('**') >= 0 || text.indexOf('//') >= 0) {
       throw new Error('unsupported equation ' + JSON.stringify(text));
     }
     var body = text.replace(/[Xx]/g, '(X)');
@@ -507,6 +527,11 @@
   }
 
   function validateEmbeddedLayout(embedded) {
+    if (!Number.isSafeInteger(embedded.rows) || !Number.isSafeInteger(embedded.cols)
+        || embedded.rows < 1 || embedded.cols < 1 || embedded.rows > 65536
+        || embedded.cols > 65536 || embedded.rows * embedded.cols > 262144) {
+      throw new Error('embedded dimensions exceed supported XDF limits');
+    }
     [[embedded.major_stride_bits, embedded.rows > 1],
       [embedded.minor_stride_bits, embedded.cols > 1]].forEach(function (entry) {
       if (entry[1] && (entry[0] < 0 || entry[0] % 8)) {
@@ -580,6 +605,7 @@
 
   function parseAxis(node, signedDefault, floatDefault) {
     var count = Math.max(1, intOf(kidText(node, 'indexcount'), 1));
+    if (!Number.isSafeInteger(count) || count > 65536) throw new Error('axis exceeds supported XDF limit');
     var labels = [];
     for (var i = 0; i < count; i++) labels.push('');
     kids(node, 'LABEL').forEach(function (label) {
@@ -5229,6 +5255,29 @@
       invalid_length_frames: invalid, ignored_tx_frames: ignoredTx, omitted_events: Math.max(0, recognized - events.length) };
   }
 
+  /* motocan r9.hpp / r9.dbc, Copyright (c) 2026 DeziderMesko, MIT;
+   * LICENSES/MotoCAN-MIT.txt. 2026 R9 source only; synthetic integration. */
+  function decodeYamahaR9Capture(frames) {
+    var events = [], recognized = 0, invalid = 0, ignoredTx = 0;
+    var lengths = {0x27c: 7, 0x512: 4};
+    frames.forEach(function (frame) {
+      if (frame.extended || !Object.hasOwn(lengths, frame.id)) return;
+      if (String(frame.direction || '').toLowerCase().startsWith('t')) { ignoredTx++; return; }
+      var d = frame.data;
+      if (d.length !== lengths[frame.id] || d.some(function (n) { return !Number.isInteger(n) || n < 0 || n > 255; })) { invalid++; return; }
+      var values = frame.id === 0x27c
+        ? {rpm_candidate: Math.floor((d[0] * 256 + d[1]) * 100 / 256), gear_raw_candidate: d[4] & 7,
+           tcs_setting_candidate: (d[3] >> 1) & 15, pwr_setting_candidate: (d[4] >> 6) + 1}
+        : {coolant_c_candidate: (Math.floor(d[0] * 25 / 4) - 300) / 10,
+           air_c_candidate: (Math.floor(d[1] * 25 / 4) - 300) / 10};
+      recognized++;
+      if (events.length < 200) events.push({timestamp: frame.timestamp, id: '0x' + frame.id.toString(16).toUpperCase(),
+        direction: frame.direction || 'unknown', raw: d.map(function (v) { return v.toString(16).padStart(2, '0').toUpperCase(); }).join(''), values: values});
+    });
+    return {profile: 'yamaha_r9_2026', events: events, recognized_frames: recognized, invalid_length_frames: invalid,
+      ignored_tx_frames: ignoredTx, omitted_events: Math.max(0, recognized - events.length)};
+  }
+
   // Raw per-byte observations only: not a vehicle profile or signal decoder.
   function summarizeCanBytes(frames) {
     var groups = {};
@@ -5267,7 +5316,7 @@
         + 'of giving a path (the local workstation reads candump, SavvyCAN '
         + 'CSV and CRTD files).');
     }
-    if (body.decoder !== undefined && body.decoder !== '' && body.decoder !== 'ducati_panigale_mitsubishi' && body.decoder !== 'harley_hdlan_community') throw bad('unknown offline telemetry decoder');
+    if (body.decoder !== undefined && body.decoder !== '' && body.decoder !== 'ducati_panigale_mitsubishi' && body.decoder !== 'harley_hdlan_community' && body.decoder !== 'yamaha_r9_2026') throw bad('unknown offline telemetry decoder');
     if (body.byte_stats !== undefined && typeof body.byte_stats !== 'boolean') throw bad('byte statistics setting must be true or false');
     if (body.byte_stats && (typeof body.filter_ids !== 'string' || !body.filter_ids.trim())) throw bad('byte statistics require an explicit CAN ID filter');
     var parsed = parseCanText(String(body.text || ''));
@@ -5292,6 +5341,7 @@
     result.capture_frames = total; result.filter_ids = filter;
     if (body.decoder === 'ducati_panigale_mitsubishi') result.decoder = decodeDucatiCapture(parsed.frames);
     if (body.decoder === 'harley_hdlan_community') result.decoder = decodeHarleyHdlanCapture(parsed.frames);
+    if (body.decoder === 'yamaha_r9_2026') result.decoder = decodeYamahaR9Capture(parsed.frames);
     if (body.byte_stats) result.byte_stats = summarizeCanBytes(parsed.frames);
     result.format = parsed.format;
     result.notes = parsed.warnings.concat(result.notes);

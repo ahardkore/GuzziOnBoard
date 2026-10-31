@@ -252,3 +252,59 @@ def test_timing_defaults_are_iso_14230_shaped():
     t = TimingParameters()
     assert t.p2_max >= t.p2_min
     assert t.p3_min > 0
+
+@pytest.mark.parametrize('target,source', [(0xF2, 0x10), (0xF1, 0x11)])
+def test_responses_from_another_address_are_rejected(target, source):
+    conn = FakeConnection([encode_request([0x61, 0x30, 1], target=target, source=source)])
+    with pytest.raises(ProtocolError, match='address'):
+        KWP2000Session(conn).read_data_by_local_id(0x30)
+
+
+@pytest.mark.parametrize('payload', [[0x7F, 0x10, 0x78], [0x7F, 0x21], [0x7F, 0x21, 0x22, 0]])
+def test_negative_responses_must_be_exact_and_match_request(payload):
+    conn = FakeConnection([_response(payload), _response([0x61, 0x30, 1])])
+    with pytest.raises(ProtocolError, match='negative response'):
+        KWP2000Session(conn).read_data_by_local_id(0x30)
+    assert len(conn.responses) == 1  # a wrong pending must not consume a later frame
+
+
+def test_start_communication_does_not_accept_an_unrelated_positive_response():
+    conn = FakeConnection([_response([0x61, 0x30])])
+    with pytest.raises(ProtocolError, match='does not answer'):
+        KWP2000Session(conn).start_communication()
+
+
+def test_identity_requires_the_requested_option_echo():
+    for payload in ([0x5A], [0x5A, 0x81, 0x41]):
+        with pytest.raises(ProtocolError, match='echo'):
+            KWP2000Session(FakeConnection([_response(payload)])).read_ecu_identification(0x80)
+
+
+@pytest.mark.parametrize('payload', [[0x67], [0x67, 0x01], [0x67, 0x02, 0]])
+def test_empty_or_wrong_level_security_seed_is_not_an_unlock(payload):
+    conn = FakeConnection([_response(payload)])
+    with pytest.raises(ProtocolError, match='seed'):
+        KWP2000Session(conn).security_access(1, lambda seed: b'\x01')
+    assert len(conn.sent) == 1
+
+
+def test_security_key_acknowledgement_must_echo_level():
+    conn = FakeConnection([_response([0x67, 1, 0x42]), _response([0x67, 3])])
+    with pytest.raises(ProtocolError, match='key response'):
+        KWP2000Session(conn).security_access(1, lambda seed: b'\x01')
+
+
+def test_empty_session_payload_is_reported_before_sending():
+    conn = FakeConnection()
+    with pytest.raises(ProtocolError, match='payload'):
+        KWP2000Session(conn).request([])
+    assert not conn.sent
+
+
+@pytest.mark.parametrize('payload', [[0x33, 0x02], [0x32, 0x02], [0x2E, 0, 1, 1]])
+def test_dangerous_followups_and_unknown_services_do_not_bypass_the_guard(payload):
+    conn = FakeConnection()
+    session = KWP2000Session(conn, write_guard=lambda _sid: False)
+    with pytest.raises(PermissionError):
+        session.request(payload)
+    assert conn.sent == []

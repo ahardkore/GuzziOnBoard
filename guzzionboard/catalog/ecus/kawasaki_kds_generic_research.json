@@ -1,0 +1,99 @@
+{
+  "id": "kawasaki_kds_generic_research",
+  "family": "Kawasaki KDS K-Line (ECU-only research)",
+  "display_name": "Kawasaki KDS (ECU-only raw attempt)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "ECU-only, not model-specific",
+  "notes": "Opt-in ECU-only raw diagnostic attempt for a Kawasaki KDS or Suzuki SDS K-Line ECU. The source reports broad protocol support for its own implementation, but this integration and exact ECU compatibility are synthetic-tested only. Verify the ECU, diagnostic bus and adapter; a failed handshake or unsupported response stops the attempt. No verified sensors, ECU identity, faults, memory, programming or simulator.",
+  "session": {
+    "protocol": "kawasaki-kds-research",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 1.0,
+    "physical_evidence_note": "ECU-only research attempt; no particular motorcycle or ECU fitment is asserted. Synthetic tests only, not a hardware test."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No source-specific ECU memory access, checksums or programming implemented."
+  },
+  "capabilities": [
+    "live"
+  ],
+  "sources": [
+    "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3",
+    "https://orebrobildiagnos.se/en/product/obd-scan-tool-for-kawasaki-motorcycles/",
+    "https://www.amazon.com/AMHTDOL-Diagnostic-Connector-Motorcycles-Compatible/dp/B0GVTYHT94",
+    "https://github.com/HerrRiebmann/KDS2Bluetooth/tree/bb8be32a6ed54d995c838bb58af528731fc8fae1"
+  ],
+  "parameters": [
+    {
+      "key": "raw_04",
+      "name": "KDS 04 raw response (meaning unverified)",
+      "local_id": 4,
+      "unit": "",
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "raw_05",
+      "name": "KDS 05 raw response (meaning unverified)",
+      "local_id": 5,
+      "unit": "",
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "raw_06",
+      "name": "KDS 06 raw response (meaning unverified)",
+      "local_id": 6,
+      "unit": "",
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "raw_07",
+      "name": "KDS 07 raw response (meaning unverified)",
+      "local_id": 7,
+      "unit": "",
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "raw_09",
+      "name": "KDS 09 raw response (meaning unverified)",
+      "local_id": 9,
+      "unit": "",
+      "default": true,
+      "confidence": "unknown"
+    },
+    {
+      "key": "raw_0b",
+      "name": "KDS 0B raw response (meaning unverified)",
+      "local_id": 11,
+      "unit": "",
+      "default": false,
+      "confidence": "unknown"
+    },
+    {
+      "key": "raw_0c",
+      "name": "KDS 0C raw response (meaning unverified)",
+      "local_id": 12,
+      "unit": "",
+      "default": false,
+      "confidence": "unknown"
+    }
+  ],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "kawasaki-kds-research",
+    "address": 17,
+    "inter_byte_delay": 0.005
+  }
+}

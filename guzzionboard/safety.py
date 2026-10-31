@@ -422,6 +422,10 @@ class SafetyGate:
         )
 
     # -- tokens -----------------------------------------------------------
+    def invalidate_confirmations(self) -> None:
+        """Discard authorizations tied to previous vehicle evidence."""
+        self._tokens.clear()
+
     def consume(self, token: str | None, operation: str, *, max_age: float = 120.0) -> None:
         """Spend a confirmation token. Raises if it is missing or stale."""
         if token is None or token not in self._tokens:
@@ -489,7 +493,8 @@ class SafetyGate:
         # Irreversible operations require the programming mode; enabling
         # programming is the operator's way to enter it.  The original mode
         # is restored on disable so disabling really is "back to normal".
-        self._pre_programming_mode = self.mode
+        if self._pre_programming_mode is None:
+            self._pre_programming_mode = self.mode
         self.mode = Mode.PROGRAMMING
         self._audit.append(
             {"at": time.time(), "event": "programming_enabled"}
@@ -544,12 +549,11 @@ class SafetyGate:
                 return True
             if service not in armed:
                 return False
+            if reading:
+                # A read operation can arm only the transfer services it
+                # needs; it must not authorize routines or ECU writes.
+                return service in (Service.TRANSFER_DATA, Service.REQUEST_TRANSFER_EXIT)
             if service in self.PROGRAMMING_SERVICES:
-                if reading and service in (
-                    Service.TRANSFER_DATA,
-                    Service.REQUEST_TRANSFER_EXIT,
-                ):
-                    return True
                 return self.allow_programming
             return True
 

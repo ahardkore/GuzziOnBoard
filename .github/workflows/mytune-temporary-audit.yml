@@ -1,0 +1,114 @@
+name: Temporary MyTune static audit
+on:
+  push:
+    branches: [arena/2d88b224-guzzionboard]
+    paths: [.github/workflows/mytune-temporary-audit.yml]
+permissions: {}
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      report: ${{ steps.report.outputs.report }}
+    steps:
+      - name: Download draft asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api -H 'Accept: application/octet-stream' /repos/ahardkore/GuzziOnBoard/releases/assets/694825308 > "$RUNNER_TEMP/setup.exe"
+          test "$(wc -c < "$RUNNER_TEMP/setup.exe")" -eq 57202019
+      - name: Install static analysis tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq innoextract p7zip-full file
+          python3 -m venv "$RUNNER_TEMP/analyze-venv"
+          "$RUNNER_TEMP/analyze-venv/bin/pip" -q install dnfile
+      - name: Extract without executing installer
+        id: report
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/unpacked"
+          file "$RUNNER_TEMP/setup.exe" > "$RUNNER_TEMP/filetype.txt"
+          sha256sum "$RUNNER_TEMP/setup.exe" > "$RUNNER_TEMP/hash.txt"
+          ulimit -f 1048576
+          if innoextract --list "$RUNNER_TEMP/setup.exe" > "$RUNNER_TEMP/installer-list.txt" 2>&1; then
+            echo 'innoextract' > "$RUNNER_TEMP/extractor.txt"
+            timeout 180 innoextract --extract --output-dir "$RUNNER_TEMP/unpacked" "$RUNNER_TEMP/setup.exe" > "$RUNNER_TEMP/extract-log.txt" 2>&1 || true
+          else
+            echo '7z fallback' > "$RUNNER_TEMP/extractor.txt"
+            7z l "$RUNNER_TEMP/setup.exe" > "$RUNNER_TEMP/installer-list.txt" 2>&1 || true
+            timeout 180 7z x -y -o"$RUNNER_TEMP/unpacked" "$RUNNER_TEMP/setup.exe" > "$RUNNER_TEMP/extract-log.txt" 2>&1 || true
+          fi
+          cat > "$RUNNER_TEMP/audit.py" <<'PY'
+          import base64, os, pathlib, re, subprocess
+          import dnfile
+          root = pathlib.Path(os.environ['RUNNER_TEMP'])
+          data = root / 'unpacked'
+          files = sorted(p for p in data.rglob('*') if p.is_file() and not p.is_symlink())
+          lines = ['# MyTune static installer audit', '',
+                   'Installer bytes: 57202019',
+                   'SHA256: ' + (root/'hash.txt').read_text().split()[0],
+                   'Format: ' + (root/'filetype.txt').read_text().strip().split(': ',1)[-1],
+                   'Extractor: ' + (root/'extractor.txt').read_text().strip(),
+                   'Files extracted: ' + str(len(files)), '', '## Installed file inventory']
+          for p in files[:600]:
+              lines.append(f'- {p.relative_to(data)} ({p.stat().st_size} bytes)')
+          if len(files)>600: lines.append(f'- … {len(files)-600} more files')
+          keywords = re.compile(r'(harley|delphi|j1850|j2534|kwp|isotp|iso.?15765|uds|canbus|flash|diagnos|checksum|seed|readmemory|writememory|ecu)', re.I)
+          lines.extend(['', '## Managed metadata: matching type and method names'])
+          for p in files:
+              if p.suffix.lower() not in ('.exe','.dll') or p.stat().st_size > 120_000_000: continue
+              try:
+                  pe = dnfile.dnPE(str(p), fast_load=True)
+                  if not pe.net or not pe.net.mdtables or not pe.net.mdtables.TypeDef: continue
+                  found=[]
+                  for t in pe.net.mdtables.TypeDef.rows:
+                      name = str(t.TypeNamespace) + '.' + str(t.TypeName)
+                      methods=[]
+                      for i in t.MethodList:
+                          try:
+                              n=str(i.row.Name)
+                              if keywords.search(name) or keywords.search(n): methods.append(n)
+                          except Exception: pass
+                      if methods or keywords.search(name): found.append(name + ': ' + ', '.join(methods[:30]))
+                  if found:
+                      lines.append('### ' + str(p.relative_to(data)))
+                      lines.extend('- ' + x[:600] for x in found[:90])
+              except Exception as exc: lines.append(f'- Metadata parse skipped {p.name}: {type(exc).__name__}')
+          lines.extend(['', '## Other likely data and documentation'])
+          for p in files:
+              if p.suffix.lower() in ('.xml','.json','.ini','.cfg','.txt','.db','.sqlite','.html','.pdf'):
+                  lines.append(f'- {p.relative_to(data)} ({p.stat().st_size} bytes)')
+          text='\n'.join(lines)
+          if len(text)>44000: text=text[:44000]+'\n\n[Report truncated]'
+          (root/'report.txt').write_text(text,encoding='utf-8')
+          with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as out:
+              out.write('report=' + base64.b64encode(text.encode()).decode() + '\n')
+          PY
+          "$RUNNER_TEMP/analyze-venv/bin/python" "$RUNNER_TEMP/audit.py"
+      - name: Publish human-readable inventory
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/report.txt"; then cat "$RUNNER_TEMP/report.txt" >> "$GITHUB_STEP_SUMMARY"; fi
+  report:
+    needs: inspect
+    if: ${{ always() && needs.inspect.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+    steps:
+      - name: Publish report for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPORT: ${{ needs.inspect.outputs.report }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$REPORT" | base64 -d > "$RUNNER_TEMP/report.txt"
+          gh api --method POST "/repos/$GITHUB_REPOSITORY/check-runs" \
+            -f name='Temporary MyTune static inventory' -f head_sha="$GITHUB_SHA" \
+            -f status=completed -f conclusion=success -f 'output[title]=Static MyTune installer inventory' \
+            -F "output[summary]=@$RUNNER_TEMP/report.txt" > /dev/null

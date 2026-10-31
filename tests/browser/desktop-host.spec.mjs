@@ -869,9 +869,14 @@ test('Ducati live CAN uses confirmed bounded observation and clears stale frames
   await page.locator('[data-view="discovery"]').click();
   await page.selectOption('#harleyLiveProfile','ducati_mitsubishi');
   let requests=[];
+  let releaseNext;
+  const nextWindow = new Promise(resolve => { releaseNext = resolve; });
   await page.route('**/api/tools/harley-hdlan-listen', async route => {
     requests.push(route.request().postDataJSON());
     const events=requests.length===1 ? [{id:'0x80',raw:'0000000050123400',values:{rpm:4660}}] : [];
+    // Hold the empty second window until the first render is asserted, so a
+    // slow browser cannot miss the short-lived sample.
+    if (requests.length > 1) await nextWindow;
     await route.fulfill({json:{events,frames_received:events.length,invalid_length_frames:0}});
   });
   await page.locator('#harleyLiveStart').click();
@@ -879,7 +884,11 @@ test('Ducati live CAN uses confirmed bounded observation and clears stale frames
   expect(requests).toHaveLength(0);
   await page.locator('#harleyLiveConfirm').check();
   await page.locator('#harleyLiveStart').click();
-  await expect(page.locator('#harleyLiveOut')).toContainText('rpm: 4660');
+  try {
+    await expect(page.locator('#harleyLiveOut')).toContainText('rpm: 4660');
+  } finally {
+    releaseNext();
+  }
   await expect(page.locator('#harleyLiveOut')).toContainText('No recognized values in this window.');
   expect(requests[0]).toEqual({channel:'can0', profile:'ducati_mitsubishi',confirm:true});
   await page.locator('#harleyLiveStop').click();
@@ -1266,4 +1275,22 @@ test('SLCAN classic-CAN adapter uses explicit port and preserves profile scope',
   expect(result.status).toBe(200);
   expect(result.json.ecu.memory.read_supported).toBe(false);
   expect(result.json.ecu.memory.write_supported).toBe(false);
+});
+
+test('Bonneville source-scoped live OBD is selectable with programming blocked', async ({page}) => {
+  await page.goto('/');
+  await page.evaluate(() => fetch('/api/disconnect', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}));
+  await page.selectOption('#makeSelect','Triumph');
+  await page.selectOption('#modelSelect','Bonneville 865 EFI');
+  await page.selectOption('#yearSelect','2009');
+  await expect(page.locator('#resolveResult')).toContainText('synthetic');
+  const result = await page.evaluate(async () => {
+    const post=async (path, body)=>{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return {status:r.status,body:await r.json()}};
+    return {selection:await post('/api/select',{make:'Triumph',model:'Bonneville 865 EFI',year:2009,transport:'kline'}), service:await post('/api/connect',{mode:'service'})};
+  });
+  expect(result.selection.body.ecu.id).toBe('triumph_bonneville_865_2009');
+  expect(result.selection.body.ecu.memory.read_supported).toBe(false);
+  expect(result.selection.body.ecu.memory.write_supported).toBe(false);
+  expect(result.service.status).toBe(501);
+  expect(result.service.body.error).toContain('read-only mode');
 });

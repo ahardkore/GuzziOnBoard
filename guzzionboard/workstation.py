@@ -607,11 +607,15 @@ class Workstation:
                 if self.selection.transport_kind != "kline" or mode != "read_only":
                     raise TransportUnavailable("ER-6n KDS supports K-Line in read-only mode only; no simulator or CAN session")
             if profile.session.get("protocol") == "triumph-daytona-2012":
-                if (self.selection.entry is None or self.selection.make.casefold() != "triumph"
-                        or self.selection.model.casefold() != "daytona 675" or self.selection.year != 2012):
-                    raise TransportUnavailable("Daytona OBD requires the exact Triumph Daytona 675 2012 vehicle selection")
+                expected = {
+                    "triumph_daytona_675_2012": ("daytona 675", 2012),
+                    "triumph_bonneville_865_2009": ("bonneville 865 efi", 2009),
+                }.get(profile.id)
+                if (expected is None or self.selection.entry is None or self.selection.make.casefold() != "triumph"
+                        or (self.selection.model.casefold(), self.selection.year) != expected):
+                    raise TransportUnavailable("OBD requires the exact Triumph model and year selection")
                 if self.selection.transport_kind != "kline" or mode != "read_only":
-                    raise TransportUnavailable("Daytona OBD supports K-Line in read-only mode only; no simulator or CAN session")
+                    raise TransportUnavailable("Triumph OBD supports K-Line in read-only mode only; no simulator or CAN session")
             if (self.selection.transport_kind in self._SIM_TRANSPORTS
                     and profile.session.get("simulator_supported") is False):
                 raise TransportUnavailable(f"{profile.family}: no matching simulator is implemented")

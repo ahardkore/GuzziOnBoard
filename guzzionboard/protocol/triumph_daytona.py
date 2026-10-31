@@ -14,7 +14,8 @@ from .kwp2000 import KWP2000Session, NegativeResponse, ProtocolError, checksum
 class TriumphDaytonaSession(KWP2000Session):
     # SAE mode 01, source's non-unlock gauge set. 00 is the support bitmap.
     LENGTHS = {0x00: 4, 0x01: 4, 0x04: 1, 0x05: 1, 0x06: 1, 0x0B: 1,
-               0x0C: 2, 0x0D: 1, 0x0E: 1, 0x0F: 1, 0x11: 1}
+               0x0C: 2, 0x0D: 1, 0x0E: 1, 0x0F: 1, 0x11: 1,
+               0x14: 2, 0x20: 4, 0x40: 4, 0x42: 2}
     supported: set[int] | None = None
 
     def request(self, payload, *, timeout=None):
@@ -46,6 +47,8 @@ class TriumphDaytonaSession(KWP2000Session):
         return frames
 
     def initialise(self):
+        self.supported = None
+        self._loaded_pages = set()
         frames = self.request([1, 0])
         if len(frames) != 1:
             raise ProtocolError('Daytona support bitmap must have one response')
@@ -53,6 +56,22 @@ class TriumphDaytonaSession(KWP2000Session):
         self.supported = {i + 1 for i in range(32) if bitmap[i // 8] & (0x80 >> (i % 8))}
 
     def read_data_by_local_id(self, local_id):
+        # Higher support pages are queried lazily only when the prior page
+        # advertises them; unknown/failed pages never authorize a sensor PID.
+        if local_id == 0x42 and self.supported is not None:
+            for page in (0x20, 0x40):
+                if page not in self.supported:
+                    break
+                if page not in getattr(self, '_loaded_pages', set()):
+                    frames = self.request([1, page])
+                    if len(frames) != 1:
+                        raise ProtocolError('Triumph support bitmap must have one response')
+                    bitmap = frames[0][2:]
+                    self.supported.update(page + i + 1 for i in range(32)
+                                          if bitmap[i // 8] & (0x80 >> (i % 8)))
+                    if not hasattr(self, '_loaded_pages'):
+                        self._loaded_pages = set()
+                    self._loaded_pages.add(page)
         frames = self.request([1, local_id])
         if len(frames) != 1:
             raise ProtocolError('Daytona PID yielded multiple responses')

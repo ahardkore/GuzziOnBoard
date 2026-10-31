@@ -53,7 +53,7 @@ def test_obd_live_and_multiframe_stored_faults(monkeypatch):
     assert 'pending' in result['note']
     assert t.conn.sent[-1] == bytes.fromhex('68 6a f1 03 c6')
     before = t.conn.sent[:]
-    for request in ([4], [0x21, 0], [0x27, 1], [1, 0x42]):
+    for request in ([4], [0x21, 0], [0x27, 1], [1, 0x50]):
         with pytest.raises(PermissionError): s.session.request(request)
     s.disconnect()
     assert t.conn.sent == before and t.conn.closed
@@ -106,3 +106,62 @@ def test_slow_init_retries_only_exact_protocol(monkeypatch):
     assert result.ok and len(result.attempts) == 2
     assert [x[1]['idle'] for x in attempts] == [3.0, 6.0]
     assert all(x[0] == 0x33 and x[1]['bit_time'] == .196 and x[1]['allow_iso9141'] for x in attempts)
+
+
+def test_bonneville_live_obd_synthetic_and_guards(monkeypatch):
+    """Source reports a Bonneville; this exchange is synthetic, not a bike test."""
+    monkeypatch.setattr('guzzionboard.protocol.triumph_daytona.time.sleep', lambda _: None)
+    monkeypatch.setattr(DiagnosticsService, '_start_keepalive', lambda _: None)
+    profile = load_catalog().ecu('triumph_bonneville_865_2009')
+    t = FakeTransport([iso(0x41, 0, 0xff, 0xff, 0xff, 0xff),
+                       iso(0x41, 12, 0x3e, 0x80), iso(0x43, 0x01, 0x22)])
+    diag = DiagnosticsService(profile, t, SafetyGate(mode=Mode.READ_ONLY)); diag.connect()
+    assert diag.read_parameters(['rpm'])[0].value == 4000
+    assert diag.read_dtcs()['dtcs'][0]['code'] == 'P0122'
+    assert t.conn.sent == [bytes.fromhex(x) for x in ('68 6a f1 01 00 c4', '68 6a f1 01 0c d0', '68 6a f1 03 c6')]
+    assert not profile.memory['read_supported'] and not profile.memory['write_supported']
+    with pytest.raises(PermissionError): diag.session.request([4])
+    diag.disconnect()
+    ws = Workstation(record=False)
+    ws.select(ecu='triumph_bonneville_865_2009', transport='kline')
+    with pytest.raises(TransportUnavailable, match='exact Triumph'): ws.connect(mode='read_only')
+    ws.select(make='Triumph', model='Bonneville 865 EFI', year=2009, transport='kline')
+    with pytest.raises(TransportUnavailable, match='read-only mode'): ws.connect(mode='service')
+    ws.select(make='Triumph', model='Bonneville 865 EFI', year=2009, transport='simulator')
+    with pytest.raises(TransportUnavailable): ws.connect()
+
+
+def test_bonneville_optional_o2_and_lazy_battery_support_pages(monkeypatch):
+    monkeypatch.setattr('guzzionboard.protocol.triumph_daytona.time.sleep', lambda _: None)
+    monkeypatch.setattr(DiagnosticsService, '_start_keepalive', lambda _: None)
+    # 0x14 O2 and page 0x20 advertised; page 0x20 advertises 0x40;
+    # page 0x40 advertises PID 0x42. Never send arbitrary requests.
+    t=FakeTransport([iso(0x41,0,0,0,0x10,1), iso(0x41,0x14,100,0xff),
+                     iso(0x41,0x20,0,0,0,1), iso(0x41,0x40,0x40,0,0,0),
+                     iso(0x41,0x42,0x30,0x39), iso(0x41,0x42,0x32,0xc8)])
+    diag=DiagnosticsService(load_catalog().ecu('triumph_bonneville_865_2009'),t,SafetyGate(mode=Mode.READ_ONLY)); diag.connect()
+    samples=diag.read_parameters(['o2_voltage','battery','battery'])
+    assert [x.value for x in samples] == [0.5,12.345,13.0]
+    assert [x[3:5] for x in t.conn.sent] == [b'\x01\x00',b'\x01\x14',b'\x01\x20',b'\x01\x40',b'\x01\x42',b'\x01\x42']
+    diag.disconnect()
+
+
+def test_battery_rejected_if_page_not_advertised(monkeypatch):
+    monkeypatch.setattr('guzzionboard.protocol.triumph_daytona.time.sleep', lambda _: None)
+    monkeypatch.setattr(DiagnosticsService, '_start_keepalive', lambda _: None)
+    t=FakeTransport([iso(0x41,0,0,0,0,0)])
+    diag=DiagnosticsService(load_catalog().ecu('triumph_bonneville_865_2009'),t,SafetyGate(mode=Mode.READ_ONLY)); diag.connect()
+    sample=diag.read_parameters(['battery'])[0]
+    assert sample.value is None and 'support bitmap' in sample.error and len(t.conn.sent)==1
+    diag.disconnect()
+
+
+def test_battery_bad_page_fails_closed_without_battery_request(monkeypatch):
+    monkeypatch.setattr('guzzionboard.protocol.triumph_daytona.time.sleep', lambda _: None)
+    monkeypatch.setattr(DiagnosticsService, '_start_keepalive', lambda _: None)
+    t=FakeTransport([iso(0x41,0,0,0,0,1), iso(0x41,0x20,0,0,0)])
+    diag=DiagnosticsService(load_catalog().ecu('triumph_bonneville_865_2009'),t,SafetyGate(mode=Mode.READ_ONLY)); diag.connect()
+    sample=diag.read_parameters(['battery'])[0]
+    assert sample.value is None and sample.error
+    assert [x[3:5] for x in t.conn.sent] == [b'\x01\x00',b'\x01\x20']
+    diag.disconnect()

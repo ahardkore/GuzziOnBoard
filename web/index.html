@@ -534,6 +534,16 @@
       <p class="muted small">The published mapping is one source's layout, not a universal Harley definition. Files remain local; exported bytes are not verified or flash-ready. <a href="https://github.com/rob9206/lawflo/tree/6255518dc9118d960efa42d6d9dc975926bbd579/ZOOSH_ECU-main/HarleyECUTool" target="_blank" rel="noopener">Source and scope</a>; see <code>docs/HARLEY_TUNING.md</code>.</p>
     </article>
 
+    <article class="panel" id="centurionResearch">
+      <h2>Harley Centurion · local header research</h2>
+      <p class="muted small">Inspect the candidate ECU-part and calibration fields of up to two user-supplied Delphi-like Centurion files. Field locations were observed in a limited source collection and may not apply to other versions. Unknown headers remain unknown; matching fields do not prove fitment, compatible tunes, checksum validity or flash readiness.</p>
+      <label class="field"><span>First Centurion file</span><input type="file" id="centurionFirst" accept=".ori,application/octet-stream"></label>
+      <label class="field"><span>Second Centurion file (optional)</span><input type="file" id="centurionSecond" accept=".ori,application/octet-stream"></label>
+      <div class="toolbar"><button class="btn" id="centurionInspect">Inspect headers locally</button><button class="btn small" id="centurionClear">Clear</button></div>
+      <pre id="centurionOut" class="small" aria-live="polite"></pre>
+      <p class="muted small">Files can contain VINs, customer and license information. Only the first 98 bytes are read locally; The observed VIN slot is not read; filenames are not displayed or uploaded. Candidate fields may contain sensitive information, so review before sharing. The tool does not extract, decrypt, edit, validate or flash the tune. No source customer files are bundled. <a href="https://github.com/aaronlumen/Performance-Harley-Davidson-Tuning/tree/a3250e460e1781b8f594e1b400e5a05058d23534" target="_blank" rel="noopener noreferrer">Source collection</a>.</p>
+    </article>
+
     <article class="panel" id="yamahaResearch">
       <h2>Yamaha MT image checksum · offline research</h2>
       <p class="muted small">Inspect a user-supplied, plain binary image locally. This research check follows one third-party Yamaha MT word-sum layout; GuzziOnBoard has not validated it against a real image or motorcycle. Inspection does not edit or upload the file; an optional, explicitly confirmed research export can repair the checksum in a new copy. A match does <b>not</b> prove identity, software compatibility, signature validity, calibration safety or legal road use. Never use the result as authorization to flash.</p>
@@ -1182,6 +1192,7 @@
 <script src="bajaj-checksum.js"></script>
 <script src="cfmoto-checksum.js"></script>
 <script src="harley-tuning.js"></script>
+<script src="harley-centurion.js"></script>
 <script src="juken-research.js"></script>
 <script src="harley-live-can.js"></script>
 <script src="yamaha-live-kline.js"></script>

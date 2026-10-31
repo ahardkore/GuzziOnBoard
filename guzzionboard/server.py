@@ -1040,6 +1040,16 @@ class Api:
         except ValueError:
             raise XdfError(f"address_base {base!r} is not a number") from None
 
+    @staticmethod
+    def _reject_centurion_container(image: FirmwareImage) -> None:
+        """Centurion files have not been decoded as raw ECU images."""
+        if (Path(image.path or "").suffix.lower() == ".ori"
+                or (image.data.startswith(b"Delphi") and image.data[6:7] in (b"\x00", b" "))):
+            raise TuningError(
+                "Centurion .ori or Delphi-like containers are not raw ECU images; "
+                "inspect their header locally instead of rendering or editing them as XDF data"
+            )
+
     def _map_source(self, body: dict) -> tuple[FirmwareImage, bool, dict | None]:
         """Resolve an explicit image or the protected base-map vault copy."""
         use_base = bool(body.get("use_base_map"))
@@ -1076,6 +1086,7 @@ class Api:
                     pass
         try:
             image = FirmwareImage.from_file(path)
+            self._reject_centurion_container(image)
         except OSError as exc:
             raise TuningError(str(exc)) from exc
         return image, bool(status and status.get("intact")), status
@@ -1188,7 +1199,9 @@ class Api:
             return 400, {"error": "an 'xdf' (title or .xdf path) is required"}
         try:
             before, after = FirmwareImage.from_file(a), FirmwareImage.from_file(b)
-        except OSError as exc:
+            self._reject_centurion_container(before)
+            self._reject_centurion_container(after)
+        except (OSError, TuningError) as exc:
             return 400, {"error": str(exc)}
         try:
             xdf = self._load_xdf(ref)

@@ -978,3 +978,29 @@ test('desktop exports a reviewed synthetic Harley Delphi tune as a research copy
   expect(readFileSync(imagePath)).toEqual(image);
   expect(page.failures.filter((error) => !/server responded with a status of 409/.test(error))).toEqual([]);
 });
+
+test('desktop compares synthetic Centurion header candidates locally without VINs', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  function fixture(part, calibration, vin) {
+    const bytes = Buffer.alloc(4096);
+    bytes.write('Delphi', 0, 'ascii');
+    bytes.write(part, 62, 'ascii');
+    bytes.write(calibration, 82, 'ascii');
+    bytes.write(vin, 102, 'ascii');
+    return bytes;
+  }
+  await page.locator('#centurionFirst').setInputFiles({name: 'SENSITIVE-FILENAME.ori', mimeType: 'application/octet-stream', buffer: fixture('PART-1', 'CAL-1', 'VIN-SYNTHETIC-123')});
+  await page.locator('#centurionSecond').setInputFiles({name: 'OTHER-SENSITIVE.ori', mimeType: 'application/octet-stream', buffer: fixture('PART-1', 'CAL-2', 'VIN-SYNTHETIC-456')});
+  const outgoing = [];
+  page.on('request', (req) => { if (req.method() === 'POST') outgoing.push(req.url()); });
+  await page.locator('#centurionInspect').click();
+  await expect(page.locator('#centurionOut')).toContainText('Candidate part field: same');
+  await expect(page.locator('#centurionOut')).toContainText('Candidate calibration field: different');
+  await expect(page.locator('#centurionOut')).not.toContainText('VIN-SYNTHETIC');
+  await expect(page.locator('#centurionOut')).not.toContainText('SENSITIVE-FILENAME');
+  expect(outgoing).toEqual([]);
+  await page.locator('#centurionClear').click();
+  await expect(page.locator('#centurionOut')).toBeEmpty();
+  expect(page.failures).toEqual([]);
+});

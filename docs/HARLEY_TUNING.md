@@ -244,6 +244,31 @@ The published sample does not establish target identity, firmware compatibility
 or checksum/recovery requirements for a safe flash. This integration has
 synthetic tests only and has not been tested on physical hardware.
 
+
+## Centurion files from the supplied tuning collection
+
+[Performance-Harley-Davidson-Tuning at a3250e4](https://github.com/aaronlumen/Performance-Harley-Davidson-Tuning/tree/a3250e460e1781b8f594e1b400e5a05058d23534)
+contains customer-associated Centurion `.ori` files and a GPL-3.0 license. It
+contains no XDFs or complete ECU communication implementation. We reviewed
+14 distinct `.ori` byte sequences: 11 begin with a Delphi-like header and three
+do not. Two bounded header slots at file offsets `0x3E` and `0x52` sometimes
+contain plausible part and calibration strings; these are **candidate fields**,
+not an official format specification. Blank, binary and unrecognized slots
+stay unknown. A missing header does not establish whether a file is encrypted,
+corrupt, or a different version. No customer files, VINs, registration files,
+tune bytes, or source executable code from that collection are bundled.
+
+**Tools → Harley Centurion · local header research** inspects only the first
+98 bytes of one or two locally selected files, displays the two candidate
+slots, and compares them where both are available. It does not read the observed VIN field, display or send filenames, write a file, interpret calibration values,
+or connect to a motorcycle. Candidate fields are unverified and could themselves contain sensitive data; review them before sharing. The XDF map render/build/diff endpoints refuse
+`.ori` files and Delphi-like containers, including a recognized header renamed
+to `.bin`: their internal tune layout has not been decoded. File name or two
+matching candidate fields are not enough to establish matching hardware,
+software, checksum, tune applicability, or flash readiness. Tests use synthetic
+headers; the source reports dyno work but does not establish GuzziOnBoard's
+integration or any universal Harley fitment.
+
 ## Flashing research leads and gaps
 
 [BitBox's Harley-Davidson Delphi module](https://www.bitsoftware.com/bitbox/catalog/13)

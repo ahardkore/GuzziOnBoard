@@ -68,6 +68,33 @@ jobs:
               lines.append(f'- {p.relative_to(data)} ({p.stat().st_size} bytes)')
           if len(files)>600: lines.append(f'- … {len(files)-600} more files')
           keywords = re.compile(r'(harley|delphi|j1850|j2534|kwp|isotp|iso.?15765|uds|canbus|flash|diagnos|checksum|seed|readmemory|writememory|ecu)', re.I)
+          lines.extend(['', '## Container structure'])
+          listing=(root/'installer-list.txt').read_text(errors='replace')
+          lines.extend(listing.splitlines()[:120])
+          lines.extend(['', '## Extraction log'])
+          lines.extend((root/'extract-log.txt').read_text(errors='replace').splitlines()[-40:])
+          lines.extend(['', '## Extracted payload file types'])
+          for p in files[:50]:
+              fmt=subprocess.run(['file','-b',str(p)],capture_output=True,text=True).stdout.strip()
+              lines.append(f'- {p.relative_to(data)}: {fmt}')
+          blob=(root/'setup.exe').read_bytes()
+          lines.extend(['', '## Embedded container signatures'])
+          for label, signature in [('MSCF cabinet',b'MSCF'),('ZIP local',b'PK\x03\x04'),('7zip',b'7z\xbc\xaf\x27\x1c'),('gzip',b'\x1f\x8b\x08'),('Inno',b'Inno Setup'),('InstallShield',b'InstallShield'),('NSIS',b'NullsoftInst'),('MSI OLE',b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1')]:
+              positions=[]; pos=0
+              while len(positions)<24:
+                  i=blob.find(signature,pos)
+                  if i<0: break
+                  positions.append(hex(i)); pos=i+1
+              if positions: lines.append(f'- {label}: {positions}')
+          lines.extend(['', '## Installer identification strings'])
+          pattern=re.compile(r'(installshield|inno setup|nullsoft|wix bundle|burn|\.msi|\.cab|mytune|harley)',re.I)
+          seen=set()
+          for encoding in ('-a','-el'):
+              proc=subprocess.run(['strings',encoding,str(root/'setup.exe')],capture_output=True,text=True,errors='replace',timeout=30)
+              for line in proc.stdout.splitlines():
+                  if pattern.search(line) and len(line)<250 and line not in seen:
+                      seen.add(line); lines.append('- '+line[:200])
+                      if len(seen)>=60: break
           lines.extend(['', '## Managed metadata: matching type and method names'])
           for p in files:
               if p.suffix.lower() not in ('.exe','.dll') or p.stat().st_size > 120_000_000: continue

@@ -18,8 +18,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh api -H 'Accept: application/octet-stream' /repos/ahardkore/GuzziOnBoard/releases/assets/694825308 > "$RUNNER_TEMP/setup.exe"
-          test "$(wc -c < "$RUNNER_TEMP/setup.exe")" -eq 57202019
+          if ! gh api -H 'Accept: application/octet-stream' /repos/ahardkore/GuzziOnBoard/releases/assets/694825308 > "$RUNNER_TEMP/setup.exe" 2> "$RUNNER_TEMP/download-error"; then
+            msg=$(grep -E -o 'HTTP [0-9]{3}|HTTP [0-9]{3}: [A-Za-z ]+|Not Found|Forbidden|Resource not accessible by integration|authentication required' "$RUNNER_TEMP/download-error" | head -1 || true)
+            echo "::error::Asset download failed: ${msg:-unclassified error}"
+            exit 1
+          fi
+          size=$(wc -c < "$RUNNER_TEMP/setup.exe")
+          if test "$size" -ne 57202019; then
+            echo "::error::Asset download returned $size bytes, expected 57202019"
+            exit 1
+          fi
       - name: Install static analysis tools
         run: |
           set -euo pipefail
@@ -63,7 +71,7 @@ jobs:
           for p in files:
               if p.suffix.lower() not in ('.exe','.dll') or p.stat().st_size > 120_000_000: continue
               try:
-                  pe = dnfile.dnPE(str(p), fast_load=True)
+                  pe = dnfile.dnPE(str(p))
                   if not pe.net or not pe.net.mdtables or not pe.net.mdtables.TypeDef: continue
                   found=[]
                   for t in pe.net.mdtables.TypeDef.rows:

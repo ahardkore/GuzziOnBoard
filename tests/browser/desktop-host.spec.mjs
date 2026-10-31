@@ -1004,3 +1004,36 @@ test('desktop compares synthetic Centurion header candidates locally without VIN
   await expect(page.locator('#centurionOut')).toBeEmpty();
   expect(page.failures).toEqual([]);
 });
+
+test('desktop exposes synthetic-tested rusEFI serial identification and bounded reading', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  const requests = [];
+  await page.route('**/api/tools/rusefi-read', async (route) => {
+    const body = route.request().postDataJSON();
+    requests.push(body);
+    const result = {signature: 'rusEFI synthetic.board.1234', synthetic_tested: true};
+    if (body.action === 'read' || body.action === 'outputs') Object.assign(result, {page: body.page, offset: body.offset, length: body.length, data_hex: '010203'});
+    await route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify(result)});
+  });
+  await page.locator('#rusefiPort').fill('/dev/ttyACM0');
+  await page.locator('#rusefiIdentify').click();
+  await expect(page.locator('#rusefiOut')).toContainText('Confirm');
+  expect(requests).toHaveLength(0);
+  await page.locator('#rusefiConfirm').check();
+  await page.locator('#rusefiIdentify').click();
+  await expect(page.locator('#rusefiOut')).toContainText('rusEFI synthetic.board.1234');
+  expect(requests[0]).toMatchObject({action: 'identify', confirm: true, port: '/dev/ttyACM0', baud: 115200});
+  await page.locator('#rusefiSignature').fill('rusEFI synthetic.board.1234');
+  await page.locator('#rusefiLength').fill('3');
+  await expect(page.locator('#rusefiConfirm')).not.toBeChecked();
+  await page.locator('#rusefiConfirm').check();
+  await page.locator('#rusefiRead').click();
+  await expect(page.locator('#rusefiOut')).toContainText('010203');
+  await expect(page.locator('#rusefiOut')).toContainText('not a verified backup');
+  expect(requests[1]).toMatchObject({action: 'read', signature: 'rusEFI synthetic.board.1234', page: 0, offset: 0, length: 3});
+  await page.locator('#rusefiOutputs').click();
+  await expect(page.locator('#rusefiOut')).toContainText('Live output offset 0');
+  expect(requests[2]).toMatchObject({action: 'outputs', offset: 0, length: 3});
+  expect(page.failures).toEqual([]);
+});

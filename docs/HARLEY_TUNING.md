@@ -269,6 +269,16 @@ software, checksum, tune applicability, or flash readiness. Tests use synthetic
 headers; the source reports dyno work but does not establish GuzziOnBoard's
 integration or any universal Harley fitment.
 
+## Aftermarket rusEFI and Power Vision
+
+The rusEFI source includes a Harley engine configuration for its **own**
+aftermarket controllers, not a stock Delphi flash solution. The desktop has an
+explicit, synthetic-tested rusEFI signature / bounded page and live output read
+in Tools; it does not write or burn. The Power Vision article concerns the
+handheld tuner's USB file protocol, not the motorcycle ECU. See
+[RUSEFI_AND_POWERVISION_RESEARCH.md](RUSEFI_AND_POWERVISION_RESEARCH.md) for
+usage, testing and protocol limitations.
+
 ## Flashing research leads and gaps
 
 [BitBox's Harley-Davidson Delphi module](https://www.bitsoftware.com/bitbox/catalog/13)

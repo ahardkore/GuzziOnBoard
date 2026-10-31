@@ -17,3 +17,8 @@ def test_ci_uses_node_22_for_worker_and_browser_tests():
     assert "node-version: '22'" in content
     assert "pytest -q" in content
     assert "npx playwright test" in content
+
+
+def test_python_test_jobs_install_virtual_can_dependency():
+    for name in ("ci.yml", "desktop-build.yml"):
+        assert "pip install -e '.[dev,hardware]'" in (WORKFLOWS / name).read_text(encoding="utf-8")

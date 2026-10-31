@@ -9,7 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      contents: read
+      # GitHub restricts draft-release access to identities with push access.
+      contents: write
     outputs:
       report: ${{ steps.report.outputs.report }}
     steps:

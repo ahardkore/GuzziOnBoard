@@ -1,241 +1,27 @@
-name: Temporary MyTune static audit
+name: Temporary MyTune audit cleanup
 on:
   push:
     branches: [arena/2d88b224-guzzionboard]
     paths: [.github/workflows/mytune-temporary-audit.yml]
 permissions: {}
 jobs:
-  inspect:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      # GitHub restricts draft-release access to identities with push access.
-      contents: write
-    outputs:
-      report: ${{ steps.report.outputs.report }}
-    steps:
-      - name: Download draft asset
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          if ! gh api -H 'Accept: application/octet-stream' /repos/ahardkore/GuzziOnBoard/releases/assets/694825308 > "$RUNNER_TEMP/setup.exe" 2> "$RUNNER_TEMP/download-error"; then
-            msg=$(grep -E -o 'HTTP [0-9]{3}|HTTP [0-9]{3}: [A-Za-z ]+|Not Found|Forbidden|Resource not accessible by integration|authentication required' "$RUNNER_TEMP/download-error" | head -1 || true)
-            echo "::error::Asset download failed: ${msg:-unclassified error}"
-            exit 1
-          fi
-          size=$(wc -c < "$RUNNER_TEMP/setup.exe")
-          if test "$size" -ne 57202019; then
-            echo "::error::Asset download returned $size bytes, expected 57202019"
-            exit 1
-          fi
-      - name: Install static analysis tools
-        run: |
-          set -euo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq innoextract p7zip-full msitools file unrtf
-          python3 -m venv "$RUNNER_TEMP/analyze-venv"
-          "$RUNNER_TEMP/analyze-venv/bin/pip" -q install dnfile
-      - name: Extract without executing installer
-        id: report
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/unpacked"
-          file "$RUNNER_TEMP/setup.exe" > "$RUNNER_TEMP/filetype.txt"
-          sha256sum "$RUNNER_TEMP/setup.exe" > "$RUNNER_TEMP/hash.txt"
-          ulimit -f 1048576
-          if innoextract --list "$RUNNER_TEMP/setup.exe" > "$RUNNER_TEMP/installer-list.txt" 2>&1; then
-            echo 'innoextract' > "$RUNNER_TEMP/extractor.txt"
-            timeout 180 innoextract --extract --output-dir "$RUNNER_TEMP/unpacked" "$RUNNER_TEMP/setup.exe" > "$RUNNER_TEMP/extract-log.txt" 2>&1 || true
-          else
-            echo '7z fallback' > "$RUNNER_TEMP/extractor.txt"
-            7z l "$RUNNER_TEMP/setup.exe" > "$RUNNER_TEMP/installer-list.txt" 2>&1 || true
-            timeout 180 7z x -y -o"$RUNNER_TEMP/unpacked" "$RUNNER_TEMP/setup.exe" > "$RUNNER_TEMP/extract-log.txt" 2>&1 || true
-          fi
-          # WiX Burn attached cabinet starts immediately after the bootstrap cabinet.
-          "$RUNNER_TEMP/analyze-venv/bin/python" - <<'PY'
-          import os, pathlib, struct
-          root=pathlib.Path(os.environ['RUNNER_TEMP'])
-          source=(root/'setup.exe').read_bytes()
-          offset=source.find(b'MSCF', source.find(b'MSCF') + 4)
-          if offset < 0: raise SystemExit('attached cabinet not found')
-          size=struct.unpack_from('<I',source,offset+8)[0]
-          if size < 36 or offset+size > len(source): raise SystemExit('invalid cabinet size')
-          (root/'attached.cab').write_bytes(source[offset:offset+size])
-          PY
-          mkdir -p "$RUNNER_TEMP/unpacked/attached"
-          timeout 180 7z x -y -o"$RUNNER_TEMP/unpacked/attached" "$RUNNER_TEMP/attached.cab" > "$RUNNER_TEMP/attached-log.txt" 2>&1 || true
-          # MSI packages are data containers; msiextract does not run their custom actions.
-          mkdir -p "$RUNNER_TEMP/unpacked/msi"
-          for pkg in "$RUNNER_TEMP/unpacked/attached"/*; do
-            [ -f "$pkg" ] || continue
-            kind=$(file -b "$pkg")
-            if printf '%s' "$kind" | grep -qiE 'composite document|microsoft installer'; then
-              dest="$RUNNER_TEMP/unpacked/msi/$(basename "$pkg")"
-              mkdir -p "$dest"
-              timeout 180 msiextract -C "$dest" "$pkg" > "$RUNNER_TEMP/msi-log-$(basename "$pkg").txt" 2>&1 || true
-            fi
-          done
-          cat > "$RUNNER_TEMP/audit.py" <<'PY'
-          import base64, os, pathlib, re, subprocess
-          import dnfile
-          root = pathlib.Path(os.environ['RUNNER_TEMP'])
-          data = root / 'unpacked'
-          files = sorted(p for p in data.rglob('*') if p.is_file() and not p.is_symlink())
-          lines = ['# MyTune static installer audit', '',
-                   'Installer bytes: 57202019',
-                   'SHA256: ' + (root/'hash.txt').read_text().split()[0],
-                   'Format: ' + (root/'filetype.txt').read_text().strip().split(': ',1)[-1],
-                   'Extractor: ' + (root/'extractor.txt').read_text().strip(),
-                   'Files extracted: ' + str(len(files)), '', '## Installed file inventory']
-          for p in files[:600]:
-              lines.append(f'- {p.relative_to(data)} ({p.stat().st_size} bytes)')
-          if len(files)>600: lines.append(f'- … {len(files)-600} more files')
-          keywords = re.compile(r'(harley|delphi|j1850|j2534|kwp|isotp|iso.?15765|uds|canbus|flash|diagnos|checksum|seed|readmemory|writememory|ecu)', re.I)
-          lines.extend(['', '## Container structure'])
-          listing=(root/'installer-list.txt').read_text(errors='replace')
-          lines.extend(listing.splitlines()[:120])
-          lines.extend(['', '## Extraction log'])
-          lines.extend((root/'extract-log.txt').read_text(errors='replace').splitlines()[-20:])
-          lines.extend(['', '## Attached cabinet extraction'])
-          lines.extend((root/'attached-log.txt').read_text(errors='replace').splitlines()[-30:])
-          for log in sorted(root.glob('msi-log-*')):
-              lines.append('## ' + log.name)
-              lines.extend(log.read_text(errors='replace').splitlines()[-12:])
-          lines.extend(['', '## Extracted payload file types'])
-          for p in files[:50]:
-              fmt=subprocess.run(['file','-b',str(p)],capture_output=True,text=True).stdout.strip()
-              lines.append(f'- {p.relative_to(data)}: {fmt}')
-          blob=(root/'setup.exe').read_bytes()
-          lines.extend(['', '## Embedded container signatures'])
-          for label, signature in [('MSCF cabinet',b'MSCF'),('ZIP local',b'PK\x03\x04'),('7zip',b'7z\xbc\xaf\x27\x1c'),('gzip',b'\x1f\x8b\x08'),('Inno',b'Inno Setup'),('InstallShield',b'InstallShield'),('NSIS',b'NullsoftInst'),('MSI OLE',b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1')]:
-              positions=[]; pos=0
-              while len(positions)<24:
-                  i=blob.find(signature,pos)
-                  if i<0: break
-                  positions.append(hex(i)); pos=i+1
-              if positions: lines.append(f'- {label}: {positions}')
-          lines.extend(['', '## Managed metadata: matching type and method names'])
-          for p in files:
-              if p.suffix.lower() not in ('.exe','.dll') or p.stat().st_size > 120_000_000: continue
-              try:
-                  pe = dnfile.dnPE(str(p))
-                  if not pe.net or not pe.net.mdtables or not pe.net.mdtables.TypeDef: continue
-                  found=[]
-                  for t in pe.net.mdtables.TypeDef.rows:
-                      name = str(t.TypeNamespace) + '.' + str(t.TypeName)
-                      methods=[]
-                      for i in t.MethodList:
-                          try:
-                              n=str(i.row.Name)
-                              if keywords.search(name) or keywords.search(n): methods.append(n)
-                          except Exception: pass
-                      if methods or keywords.search(name): found.append(name + ': ' + ', '.join(methods[:30]))
-                  if found:
-                      lines.append('### ' + str(p.relative_to(data)))
-                      lines.extend('- ' + x[:600] for x in found[:90])
-              except Exception as exc: lines.append(f'- Metadata parse skipped {p.name}: {type(exc).__name__}')
-          lines.extend(['', '## Installed application details'])
-          import hashlib, collections, xml.etree.ElementTree as ET
-          apps=list(data.rglob('MyTune.exe'))
-          if apps:
-              app=apps[0]
-              lines.append('- MyTune.exe SHA256: '+hashlib.sha256(app.read_bytes()).hexdigest())
-              try:
-                  pe=dnfile.dnPE(str(app))
-                  md=pe.net.mdtables
-                  for name in ('TypeDef','MethodDef','Field','ImplMap','AssemblyRef','ManifestResource'):
-                      tbl=getattr(md,name,None)
-                      lines.append(f'- {name} rows: {len(tbl.rows) if tbl else 0}')
-                  lines.append('### Namespaces')
-                  counts=collections.Counter(str(t.TypeNamespace) for t in md.TypeDef.rows)
-                  lines.extend(f'- {name or "<empty>"}: {count}' for name,count in counts.most_common(35))
-                  lines.append('### Named MyTune types and fields')
-                  for t in md.TypeDef.rows:
-                      n=str(t.TypeNamespace)+'.'+str(t.TypeName)
-                      if not n.startswith('MyTune.'): continue
-                      fs=[]
-                      for i in t.FieldList:
-                          try: fs.append(str(i.row.Name))
-                          except Exception: pass
-                      ms=[]
-                      for i in t.MethodList:
-                          try: ms.append(str(i.row.Name))
-                          except Exception: pass
-                      lines.append('- '+n+'; fields: '+', '.join(fs[:40])+'; methods: '+', '.join(ms[:25]))
-                  lines.append('### Managed resources')
-                  if md.ManifestResource:
-                      for r in md.ManifestResource.rows[:100]: lines.append('- '+str(r.Name))
-                  lines.append('### Assembly references')
-                  if md.AssemblyRef:
-                      for r in md.AssemblyRef.rows: lines.append('- '+str(r.Name))
-                  lines.append('### Native imports')
-                  if md.ImplMap:
-                      for r in md.ImplMap.rows[:100]:
-                          try: lines.append('- '+str(r.ImportScope.row.Name)+'!'+str(r.ImportName))
-                          except Exception: pass
-              except Exception as e: lines.append('- Managed detail parse failed: '+type(e).__name__)
-              lines.append('### Embedded resource entries')
-              for resource in pe.net.resources:
-                  entries=getattr(resource.data,'entries',None)
-                  if entries is None: continue
-                  lines.append('- '+str(resource.name)+': '+str(len(entries))+' entries')
-                  for entry in entries[:30]:
-                      name=getattr(entry,'name',None)
-                      if name is None: name=getattr(getattr(entry,'struct',None),'Name',None)
-                      if isinstance(name,bytes): name=name.decode('utf-8','replace')
-                      if name: lines.append('  - '+str(name)[:150])
-              lines.append('### Installed app plaintext indicator counts')
-              for term in ('J1850','J2534','FTD2XX','Sert','PowerVision','TwinScan','Harley','LogReader','SerialPort','PassThru','USB'):
-                  raw=app.read_bytes()
-                  count=raw.lower().count(term.lower().encode())+raw.lower().count(term.lower().encode('utf-16le'))
-                  lines.append(f'- {term}: {count}')
-          lines.extend(['', '## EULA: limited inspection of restriction language'])
-          for eula in data.rglob('EULA.rtf'):
-              text=subprocess.run(['unrtf','--text',str(eula)],capture_output=True,text=True,errors='replace').stdout
-              text=' '.join(text.split())
-              for label,pattern in [('reverse engineering',r'reverse[ -]?engineer'),('decompilation',r'decompil'),('disassembly',r'disassembl'),('redistribution',r'redistribut'),('license',r'license agreement')]:
-                  match=re.search(pattern,text,re.I)
-                  if match:
-                      lines.append(f'- {label}: present; context: '+text[max(0,match.start()-130):min(len(text),match.end()+230)])
-                  else: lines.append(f'- {label}: not located by literal text search')
-          lines.extend(['', '## Bundle manifest payload references'])
-          try:
-              manifest=ET.parse(data/'0')
-              for elem in manifest.iter():
-                  if elem.tag.endswith('Payload') or elem.tag.endswith('MsiPackage') or elem.tag.endswith('ExePackage'):
-                      lines.append('- '+elem.tag.split('}')[-1]+': '+', '.join(f'{k}={v}' for k,v in elem.attrib.items() if k in ('Name','FilePath','FileSize','Id','SourcePath')))
-          except Exception as e: lines.append('- manifest parse failed: '+type(e).__name__)
-          lines.extend(['', '## Other likely data and documentation'])
-          for p in files:
-              if p.suffix.lower() in ('.xml','.json','.ini','.cfg','.txt','.db','.sqlite','.html','.pdf'):
-                  lines.append(f'- {p.relative_to(data)} ({p.stat().st_size} bytes)')
-          text='\n'.join(lines)
-          if len(text)>44000: text=text[:44000]+'\n\n[Report truncated]'
-          (root/'report.txt').write_text(text,encoding='utf-8')
-          with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as out:
-              out.write('report=' + base64.b64encode(text.encode()).decode() + '\n')
-          PY
-          "$RUNNER_TEMP/analyze-venv/bin/python" "$RUNNER_TEMP/audit.py"
-      - name: Publish human-readable inventory
-        if: always()
-        run: |
-          if test -f "$RUNNER_TEMP/report.txt"; then cat "$RUNNER_TEMP/report.txt" >> "$GITHUB_STEP_SUMMARY"; fi
-  report:
-    needs: inspect
-    if: ${{ always() && needs.inspect.result == 'success' }}
+  cleanup:
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       checks: write
     steps:
-      - name: Publish report for review
+      - name: Remove temporary audit output
         env:
           GH_TOKEN: ${{ github.token }}
-          REPORT: ${{ needs.inspect.outputs.report }}
         run: |
           set -euo pipefail
-          printf '%s' "$REPORT" | base64 -d > "$RUNNER_TEMP/report.txt"
-          gh api --method POST "/repos/$GITHUB_REPOSITORY/check-runs" \
-            -f name='Temporary MyTune static inventory' -f head_sha="$GITHUB_SHA" \
-            -f status=completed -f conclusion=success -f 'output[title]=Static MyTune installer inventory' \
-            -F "output[summary]=@$RUNNER_TEMP/report.txt" > /dev/null
+          # Redact the one summary that inadvertently included short vendor
+          # sample-log excerpts; retain only factual findings in the project docs.
+          gh api --method PATCH "/repos/$GITHUB_REPOSITORY/check-runs/124490740668" \
+            -f 'output[title]=Temporary MyTune audit (redacted)' \
+            -f 'output[summary]=Temporary installer inventory removed after review; see the project audit documentation.' > /dev/null
+          # Delete only the seven temporary workflow runs created for this audit.
+          for id in 41184898518 41184943556 41184968672 41185045308 41185110299 41185213919 41185293126; do
+            gh api --method DELETE "/repos/$GITHUB_REPOSITORY/actions/runs/$id" > /dev/null
+          done

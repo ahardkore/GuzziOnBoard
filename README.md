@@ -109,6 +109,11 @@ guzzionboard-desktop                     # or: guzzionboard --desktop
 guzzionboard-desktop --selftest         # installation check
 ```
 
+Intrepid neoVI/ValueCAN is an optional source-run CAN backend; standard desktop
+builds do not bundle its runtime. Linux desktop builds can also use an externally
+configured Intrepid SocketCAN interface. See [Intrepid hardware](docs/INTREPID_HARDWARE.md)
+for setup, licensing and synthetic-test limitations.
+
 Installing hardware dependencies does not enable unsupported protocols or
 validate an adapter. Check the exact profile, wiring, operating conditions and
 capability gates before connecting.

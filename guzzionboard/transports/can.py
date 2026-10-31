@@ -9,10 +9,36 @@ the toolchain works without it.
 from __future__ import annotations
 
 import time
+import re
 from dataclasses import dataclass, field
 
 from ..protocol.isotp import Reassembler, segment
 from .base import Connection, InitResult, Transport, TransportError, TransportUnavailable
+
+
+# Network identifiers from the pinned Intrepid icsnVC40.h. Reject ISO9141,
+# J1850, LIN, Ethernet and device-control network IDs before opening hardware.
+NEOVI_CAN_NETWORKS = {
+    "HSCAN": 1, "MSCAN": 2, "SWCAN": 3, "LSFTCAN": 4,
+    "HSCAN2": 42, "HSCAN3": 44, "HSCAN4": 61, "HSCAN5": 62,
+    "SWCAN2": 68, "HSCAN6": 96, "HSCAN7": 97, "LSFTCAN2": 99,
+    **{f"DWCAN_{n:02d}": v for n, v in enumerate(
+        (1, 42, 44, 61, 62, 96, 97, 2, 534, 535, 536, 537, 538, 539, 540, 541), 1)},
+}
+
+
+def validate_neovi_selection(channel, serial):
+    """Validate a single CAN network and serial without touching any device."""
+    if (not isinstance(serial, str) or not re.fullmatch(r"[A-Za-z0-9]{1,16}", serial)
+            or not isinstance(channel, str) or not re.fullmatch(r"[A-Za-z0-9_]{1,32}", channel)):
+        raise ValueError("Intrepid neoVI requires an explicit serial number and one supported CAN network")
+    name = channel.upper()
+    if name.isdecimal():
+        if int(name) not in NEOVI_CAN_NETWORKS.values():
+            raise ValueError("Intrepid network ID is not a supported CAN network")
+    elif name not in NEOVI_CAN_NETWORKS:
+        raise ValueError("Intrepid network name is not a supported CAN network")
+    return name, serial.upper()
 
 
 def _require_can():
@@ -116,6 +142,7 @@ class CanTransport(Transport):
     tx_id: int | None = None
     rx_id: int | None = None
     padding: int = 0xAA
+    serial: str = ""
     name: str = field(default="can", init=False)
     is_physical: bool = field(default=True, init=False)
 
@@ -130,11 +157,26 @@ class CanTransport(Transport):
                 "CAN hardware needs evidence-backed " + ", ".join(missing)
                 + "; generic defaults are not used"
             )
+        kwargs = dict(channel=self.channel, interface=self.interface, bitrate=self.bitrate)
+        if self.interface == "neovi":
+            # The upstream backend otherwise opens the first device it finds,
+            # and accepts comma-separated channel lists. Require an explicit
+            # device and a single network before opening any hardware.
+            try:
+                channel, serial = validate_neovi_selection(self.channel, self.serial)
+            except ValueError as exc:
+                raise TransportUnavailable(str(exc)) from exc
+            kwargs["channel"] = channel
+            try:
+                import ics  # type: ignore
+                if not callable(getattr(ics, "find_devices", None)):
+                    raise ImportError("python_ics native module did not load")
+            except (ImportError, OSError) as exc:
+                raise TransportUnavailable("Intrepid neoVI requires python_ics in this Python environment; packaged builds do not bundle it. On Linux, an externally configured Intrepid SocketCAN interface is another option.") from exc
+            kwargs.update(serial=serial, receive_own_messages=False, ignore_config=True)
         can = _require_can()
         try:
-            bus = can.interface.Bus(
-                channel=self.channel, interface=self.interface, bitrate=self.bitrate
-            )
+            bus = can.interface.Bus(**kwargs)
         except Exception as exc:
             raise TransportError(
                 f"cannot open CAN {self.interface}:{self.channel}: {exc}"

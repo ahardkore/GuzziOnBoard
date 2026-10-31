@@ -140,6 +140,18 @@
           <p class="muted small">Use the profile default first. The Honda CB500F DashBle entry is an explicit ECU-only option: its source does not specify the bike year or ECU and the integration is not hardware-tested. Auto waits 2.6 seconds after a failed fast attempt before slow init, so older ECUs do not mistake the fallback for the rest of a partial 5-baud address.</p>
         </div>
         <div id="canFields" hidden>
+          <label class="field" id="canInterfaceField">
+            <span>CAN adapter backend</span>
+            <select id="canInterface">
+              <option value="">Profile default (SocketCAN / PCAN)</option>
+              <option value="neovi">Intrepid neoVI / ValueCAN (source-run Python)</option>
+            </select>
+          </label>
+          <label class="field" id="canSerialField" hidden>
+            <span>Intrepid device serial (required)</span>
+            <input id="canSerial" maxlength="16" autocomplete="off" placeholder="Device serial number">
+          </label>
+          <p class="muted small" id="canIntrepidNote" hidden>Enter a single Intrepid CAN network name such as HSCAN (or its documented CAN network ID) in Device above, and the exact device serial here. Direct neoVI requires python_ics installed in the Python environment; standard packaged builds do not include it. On Linux, an externally configured Intrepid SocketCAN interface can use the profile default instead. Adapter support does not establish ECU compatibility; this integration is synthetic-tested only. The backend sets the CAN bitrate on the selected hardware. Use only Intrepid hardware with libicsneo.</p>
           <p class="muted small">Harley Delphi CAN identity research is available by source-listed vehicle or ECU-only override. This integration has synthetic tests only and may not work for a selected bike. It requires 500 kbit/s and fixed 0x7E0/0x7E8; enter an explicit SocketCAN channel (e.g. can0) or PCAN channel (e.g. PCAN_USBBUS1). This attempts tester-present, five raw identity DIDs and four raw source-observed DIDs; a response does not verify fitment and the source may require authentication. No ECU memory, security, or programming is provided.</p>
           <p class="muted small">Generic OBD-II 11-bit CAN is an explicit ECU-only option, not a claim of compatibility with the selected motorcycle. It needs a compatible CAN interface and correctly wired adapter, 500 kbit/s and a physical OBD ECU ID pair; this integration has not been hardware-tested. It reads supported standard live PIDs and emission-related stored faults, not ECU memory.</p>
           <label class="field">

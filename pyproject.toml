@@ -17,6 +17,9 @@ dependencies = []
 # platform's webview engine is missing), so it stays optional.
 desktop = ["pywebview>=5.0"]
 hardware = ["pyserial>=3.5", "python-can>=4.2"]
+# Optional source-run Intrepid adapter; see docs/INTREPID_HARDWARE.md for
+# platform libraries and libicsneo's Intrepid-only hardware license condition.
+intrepid = ["python-can>=4.2", "python_ics>=1!26.3.17", "filelock>=3"]
 dev = ["pytest>=7.4"]
 # What packaging/build.py needs; pip install -e '.[desktop]' is the shortest
 # route to running the workstation in a window from a checkout.

@@ -417,6 +417,8 @@ class Api:
                 device=body.get("device", ""),
                 can_tx_id=body.get("can_tx_id", ""),
                 can_rx_id=body.get("can_rx_id", ""),
+                can_interface=body.get("can_interface", ""),
+                can_serial=body.get("can_serial", ""),
             )
         except (ValueError, CatalogError) as exc:
             return 400, {"error": str(exc)}

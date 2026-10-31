@@ -44,6 +44,8 @@ class Selection:
     profile: EcuProfile | None = None
     transport_kind: str = "simulator"
     device: str = ""
+    can_interface: str = ""
+    can_serial: str = ""
     #: CAN identifier overrides for this session (the catalog pair is
     #: unconfirmed on the CAN families, so the operator can try another).
     can_overrides: dict = field(default_factory=dict)
@@ -57,6 +59,8 @@ class Selection:
             "ecu": self.profile.as_dict() if self.profile else None,
             "transport": self.transport_kind,
             "device": self.device,
+            "can_interface": self.can_interface,
+            "can_serial": self.can_serial,
             "can_overrides": self.can_overrides,
         }
 
@@ -161,6 +165,8 @@ class Workstation:
         device: str = "",
         can_tx_id: str | int = "",
         can_rx_id: str | int = "",
+        can_interface: str = "",
+        can_serial: str = "",
     ) -> dict:
         with self._lock:
             if self.service is not None and self.service.connected:
@@ -188,6 +194,18 @@ class Workstation:
             else:
                 raise ValueError("select needs either an ecu id or a model and year")
 
+            if not isinstance(can_interface, str) or can_interface not in ("", "neovi"):
+                raise ValueError("CAN interface must be profile default or Intrepid neoVI")
+            if not isinstance(can_serial, str):
+                raise ValueError("Intrepid serial must be text")
+            if can_interface == "neovi" and transport != "can":
+                raise ValueError("Intrepid neoVI requires physical CAN transport")
+            if can_interface != "neovi" and can_serial:
+                raise ValueError("Intrepid serial is only used with the neoVI interface")
+            if can_interface == "neovi":
+                from .transports.can import validate_neovi_selection
+                validate_neovi_selection(device, can_serial)
+
             overrides = {}
             for key, value in (("tx_id", can_tx_id), ("rx_id", can_rx_id)):
                 if value not in ("", None):
@@ -202,6 +220,8 @@ class Workstation:
                 profile=profile,
                 transport_kind=transport,
                 device=device,
+                can_interface=can_interface,
+                can_serial=can_serial,
                 can_overrides=overrides,
             )
             self.notices = self._selection_notices(entry, profile, transport)
@@ -384,7 +404,8 @@ class Workstation:
                 )
             return CanTransport(
                 channel=self.selection.device or spec.get("channel", "can0"),
-                interface=("pcan" if profile.id == "harley_delphi_can_uds" and self.selection.device.upper().startswith("PCAN_") else spec.get("interface", "socketcan")),
+                interface=(self.selection.can_interface or ("pcan" if profile.id == "harley_delphi_can_uds" and self.selection.device.upper().startswith("PCAN_") else spec.get("interface", "socketcan"))),
+                serial=self.selection.can_serial,
                 bitrate=spec["bitrate"],
                 tx_id=spec["tx_id"],
                 rx_id=spec["rx_id"],

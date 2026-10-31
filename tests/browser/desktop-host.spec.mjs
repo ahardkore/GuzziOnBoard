@@ -1217,3 +1217,31 @@ test('Honda CTX700 opt-in is ECU-only and shows source limitations', async ({ pa
   expect(selected.ecu.memory.read_supported).toBe(false);
   expect(selected.ecu.memory.write_supported).toBe(false);
 });
+
+test('Intrepid CAN selection requires explicit serial and single network', async ({ page }) => {
+  await page.goto('/');
+  await page.getByText('Override: pick an ECU family directly').click();
+  await page.selectOption('#ecuOverride', 'harley_delphi_can_uds');
+  const can = page.locator('input[name="transport"][value="can"]');
+  if (await can.isEnabled()) await can.check();
+  else await can.evaluate(el => { el.checked = true; el.dispatchEvent(new Event('change', {bubbles: true})); });
+  await page.selectOption('#canInterface', 'neovi');
+  await expect(page.locator('#canIntrepidNote')).toContainText('standard packaged builds do not include it');
+  await page.locator('#deviceInput').fill('HSCAN');
+  await page.locator('#canSerial').fill('123456');
+  const body = await page.evaluate(() => selectionRequest());
+  expect(body).toMatchObject({ecu: 'harley_delphi_can_uds', transport: 'can', device: 'HSCAN', can_interface: 'neovi', can_serial: '123456'});
+  const response = await page.evaluate(async body => {
+    const r = await fetch('/api/select', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    return {status:r.status, body:await r.json()};
+  }, body);
+  expect(response.status).toBe(200);
+  expect(response.body.can_interface).toBe('neovi');
+  const invalid = await page.evaluate(async body => {
+    const r = await fetch('/api/select', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...body, device:'HSCAN,MSCAN'})});
+    return r.status;
+  }, body);
+  expect(invalid).toBe(400);
+  await page.selectOption('#canInterface', '');
+  expect((await page.evaluate(() => selectionRequest()))).not.toHaveProperty('can_serial');
+});

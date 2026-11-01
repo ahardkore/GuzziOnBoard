@@ -163,6 +163,7 @@ const confidenceClass = (c) => ({
 
 const VIEW_META = {
   garage: ['Garage', 'Choose the motorcycle and the way you are talking to it.'],
+  equipment: ['Equipment guide', 'Find the interface, connector and workshop equipment for your bike.'],
   overview: ['Overview', 'Who this ECU says it is, and what it can do.'],
   live: ['Live data', 'Decoded channels, with the raw bytes behind them.'],
   faults: ['Fault codes', 'Stored and current diagnostic trouble codes.'],
@@ -191,6 +192,24 @@ function show(view) {
 }
 
 $$('.nav').forEach((b) => (b.onclick = () => show(b.dataset.view)));
+$('#garageEquipmentLink').addEventListener('click', (event) => {
+  event.preventDefault();
+  show('equipment');
+});
+if (window.location.hash === '#equipment') show('equipment');
+window.addEventListener('hashchange', () => {
+  if (window.location.hash === '#equipment') show('equipment');
+});
+// A desktop webview may not handle target=_blank; hand affiliate links to the
+// system browser. Normal browsers retain native link behavior and rel policy.
+$$('#equipment a.equipment-link').forEach((link) => link.addEventListener('click', (event) => {
+  if (!window.gobDesktop?.available || window.gobDesktop.backend !== 'window' ||
+      event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  window.gobDesktop.openExternal(link.href).then((result) => {
+    if (!result.ok) toast(result.note || 'Could not open the system browser.', 'bad');
+  }).catch(() => toast('Could not open the system browser.', 'bad'));
+}));
 
 /* ------------------------------------------------------- guided tests */
 
@@ -2540,6 +2559,9 @@ function renderMemoryCapabilities(data) {
   const canRead = c.read_supported;
   $('#backupBtn').disabled = !canRead || c.research_read_only || !!c.partial_read_note;
   $('#readBtn').disabled = !canRead;
+  const showExtra5am = c.ecu === '5am' && !c.simulated && !!c.partial_read_note;
+  $('#extra5amReadOption').classList.toggle('hidden', !showExtra5am);
+  if (!showExtra5am) $('#extra5amRead').checked = false;
   $('#validateBtn').disabled = false;
 
   // An interrupted write is the single most important thing to surface.
@@ -2705,8 +2727,26 @@ function renderMemoryProgress(job) {
     loadMemory();
     if (r.research_only && r.path && d.meta?.protocol === 'honda-source-id-research') {
       openHondaResearchMap(r.path, d.identity?.['Source part candidate']);
+    } else if (r.research_only && r.path && d.ecu_id === '5am') {
+      open5amResearchMap(r.path, d.meta?.extra_blocks_attempted === true);
     }
   }
+}
+
+function open5amResearchMap(path, extraBlocks) {
+  const notice = $('#iaw5amHandoff');
+  if (maps.changes.size) {
+    notice.innerHTML = '<div class="gate-card warn">5AM research read saved, but existing staged edits were preserved. Finish or clear them before opening the new image.</div>';
+    return;
+  }
+  maps.render = null; maps.selection.clear(); maps.selectionAnchor = null;
+  maps.undo = []; maps.redo = []; maps.preview = null;
+  invalidateResearchPreview();
+  $('#mapsImagePath').value = path;
+  $('#mapsAddressBase').value = '0x4000';
+  $('#mapsOut').innerHTML = '<p class="muted small">Choose and render a matching XDF for the saved research image.</p>';
+  notice.innerHTML = `<div class="gate-card warn"><h4>5AM single-read research image</h4><p>${extraBlocks ? 'Blocks 2–5 were attempted but their association and contents are unverified.' : 'Blocks 2–5 are FF placeholders, not read.'} The read is not a verified backup or flash-ready image. Choose a matching XDF and verify its fitment and address base. No 5AM physical write is enabled.</p></div>`;
+  syncMapEditorButtons(); renderMapBuildState();
 }
 
 async function openHondaResearchMap(path, part) {
@@ -2768,6 +2808,8 @@ async function loadMemory() {
     }
   } else {
     fw.caps = null;
+    $('#extra5amReadOption').classList.add('hidden');
+    $('#extra5amRead').checked = false;
     $('#memCaps').textContent = 'Connect to an ECU to see available memory operations.';
     $('#memCapsNote').textContent = '';
     for (const id of ['backupBtn', 'readBtn', 'validateBtn', 'baseMapSaveBtn', 'baseMapFileBtn', 'baseMapRestoreBtn', 'writeBtn']) {
@@ -2977,9 +3019,14 @@ $('#readBtn').onclick = async () => {
   if (research && !(await confirmDialog(genericHondaRead ? 'Experimental Honda source-ID research read' : 'Experimental MGZ research read',
     `This synthetic-tested implementation sends a fixed security exchange and reads only if the live ECM ID matches ${genericHondaRead ? 'one of 60 source-derived ID candidates' : 'the source-reported MGZ-A03, C02, C03 or D02'}. It has not been tested on a physical ECU; security may be rejected or cause a lockout. ${genericHondaRead ? 'Example- or model-sized bounds and read start addresses are assumptions, including nonzero starts for MSX IDs. Eleven IDs come from named examples, two entries lack independently checked examples, and one family-inferred entry conflicts with its named file. Other source associations are commented or conflicting. A 1 MiB attempt may take a long time; session logs can contain image data. ' : 'The sample-sized read assumes a zero start address. '}No write is sent. Keep power stable and the engine stopped. A returned file is not a verified backup or flash-ready image.`,
     'I understand — attempt the research read', { tone: 'danger' }))) return;
+  const physical5am = fw.caps?.capabilities?.ecu === '5am' && !!fw.caps?.capabilities?.partial_read_note;
+  const extra5am = physical5am && $('#extra5amRead').checked;
+  if (physical5am && !(await confirmDialog(extra5am ? 'Experimental 5AM extra-block read' : 'Experimental 5AM research read',
+    `The read uses the source-derived SecurityAccess key; GuzziOnBoard has not tested it on hardware and a rejected key can lock out security access. ${extra5am ? 'The reference reader skips blocks 2–5; a later source describes them as unserved. This attempt applies its read commands to those blocks; support and block association are unknown. A rejection or bad response aborts the entire read.' : 'Blocks 2–5 are FF placeholders, not captured contents.'} This implementation is synthetic-tested only. No firmware write is sent. Keep power stable and the engine stopped. Any result is research-only, not a verified backup or a flash-ready image.`,
+    'I understand — attempt the read', { tone: 'danger' }))) return;
   $('#memResult').innerHTML = '';
   try {
-    await api('/api/memory/read', { method: 'POST', body: { region: $('#memRegion').value, confirm_research_read: research } });
+    await api('/api/memory/read', { method: 'POST', body: { region: $('#memRegion').value, confirm_research_read: research || extra5am, ...(physical5am ? {confirm_5am_read_key: true} : {}), ...(extra5am ? {attempt_5am_skipped_blocks: true} : {}) } });
     startMemoryPoll();
   } catch (err) { toast(err.message, 'bad'); }
 };

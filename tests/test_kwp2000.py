@@ -308,3 +308,38 @@ def test_dangerous_followups_and_unknown_services_do_not_bypass_the_guard(payloa
     with pytest.raises(PermissionError):
         session.request(payload)
     assert conn.sent == []
+
+
+def test_5am_extended_frame_forms_and_bounded_pending_stream():
+    """Synthetic replay of the source-described streaming erase response."""
+    assert encode_request([0x37], force_long=True) == bytes.fromhex('80 10 f1 01 37 b9')
+    assert encode_request(bytes.fromhex('31 01 00 40 00 04 ff ff ed 02'), force_long=True) == bytes.fromhex('80 10 f1 0a 31 01 00 40 00 04 ff ff ed 02 ee')
+    conn = FakeConnection([_response([0x7f, 0x33, 0x78])] * 2000 + [_response([0x73, 0x02])])
+    session = KWP2000Session(connection=conn)
+    result = session.request([0x33, 0x02], timeout=3, pending_timeout=90)
+    assert result.payload == bytes.fromhex('73 02')
+    assert len(conn.sent) == 1  # never re-send the erase trigger on pending
+
+
+def test_pending_deadline_bounds_even_an_endless_synthetic_stream(monkeypatch):
+    import guzzionboard.protocol.kwp2000 as kwp
+    class Endless:
+        def __init__(self): self.sent = []
+        def write(self, raw): self.sent.append(raw)
+        def read_frame(self, timeout): return _response([0x7f, 0x33, 0x78])
+    clock = iter([0, 0, .2, .8, 1.1])
+    monkeypatch.setattr(kwp.time, 'monotonic', lambda: next(clock))
+    conn = Endless()
+    with pytest.raises(ProtocolError, match='responsePending timed out'):
+        KWP2000Session(connection=conn).request([0x33, 0x02], pending_timeout=1)
+    assert len(conn.sent) == 1
+
+
+def test_pending_wrong_service_and_invalid_deadline_fail_closed():
+    conn = FakeConnection([_response([0x7f, 0x31, 0x78])])
+    with pytest.raises(ProtocolError, match='negative response does not match'):
+        KWP2000Session(connection=conn).request([0x33, 0x02], pending_timeout=5)
+    conn = FakeConnection([])
+    with pytest.raises(ValueError, match='finite and positive'):
+        KWP2000Session(connection=conn).request([0x33, 0x02], pending_timeout=float('nan'))
+    assert not conn.sent

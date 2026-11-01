@@ -545,7 +545,7 @@ def test_the_ecu_refuses_a_download_without_the_writer_records(service, monkeypa
     decision = service.check_write("flash")
     with pytest.raises(Exception, match="conditionsNotCorrect|rejected"):
         service.write_region(image, decision.token)
-    assert service.pending_checkpoint("flash")["phase"] == "failed"
+    assert service.pending_checkpoint("flash")["phase"] == "failed_after_erase_requested"
 
 
 def test_a_corrupted_write_fails_verification_and_leaves_recovery(service, monkeypatch):
@@ -589,7 +589,7 @@ def test_recovery_advice_is_specific_to_the_phase():
     assert any("charger" in line for line in advice)
 
     assert any(
-        "safe to retry" in line for line in ProgrammingService.recovery_advice("starting")
+        "erase was not yet requested" in line for line in ProgrammingService.recovery_advice("starting")
     )
 
 
@@ -691,8 +691,9 @@ def test_5am_source_block_read_uses_selected_windows_and_labels_gaps(service, mo
             if payload[1] == 0x11:
                 self.block = payload[-1]
                 return SimpleNamespace(data=bytes([0x11, 0x02]))
-            # Four metadata bytes are deliberately not treated as an address.
-            return SimpleNamespace(data=bytes([0x21, 0, 0, 0, 0]) + bytes([self.block]) * 32)
+            # The newer upstream simulator uses this fixed metadata on every
+            # window. It is not evidence that the ECU echoes each offset.
+            return SimpleNamespace(data=bytes.fromhex('21 40 00 00 20') + bytes([self.block]) * 32)
 
     session = SourceSession()
     monkeypatch.setattr(service.diag, "_require", lambda: session)
@@ -811,3 +812,199 @@ def test_write_readiness_reports_disabled_writer_and_region_without_token(servic
     decision = service.check_write('flash')
     assert not decision.allowed and decision.token is None
     assert 'writable-region' in decision.reason()
+
+
+def test_5am_write_session_switches_physical_baud_before_timing(service, monkeypatch):
+    """Synthetic transcript: validates ordering, not physical flash operation."""
+    from types import SimpleNamespace
+    session = service.diag._require()
+    session.source = 1  # A prior read uses 0x01; write must start at 0xF1.
+    events = []
+    monkeypatch.setattr(service.diag.transport, "is_physical", True)
+    monkeypatch.setattr(session, "try_request", lambda payload: (events.append(("tx", session.source, bytes(payload))), SimpleNamespace(data=b"\x85", hex=lambda: "ok"))[1])
+    monkeypatch.setattr(session.connection, "set_baudrate", lambda baud: events.append(("baud", baud)), raising=False)
+    monkeypatch.setattr(service, "_wait", lambda seconds: events.append(("wait", seconds)))
+    service._enter_write_session()
+    assert events == [
+        ("tx", 0xF1, bytes.fromhex("10 85 03")),
+        ("wait", 0.06), ("baud", 38400),
+        ("tx", 0xF1, bytes.fromhex("83 03 1e 02 0a 14 00")),
+    ]
+
+
+def test_5am_write_session_baud_failure_stops_before_timing(service, monkeypatch):
+    from types import SimpleNamespace
+    session = service.diag._require()
+    sent = []
+    monkeypatch.setattr(service.diag.transport, "is_physical", True)
+    monkeypatch.setattr(service, "_wait", lambda _: None)
+    monkeypatch.setattr(session, "try_request", lambda payload: (sent.append(bytes(payload)), SimpleNamespace(data=b"\x85", hex=lambda: "ok"))[1])
+    def fail(_):
+        raise OSError("unsupported baud")
+    monkeypatch.setattr(session.connection, "set_baudrate", fail, raising=False)
+    with pytest.raises(ProgrammingError, match="write baud switch failed"):
+        service._enter_write_session()
+    assert sent == [bytes.fromhex("10 85 03")]
+
+
+def test_5am_extra_blocks_are_read_not_placeholder_and_mismatches_abort(service, monkeypatch):
+    """Synthetic ECU; real access to the four skipped blocks is unknown."""
+    from types import SimpleNamespace
+    from guzzionboard.protocol.kwp2000 import ProtocolError
+    calls = []
+    class Session:
+        write_guard = None
+        block = 0
+        mismatch = False
+        def request(self, payload):
+            calls.append(bytes(payload))
+            if payload[1] == 0x11:
+                self.block = payload[-1]
+                return SimpleNamespace(data=b"\x11\x02")
+            offset = (payload[3] << 8) | payload[4]
+            if self.mismatch and self.block == 2:
+                return SimpleNamespace(data=b"\x21\x00")
+            return SimpleNamespace(data=bytes([0x21, offset >> 8, offset & 255, 0, 0x20]) + bytes([self.block]) * 32)
+    session = Session()
+    monkeypatch.setattr(service.diag, "_require", lambda: session)
+    result = service._read_5am_source_blocks(service.region("flash"), attempt_skipped=True)
+    assert [p[-1] for p in calls if p[1] == 0x11] == list(range(1, 20))
+    assert result == b"".join(bytes([i]) * 0x4000 for i in range(1, 20))
+    calls.clear()
+    session.mismatch = True
+    with pytest.raises(ProtocolError, match="invalid 5AM read response at block 2"):
+        service._read_5am_source_blocks(service.region("flash"), attempt_skipped=True)
+    assert not any(p[1] == 0x11 and p[-1] > 2 for p in calls)
+    assert session.write_guard is not None
+
+
+def test_5am_extra_block_attempt_requires_confirmation_and_stays_research(service, monkeypatch, tmp_path):
+    monkeypatch.setattr(service.diag.transport, "is_physical", True)
+    entered = []
+    monkeypatch.setattr(service, "enter_programming_session", lambda: entered.append(True))
+    monkeypatch.setattr(service, "unlock", lambda **kw: {})
+    monkeypatch.setattr(service, "_read_5am_source_blocks", lambda region, *, attempt_skipped=False: bytearray(b"\x01" * region.size) if attempt_skipped else None)
+    with pytest.raises(ProgrammingError, match="confirm"):
+        service.read_region(attempt_5am_skipped_blocks=True)
+    assert not entered
+    image = service.read_region(attempt_5am_skipped_blocks=True, experimental_confirmation=True)
+    assert image.source == "research-read"
+    assert image.meta["synthetic_blocks"] == []
+    assert image.meta["extra_blocks_attempted"] is True
+    assert image.meta["verified_backup"] is False
+    path = image.save(tmp_path / "extended.bin")
+    assert any(f.level == "fatal" and f.check == "experimental_read" for f in FirmwareImage.from_file(path).validate_for(service.profile))
+    with pytest.raises(ProgrammingError, match="partial.*verified backup"):
+        service.backup()
+
+
+def test_5am_extra_block_api_saves_only_confirmed_research_image(service, monkeypatch, tmp_path):
+    from guzzionboard.server import Api
+    from pathlib import Path
+    monkeypatch.setattr(service.diag.transport, "is_physical", True)
+    monkeypatch.setattr(service, "enter_programming_session", lambda: {})
+    unlock_calls = []
+    monkeypatch.setattr(service, "unlock", lambda **kw: unlock_calls.append(kw))
+    monkeypatch.setattr(service, "_read_5am_source_blocks", lambda region, *, attempt_skipped=False: bytearray(b"\x01" * region.size))
+    api = Api(object())
+    api._programming = lambda: service
+    class Immediate:
+        def start(self, name, fn): return fn(lambda _: None)
+    api.jobs = Immediate()
+    with pytest.raises(ProgrammingError, match="confirm"):
+        api.post_memory_read({"region": "flash", "attempt_5am_skipped_blocks": True})
+    assert not list(tmp_path.iterdir())
+    status, result = api.post_memory_read({"region": "flash", "attempt_5am_skipped_blocks": True,
+                                           "confirm_research_read": True, "confirm_5am_read_key": True})
+    assert unlock_calls == [{"allow_unverified": True}]
+    assert not service.gate.allow_unverified_keys  # one read does not authorize later writes
+    assert status == 202 and result["research_only"] is True
+    assert result["describe"]["meta"]["extra_blocks_attempted"] is True
+    assert result["describe"]["meta"]["verified_backup"] is False
+    assert Path(result["path"]).is_file() and Path(result["path"] + ".json").is_file()
+
+
+def test_5am_erase_requires_positive_completion_before_download(service, monkeypatch):
+    from types import SimpleNamespace
+    calls = []
+    class Synthetic:
+        def request(self, payload, **kw):
+            calls.append((bytes(payload), kw))
+            if payload[:2] == [0x31, 0x02]:
+                return SimpleNamespace(data=b'\x02')
+            raise ProtocolError('erase completion timed out')
+    from guzzionboard.protocol.kwp2000 import ProtocolError
+    monkeypatch.setattr(service.diag, '_require', lambda: Synthetic())
+    with pytest.raises(ProtocolError, match='timed out'):
+        service._erase(service.region('flash'))
+    assert calls[-1] == (b'\x33\x02', {'timeout':3.0, 'pending_timeout':90.0})
+    assert all(req[0] != 0x34 for req, _ in calls)
+
+
+def test_5am_program_uses_source_long_frame_forms_and_bounded_wait(service, monkeypatch):
+    from types import SimpleNamespace
+    calls = []
+    class Synthetic:
+        def request(self, payload, **kw):
+            calls.append((bytes(payload), kw))
+            return SimpleNamespace(data=b'\x01')
+    monkeypatch.setattr(service.diag, '_require', lambda: Synthetic())
+    image = FirmwareImage(data=bytes(0x4c000))
+    service._finalise(image, service.region('flash'), checksum=0xabcd)
+    assert calls[0] == (b'\x37', {'force_long':True})
+    assert calls[1] == (bytes.fromhex('31 01 00 40 00 04 ff ff ab cd'), {'force_long':True})
+    assert calls[2] == (bytes.fromhex('33 01'), {'timeout':3.0, 'pending_timeout':120.0})
+
+
+def test_write_exclusively_holds_diagnostic_lock(service, monkeypatch):
+    seen = []
+    def locked(*args, **kwargs):
+        seen.append(service.diag._lock._is_owned())
+        return {'test': True}
+    monkeypatch.setattr(service, '_write_region_locked', locked)
+    assert service.write_region(FirmwareImage(data=b''), 'unused') == {'test': True}
+    assert seen == [True]
+
+
+def test_5am_encoding_failure_happens_before_any_erase(service, monkeypatch):
+    service.backup('flash')
+    arm_for_writing(service, monkeypatch)
+    image = service.read_region('flash')
+    decision = service.check_write('flash')
+    def fail(_):
+        raise ProgrammingError('synthetic encoder failure')
+    monkeypatch.setattr(service, '_upload_payload', fail)
+    with pytest.raises(ProgrammingError, match='encoder failure'):
+        service.write_region(image, decision.token)
+    assert not service.diag.transport.ecu.erased
+    assert service.pending_checkpoint('flash') is None
+
+
+def test_5am_erase_arm_failure_marks_erase_as_uncertain(service, monkeypatch):
+    service.backup('flash')
+    arm_for_writing(service, monkeypatch)
+    image = service.read_region('flash')
+    decision = service.check_write('flash')
+    def fail(_):
+        raise ProgrammingError('synthetic erase reply lost')
+    monkeypatch.setattr(service, '_erase', fail)
+    with pytest.raises(ProgrammingError, match='erase reply lost'):
+        service.write_region(image, decision.token)
+    checkpoint = service.pending_checkpoint('flash')
+    assert checkpoint['phase'] == 'failed_after_erase_requested'
+    assert checkpoint['erase_may_have_started'] is True
+    assert any('may not have a valid program' in line for line in checkpoint['recovery'])
+
+
+def test_5am_writer_record_response_mismatch_stops_before_erase(service, monkeypatch):
+    from types import SimpleNamespace
+    from guzzionboard.protocol.kwp2000 import ProtocolError
+    sent = []
+    class Synthetic:
+        def request(self, payload):
+            sent.append(bytes(payload))
+            return SimpleNamespace(data=b'\x99')
+    monkeypatch.setattr(service.diag, '_require', lambda: Synthetic())
+    with pytest.raises(ProtocolError, match='writer/date record response mismatch'):
+        service._pre_write_records()
+    assert sent == [bytes.fromhex('3b 98 20')]

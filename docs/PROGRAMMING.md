@@ -10,13 +10,13 @@ reason is named.
 | Operation | State |
 |---|---|
 | Read flash, IAW 5AM | Source-derived physical partial read attempt, with four blocks filled `FF` rather than read. Requires a SecurityAccess key provider. Synthetic integration tests only; not a verified backup. |
-| Read flash, source-listed Honda IDs | Separate ECU-only experimental K-Line read for 43 exact source-reported ECM IDs (and a narrower four-ID CB500F option). Synthetic tests only; security can be rejected or cause lockout, and any output is a research file, not a verified backup. [Details](EXTERNAL_MOTORCYCLE_RESEARCH.md#separate-honda-source-id-image-read-attempt). |
+| Read flash, source-listed Honda IDs | Separate ECU-only experimental K-Line read for 60 source-derived ECM ID candidates (and a narrower four-ID CB500F option). Synthetic tests only; security can be rejected or cause lockout, and any output is a research file, not a verified backup. [Details](HONDA_VFR_RESEARCH.md). |
 | Read flash, 7SM / 15M / 15RC / MIU G3 | Generic memory framework exists, but these family profiles expose no read capability because session, security, and/or region geometry are incomplete. |
 | Read flash, P8 / 16M | Not exposed: no validated in-circuit read sequence is available here. P8 maps commonly live on a socketed EPROM that can be preserved with a programmer. |
 | Read EEPROM, non-5AM families | Generic framework only; no incomplete family profile declares a hardware capability. |
 | Backup with verification | Simulated flow tested. Physical 5AM partial reads cannot be marked verified backups or stored as base maps. |
 | Image validation | Fully working. |
-| Write / erase / program | Fully implemented against the documented 5am_util sequence and simulator-tested. Disabled against hardware pending a bench-confirmed key and physical-layer validation. |
+| Write / erase / program | 5AM source-sequence code is simulator-tested, but not a complete physical workflow. Hardware writing remains disabled; readback across a rate change, unserved-block contents, final program completion and recovery are unresolved. |
 | Write verification by read-back | Simulator-tested; not established on physical GuzziOnBoard integrations. |
 | Interrupted-write recovery | Checkpoints and advice exist; actual hardware recovery is not established. |
 
@@ -183,6 +183,47 @@ experimental partial image, not an attested full read, verified backup, base
 map or flash-ready file. It does not generate shared read provenance. Reconnect
 after the rate-switched read before another operation. The original upstream reader takes approximately 20 minutes for its full 16-block
 attempt; GuzziOnBoard hardware timing has not been measured.
+
+The desktop **Single read** asks for consent to use the source-derived key for
+that read only; rejection could cause a SecurityAccess lockout. It does not
+change the persistent session key setting or authorize writing. It also offers
+an explicit opt-in experiment to attempt blocks 2–5 using the same selector and 32-byte window commands. The
+original reference skips them without explaining why; the later onboard-logger
+flasher describes them as unserved. Neither their readability nor block
+association has been established by GuzziOnBoard. A rejected or malformed response aborts the
+whole job, without silently substituting placeholders or saving a successful
+file. A successful attempt still produces a research-only image, never a
+verified backup or write authorization. After one successful research read,
+the desktop pre-fills the Maps image path and a `0x4000` region base without
+selecting an XDF or replacing staged edits; the operator must establish
+fitment and layout. The source transcript shows one reply
+with `40 00 00 20` in the metadata, but this single example does not establish
+its meaning for subsequent windows or identify the selected block. The newer
+onboard-logger simulator returns fixed metadata for every window. Accordingly,
+GuzziOnBoard checks framing, length and subfunction without claiming those
+bytes echo offsets. This experiment and the baud-switch correction below have
+synthetic tests only; GuzziOnBoard has not tested them on a physical ECU.
+
+The source's write session changes the physical UART to 38400 immediately
+after `10 85 03`, before sending timing parameters. The implementation now
+performs that switch in order. A later [onboard-logger revision e301fc4](https://github.com/Vasiy/onboard-logger/tree/e301fc40000aad418125ded215a074c25135c327)
+(MIT, Copyright 2026 Vasily; `LICENSES/onboard-logger-MIT.txt`) reports that
+5am_util completed a write on a real bike and supplies a separate framed
+Python flasher whose scripted tests replay its reported trace. Its code awaits
+`73 02` following potentially hundreds of `7F 33 78` erase-pending replies,
+uses extended-length framing for `37` and `31 01`, and notes final `33 01`
+completion may be unconfirmed. GuzziOnBoard's simulator-oriented writer now
+handles bounded pending streams without retransmitting, requires positive erase
+completion, uses the extended forms, constructs the payload before erase, and
+records when an erase may have begun. It treats a missing final positive as
+uncertain, not success. These are synthetic-tested adaptations, **not a
+GuzziOnBoard hardware test**. The upstream Python flasher was documented as
+not yet wired into that project; the reported real write used 5am_util.
+
+The physical writer remains disabled. In addition to the missing full backup,
+readback after the write-speed session needs a correctly restarted link and
+final program completion is not established for every ECU. Recovery is not
+established; do not treat the checkpoint advice as a proven recovery procedure.
 
 ## The SecurityAccess key
 

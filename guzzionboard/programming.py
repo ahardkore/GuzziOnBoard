@@ -7,8 +7,8 @@ defensive. The order of operations is not negotiable:
     -> arm safety gate -> erase -> transfer -> program -> verify by re-reading
 
 A write that cannot be verified is reported as a failure even if the ECU said
-"ok", and a failed transfer leaves a resumable checkpoint on disk plus a
-recovery procedure in the session log.
+"ok". A checkpoint records interruption and uncertainty; it does not establish
+that a hardware write can be resumed or recovered.
 
 Two wire protocols are supported, selected per ECU family by the catalog:
 
@@ -329,6 +329,11 @@ class ProgrammingService:
 
         session = self.diag._require()
         steps: list[dict] = []
+        set_baud = getattr(session.connection, "set_baudrate", None)
+        if self.diag.transport.is_physical and wsess.get("baud") and not callable(set_baud):
+            raise ProgrammingError("this physical connection cannot switch the write baud rate")
+        if "source" in wsess:
+            session.source = wsess["source"]
 
         frame = session.try_request(list(wsess["start"]))
         steps.append(
@@ -339,6 +344,19 @@ class ProgrammingService:
             raise ProgrammingError(
                 f"{self.profile.family} refused the programming session."
             )
+        if self.profile.id == "5am" and not frame.data.startswith(b"\x85"):
+            raise ProgrammingError("5AM write-session response mismatch; reconnect before retrying")
+
+        # 5am_util changes the UART *between* the session request and the
+        # timing request. On a physical link, sending timing at the previous
+        # diagnostic baud would fail before a write could even start.
+        if self.diag.transport.is_physical and wsess.get("baud"):
+            self._wait(0.06)
+            try:
+                set_baud(wsess["baud"])
+            except Exception as exc:
+                raise ProgrammingError("write baud switch failed; reconnect before retrying") from exc
+            steps.append({"step": f"write baud -> {wsess['baud']}", "ok": True, "response": ""})
 
         timing = wsess.get("timing")
         if timing:
@@ -435,17 +453,20 @@ class ProgrammingService:
         progress: ProgressFn | None = None,
         allow_unverified_key: bool = False,
         experimental_confirmation: bool = False,
+        attempt_5am_skipped_blocks: bool = False,
     ) -> FirmwareImage:
         """Read a region without interleaving diagnostics or keepalives."""
         with self.diag._lock:
             return self._read_region_locked(
                 region_name, progress=progress, allow_unverified_key=allow_unverified_key,
                 experimental_confirmation=experimental_confirmation,
+                attempt_5am_skipped_blocks=attempt_5am_skipped_blocks,
             )
 
     def _read_region_locked(
         self, region_name: str, *, progress: ProgressFn | None,
         allow_unverified_key: bool, experimental_confirmation: bool,
+        attempt_5am_skipped_blocks: bool,
     ) -> FirmwareImage:
         self._progress_fn = progress
         memory = self.profile.memory or {}
@@ -454,6 +475,12 @@ class ProgrammingService:
                 f"{self.profile.family}: reading is not supported by this build "
                 f"({memory.get('write_blocked_reason', 'no verified read path')})"
             )
+        if attempt_5am_skipped_blocks:
+            if (self.profile.id != "5am" or not self.diag.transport.is_physical
+                    or region_name != "flash"):
+                raise ProgrammingError("the extra-block attempt is only available for physical 5AM flash")
+            if not experimental_confirmation:
+                raise ProgrammingError("confirm the experimental 5AM extra-block read before attempting it")
         if self.profile.id in ("honda_cb500f_dashble", "honda_pgmfi_flash_research"):
             return self._read_honda_research(region_name, experimental_confirmation)
         if not self.diag.identity:
@@ -486,7 +513,11 @@ class ProgrammingService:
         # unserved blocks. Keep that physically useful read separate from the
         # simulator's earlier, contiguous model and never attest it as a backup.
         partial_5am = self.profile.id == "5am" and self.diag.transport.is_physical
-        data = self._read_5am_source_blocks(region) if partial_5am else reader(region)
+        if partial_5am:
+            data = (self._read_5am_source_blocks(region, attempt_skipped=True)
+                    if attempt_5am_skipped_blocks else self._read_5am_source_blocks(region))
+        else:
+            data = reader(region)
         image = FirmwareImage(
             data=data,
             ecu_id=self.profile.id,
@@ -497,8 +528,13 @@ class ProgrammingService:
                 "protocol": protocol,
                 "duration_s": round(time.time() - started, 1),
                 "region": region.as_dict(),
-                **({"verified_backup": False, "synthetic_blocks": [2, 3, 4, 5],
-                    "note": "Source-derived partial 5AM read: blocks 2-5 are filled with FF, not read. Response headers do not establish block association; not a verified backup or flash-ready image. Reconnect after reading."}
+                **({"verified_backup": False,
+                    "synthetic_blocks": [] if attempt_5am_skipped_blocks else [2, 3, 4, 5],
+                    "extra_blocks_attempted": attempt_5am_skipped_blocks,
+                    "note": ("Experimental 5AM read attempted blocks 1-19, including four blocks skipped by the source. Their address association and contents are not verified. "
+                             if attempt_5am_skipped_blocks else
+                             "Source-derived partial 5AM read: blocks 2-5 are filled with FF, not read. ")
+                            + "Response headers do not establish block association; not a verified backup or flash-ready image. Reconnect after reading."}
                    if partial_5am else {}),
             },
         )
@@ -648,12 +684,14 @@ class ProgrammingService:
             session.write_guard = self.gate.session_guard()
         return out
 
-    def _read_5am_source_blocks(self, region: Region) -> bytearray:
-        """Source-derived 5AM region read, with inaccessible blocks marked FF.
+    def _read_5am_source_blocks(self, region: Region, *, attempt_skipped: bool = False) -> bytearray:
+        """Read source-selected 5AM windows; optionally attempt skipped blocks.
 
-        Follows 5am_util's block selector/window, also used by onboard-logger.
-        No address echo is established by those readers: this is not a proven
-        complete backup, even if repeated reads agree.
+        5am_util skips blocks 2-5 without explaining why. Applying its selector
+        to those blocks is an unverified experiment, not source evidence that
+        they are readable. Any failed request aborts rather than filling gaps.
+        Neither response metadata semantics nor block association is proven
+        across the range; the research output must not be treated as a backup.
         """
         if (region.name, region.start, region.size, region.block) != ("flash", 0x4000, 0x4C000, 0x20):
             raise ProgrammingError("unexpected 5AM region geometry for source-derived read")
@@ -662,7 +700,7 @@ class ProgrammingService:
         session.write_guard = self.gate.session_guard({Service.TRANSFER_DATA}, purpose="read")
         try:
             for block in range(1, 20):
-                if block in range(2, 6):
+                if block in range(2, 6) and not attempt_skipped:
                     out.extend(b"\xff" * 0x4000)
                     self._emit("research-read", len(out), region.size, f"block {block}: FF placeholder, not read")
                     continue
@@ -671,13 +709,15 @@ class ProgrammingService:
                     raise ProtocolError(f"5AM block {block} setup response mismatch")
                 for offset in range(0x4000, 0x8000, 0x20):
                     frame = session.request([Service.TRANSFER_DATA, 0x21, 0, offset >> 8, offset & 0xff, 0x20])
-                    # The four response metadata bytes have no independently
-                    # verified address/length semantics in the cited reader.
+                    # One upstream transcript shows 40 00 00 20 at the first
+                    # window; it does not establish that these bytes echo all
+                    # later requests. The newer onboard-logger fake even uses
+                    # fixed metadata. Neither identifies the selected block.
                     if len(frame.data) != 5 + 0x20 or frame.data[0] != 0x21:
                         raise ProtocolError(f"invalid 5AM read response at block {block}, offset 0x{offset:04X}")
                     out.extend(frame.data[5:])
                     self.diag._touch()
-                    self._emit("research-read", len(out), region.size, f"block {block}, 0x{offset:04X}; partial unverified image")
+                    self._emit("research-read", len(out), region.size, f"block {block}, 0x{offset:04X}; unverified research image")
         finally:
             session.write_guard = self.gate.session_guard()
         return out
@@ -905,6 +945,15 @@ class ProgrammingService:
         progress: ProgressFn | None = None,
         allow_unverified_key: bool = False,
     ) -> dict:
+        """Hold the ECU session exclusively through programming and readback."""
+        with self.diag._lock:
+            return self._write_region_locked(image, token, region_name, progress=progress,
+                                             allow_unverified_key=allow_unverified_key)
+
+    def _write_region_locked(
+        self, image: FirmwareImage, token: str, region_name: str, *,
+        progress: ProgressFn | None, allow_unverified_key: bool,
+    ) -> dict:
         """Erase, transfer, program and verify. Every step can refuse.
 
         This will not run in the shipped configuration: the safety gate's
@@ -974,16 +1023,28 @@ class ProgrammingService:
                 "verified backup first - it is the only guaranteed way back."
             )
 
+        # Build the exact transfer and checksum before entering a write
+        # session or requesting an erase. Never discover encoding failures
+        # only after the ECU might have lost its program.
+        upload = self._upload_payload(image)
+        program_spec = self.spec.get("write", {}).get("program", {})
+        program_checksum = None
+        if isinstance(program_spec, dict) and program_spec.get("checksum"):
+            if self.spec.get("write", {}).get("upload_encoding") != "iaw5am-addror":
+                raise ProgrammingError("no checksum form for this upload encoding")
+            program_checksum = iaw5am_upload_checksum(image.data)
+
         checkpoint = self._checkpoint_path(region_name)
         self._write_checkpoint(
             checkpoint,
             {"phase": "starting", "region": region_name,
-             "image_sha256": image.sha256,
+             "erase_may_have_started": False, "image_sha256": image.sha256,
              "backup": self.gate.state.backup_path,
              "base_map": self.gate.state.base_map_path,
              "identity": dict(self.diag.identity.fields) if self.diag.identity else {}},
         )
 
+        erase_may_have_started = False
         try:
             self._enter_write_session()
             if self.spec.get("security", {}).get("required"):
@@ -1006,11 +1067,15 @@ class ProgrammingService:
             session.write_guard = self.gate.session_guard(armed)
             try:
                 self._pre_write_records()
+                # Treat the erase arm itself as the point of no return: a
+                # lost reply does not prove the ECU did not act on it.
+                self._write_checkpoint(checkpoint, {"phase": "erase_requested", "erase_may_have_started": True})
+                erase_may_have_started = True
                 self._erase(region)
                 self._write_checkpoint(checkpoint, {"phase": "erased"})
-                self._transfer(image, region)
+                self._transfer(image, region, payload=upload)
                 self._write_checkpoint(checkpoint, {"phase": "transferred"})
-                self._finalise(image, region)
+                self._finalise(image, region, checksum=program_checksum)
             finally:
                 session.write_guard = self.gate.session_guard()
 
@@ -1044,7 +1109,9 @@ class ProgrammingService:
             self.log.error("write", str(exc))
             raise
         except Exception as exc:
-            self._write_checkpoint(checkpoint, {"phase": "failed", "error": str(exc)})
+            phase = "failed_after_erase_requested" if erase_may_have_started else "failed_before_erase"
+            self._write_checkpoint(checkpoint, {"phase": phase, "error": str(exc),
+                                               "erase_may_have_started": erase_may_have_started})
             self.log.error("write", str(exc))
             raise
 
@@ -1058,7 +1125,9 @@ class ProgrammingService:
         for record in self.spec.get("write", {}).get("records", []):
             did = bytes(record["did"])
             value = bytes(record.get("value", []))
-            session.request([Service.WRITE_DATA_BY_LOCAL_ID, *did, *value])
+            reply = session.request([Service.WRITE_DATA_BY_LOCAL_ID, *did, *value])
+            if self.profile.id == "5am" and (not did or not reply.data.startswith(did[:1])):
+                raise ProtocolError("5AM writer/date record response mismatch")
             self.diag._touch()
 
     def _erase(self, region: Region) -> None:
@@ -1068,9 +1137,19 @@ class ProgrammingService:
         if isinstance(erase, dict) and "start" in erase:
             # The documented IAW sequence: a routine call arms the erase and
             # a routine-results request is what actually runs it.
-            session.request(list(erase["start"]))
-            session.request(list(erase["trigger"]))
-            self._wait(erase.get("wait_s", 0))
+            started = session.request(list(erase["start"]))
+            if self.profile.id == "5am":
+                if not started.data.startswith(b"\x02"):
+                    raise ProtocolError("5AM erase routine response mismatch")
+                # Source-derived bounded wait: consume the stream without
+                # retransmitting 33 02. A positive response is required
+                # before RequestDownload; a timeout leaves erase uncertain.
+                done = session.request(list(erase["trigger"]), timeout=3.0, pending_timeout=90.0)
+                if not done.data.startswith(b"\x02"):
+                    raise ProtocolError("5AM erase completion response mismatch")
+            else:
+                session.request(list(erase["trigger"]))
+                self._wait(erase.get("wait_s", 0))
         else:
             legacy = self.spec.get("erase")
             if legacy:
@@ -1094,7 +1173,7 @@ class ProgrammingService:
             raise ProgrammingError(f"unknown upload encoding {encoding!r}")
         return iaw5am_upload_blob(image.data)
 
-    def _transfer(self, image: FirmwareImage, region: Region) -> None:
+    def _transfer(self, image: FirmwareImage, region: Region, *, payload: bytes | None = None) -> None:
         session = self.diag._require()
         write_spec = self.spec.get("write", {})
         download = write_spec.get("request_download")
@@ -1102,7 +1181,8 @@ class ProgrammingService:
             session.request(list(download))
             self.diag._touch()
 
-        payload = self._upload_payload(image)
+        if payload is None:
+            payload = self._upload_payload(image)
         block = write_spec.get("chunk", write_spec.get("block", region.block))
         subfn = write_spec.get("block_subfn")
         sent = 0
@@ -1110,7 +1190,10 @@ class ProgrammingService:
         while sent < len(payload):
             chunk = payload[sent : sent + block]
             if subfn is None:
-                session.request([Service.TRANSFER_DATA, *chunk])
+                if self.profile.id == "5am":
+                    session.request([Service.TRANSFER_DATA, *chunk], force_long=True)
+                else:
+                    session.request([Service.TRANSFER_DATA, *chunk])
             else:
                 bank = (address >> 16) & 0xFF
                 session.request(
@@ -1122,13 +1205,16 @@ class ProgrammingService:
             self.diag._touch()
             self._emit("write", sent, len(payload), f"0x{address:06X}")
 
-    def _finalise(self, image: FirmwareImage, region: Region) -> None:
+    def _finalise(self, image: FirmwareImage, region: Region, *, checksum: int | None = None) -> None:
         session = self.diag._require()
         self._emit("program", 0, 1, "programming")
         # Transfer exit is a required state transition, not a capability
         # probe.  Swallowing a negative response here could make us run the
         # erase/program routine against an incomplete download.
-        session.request([Service.REQUEST_TRANSFER_EXIT])
+        if self.profile.id == "5am":
+            session.request([Service.REQUEST_TRANSFER_EXIT], force_long=True)
+        else:
+            session.request([Service.REQUEST_TRANSFER_EXIT])
         self.diag._touch()
 
         program = self.spec.get("write", {}).get("program")
@@ -1141,11 +1227,23 @@ class ProgrammingService:
                         f"no checksum form for upload encoding {encoding!r}"
                     )
                 # The ECU validates the plain image, decoded from the blob.
-                checksum = iaw5am_upload_checksum(image.data)
+                if checksum is None:
+                    checksum = iaw5am_upload_checksum(image.data)
                 payload += [checksum >> 8, checksum & 0xFF]
-            session.request(payload)
-            session.request(list(program["trigger"]))
-            self._wait(program.get("wait_s", 0))
+            if self.profile.id == "5am":
+                armed = session.request(payload, force_long=True)
+                if not armed.data.startswith(b"\x01"):
+                    raise ProtocolError("5AM program routine response mismatch")
+                # Upstream reports pending and says a final positive response
+                # is not established on all ECUs. Absence is uncertainty, not
+                # successful programming or permission to read back yet.
+                done = session.request(list(program["trigger"]), timeout=3.0, pending_timeout=120.0)
+                if done.data and not done.data.startswith(b"\x01"):
+                    raise ProtocolError("5AM program completion response mismatch")
+            else:
+                session.request(payload)
+                session.request(list(program["trigger"]))
+                self._wait(program.get("wait_s", 0))
             self.diag._touch()
 
         self._emit("program", 1, 1, "programmed")
@@ -1187,14 +1285,17 @@ class ProgrammingService:
             "Put the battery on a charger before retrying.",
         ]
         by_phase = {
-            "starting": ["Nothing was written. It is safe to retry."],
+            "starting": ["The erase was not yet requested; writer records may have changed."],
+            "failed_before_erase": ["The erase was not requested; writer records may have changed. Diagnose the failure before retrying."],
+            "erase_requested": ["The erase may have started even if no reply arrived. The ECU may not have a valid program."],
+            "failed_after_erase_requested": ["The erase may have started; the ECU may not have a valid program. Do not ride. Seek model-specific recovery assistance."],
             "erased": [
                 "The region was erased but not written. The ECU will not run.",
                 "Retry the write with the same image, or restore the backup.",
             ],
             "transferred": [
                 "Data was transferred but the programming step did not confirm.",
-                "Retry the write; the ECU should accept a repeat transfer.",
+                "Do not assume a repeat transfer is accepted; seek model-specific recovery assistance.",
             ],
             "verify_failed": [
                 "The ECU does not contain what was sent.",

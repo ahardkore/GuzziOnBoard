@@ -1441,6 +1441,24 @@ test('physical 5AM partial read warning is shown before reading', async ({ page 
   await expect(page.locator('#backupBtn')).toBeDisabled();
   await expect(page.locator('#baseMapSaveBtn')).toBeDisabled();
   await expect(page.locator('#readBtn')).toBeEnabled();
+  await expect(page.locator('#extra5amReadOption')).toBeVisible();
+  await expect(page.locator('#extra5amRead')).not.toBeChecked();
+  await page.locator('#extra5amRead').check();
+  const requests = [];
+  await page.route('**/api/memory/read', async route => {
+    requests.push(route.request().postDataJSON());
+    await route.fulfill({json:{}});
+  });
+  await page.evaluate(() => {
+    prepareEngineState = async () => true;
+    confirmDialog = async () => false;
+  });
+  await page.locator('#readBtn').click();
+  expect(requests).toHaveLength(0); // cancelling the warning never starts a read
+  await page.evaluate(() => { confirmDialog = async () => true; });
+  await page.locator('#readBtn').click();
+  await expect.poll(() => requests.length).toBe(1);
+  expect(requests[0]).toEqual({region:'flash', confirm_research_read:true, confirm_5am_read_key:true, attempt_5am_skipped_blocks:true});
 });
 
 test('desktop Power Vision log mapping requires an explicit cylinder AFR', async ({ page }) => {
@@ -2143,4 +2161,49 @@ test('Buell export preserves an edited path changed during confirmation', async 
   await expect(page.locator('#mapResearchPreviewOut')).toContainText('edited path changed during export and was preserved');
   await page.locator('[data-view="tools"]').click(); await expect(page.locator('#buellWriteEdited')).toHaveValue('/manual/selected.xpr');
   await expect(page.locator('#buellWriteExecute')).toBeDisabled(); expect(page.failures).toEqual([]);
+});
+
+test('5AM research read prepares one map review without replacing staged work', async ({page}) => {
+  await page.goto('/');
+  await page.locator('[data-view="firmware"]').click();
+  await page.evaluate(() => renderMemoryProgress({state:'done', name:'read:flash', result:{
+    path:'/synthetic/5am.bin', research_only:true,
+    describe:{ecu_id:'5am', meta:{extra_blocks_attempted:true}}
+  }}));
+  await expect(page.locator('#mapsImagePath')).toHaveValue('/synthetic/5am.bin');
+  await expect(page.locator('#mapsAddressBase')).toHaveValue('0x4000');
+  await expect(page.locator('#iaw5amHandoff')).toContainText('not a verified backup');
+  await expect(page.locator('#iaw5amHandoff')).toContainText('No 5AM physical write is enabled');
+  await page.evaluate(() => {
+    maps.changes.set('example', {value:1});
+    open5amResearchMap('/synthetic/other.bin', false);
+  });
+  await expect(page.locator('#mapsImagePath')).toHaveValue('/synthetic/5am.bin');
+  await expect(page.locator('#iaw5amHandoff')).toContainText('existing staged edits were preserved');
+});
+
+test('desktop equipment guide opens locally and retains affiliate disclosure and tags', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('body')).toHaveAttribute('data-desktop', '1');
+  await page.locator('[data-view="equipment"]').click();
+  const guide = page.locator('#equipment');
+  await expect(guide).toBeVisible();
+  await expect(guide).toContainText('As an Amazon Associate I earn from qualifying purchases.');
+  await expect(guide).toContainText('Moto Guzzi');
+  await expect(guide).toContainText('Harley-Davidson');
+  const links = await guide.locator('a[href*="amazon.com"]').all();
+  expect(links.length).toBeGreaterThan(20);
+  for (const link of links) {
+    const url = new URL(await link.getAttribute('href'));
+    expect(url.searchParams.get('tag')).toBe('hardkore26-20');
+    expect((await link.getAttribute('rel')).split(/\s+/)).toEqual(expect.arrayContaining(['sponsored', 'noopener', 'noreferrer']));
+  }
+  // Emulate the embedded-window bridge without launching a real browser.
+  await page.evaluate(() => {
+    window.gobDesktop.backend = 'window';
+    window.gobDesktop.openExternal = async (url) => { window.openedEquipmentUrl = url; return { ok: true }; };
+  });
+  await links[0].click();
+  await expect.poll(() => page.evaluate(() => window.openedEquipmentUrl)).toContain('tag=hardkore26-20');
+  expect(page.failures).toEqual([]);
 });

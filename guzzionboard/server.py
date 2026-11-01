@@ -939,7 +939,10 @@ class Api:
         def run(report):
             research = bool(prog.profile.memory.get("research_read_only"))
             image = prog.read_region(region, progress=report,
-                                     experimental_confirmation=body.get("confirm_research_read") is True)
+                                     experimental_confirmation=body.get("confirm_research_read") is True,
+                                     attempt_5am_skipped_blocks=body.get("attempt_5am_skipped_blocks") is True,
+                                     allow_unverified_key=(prog.profile.id == "5am" and prog.diag.transport.is_physical
+                                                           and body.get("confirm_5am_read_key") is True))
             research = research or image.source == "research-read"
             suffix = f"research-read-{secrets.token_hex(6)}" if research else "read"
             path = image.save(prog.image_dir / f"{prog.profile.id}-{region}-{suffix}.bin")

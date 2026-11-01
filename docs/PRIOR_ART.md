@@ -73,7 +73,7 @@ The catalog's 5AM write spec is `inferred` today ("the transcript only covers
 reads"). The source supplies the full sequence, byte for byte:
 
 ```
-10 85                     start diagnostic session (10400 baud)
+10 85 03                  start write diagnostic session (10400 baud)
 -- switch to 38400 --
 83 03 1E 02 0A 14 00      access timing parameters (P2/P3/P4)
 27 01 / 27 02 <key>       SecurityAccess (see 1.1)
@@ -91,16 +91,17 @@ reads"). The source supplies the full sequence, byte for byte:
 10 F1 33 01               execute program
 ```
 
-All of this from source address `0x01` (after `10 85`), consistent with what
-the transcript showed for reads.
+The write requests use tester address `0xF1`; only the SecurityAccess
+exchange uses `0x01`. The read path switches to `0x01`. The physical writer
+remains disabled: the reference drains erase-status messages without checking
+completion and GuzziOnBoard has no verified complete backup or recovery path.
 
 ### 1.3 The firmware "encryption"
 
 The uploaded image is not the plain dump. `encrypt_blob()` in `main.c`:
 
-- payload = image bytes `0x4000..0x4C008` (311 296 bytes — matches the flash
-  region in our catalog);
-- prepend the 8-byte magic `C2 07 16 33 6F EB B0 1D`;
+- payload = full-device file bytes `0x4000..0x50000` (311,296 bytes);
+- prepend the 8-byte magic `C2 07 16 33 6F EB B0 1D` (encoded upload is 311,304 bytes);
 - then per-byte transform with an 8-byte period (index `i = offset mod 8`):
 
 | i | add | rotate | invert |
@@ -115,9 +116,9 @@ The uploaded image is not the plain dump. `encrypt_blob()` in `main.c`:
 | 7 | 0x66−b | ror 4 | — |
 
 The program routine's argument is a `checksum16` (sum of bytes) over
-`image[0x4000 : 0x4000+0x4BFFE]`. **`guzzionboard/firmware.py` currently only
-*detects* encrypted containers; it has no encoder. A write feature for the 5AM
-needs this.**
+`image[0x4000 : 0x4000+0x4BFFE]`. GuzziOnBoard implements the encoder and
+checksum, tested against the source implementation and a simulator. This does
+not establish that a physical write can safely be completed or recovered.
 
 ### 1.4 Read-path details worth keeping
 
@@ -150,8 +151,11 @@ needs this.**
    `tests/test_firmware.py`), and the simulator ECU enforcing the documented
    sequence end to end (`tests/test_programming.py`).
 
-What remains is hardware: feed the key a real Guzzi-fit 5AM seed, then the
-bench write of item 5 in section 7.
+A later onboard-logger revision reports a real 5am_util write and provides a
+separate framed flasher with scripted trace-based tests; see the current 5AM
+section of `PROGRAMMING.md`. GuzziOnBoard still lacks an established complete
+backup, post-write reconnect/readback workflow and model-specific recovery;
+its physical 5AM writer remains disabled.
 
 ---
 

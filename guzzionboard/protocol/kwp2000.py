@@ -24,6 +24,8 @@ inserted after SRC and the low bits of FMT are zero.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
+import time
 from enum import IntEnum
 from typing import Callable, Iterable, Sequence
 
@@ -151,6 +153,7 @@ def encode_request(
     target: int = ECU_ADDRESS,
     source: int = TESTER_ADDRESS,
     addressed: bool = True,
+    force_long: bool = False,
 ) -> bytes:
     """Build a KWP2000 frame around ``payload`` (service id + parameters)."""
     if not payload:
@@ -160,14 +163,14 @@ def encode_request(
 
     body = bytearray()
     if addressed:
-        if len(payload) <= 63:
+        if len(payload) <= 63 and not force_long:
             body.append(0x80 | len(payload))
             body += bytes((target, source))
         else:
             body.append(0x80)
             body += bytes((target, source, len(payload)))
     else:
-        if len(payload) <= 63:
+        if len(payload) <= 63 and not force_long:
             body.append(len(payload))
         else:
             body += bytes((0x00, len(payload)))
@@ -429,7 +432,8 @@ class KWP2000Session:
                     "the required preconditions are not satisfied"
                 )
 
-    def request(self, payload: Sequence[int], *, timeout: float | None = None) -> Frame:
+    def request(self, payload: Sequence[int], *, timeout: float | None = None,
+                force_long: bool = False, pending_timeout: float | None = None) -> Frame:
         """Send one request and return the matching positive response.
 
         Raises :class:`NegativeResponse` for ``7F`` answers other than
@@ -441,18 +445,30 @@ class KWP2000Session:
         service = payload[0]
         self._check_guard(service)
 
+        if pending_timeout is not None and (not math.isfinite(pending_timeout) or pending_timeout <= 0):
+            raise ValueError("pending timeout must be finite and positive")
         raw = encode_request(
-            payload, target=self.target, source=self.source, addressed=self.addressed
+            payload, target=self.target, source=self.source, addressed=self.addressed,
+            force_long=force_long,
         )
         self._log("tx", raw)
         self.connection.write(raw)
 
-        deadline = timeout if timeout is not None else self.timing.request_timeout
-        for _ in range(self.max_pending_retries + 1):
-            data = self.connection.read_frame(deadline)
+        frame_timeout = timeout if timeout is not None else self.timing.request_timeout
+        end = time.monotonic() + pending_timeout if pending_timeout is not None else None
+        pending = 0
+        while True:
+            if end is not None:
+                remaining = end - time.monotonic()
+                if remaining <= 0:
+                    raise ProtocolError(f"service 0x{service:02X} responsePending timed out")
+                frame_wait = min(frame_timeout, remaining)
+            else:
+                frame_wait = frame_timeout
+            data = self.connection.read_frame(frame_wait)
             if not data:
                 raise ProtocolError(
-                    f"no response to service 0x{service:02X} within {deadline:.3f}s"
+                    f"no response to service 0x{service:02X} within {frame_wait:.3f}s"
                 )
             self._log("rx", bytes(data))
             frame = decode_frame(data)
@@ -471,7 +487,13 @@ class KWP2000Session:
                 if len(frame.payload) != 3 or frame.payload[1] != service:
                     raise ProtocolError("negative response does not match the request")
                 if frame.nrc == RESPONSE_PENDING:
-                    continue  # ECU asked for more time
+                    pending += 1
+                    if end is None and pending > self.max_pending_retries:
+                        raise ProtocolError(
+                            f"service 0x{service:02X} stayed in responsePending after "
+                            f"{self.max_pending_retries} retries"
+                        )
+                    continue  # ECU asked for more time, never retransmit
                 raise NegativeResponse(frame.payload[1], frame.nrc or 0)
             if frame.service != (service | 0x40):
                 raise ProtocolError(
@@ -479,10 +501,6 @@ class KWP2000Session:
                     f"request 0x{service:02X}"
                 )
             return frame
-        raise ProtocolError(
-            f"service 0x{service:02X} stayed in responsePending after "
-            f"{self.max_pending_retries} retries"
-        )
 
     def try_request(self, payload: Sequence[int], **kw) -> Frame | None:
         """Like :meth:`request` but returns ``None`` on a negative response.

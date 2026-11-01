@@ -288,10 +288,11 @@ def archive_app(app: Path, version: str) -> Path:
     """Zip a macOS .app bundle without flattening its framework links."""
     target = app.parent / f"{DIST_NAME}-{version}-{platform_tag()}.zip"
     print(f"  macOS bundle archive: {target}")
-    command = (["ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", str(app), str(target)]
-               if shutil.which("ditto") else
-               ["zip", "-q", "-r", "-y", str(target), app.name])
-    if run(command) != 0:
+    if shutil.which("ditto"):
+        code = run(["ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", str(app), str(target)])
+    else:
+        code = run(["zip", "-q", "-r", "-y", str(target.resolve()), app.name], cwd=app.parent)
+    if code != 0:
         raise SystemExit("could not archive the macOS bundle")
     return target
 

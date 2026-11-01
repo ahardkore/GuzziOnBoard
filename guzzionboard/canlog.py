@@ -652,7 +652,7 @@ def summarize_payload_bytes(frames: list[CanFrame], limit: int = 100) -> dict:
             byte["maximum"] = max(byte["maximum"], value)
             byte["previous"] = value
     result = []
-    for (ident, extended, direction), group in sorted(groups.items(), key=lambda item: (-item[1]["frames"], item[0]))[:limit]:
+    for _key, group in sorted(groups.items(), key=lambda item: (-item[1]["frames"], item[0]))[:limit]:
         group["lengths"] = sorted(group["lengths"])
         group["bytes"] = [{k: v for k, v in byte.items() if k != "previous"} for byte in group["bytes"] if byte]
         result.append(group)

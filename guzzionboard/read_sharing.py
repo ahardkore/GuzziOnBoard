@@ -13,7 +13,6 @@ import os
 import threading
 import urllib.error
 import urllib.request
-from pathlib import Path
 
 from . import confirmations, protocol_updates, resources
 

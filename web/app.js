@@ -189,6 +189,7 @@ function show(view) {
   if (view === 'overview') renderOverview();
   if (view === 'simulator') loadSim();
   if (view === 'procedures') loadProcedures();
+  if (view === 'tools') loadTools();
 }
 
 $$('.nav').forEach((b) => (b.onclick = () => show(b.dataset.view)));
@@ -1605,6 +1606,11 @@ async function prepareAndStartPolling() {
   startPolling();
 }
 
+function getPollIntervalMs() {
+  const n = Number(Prefs.get('pollIntervalMs', '250'));
+  return Number.isFinite(n) && n >= 100 && n <= 5000 ? Math.round(n) : 250;
+}
+
 function startPolling() {
   if (state.polling) return;
   state.polling = true;
@@ -1615,7 +1621,7 @@ function startPolling() {
   const loop = async () => {
     if (!state.polling || state.plotRun !== run) return;
     await pollOnce();
-    if (state.polling && state.plotRun === run) state.pollTimer = setTimeout(loop, 250);
+    if (state.polling && state.plotRun === run) state.pollTimer = setTimeout(loop, getPollIntervalMs());
   };
   loop();
 }
@@ -1966,7 +1972,7 @@ function setupDesktopRow() {
   const row = document.createElement('div');
   row.className = 'desktop-row';
   row.innerHTML = `
-    <div class="muted small">Desktop app &middot; files in <code>${esc(host.exports)}</code></div>
+    <div class="muted small">Desktop app &middot; files in <code id="deskExportPathCode">${esc(host.exports)}</code></div>
     <div class="toolbar">
       <button class="btn small" id="deskExportsBtn">Open exports</button>
       <button class="btn small" id="deskDataBtn">Data folder</button>
@@ -2041,6 +2047,12 @@ async function exportSessionCsv(name) {
 
 /* Everything polled since the page was opened, as CSV. Same shape as the
  * server-side export, so the two files can sit in the same spreadsheet. */
+function csvEscapeCell(val) {
+  const s = val === null || val === undefined ? '' : String(val);
+  if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
 function exportLiveCsv() {
   const log = state.liveLog;
   if (!log.length) return toast('Nothing polled yet.', 'warn');
@@ -2054,13 +2066,13 @@ function exportLiveCsv() {
   }));
   const t0 = log[0].t;
   const lines = [
-    ['time_unix', 'elapsed_s', ...keys, ...keys.map((k) => `${k}_raw`)].join(','),
-    ['', 's', ...keys.map((k) => units[k]), ...keys.map(() => 'bytes')].join(','),
+    ['time_unix', 'elapsed_s', ...keys, ...keys.map((k) => `${k}_raw`)].map(csvEscapeCell).join(','),
+    ['', 's', ...keys.map((k) => units[k]), ...keys.map(() => 'bytes')].map(csvEscapeCell).join(','),
     ...log.map((row) => [
       row.t.toFixed(4), (row.t - t0).toFixed(3),
       ...keys.map((k) => (row.values[k]?.value ?? '')),
       ...keys.map((k) => (row.values[k]?.raw ?? '')),
-    ].join(',')),
+    ].map(csvEscapeCell).join(',')),
   ];
   download(`guzzionboard-live-${Date.now()}.csv`, lines.join('\n'), 'text/csv');
   toast(`${log.length} sweeps exported.`, 'ok');
@@ -3582,7 +3594,7 @@ function mapVisualizationHtml(table, matrix, min, max) {
   if (rows === 1 || cols === 1) {
     const points = matrix.flatMap((row, r) => row.map((value, c) => project(r, c, Number(value))))
       .map((point) => point.map((value) => value.toFixed(1)).join(',')).join(' ');
-    surface = `<polyline points="${points}" fill="none" stroke="var(--cyan)" stroke-width="3"/>`;
+    surface = `<polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="3"/>`;
   }
   return `<div class="map-viz-grid" data-map-viz-id="${esc(table.id)}">
     <figure class="map-viz"><figcaption>2D row profiles · ${esc(table.units || 'value')}</figcaption>
@@ -4437,7 +4449,7 @@ function drawMapLogOverlay(report) {
 }
 
 function tuningTipsHtml(render) {
-  const family = String(render.xdf?.title || '').match(/\\b(15M|15P|15RC|16M|5AM|59M|7SM|MIUG3|11MP|MBC1)\\b/i)?.[1]?.toUpperCase() || 'this ECU';
+  const family = String(render.xdf?.title || '').match(/\b(15M|15P|15RC|16M|5AM|59M|7SM|MIUG3|11MP|MBC1)\b/i)?.[1]?.toUpperCase() || 'this ECU';
   const names = (render.tables || []).map((t) => `${t.title} ${t.category || ''}`.toLowerCase());
   const has = (...words) => names.some((name) => words.some((word) => name.includes(word)));
   const tips = [];
@@ -5554,13 +5566,6 @@ $('#compareBtn').onclick = async () => {
 
 let toolsInit = false;
 
-$$('.nav').forEach((b) => {
-  if (b.dataset.view === 'tools') {
-    const previous = b.onclick;
-    b.onclick = () => { previous?.(); loadTools(); };
-  }
-});
-
 async function loadTools() {
   if (toolsInit) return;
   toolsInit = true;
@@ -5650,12 +5655,9 @@ $('#z2ConvertBtn').onclick = async () => {
 };
 
 $('#z2DownloadBtn').onclick = () => {
-  const blob = new Blob([state.z2dif || $('#z2Out').value], { type: 'text/plain' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'zt2-converted.dif';
-  a.click();
-  URL.revokeObjectURL(a.href);
+  const content = state.z2dif || $('#z2Out').value;
+  if (!content) return toast('Convert a ZDL export first.', 'warn');
+  download('zt2-converted.dif', content, 'text/plain');
 };
 
 $('#z2CopyBtn').onclick = async () => {
@@ -5713,3 +5715,1007 @@ $('#sigBatchBtn').onclick = async () => {
     await generateSignal(body);
   } catch (err) { toast(err.message, 'bad'); }
 };
+
+/* =====================================================================
+ * Top Application Menu (File + Quick Settings), Theme & Preferences,
+ * Save/Load Location Presets, and Section Organizers
+ * ===================================================================== */
+{
+  const FALLBACK_PREFS = () => ({
+    schema: 'guzzionboard.preferences/v1',
+    theme: Prefs.get('theme', 'dark') || 'dark',
+    layout_density: Prefs.get('layoutDensity', 'comfortable') === 'compact' ? 'compact' : 'comfortable',
+    temp_unit: Temp.unit(),
+    poll_interval_ms: getPollIntervalMs(),
+    confirm_before_exit: Prefs.get('confirmBeforeExit', 'true') !== 'false',
+    default_session_mode: Prefs.get('defaultSessionMode', 'simulator') === 'hardware' ? 'hardware' : 'simulator',
+    save_presets: [
+      { id: 'exports', name: 'Default Exports', path: window.gobDesktop?.exports || '~/Downloads', description: 'Primary folder for exported CSVs, reports, and project files.', builtin: true },
+      { id: 'reports', name: 'Service Reports', path: '~/.guzzionboard/reports', description: 'Diagnostic and service report snapshots.', builtin: true },
+      { id: 'images', name: 'ECU Images & Backups', path: '~/.guzzionboard/images', description: 'Workstation ECU binary reads and tuned calibration outputs.', builtin: true },
+      { id: 'sessions', name: 'Session Captures', path: '~/.guzzionboard/sessions', description: 'Recorded diagnostic sweeps and exported telemetry logs.', builtin: true },
+    ],
+    active_save_preset: Prefs.get('activeSavePreset', 'exports') || 'exports',
+    load_presets: [
+      { id: 'images', name: 'ECU Images & BINs', path: '~/.guzzionboard/images', kind: 'images', description: 'Saved ECU flash/EEPROM dumps and candidate calibration files.', builtin: true },
+      { id: 'basemaps', name: 'Protected Base Maps', path: '~/.guzzionboard/basemaps', kind: 'basemaps', description: 'Verified two-pass stock base map backups.', builtin: true },
+      { id: 'xdfs', name: 'Custom XDF Definitions', path: '~/.guzzionboard/xdfs', kind: 'xdfs', description: 'User-supplied TunerPro .xdf definition files.', builtin: true },
+      { id: 'sessions', name: 'Session & Bus Logs', path: '~/.guzzionboard/sessions', kind: 'logs', description: 'Recorded session logs, CAN captures, and K-Line traces.', builtin: true },
+      { id: 'downloads', name: 'Downloads / Exports', path: window.gobDesktop?.exports || '~/Downloads', kind: 'any', description: 'Downloaded images, logs, manuals, and map projects.', builtin: true },
+    ],
+    active_load_preset: Prefs.get('activeLoadPreset', 'images') || 'images',
+  });
+
+  let wsPrefs = FALLBACK_PREFS();
+  let editingSaveId = null;
+  let editingLoadId = null;
+  const systemDarkMedia = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+
+  function resolveEffectiveTheme(mode) {
+    if (mode === 'light') return 'light';
+    if (mode === 'system') return systemDarkMedia && systemDarkMedia.matches ? 'light' : 'dark';
+    return 'dark';
+  }
+
+  function applyTheme(mode, { persistLocal = true } = {}) {
+    const validMode = ['dark', 'light', 'system'].includes(mode) ? mode : 'dark';
+    wsPrefs.theme = validMode;
+    if (persistLocal) Prefs.set('theme', validMode);
+    const effective = resolveEffectiveTheme(validMode);
+    document.documentElement.dataset.theme = effective;
+    document.documentElement.dataset.themeMode = validMode;
+    const label = $('#menubarThemeLabel');
+    if (label) {
+      label.textContent = validMode === 'system'
+        ? `Auto (${effective === 'light' ? 'Light' : 'Dark'})`
+        : `${effective === 'light' ? 'Light' : 'Dark'} mode`;
+    }
+    $$('[data-qs-theme]').forEach((btn) => btn.classList.toggle('active', btn.dataset.qsTheme === validMode));
+    const radio = document.querySelector(`input[name="prefThemeRadio"][value="${validMode}"]`);
+    if (radio) radio.checked = true;
+  }
+
+  function applyDensity(density, { persistLocal = true } = {}) {
+    const val = density === 'compact' ? 'compact' : 'comfortable';
+    wsPrefs.layout_density = val;
+    document.body.dataset.density = val;
+    if ($('#layoutDensity')) $('#layoutDensity').value = val;
+    if ($('#prefDensitySelect')) $('#prefDensitySelect').value = val;
+    if (persistLocal) Prefs.set('layoutDensity', val);
+    $$('[data-qs-density]').forEach((btn) => btn.classList.toggle('active', btn.dataset.qsDensity === val));
+  }
+
+  function applyTempUnit(unit, { persistLocal = true, notify = false } = {}) {
+    const val = unit === 'F' ? 'F' : 'C';
+    wsPrefs.temp_unit = val;
+    if (persistLocal) Temp.setUnit(val);
+    if ($('#tempUnit')) $('#tempUnit').value = val;
+    if ($('#prefTempSelect')) $('#prefTempSelect').value = val;
+    $$('[data-qs-temp]').forEach((btn) => btn.classList.toggle('active', btn.dataset.qsTemp === val));
+    if (state.lastSamples.length) renderLive(state.lastSamples);
+    if (!$('#live')?.classList.contains('hidden')) renderLivePlot();
+    if (state.lastAnalysis) renderAnalysis(state.lastAnalysis.derived, state.lastAnalysis.findings);
+    if (notify) toast(`Temperatures shown in ${val === 'F' ? 'Fahrenheit' : 'Celsius'}.`, 'ok');
+  }
+
+  function applyPollInterval(ms, { persistLocal = true } = {}) {
+    const parsed = Number(ms);
+    const val = Number.isFinite(parsed) && parsed >= 100 && parsed <= 5000 ? Math.round(parsed) : 250;
+    wsPrefs.poll_interval_ms = val;
+    if (persistLocal) Prefs.set('pollIntervalMs', String(val));
+    if ($('#qsPollInterval')) $('#qsPollInterval').value = String(val);
+    if ($('#prefPollIntervalSelect')) $('#prefPollIntervalSelect').value = String(val);
+  }
+
+  function activeSavePresetObj() {
+    return (wsPrefs.save_presets || []).find((p) => p.id === wsPrefs.active_save_preset) || wsPrefs.save_presets?.[0] || null;
+  }
+
+  function activeLoadPresetObj() {
+    return (wsPrefs.load_presets || []).find((p) => p.id === wsPrefs.active_load_preset) || wsPrefs.load_presets?.[0] || null;
+  }
+
+  function syncPresetSelectorsUI() {
+    const saveP = activeSavePresetObj();
+    const loadP = activeLoadPresetObj();
+    if ($('#qsSavePreset')) {
+      $('#qsSavePreset').innerHTML = (wsPrefs.save_presets || [])
+        .map((p) => `<option value="${esc(p.id)}">${esc(p.name)} (${esc(p.path)})</option>`).join('');
+      if (saveP) $('#qsSavePreset').value = saveP.id;
+    }
+    if ($('#qsLoadPreset')) {
+      $('#qsLoadPreset').innerHTML = (wsPrefs.load_presets || [])
+        .map((p) => `<option value="${esc(p.id)}">${esc(p.name)} (${esc(p.path)})</option>`).join('');
+      if (loadP) $('#qsLoadPreset').value = loadP.id;
+    }
+    if ($('#fileSavePresetHint') && saveP) $('#fileSavePresetHint').textContent = saveP.name;
+    if ($('#fileLoadPresetHint') && loadP) $('#fileLoadPresetHint').textContent = loadP.name;
+    if ($('#menubarPresetText')) {
+      $('#menubarPresetText').textContent = `Save: ${saveP ? saveP.name : 'Exports'} · Load: ${loadP ? loadP.name : 'Images'}`;
+    }
+    if (saveP && window.gobDesktop?.available) {
+      window.gobDesktop.exports = saveP.path;
+      const code = $('#deskExportPathCode');
+      if (code) code.textContent = saveP.path;
+    }
+    renderPresetsLists();
+  }
+
+  async function persistPreferencesToBackend(patch) {
+    try {
+      const updated = await api('/api/preferences', { method: 'POST', body: patch });
+      if (updated && Array.isArray(updated.save_presets)) wsPrefs.save_presets = updated.save_presets;
+      if (updated && Array.isArray(updated.load_presets)) wsPrefs.load_presets = updated.load_presets;
+      if (updated?.active_save_preset) {
+        wsPrefs.active_save_preset = updated.active_save_preset;
+        Prefs.set('activeSavePreset', updated.active_save_preset);
+      }
+      if (updated?.active_load_preset) {
+        wsPrefs.active_load_preset = updated.active_load_preset;
+        Prefs.set('activeLoadPreset', updated.active_load_preset);
+      }
+      syncPresetSelectorsUI();
+      return updated;
+    } catch (err) {
+      toast(`Could not save preferences: ${err.message}`, 'bad');
+      throw err;
+    }
+  }
+
+  // Apply saved visual theme & polling immediately before network settles.
+  applyTheme(Prefs.get('theme', 'dark') || 'dark', { persistLocal: false });
+  applyDensity($('#layoutDensity')?.value || 'comfortable', { persistLocal: false });
+  applyTempUnit(Temp.unit(), { persistLocal: false });
+  applyPollInterval(getPollIntervalMs(), { persistLocal: false });
+  syncPresetSelectorsUI();
+
+  if (systemDarkMedia?.addEventListener) {
+    systemDarkMedia.addEventListener('change', () => {
+      if (wsPrefs.theme === 'system') applyTheme('system', { persistLocal: false });
+    });
+  }
+
+  // Keep existing topbar selects synchronized with Quick Settings & Preferences.
+  $('#layoutDensity')?.addEventListener('change', () => {
+    applyDensity($('#layoutDensity').value, { persistLocal: true });
+    void api('/api/preferences', { method: 'POST', body: { layout_density: wsPrefs.layout_density } }).catch(() => {});
+  });
+  $('#tempUnit')?.addEventListener('change', () => {
+    applyTempUnit($('#tempUnit').value, { persistLocal: false });
+    void api('/api/preferences', { method: 'POST', body: { temp_unit: wsPrefs.temp_unit } }).catch(() => {});
+  });
+
+  if (window.gobDesktop?.available) {
+    $('#fileOpenExports')?.classList.remove('hidden');
+    $('#fileOpenData')?.classList.remove('hidden');
+  }
+
+  /* --------------------------------------------------- dropdown menus */
+  const fileBtn = $('#fileMenuBtn'), fileMenu = $('#fileMenu');
+  const qsBtn = $('#quickSettingsBtn'), qsMenu = $('#quickSettingsMenu');
+
+  function closeMenus() {
+    if (fileMenu && !fileMenu.hidden) {
+      fileMenu.hidden = true;
+      fileBtn?.setAttribute('aria-expanded', 'false');
+    }
+    if (qsMenu && !qsMenu.hidden) {
+      qsMenu.hidden = true;
+      qsBtn?.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function toggleMenu(btn, menu) {
+    if (!btn || !menu) return;
+    const opening = menu.hidden;
+    closeMenus();
+    if (opening) {
+      menu.hidden = false;
+      btn.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  fileBtn?.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    toggleMenu(fileBtn, fileMenu);
+  });
+  qsBtn?.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    toggleMenu(qsBtn, qsMenu);
+  });
+
+  document.addEventListener('click', (ev) => {
+    if (!$('#appMenubar')?.contains(ev.target)) closeMenus();
+  });
+
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      closeMenus();
+      if (!$('#presetBrowserModal')?.classList.contains('hidden')) {
+        closePresetBrowser();
+        return;
+      }
+      if (!$('#prefsModal')?.classList.contains('hidden')) {
+        closePreferencesModal();
+      }
+    }
+    if ((ev.ctrlKey || ev.metaKey) && ev.key === ',') {
+      ev.preventDefault();
+      closeMenus();
+      openPreferencesModal();
+    }
+    if (ev.altKey && (ev.key === 'q' || ev.key === 'Q')) {
+      ev.preventDefault();
+      closeMenus();
+      void exitApplication();
+    }
+  });
+
+  /* ------------------------------------------- Quick Settings actions */
+  $$('[data-qs-theme]').forEach((btn) => {
+    btn.onclick = () => {
+      applyTheme(btn.dataset.qsTheme);
+      void api('/api/preferences', { method: 'POST', body: { theme: wsPrefs.theme } }).catch(() => {});
+    };
+  });
+  $$('[data-qs-density]').forEach((btn) => {
+    btn.onclick = () => {
+      applyDensity(btn.dataset.qsDensity);
+      void api('/api/preferences', { method: 'POST', body: { layout_density: wsPrefs.layout_density } }).catch(() => {});
+    };
+  });
+  $$('[data-qs-temp]').forEach((btn) => {
+    btn.onclick = () => {
+      applyTempUnit(btn.dataset.qsTemp, { notify: true });
+      void api('/api/preferences', { method: 'POST', body: { temp_unit: wsPrefs.temp_unit } }).catch(() => {});
+    };
+  });
+  $('#qsPollInterval')?.addEventListener('change', (ev) => {
+    applyPollInterval(ev.target.value);
+    void api('/api/preferences', { method: 'POST', body: { poll_interval_ms: wsPrefs.poll_interval_ms } }).catch(() => {});
+    toast(`Live polling cadence set to ${wsPrefs.poll_interval_ms} ms.`, 'ok');
+  });
+  $('#qsSavePreset')?.addEventListener('change', async (ev) => {
+    wsPrefs.active_save_preset = ev.target.value;
+    Prefs.set('activeSavePreset', wsPrefs.active_save_preset);
+    await persistPreferencesToBackend({ active_save_preset: wsPrefs.active_save_preset });
+    const p = activeSavePresetObj();
+    if (p) toast(`Active save location: ${p.name} (${p.path})`, 'ok');
+  });
+  $('#qsLoadPreset')?.addEventListener('change', async (ev) => {
+    wsPrefs.active_load_preset = ev.target.value;
+    Prefs.set('activeLoadPreset', wsPrefs.active_load_preset);
+    await persistPreferencesToBackend({ active_load_preset: wsPrefs.active_load_preset });
+    const p = activeLoadPresetObj();
+    if (p) toast(`Active load location: ${p.name} (${p.path})`, 'ok');
+  });
+  $('#openPreferencesBtn')?.addEventListener('click', () => {
+    closeMenus();
+    openPreferencesModal('appearance');
+  });
+  $('#menubarThemeToggle')?.addEventListener('click', () => {
+    const next = resolveEffectiveTheme(wsPrefs.theme) === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+    void api('/api/preferences', { method: 'POST', body: { theme: next } }).catch(() => {});
+  });
+  $('#menubarPresetSummary')?.addEventListener('click', () => {
+    closeMenus();
+    openPreferencesModal('save-presets');
+  });
+
+  /* ------------------------------------------- File menu actions */
+  function insertPresetPathIntoInput(selector, presetPath) {
+    const input = $(selector);
+    if (!input || !presetPath) return;
+    const base = presetPath.replace(/[/\\]+$/, '');
+    const current = input.value.trim();
+    const existingLeaf = current && !current.endsWith('/') && !current.endsWith('\\')
+      ? current.split(/[/\\]/).pop()
+      : '';
+    input.value = existingLeaf && /\.[a-z0-9]{2,5}$/i.test(existingLeaf)
+      ? `${base}/${existingLeaf}`
+      : `${base}/`;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.focus();
+  }
+
+  $$('.preset-fill-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const p = activeLoadPresetObj();
+      if (!p) return toast('No active Load Location Preset configured.', 'warn');
+      insertPresetPathIntoInput(btn.dataset.presetTarget, p.path);
+      toast(`Applied load preset “${p.name}”. Complete or select the filename.`, 'ok');
+    });
+  });
+
+  $('#mapsBrowsePresetBtn')?.addEventListener('click', () => openPresetBrowser());
+
+  $('#fileBrowseLoadPreset')?.addEventListener('click', () => {
+    closeMenus();
+    openPresetBrowser();
+  });
+
+  $('#fileApplyLoadPreset')?.addEventListener('click', () => {
+    closeMenus();
+    show('firmware');
+    setFirmwareFilter('all');
+    const p = activeLoadPresetObj();
+    if (p) insertPresetPathIntoInput('#mapsImagePath', p.path);
+    $('#mapsCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (p) toast(`Inserted Load Preset “${p.name}” into Maps image path.`, 'ok');
+  });
+
+  $('#fileLoadProject')?.addEventListener('click', () => {
+    closeMenus();
+    show('firmware');
+    setFirmwareFilter('all');
+    $('#mapBuilder')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    $('#mapProjectFile')?.click();
+  });
+
+  $('#fileLoadCsvLog')?.addEventListener('click', () => {
+    closeMenus();
+    show('firmware');
+    setFirmwareFilter('all');
+    const details = document.querySelector('.map-log-tools');
+    if (details) details.open = true;
+    details?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    $('#mapLogFile')?.click();
+  });
+
+  $('#fileLoadManual')?.addEventListener('click', () => {
+    closeMenus();
+    show('tools');
+    setToolsFilter('all', '');
+    $('#workshopManual')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    $('#manualTextFile')?.click();
+  });
+
+  $('#fileLoadDtcRef')?.addEventListener('click', () => {
+    closeMenus();
+    show('faults');
+    $('#harleyCodeReference')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    $('#harleyCodeFile')?.click();
+  });
+
+  async function ensureReportReady() {
+    if (!state.report) {
+      state.report = await api(`/api/report?temp_unit=${Temp.unit()}`);
+      if ($('#reportText')) $('#reportText').textContent = state.report.text;
+      if ($('#downloadReportBtn')) $('#downloadReportBtn').disabled = false;
+      if ($('#downloadJsonBtn')) $('#downloadJsonBtn').disabled = false;
+    }
+    return state.report;
+  }
+
+  $('#fileSaveToPreset')?.addEventListener('click', async () => {
+    closeMenus();
+    try {
+      const rep = await ensureReportReady();
+      const saved = await api('/api/preferences/save-file', {
+        method: 'POST',
+        body: {
+          name: `guzzionboard-report-${Date.now()}.txt`,
+          content: rep.text,
+          preset_id: wsPrefs.active_save_preset,
+        },
+      });
+      toast(`Saved ${saved.name} to ${saved.preset_name} (${saved.dir})`, 'ok');
+    } catch (err) {
+      toast(`Could not save report to preset: ${err.message}`, 'bad');
+    }
+  });
+
+  $('#fileSaveProject')?.addEventListener('click', () => {
+    closeMenus();
+    if (!maps.render) {
+      show('firmware');
+      toast('Render an ECU map in Maps & tables first to export a project.', 'warn');
+      return;
+    }
+    $('#mapExportProjectBtn')?.click();
+  });
+
+  $('#fileExportLiveCsv')?.addEventListener('click', () => {
+    closeMenus();
+    exportLiveCsv();
+  });
+
+  $('#fileSaveReportTxt')?.addEventListener('click', async () => {
+    closeMenus();
+    try {
+      const rep = await ensureReportReady();
+      download(`guzzionboard-report-${Date.now()}.txt`, rep.text, 'text/plain');
+    } catch (err) { toast(err.message, 'bad'); }
+  });
+
+  $('#fileSaveReportJson')?.addEventListener('click', async () => {
+    closeMenus();
+    try {
+      const rep = await ensureReportReady();
+      download(`guzzionboard-report-${Date.now()}.json`, JSON.stringify(rep.report, null, 2), 'application/json');
+    } catch (err) { toast(err.message, 'bad'); }
+  });
+
+  $('#filePrintView')?.addEventListener('click', () => {
+    closeMenus();
+    printView();
+  });
+
+  $('#fileOpenExports')?.addEventListener('click', () => {
+    closeMenus();
+    window.gobDesktop?.openFolder('exports')
+      .then((r) => toast(r.note || `Opened ${r.path}`, r.ok ? 'ok' : 'warn'))
+      .catch((err) => toast(err.message, 'bad'));
+  });
+
+  $('#fileOpenData')?.addEventListener('click', () => {
+    closeMenus();
+    window.gobDesktop?.openFolder('data')
+      .then((r) => toast(r.note || `Opened ${r.path}`, r.ok ? 'ok' : 'warn'))
+      .catch((err) => toast(err.message, 'bad'));
+  });
+
+  $('#fileOpenPrefs')?.addEventListener('click', () => {
+    closeMenus();
+    openPreferencesModal('appearance');
+  });
+
+  async function exitApplication() {
+    if (wsPrefs.confirm_before_exit) {
+      const confirmed = await confirmDialog(
+        'Exit GuzziOnBoard?',
+        '<p>Disconnect any active motorcycle or simulator session, stop live polling, and exit GuzziOnBoard?</p>',
+        'Exit Application',
+        { tone: 'danger' },
+      );
+      if (!confirmed) return;
+    }
+    stopPolling();
+    if (state.connected) {
+      try {
+        await api('/api/disconnect', { method: 'POST', body: {} });
+        await refreshStatus();
+      } catch (_) { /* best-effort disconnect before exit */ }
+    }
+    if (window.gobDesktop?.available) {
+      try {
+        const res = await window.gobDesktop.quit();
+        if (!res.ok) {
+          toast(res.note || 'Cannot exit while an operation is active.', 'warn');
+          return;
+        }
+        $('#appExitedDetail').textContent = res.note || 'The desktop workstation is shutting down.';
+        $('#appExitedOverlay')?.classList.remove('hidden');
+      } catch (err) {
+        toast(`Could not exit desktop host: ${err.message}`, 'bad');
+      }
+      return;
+    }
+    $('#appExitedOverlay')?.classList.remove('hidden');
+  }
+
+  $('#fileExitApp')?.addEventListener('click', () => {
+    closeMenus();
+    void exitApplication();
+  });
+
+  $('#appResumeBtn')?.addEventListener('click', () => {
+    $('#appExitedOverlay')?.classList.add('hidden');
+    toast('Workstation session resumed.', 'ok');
+  });
+
+  /* ------------------------------------------- Section Organizers */
+  let activeToolCat = 'all';
+  function setToolsFilter(category = activeToolCat, query = $('#toolsSearchInput')?.value || '') {
+    activeToolCat = category;
+    const needle = query.trim().toLowerCase();
+    if ($('#toolsSearchInput') && $('#toolsSearchInput').value !== query) $('#toolsSearchInput').value = query;
+    $('#toolsSearchClear')?.classList.toggle('hidden', !needle && category === 'all');
+    $$('#toolsOrganizer [data-tool-filter]').forEach((btn) => {
+      const on = btn.dataset.toolFilter === category;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    const panels = $$('#tools > article.panel[data-tool-cat]');
+    let shown = 0;
+    panels.forEach((panel) => {
+      const catMatch = category === 'all' || panel.dataset.toolCat === category;
+      const textMatch = !needle || panel.textContent.toLowerCase().includes(needle);
+      const visible = catMatch && textMatch;
+      panel.classList.toggle('hidden', !visible);
+      if (visible) shown += 1;
+    });
+    if ($('#toolsCountBadge')) $('#toolsCountBadge').textContent = `${shown} of ${panels.length} tools`;
+    $('#toolsEmptyNote')?.classList.toggle('hidden', shown > 0);
+  }
+
+  $$('#toolsOrganizer [data-tool-filter]').forEach((btn) => {
+    btn.addEventListener('click', () => setToolsFilter(btn.dataset.toolFilter));
+  });
+  $('#toolsSearchInput')?.addEventListener('input', (ev) => setToolsFilter(activeToolCat, ev.target.value));
+  $('#toolsSearchClear')?.addEventListener('click', () => setToolsFilter('all', ''));
+  setToolsFilter('all', '');
+
+  function setFirmwareFilter(category = 'all') {
+    $$('#firmwareOrganizer [data-fw-filter]').forEach((btn) => {
+      const on = btn.dataset.fwFilter === category;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    $$('#firmware > article.panel[data-fw-cat]').forEach((panel) => {
+      if (panel.id === 'securityPanel' && isHostedDemo()) return;
+      const visible = category === 'all' || panel.dataset.fwCat === category;
+      panel.classList.toggle('hidden', !visible);
+    });
+  }
+
+  $$('#firmwareOrganizer [data-fw-filter]').forEach((btn) => {
+    btn.addEventListener('click', () => setFirmwareFilter(btn.dataset.fwFilter));
+  });
+  $$('#firmwareOrganizer [data-fw-jump]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      setFirmwareFilter('all');
+      const target = $(btn.dataset.fwJump);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  /* ------------------------------------------- Preset Folder Browser */
+  function closePresetBrowser() {
+    $('#presetBrowserModal')?.classList.add('hidden');
+  }
+
+  async function refreshPresetBrowserList(presetId) {
+    const select = $('#presetBrowserSelect');
+    const chosenId = presetId || select?.value || wsPrefs.active_load_preset;
+    if (select) {
+      select.innerHTML = (wsPrefs.load_presets || [])
+        .map((p) => `<option value="${esc(p.id)}">${esc(p.name)} (${esc(p.kind || 'any')})</option>`).join('');
+      if (chosenId) select.value = chosenId;
+    }
+    const listEl = $('#presetBrowserFiles');
+    const noteEl = $('#presetBrowserPathNote');
+    if (listEl) listEl.innerHTML = '<p class="muted small">Reading folder entries…</p>';
+    try {
+      const res = await api(`/api/preferences/browse?scope=load&preset_id=${encodeURIComponent(chosenId)}`);
+      if (noteEl) {
+        noteEl.innerHTML = `Directory: <code>${esc(res.path)}</code> ${res.exists ? '' : '· <b>folder not created yet</b>'}`;
+      }
+      if (!listEl) return;
+      if (!res.files || !res.files.length) {
+        listEl.innerHTML = '<p class="muted small">No files found in this preset directory yet. You can still insert its folder path into Maps or Memory tools.</p>';
+        return;
+      }
+      listEl.innerHTML = res.files.map((f) => `
+        <div class="preset-file-row">
+          <div class="preset-meta">
+            <strong>${esc(f.name)}</strong>
+            <code>${esc(f.path)} · ${(Number(f.size || 0) / 1024).toFixed(1)} KiB</code>
+          </div>
+          <div class="preset-actions">
+            <button type="button" class="btn small primary" data-use-preset-file="maps" data-file-path="${esc(f.path)}">Use in Maps</button>
+            <button type="button" class="btn small" data-use-preset-file="validate" data-file-path="${esc(f.path)}">Validate</button>
+            <button type="button" class="btn small" data-use-preset-file="canlog" data-file-path="${esc(f.path)}">CAN Log</button>
+          </div>
+        </div>`).join('');
+      listEl.querySelectorAll('[data-use-preset-file]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const path = btn.dataset.filePath;
+          const dest = btn.dataset.usePresetFile;
+          closePresetBrowser();
+          if (dest === 'maps') {
+            show('firmware');
+            setFirmwareFilter('all');
+            if ($('#mapsImagePath')) {
+              $('#mapsImagePath').value = path;
+              $('#mapsImagePath').dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            $('#mapsCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            toast(`Selected ${path} in Maps & tables.`, 'ok');
+          } else if (dest === 'validate') {
+            show('firmware');
+            setFirmwareFilter('all');
+            if ($('#imagePath')) {
+              $('#imagePath').value = path;
+              $('#imagePath').dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            $('#validatePanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            toast(`Selected ${path} for image validation.`, 'ok');
+          } else if (dest === 'canlog') {
+            show('discovery');
+            if ($('#canlogPath')) {
+              $('#canlogPath').value = path;
+              $('#canlogPath').dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            toast(`Selected ${path} in CAN identifier discovery.`, 'ok');
+          }
+        });
+      });
+    } catch (err) {
+      if (listEl) listEl.innerHTML = `<p class="muted small">Could not browse preset folder: ${esc(err.message)}</p>`;
+    }
+  }
+
+  function openPresetBrowser(presetId) {
+    $('#presetBrowserModal')?.classList.remove('hidden');
+    void refreshPresetBrowserList(presetId || wsPrefs.active_load_preset);
+  }
+
+  $('#presetBrowserSelect')?.addEventListener('change', (ev) => void refreshPresetBrowserList(ev.target.value));
+  $('#presetBrowserRefreshBtn')?.addEventListener('click', () => void refreshPresetBrowserList($('#presetBrowserSelect')?.value));
+  $('#presetBrowserManageBtn')?.addEventListener('click', () => {
+    closePresetBrowser();
+    openPreferencesModal('load-presets');
+  });
+  $('#presetBrowserCloseX')?.addEventListener('click', closePresetBrowser);
+  $('#presetBrowserCloseBtn')?.addEventListener('click', closePresetBrowser);
+  $('#presetBrowserModal')?.addEventListener('click', (ev) => {
+    if (ev.target.id === 'presetBrowserModal') closePresetBrowser();
+  });
+
+  /* ------------------------------------------- Preferences Modal */
+  function switchPrefsTab(tabName) {
+    $$('#prefsModal [data-prefs-tab]').forEach((btn) => {
+      const on = btn.dataset.prefsTab === tabName;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    $$('#prefsModal [data-prefs-pane]').forEach((pane) => {
+      pane.classList.toggle('hidden', pane.dataset.prefsPane !== tabName);
+    });
+  }
+
+  $$('#prefsModal [data-prefs-tab]').forEach((btn) => {
+    btn.addEventListener('click', () => switchPrefsTab(btn.dataset.prefsTab));
+  });
+
+  function renderPresetsLists() {
+    const saveContainer = $('#prefSavePresetsList');
+    if (saveContainer) {
+      saveContainer.innerHTML = (wsPrefs.save_presets || []).map((p) => {
+        const isActive = p.id === wsPrefs.active_save_preset;
+        return `<div class="preset-row ${isActive ? 'active' : ''}" data-save-preset-row="${esc(p.id)}">
+          <div class="preset-meta">
+            <strong>${esc(p.name)}</strong>
+            ${isActive ? '<span class="pill">Active</span>' : ''}
+            ${p.builtin ? '<span class="pill ghost">Built-in</span>' : '<span class="pill ghost">Custom</span>'}
+            <code>${esc(p.path)}</code>
+            ${p.description ? `<span class="muted small">${esc(p.description)}</span>` : ''}
+          </div>
+          <div class="preset-actions">
+            ${isActive ? '' : `<button type="button" class="btn small primary" data-save-preset-activate="${esc(p.id)}">Set Active</button>`}
+            <button type="button" class="btn small" data-save-preset-edit="${esc(p.id)}">Edit</button>
+            ${p.builtin ? '' : `<button type="button" class="btn small danger" data-save-preset-delete="${esc(p.id)}">Delete</button>`}
+          </div>
+        </div>`;
+      }).join('');
+
+      saveContainer.querySelectorAll('[data-save-preset-activate]').forEach((btn) => {
+        btn.onclick = () => {
+          wsPrefs.active_save_preset = btn.dataset.savePresetActivate;
+          syncPresetSelectorsUI();
+          $('#prefsStatusMsg').textContent = 'Active save preset updated (click Save Preferences to persist).';
+        };
+      });
+      saveContainer.querySelectorAll('[data-save-preset-edit]').forEach((btn) => {
+        btn.onclick = () => {
+          const item = wsPrefs.save_presets.find((p) => p.id === btn.dataset.savePresetEdit);
+          if (!item) return;
+          editingSaveId = item.id;
+          $('#prefSaveNameInput').value = item.name;
+          $('#prefSavePathInput').value = item.path;
+          $('#prefSaveDescInput').value = item.description || '';
+          $('#prefSaveFormTitle').textContent = `Edit Save Preset: ${item.name}`;
+          $('#prefCancelSaveEditBtn')?.classList.remove('hidden');
+          $('#prefSavePathInput').focus();
+        };
+      });
+      saveContainer.querySelectorAll('[data-save-preset-delete]').forEach((btn) => {
+        btn.onclick = () => {
+          const id = btn.dataset.savePresetDelete;
+          wsPrefs.save_presets = wsPrefs.save_presets.filter((p) => p.id !== id);
+          if (wsPrefs.active_save_preset === id && wsPrefs.save_presets.length) {
+            wsPrefs.active_save_preset = wsPrefs.save_presets[0].id;
+          }
+          syncPresetSelectorsUI();
+        };
+      });
+    }
+
+    const loadContainer = $('#prefLoadPresetsList');
+    if (loadContainer) {
+      loadContainer.innerHTML = (wsPrefs.load_presets || []).map((p) => {
+        const isActive = p.id === wsPrefs.active_load_preset;
+        return `<div class="preset-row ${isActive ? 'active' : ''}" data-load-preset-row="${esc(p.id)}">
+          <div class="preset-meta">
+            <strong>${esc(p.name)}</strong>
+            ${isActive ? '<span class="pill">Active</span>' : ''}
+            <span class="pill ghost">${esc(p.kind || 'any')}</span>
+            <code>${esc(p.path)}</code>
+            ${p.description ? `<span class="muted small">${esc(p.description)}</span>` : ''}
+          </div>
+          <div class="preset-actions">
+            ${isActive ? '' : `<button type="button" class="btn small primary" data-load-preset-activate="${esc(p.id)}">Set Active</button>`}
+            <button type="button" class="btn small" data-load-preset-browse="${esc(p.id)}">Browse</button>
+            <button type="button" class="btn small" data-load-preset-edit="${esc(p.id)}">Edit</button>
+            ${p.builtin ? '' : `<button type="button" class="btn small danger" data-load-preset-delete="${esc(p.id)}">Delete</button>`}
+          </div>
+        </div>`;
+      }).join('');
+
+      loadContainer.querySelectorAll('[data-load-preset-activate]').forEach((btn) => {
+        btn.onclick = () => {
+          wsPrefs.active_load_preset = btn.dataset.loadPresetActivate;
+          syncPresetSelectorsUI();
+          $('#prefsStatusMsg').textContent = 'Active load preset updated (click Save Preferences to persist).';
+        };
+      });
+      loadContainer.querySelectorAll('[data-load-preset-browse]').forEach((btn) => {
+        btn.onclick = () => {
+          closePreferencesModal();
+          openPresetBrowser(btn.dataset.loadPresetBrowse);
+        };
+      });
+      loadContainer.querySelectorAll('[data-load-preset-edit]').forEach((btn) => {
+        btn.onclick = () => {
+          const item = wsPrefs.load_presets.find((p) => p.id === btn.dataset.loadPresetEdit);
+          if (!item) return;
+          editingLoadId = item.id;
+          $('#prefLoadNameInput').value = item.name;
+          $('#prefLoadKindSelect').value = item.kind || 'any';
+          $('#prefLoadPathInput').value = item.path;
+          $('#prefLoadDescInput').value = item.description || '';
+          $('#prefLoadFormTitle').textContent = `Edit Load Preset: ${item.name}`;
+          $('#prefCancelLoadEditBtn')?.classList.remove('hidden');
+          $('#prefLoadPathInput').focus();
+        };
+      });
+      loadContainer.querySelectorAll('[data-load-preset-delete]').forEach((btn) => {
+        btn.onclick = () => {
+          const id = btn.dataset.loadPresetDelete;
+          wsPrefs.load_presets = wsPrefs.load_presets.filter((p) => p.id !== id);
+          if (wsPrefs.active_load_preset === id && wsPrefs.load_presets.length) {
+            wsPrefs.active_load_preset = wsPrefs.load_presets[0].id;
+          }
+          syncPresetSelectorsUI();
+        };
+      });
+    }
+  }
+
+  function resetSavePresetForm() {
+    editingSaveId = null;
+    if ($('#prefSaveNameInput')) $('#prefSaveNameInput').value = '';
+    if ($('#prefSavePathInput')) $('#prefSavePathInput').value = '';
+    if ($('#prefSaveDescInput')) $('#prefSaveDescInput').value = '';
+    if ($('#prefSaveFormTitle')) $('#prefSaveFormTitle').textContent = 'Add or Update Save Location Preset';
+    $('#prefCancelSaveEditBtn')?.classList.add('hidden');
+  }
+
+  function resetLoadPresetForm() {
+    editingLoadId = null;
+    if ($('#prefLoadNameInput')) $('#prefLoadNameInput').value = '';
+    if ($('#prefLoadKindSelect')) $('#prefLoadKindSelect').value = 'images';
+    if ($('#prefLoadPathInput')) $('#prefLoadPathInput').value = '';
+    if ($('#prefLoadDescInput')) $('#prefLoadDescInput').value = '';
+    if ($('#prefLoadFormTitle')) $('#prefLoadFormTitle').textContent = 'Add or Update Load Location Preset';
+    $('#prefCancelLoadEditBtn')?.classList.add('hidden');
+  }
+
+  function makeSlugId(name, existingList) {
+    const base = name.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 36) || 'preset';
+    const prefix = /^[a-z0-9]/.test(base) ? base : `p-${base}`;
+    let candidate = prefix;
+    let n = 2;
+    const used = new Set(existingList.map((p) => p.id));
+    while (used.has(candidate)) {
+      candidate = `${prefix}-${n}`;
+      n += 1;
+    }
+    return candidate;
+  }
+
+  $('#prefAddSavePresetBtn')?.addEventListener('click', () => {
+    const name = $('#prefSaveNameInput').value.trim();
+    const path = $('#prefSavePathInput').value.trim();
+    const description = $('#prefSaveDescInput').value.trim();
+    if (!name || !path) return toast('Enter both a preset name and directory path.', 'bad');
+    if (editingSaveId) {
+      const target = wsPrefs.save_presets.find((p) => p.id === editingSaveId);
+      if (target) {
+        target.name = name;
+        target.path = path;
+        target.description = description;
+      }
+    } else {
+      if (wsPrefs.save_presets.length >= 25) return toast('At most 25 save presets are supported.', 'bad');
+      const id = makeSlugId(name, wsPrefs.save_presets);
+      wsPrefs.save_presets.push({ id, name, path, description, builtin: false });
+      wsPrefs.active_save_preset = id;
+    }
+    resetSavePresetForm();
+    syncPresetSelectorsUI();
+    $('#prefsStatusMsg').textContent = `Save preset “${name}” staged — click Save Preferences to persist.`;
+  });
+  $('#prefCancelSaveEditBtn')?.addEventListener('click', resetSavePresetForm);
+
+  $('#prefAddLoadPresetBtn')?.addEventListener('click', () => {
+    const name = $('#prefLoadNameInput').value.trim();
+    const kind = $('#prefLoadKindSelect').value || 'any';
+    const path = $('#prefLoadPathInput').value.trim();
+    const description = $('#prefLoadDescInput').value.trim();
+    if (!name || !path) return toast('Enter both a preset name and directory path.', 'bad');
+    if (editingLoadId) {
+      const target = wsPrefs.load_presets.find((p) => p.id === editingLoadId);
+      if (target) {
+        target.name = name;
+        target.kind = kind;
+        target.path = path;
+        target.description = description;
+      }
+    } else {
+      if (wsPrefs.load_presets.length >= 25) return toast('At most 25 load presets are supported.', 'bad');
+      const id = makeSlugId(name, wsPrefs.load_presets);
+      wsPrefs.load_presets.push({ id, name, kind, path, description, builtin: false });
+      wsPrefs.active_load_preset = id;
+    }
+    resetLoadPresetForm();
+    syncPresetSelectorsUI();
+    $('#prefsStatusMsg').textContent = `Load preset “${name}” staged — click Save Preferences to persist.`;
+  });
+  $('#prefCancelLoadEditBtn')?.addEventListener('click', resetLoadPresetForm);
+
+  // Live preview inside Preferences modal
+  $$('input[name="prefThemeRadio"]').forEach((radio) => {
+    radio.addEventListener('change', () => {
+      if (radio.checked) applyTheme(radio.value);
+    });
+  });
+  $('#prefDensitySelect')?.addEventListener('change', (ev) => applyDensity(ev.target.value));
+  $('#prefTempSelect')?.addEventListener('change', (ev) => applyTempUnit(ev.target.value));
+  $('#prefPollIntervalSelect')?.addEventListener('change', (ev) => applyPollInterval(ev.target.value));
+
+  function openPreferencesModal(initialTab = 'appearance') {
+    const radio = document.querySelector(`input[name="prefThemeRadio"][value="${wsPrefs.theme}"]`);
+    if (radio) radio.checked = true;
+    if ($('#prefDensitySelect')) $('#prefDensitySelect').value = wsPrefs.layout_density;
+    if ($('#prefTempSelect')) $('#prefTempSelect').value = wsPrefs.temp_unit;
+    if ($('#prefPollIntervalSelect')) $('#prefPollIntervalSelect').value = String(wsPrefs.poll_interval_ms);
+    if ($('#prefDefaultSessionMode')) $('#prefDefaultSessionMode').value = wsPrefs.default_session_mode;
+    if ($('#prefConfirmExitChk')) $('#prefConfirmExitChk').checked = Boolean(wsPrefs.confirm_before_exit);
+    resetSavePresetForm();
+    resetLoadPresetForm();
+    renderPresetsLists();
+    switchPrefsTab(initialTab);
+    if ($('#prefsStatusMsg')) $('#prefsStatusMsg').textContent = 'Changes to theme, density, and units preview live.';
+    $('#prefsModal')?.classList.remove('hidden');
+  }
+
+  function closePreferencesModal() {
+    $('#prefsModal')?.classList.add('hidden');
+  }
+
+  $('#prefsCloseX')?.addEventListener('click', closePreferencesModal);
+  $('#prefsCancelBtn')?.addEventListener('click', closePreferencesModal);
+  $('#prefsModal')?.addEventListener('click', (ev) => {
+    if (ev.target.id === 'prefsModal') closePreferencesModal();
+  });
+
+  $('#prefsSaveBtn')?.addEventListener('click', async () => {
+    const chosenTheme = document.querySelector('input[name="prefThemeRadio"]:checked')?.value || wsPrefs.theme;
+    const chosenDensity = $('#prefDensitySelect')?.value || wsPrefs.layout_density;
+    const chosenTemp = $('#prefTempSelect')?.value || wsPrefs.temp_unit;
+    const chosenPoll = Number($('#prefPollIntervalSelect')?.value || wsPrefs.poll_interval_ms);
+    const chosenSessionMode = $('#prefDefaultSessionMode')?.value === 'hardware' ? 'hardware' : 'simulator';
+    const chosenConfirmExit = Boolean($('#prefConfirmExitChk')?.checked);
+
+    applyTheme(chosenTheme);
+    applyDensity(chosenDensity);
+    applyTempUnit(chosenTemp);
+    applyPollInterval(chosenPoll);
+    wsPrefs.default_session_mode = chosenSessionMode;
+    wsPrefs.confirm_before_exit = chosenConfirmExit;
+    Prefs.set('defaultSessionMode', chosenSessionMode);
+    Prefs.set('confirmBeforeExit', String(chosenConfirmExit));
+
+    if (!state.connected && !isHostedDemo()) {
+      const modeRadio = document.querySelector(`input[name="mode"][value="${chosenSessionMode}"]`);
+      if (modeRadio && !modeRadio.checked) {
+        modeRadio.checked = true;
+        modeRadio.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    try {
+      await persistPreferencesToBackend({
+        theme: wsPrefs.theme,
+        layout_density: wsPrefs.layout_density,
+        temp_unit: wsPrefs.temp_unit,
+        poll_interval_ms: wsPrefs.poll_interval_ms,
+        confirm_before_exit: wsPrefs.confirm_before_exit,
+        default_session_mode: wsPrefs.default_session_mode,
+        save_presets: wsPrefs.save_presets,
+        active_save_preset: wsPrefs.active_save_preset,
+        load_presets: wsPrefs.load_presets,
+        active_load_preset: wsPrefs.active_load_preset,
+      });
+      closePreferencesModal();
+      toast('Workstation preferences saved.', 'ok');
+    } catch (_) { /* error toast already shown */ }
+  });
+
+  $('#prefExportBtn')?.addEventListener('click', () => {
+    const payload = {
+      schema: 'guzzionboard.preferences/v1',
+      theme: wsPrefs.theme,
+      layout_density: wsPrefs.layout_density,
+      temp_unit: wsPrefs.temp_unit,
+      poll_interval_ms: wsPrefs.poll_interval_ms,
+      confirm_before_exit: wsPrefs.confirm_before_exit,
+      default_session_mode: wsPrefs.default_session_mode,
+      save_presets: wsPrefs.save_presets,
+      active_save_preset: wsPrefs.active_save_preset,
+      load_presets: wsPrefs.load_presets,
+      active_load_preset: wsPrefs.active_load_preset,
+    };
+    download('guzzionboard-preferences.json', JSON.stringify(payload, null, 2) + '\n', 'application/json');
+  });
+
+  $('#prefImportBtn')?.addEventListener('click', () => $('#prefImportFile')?.click());
+  $('#prefImportFile')?.addEventListener('change', async (ev) => {
+    const file = ev.target.files?.[0];
+    ev.target.value = '';
+    if (!file) return;
+    try {
+      if (file.size > 512 * 1024) throw new Error('Preferences JSON exceeds 512 KiB.');
+      const parsed = JSON.parse(await file.text());
+      const updated = await persistPreferencesToBackend(parsed);
+      if (updated.theme) applyTheme(updated.theme);
+      if (updated.layout_density) applyDensity(updated.layout_density);
+      if (updated.temp_unit) applyTempUnit(updated.temp_unit);
+      if (updated.poll_interval_ms) applyPollInterval(updated.poll_interval_ms);
+      wsPrefs.confirm_before_exit = Boolean(updated.confirm_before_exit);
+      wsPrefs.default_session_mode = updated.default_session_mode || 'simulator';
+      Prefs.set('confirmBeforeExit', String(wsPrefs.confirm_before_exit));
+      Prefs.set('defaultSessionMode', wsPrefs.default_session_mode);
+      openPreferencesModal('appearance');
+      toast(`Imported preferences from ${file.name}.`, 'ok');
+    } catch (err) {
+      toast(`Import failed: ${err.message}`, 'bad');
+    }
+  });
+
+  $('#prefResetBtn')?.addEventListener('click', async () => {
+    try {
+      const fresh = await persistPreferencesToBackend({ reset: true });
+      wsPrefs = { ...FALLBACK_PREFS(), ...fresh };
+      applyTheme(fresh.theme || 'dark');
+      applyDensity(fresh.layout_density || 'comfortable');
+      applyTempUnit(fresh.temp_unit || 'C');
+      applyPollInterval(fresh.poll_interval_ms || 250);
+      wsPrefs.confirm_before_exit = true;
+      wsPrefs.default_session_mode = 'simulator';
+      Prefs.set('confirmBeforeExit', 'true');
+      Prefs.set('defaultSessionMode', 'simulator');
+      syncPresetSelectorsUI();
+      openPreferencesModal('appearance');
+      toast('Preferences restored to defaults.', 'ok');
+    } catch (_) { /* error toast already shown */ }
+  });
+
+  // Load persisted save/load presets from backend on startup without clobbering
+  // explicit per-tab localStorage presentation preferences.
+  (async function initServerPreferences() {
+    try {
+      const serverPrefs = await api('/api/preferences');
+      if (Array.isArray(serverPrefs.save_presets)) wsPrefs.save_presets = serverPrefs.save_presets;
+      if (Array.isArray(serverPrefs.load_presets)) wsPrefs.load_presets = serverPrefs.load_presets;
+      if (serverPrefs.active_save_preset) wsPrefs.active_save_preset = serverPrefs.active_save_preset;
+      if (serverPrefs.active_load_preset) wsPrefs.active_load_preset = serverPrefs.active_load_preset;
+      if (Prefs.get('theme') === null && serverPrefs.theme) applyTheme(serverPrefs.theme, { persistLocal: false });
+      syncPresetSelectorsUI();
+    } catch (_) { /* fallback presets remain active */ }
+  })();
+}
+

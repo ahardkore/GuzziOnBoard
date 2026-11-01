@@ -24,10 +24,10 @@ from pathlib import Path
 
 try:
     from PIL import Image, ImageDraw
-except ImportError:                       # pragma: no cover - build-time only
+except ImportError as exc:                # pragma: no cover - build-time only
     raise SystemExit(
         "Pillow is needed only to regenerate icons: pip install pillow"
-    )
+    ) from exc
 
 HERE = Path(__file__).resolve().parent
 ICONS = HERE / "icons"
@@ -93,7 +93,8 @@ def main() -> int:
         raise SystemExit(
             f"no master image at {SOURCE} (a square PNG, 512px or larger)"
         )
-    icon = badge(Image.open(SOURCE))
+    with Image.open(SOURCE) as source_img:
+        icon = badge(source_img)
     base = icon.resize((1024, 1024), Image.LANCZOS)
 
     ico = ICONS / "guzzionboard.ico"

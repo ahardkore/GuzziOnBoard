@@ -1511,6 +1511,114 @@
     }];
   };
 
+  function demoDefaultPrefs() {
+    return {
+      schema: 'guzzionboard.preferences/v1',
+      theme: 'dark',
+      layout_density: 'comfortable',
+      temp_unit: 'C',
+      poll_interval_ms: 250,
+      confirm_before_exit: true,
+      default_session_mode: 'simulator',
+      save_presets: [
+        { id: 'exports', name: 'Default Exports', path: 'demo://exports', description: 'Browser downloads & virtual demo exports.', builtin: true },
+        { id: 'reports', name: 'Service Reports', path: 'demo://reports', description: 'Virtual service report snapshots.', builtin: true },
+        { id: 'images', name: 'ECU Images & Backups', path: 'demo://images', description: 'Virtual ECU flash/EEPROM reads.', builtin: true },
+        { id: 'sessions', name: 'Session Captures', path: 'demo://sessions', description: 'Simulated telemetry captures.', builtin: true },
+      ],
+      active_save_preset: 'exports',
+      load_presets: [
+        { id: 'images', name: 'ECU Images & BINs', path: 'demo://images', kind: 'images', description: 'Virtual ECU flash dumps.', builtin: true },
+        { id: 'basemaps', name: 'Protected Base Maps', path: 'demo://basemaps', kind: 'basemaps', description: 'Virtual verified stock base maps.', builtin: true },
+        { id: 'xdfs', name: 'Custom XDF Definitions', path: 'demo://xdfs', kind: 'xdfs', description: 'Bundled & virtual XDF definitions.', builtin: true },
+        { id: 'sessions', name: 'Session & Bus Logs', path: 'demo://sessions', kind: 'logs', description: 'Sample CAN & K-Line captures.', builtin: true },
+        { id: 'downloads', name: 'Downloads / Exports', path: 'demo://exports', kind: 'any', description: 'Browser download workspace.', builtin: true },
+      ],
+      active_load_preset: 'images',
+    };
+  }
+
+  function enrichDemoPrefs(prefs) {
+    var saveMap = {};
+    (prefs.save_presets || []).forEach(function (p) { saveMap[p.id] = p; });
+    var loadMap = {};
+    (prefs.load_presets || []).forEach(function (p) { loadMap[p.id] = p; });
+    if (!saveMap[prefs.active_save_preset] && prefs.save_presets.length) prefs.active_save_preset = prefs.save_presets[0].id;
+    if (!loadMap[prefs.active_load_preset] && prefs.load_presets.length) prefs.active_load_preset = prefs.load_presets[0].id;
+    prefs.active_save_dir = saveMap[prefs.active_save_preset] ? saveMap[prefs.active_save_preset].path : 'demo://exports';
+    prefs.active_load_dir = loadMap[prefs.active_load_preset] ? loadMap[prefs.active_load_preset].path : 'demo://images';
+    return prefs;
+  }
+
+  function readDemoPrefs() {
+    var base = demoDefaultPrefs();
+    try {
+      var raw = localStorage.getItem('guzzionboard.prefsBundle');
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          Object.keys(base).forEach(function (k) {
+            if (parsed[k] !== undefined) base[k] = parsed[k];
+          });
+        }
+      }
+    } catch (_) { /* ignore storage errors */ }
+    return enrichDemoPrefs(base);
+  }
+
+  function writeDemoPrefs(prefs) {
+    var out = enrichDemoPrefs(prefs);
+    try { localStorage.setItem('guzzionboard.prefsBundle', JSON.stringify(out)); } catch (_) { /* ignore */ }
+    return out;
+  }
+
+  var DEMO_SAVED_FILES = [];
+
+  GET['/api/preferences'] = function () {
+    return [200, readDemoPrefs()];
+  };
+
+  GET['/api/preferences/browse'] = function (query) {
+    var prefs = readDemoPrefs();
+    var scope = (query && query.get && query.get('scope')) || 'load';
+    var presetId = (query && query.get && query.get('preset_id')) || (scope === 'load' ? prefs.active_load_preset : prefs.active_save_preset);
+    var list = scope === 'load' ? prefs.load_presets : prefs.save_presets;
+    var preset = list.filter(function (p) { return p.id === presetId; })[0] || list[0];
+    var sampleFiles = scope === 'load' ? [
+      { name: 'demo-5am-griso-stock.bin', path: preset.path.replace(/\/$/, '') + '/demo-5am-griso-stock.bin', size: 327680, modified: epoch() - 3600, ext: '.bin' },
+      { name: 'demo-telemetry-sweep.csv', path: preset.path.replace(/\/$/, '') + '/demo-telemetry-sweep.csv', size: 14280, modified: epoch() - 1800, ext: '.csv' },
+    ] : DEMO_SAVED_FILES.filter(function (f) { return f.preset_id === preset.id; });
+    return [200, { scope: scope, preset: preset, path: preset.path, exists: true, files: sampleFiles, demo: true }];
+  };
+
+  POST['/api/preferences'] = function (body) {
+    if (body && body.reset === true) {
+      try { localStorage.removeItem('guzzionboard.prefsBundle'); } catch (_) { /* ignore */ }
+      return [200, writeDemoPrefs(demoDefaultPrefs())];
+    }
+    var current = readDemoPrefs();
+    if (body && typeof body === 'object') {
+      ['theme', 'layout_density', 'temp_unit', 'poll_interval_ms', 'confirm_before_exit',
+        'default_session_mode', 'save_presets', 'active_save_preset', 'load_presets', 'active_load_preset'].forEach(function (k) {
+        if (body[k] !== undefined) current[k] = body[k];
+      });
+    }
+    return [200, writeDemoPrefs(current)];
+  };
+
+  POST['/api/preferences/save-file'] = function (body) {
+    var prefs = readDemoPrefs();
+    var name = String((body && body.name) || 'export.txt').replace(/[^A-Za-z0-9._-]+/g, '-');
+    var content = String((body && body.content) || '');
+    var presetId = (body && body.preset_id) || prefs.active_save_preset;
+    var preset = prefs.save_presets.filter(function (p) { return p.id === presetId; })[0] || prefs.save_presets[0];
+    var fullPath = preset.path.replace(/\/$/, '') + '/' + name;
+    DEMO_SAVED_FILES.unshift({
+      preset_id: preset.id, name: name, path: fullPath, size: content.length, modified: epoch(), ext: (name.match(/\.[a-z0-9]+$/i) || [''])[0],
+    });
+    return [200, { ok: true, preset_id: preset.id, preset_name: preset.name, name: name, path: fullPath, dir: preset.path, bytes: content.length, demo: true }];
+  };
+
   /* Everything below needs files, ports or long jobs: refused, not faked. */
   var LOCAL_ONLY = {
     '/api/procedures': 'Guided tests',
@@ -1702,12 +1810,8 @@
 
     var bar = document.createElement('div');
     bar.id = 'demoBanner';
+    bar.className = 'demo-banner';
     bar.innerHTML = UI.banner;
-    bar.setAttribute('style', [
-      'position:relative', 'z-index:5', 'padding:10px 18px',
-      'background:#3a2a16', 'color:#f0d9a8',
-      'border-bottom:1px solid #6b4f24', 'font-size:13px', 'line-height:1.5',
-    ].join(';'));
     var main = document.querySelector('main') || document.body;
     var topbar = main.querySelector ? main.querySelector('.topbar') : null;
     if (topbar && topbar.nextSibling) main.insertBefore(bar, topbar.nextSibling);
@@ -1717,11 +1821,7 @@
       var el = document.getElementById(view);
       if (!el) return;
       var note = document.createElement('div');
-      note.className = 'notice warn';
-      note.setAttribute('style', [
-        'margin:0 0 16px', 'padding:12px 14px', 'border-radius:8px',
-        'background:#2a2118', 'border:1px solid #6b4f24', 'color:#f0d9a8',
-      ].join(';'));
+      note.className = 'notice warn demo-local-notice';
       note.innerHTML = LOCAL_ONLY_VIEWS[view];
       el.insertBefore(note, el.firstChild);
     });

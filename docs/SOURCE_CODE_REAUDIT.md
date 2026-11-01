@@ -1,3 +1,5 @@
+> Update: the Buell limitations described in this historical audit were expanded subsequently. See [BUELL_DDFI_RESEARCH.md](BUELL_DDFI_RESEARCH.md) and [TWELVE_REPOSITORY_CODE_AUDIT.md](TWELVE_REPOSITORY_CODE_AUDIT.md) for current source-scoped image and offline map support.
+
 # Source-code re-audit: 18 new links and prior sources
 
 Reviewed 2026-10-31. This inventory names *actual files inspected* and separates
@@ -165,7 +167,7 @@ These are focused rechecks at the revisions linked here, not a full historical a
 
 ### Deeper recheck: Harley, Buell, Suzuki and Marelli code
 
-- [rob9206/lawflo HarleyECUTool](https://github.com/rob9206/lawflo/tree/6255518dc9118d960efa42d6d9dc975926bbd579/ZOOSH_ECU-main/HarleyECUTool): **this contains real read/write/authentication code**, not just a 16 KiB file extractor. `core/memory.py` implements a candidate upload-based calibration reader, download/transfer writer and readback; `core/auth.py` implements a specific candidate security algorithm and capture-derived authentication payload; `tools/flash.py` coordinates backup and two subsequent comparisons. The code is a substantive Harley tuning research lead. However, its `write_block` accepts a `76` response without checking the returned block counter, `write_tune` has no transfer-exit call in the inspected path, and `can_interface.py`'s multiframe send accepts the first flow-control-looking frame without verifying its sender and does not honor block size. `read_block` treats the bytes after a `75` reply as data without establishing the returned block's requested address or length. Its `calculate_checksum` is SHA-256 of a file, not the ECU's calibration checksum. These are specific implementation gaps, not a finding that the source author never tested it. No auth material, captured data, binary or live flashing path was copied or executed. GuzziOnBoard's existing local file extractor remains distinct from this tool's live capabilities.
+- [rob9206/lawflo HarleyECUTool](https://github.com/rob9206/lawflo/tree/6255518dc9118d960efa42d6d9dc975926bbd579/ZOOSH_ECU-main/HarleyECUTool): **this contains real read/write/authentication code**, not just a 16 KiB file extractor. `core/memory.py` implements a candidate upload-based calibration reader, download/transfer writer and readback; `core/auth.py` implements a specific candidate security algorithm and capture-derived authentication payload; `tools/flash.py` coordinates backup and two subsequent comparisons. The code is a substantive Harley tuning research lead. However, its `write_block` accepts a `76` response without checking the returned block counter, `write_tune` has no transfer-exit call in the inspected path, and `can_interface.py`'s multiframe send accepts the first flow-control-looking frame without verifying its sender and does not honor block size. `read_block` treats the bytes after a `75` reply as data without establishing the returned block's requested address or length. Its `calculate_checksum` is SHA-256 of a file, not the ECU's calibration checksum. These are specific implementation gaps, not a finding that the source author never tested it. No auth material, captured data or binary was copied or executed. The independently implemented experimental live path is documented below; it has synthetic tests only.
 - [bkp123/ecmdroid `ECM.java` and `EEPROM.java`](https://github.com/bkp123/ecmdroid/tree/2f17d29f5b08f67fb357ee8f2ec21e7ae930343e/app/src/main/java/org/ecmdroid) implement serial PDU framing, version-specific EEPROM geometry, page reads and writes, runtime data and selective handling of page zero. GuzziOnBoard's optional double-read is still a limited range GET, not EcmDroid's full geometry-aware backup or burn.
 - [earnaz/Harley-Davidson-CAN-Bus `CanSniffer Arduino/canSniffer.ino` and `RealDashArduino/RealDashArduino.ino`](https://github.com/earnaz/Harley-Davidson-CAN-Bus/tree/835a1bccb1cdee0369e120f4a134fbb0bde3564d): source includes CAN capture and a RealDash serial forwarding implementation in addition to source observations already used for the selected Sportster observer. The forwarding sketch always sends eight data bytes, including bytes beyond a shorter frame's payload; consumers should not treat padding as observed data. [stelian42/HarleyDroid](https://github.com/stelian42/HarleyDroid/tree/0268f3cbfe4432b6f5b1e911181aea6c1181d5b9/src/org/harleydroid) contains the earlier J1850 diagnostics and ELM interface; the EVO recheck above covers its extended successor.
 - [mkorkalo/BusaECUeditor `BusaECUeditor/Gixxer/Gixxerinjectorbalancemap.vb`](https://github.com/mkorkalo/BusaECUeditor/blob/0a6088e128c1887bb014619a1179b83d26cd3e61/BusaECUeditor/Gixxer/Gixxerinjectorbalancemap.vb) has substantive ECU-image map editing and model-specific address lookup; other files implement additional maps and patch logic. An in-memory `WriteFlashByte` call in that UI is not by itself evidence of an ECU transport. Do not generalize offsets between firmware revisions. [DanCycles/HayabusaGen3](https://github.com/DanCycles/HayabusaGen3/tree/58de6d211b6f42b254a1f37de13f4802487b2ba5) contains an XDF, image and documentation rather than application source at this revision; source/data rights and exact fitment still matter.
@@ -265,3 +267,24 @@ It accepts AFR, not lambda, and does not infer units or convert lambda. A
 synthetic browser test covers column selection only; no vendor log, ECU,
 programming hardware, or motorcycle was tested. This does not unlock live
 Harley ECU reading or tuning.
+
+
+### Harley capture framing correction and experimental live integration
+
+A further inspection of `HarleyECUDump/harley_ecu_dump.py` and the same
+revision's `capture_example.txt` changes the assessment above: unlike the
+newer `HarleyECUTool/core/memory.py`, the older reader skips seven reply bytes
+and takes a 256-byte block. In 652 reconstructed positive upload replies the
+six bytes after `75` match the corresponding request's format and address;
+each reply is 265 bytes, including 256 data bytes and two additional trailing
+bytes whose meaning is not established. 649 successive addresses advance
+by 256; the other transitions change region. The capture also shows
+`74 20 08 02` for 2006-byte authentication downloads, and `74 20 01 02`
+followed by 64 counter-echoed 256-byte blocks for a 16 KiB tune write. This
+is a correction to the earlier statement that the source *reply* does not
+establish an address: the newer `read_block` does not check the echoed address,
+but the observed capture does contain it. The extra trailing bytes are not a
+verified checksum. No capture bytes, proprietary authentication material or
+source files are bundled. See `HARLEY_TUNING.md` for the newly implemented
+opt-in live read/write, safety checks, unresolved checksum/recovery/fitment,
+and synthetic-only disclaimer.

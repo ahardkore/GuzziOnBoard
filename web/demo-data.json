@@ -15,9 +15,9 @@
     "applied": false,
     "status": {}
    },
-   "ecu_count": 37,
-   "vehicle_count": 507,
-   "model_count": 415,
+   "ecu_count": 39,
+   "vehicle_count": 525,
+   "model_count": 431,
    "year_range": [
     1992,
     2026
@@ -714,6 +714,37 @@
      "field_confirmation": {}
     },
     {
+     "id": "bikestudio_reference_only",
+     "family": "BikeStudio vehicle/ECU part reference (not an ECU family)",
+     "display_name": "BikeStudio part reference only — no ECU protocol",
+     "transport": "none",
+     "confidence": "unknown",
+     "years": "Source-listed years only; see individual parts and markets",
+     "notes": "Reference-only placeholder, not an ECU family or proof that vehicles share ECU hardware. BikeStudio part numbers, market and years are independent lookup leads; this profile offers no live, simulated, security, memory or programming capability.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://bikestudio.io/ecu?lang=en"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "No ECU memory protocol or programming implementation comes from part fitment data."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "reference-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "A part-reference listing does not supply an ECU diagnostic protocol.",
+      "simulator_supported": false
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "generic_obd_can_11bit",
      "family": "Generic OBD-II 11-bit CAN (opt-in)",
      "display_name": "Generic OBD-II 11-bit CAN (read-only, ECU-only)",
@@ -886,7 +917,7 @@
      "transport": "kline",
      "confidence": "unknown",
      "years": "unspecified",
-     "notes": "Dash/DashBle report CB500F examples and show source captures but do not state model year, market, ECU or software. ECU-only opt-in, not fitment to the selected bike. GuzziOnBoard integration has synthetic tests only. Table 00 ECM ID is an unverified raw candidate; no memory, DTC, controls or simulator. An explicitly confirmed, experimental 256 KiB read is available only if the live ID matches MGZ-A03; not a verified backup.",
+     "notes": "Dash/DashBle report CB500F examples and show source captures but do not state model year, market, ECU or software. ECU-only opt-in, not fitment to the selected bike. GuzziOnBoard integration has synthetic tests only. Table 00 ECM ID is an unverified raw candidate. No DTC, controls or simulator. An explicitly confirmed experimental 256 KiB read is available for source-reported MGZ-A03, C02, C03 or D02 IDs only; not a verified backup.",
      "capabilities": [
       "identify",
       "live"
@@ -906,18 +937,18 @@
       "write_supported": false,
       "write_blocked_reason": "No ECU flash writing is implemented for this profile.",
       "research_read_only": true,
-      "hardware_note": "Experimental, source-derived MGZ-A03 read only. Exact live ECM ID required; security exchange is untested by GuzziOnBoard. A completed file is research-only, not a verified backup.",
+      "hardware_note": "Experimental, source-derived MGZ-A03/C02/C03/D02 read attempt. An exact live ECM ID is required; security and reads are untested by GuzziOnBoard on hardware. A completed file is research-only, not a verified backup.",
       "regions": {
        "flash": {
         "start": 0,
         "size": 262144,
-        "block": 12,
+        "block": 8,
         "writable": false,
-        "note": "Source-reported MGZ-A03 only; unverified by GuzziOnBoard."
+        "note": "Source-reported MGZ-A03/C02/C03/D02 only; unverified by GuzziOnBoard."
        }
       },
       "programming": {
-       "protocol": "honda-mgz-a03-research",
+       "protocol": "honda-mgz-research",
        "security": {
         "required": false
        }
@@ -1048,6 +1079,66 @@
       "simulator_supported": false,
       "tester_present_interval": 2.0,
       "physical_evidence_note": "Minidash describes CTX700 use; year and ECU are unspecified. This adaptation is synthetic-tested only."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "honda_pgmfi_flash_research",
+     "family": "Honda PGM-FI source-ID flash research",
+     "display_name": "Honda PGM-FI (ECU-only experimental image read)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "Source-reported IDs only",
+     "notes": "ECU-only research session for exact source-table or source-example-inferred five-byte ECM candidates; not a vehicle fitment guarantee. Explicit confirmation required. GuzziOnBoard has synthetic tests only, no hardware verification. No diagnostic sensor tables, DTCs, writes, recovery or simulator. A completed file is not a verified backup.",
+     "capabilities": [
+      "identify"
+     ],
+     "effective_capabilities": [
+      "identify"
+     ],
+     "sources": [
+      "https://github.com/WiseNoodle/honda-moto-ecu-suite/tree/85431bd831b2c50a640fac35dccf36c09df20c07",
+      "https://github.com/PhatDatPQ/eculib/tree/7921cc46551fd26d487ec778e8822ace4777899e",
+      "https://github.com/AlexKovalevich/HondaECU/tree/db0a6cb8e516aac2406a231380c93e258c722b7c",
+      "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952"
+     ],
+     "memory": {
+      "read_supported": true,
+      "write_supported": false,
+      "write_blocked_reason": "No ECU flash writing is implemented for this profile.",
+      "research_read_only": true,
+      "hardware_note": "Experimental source-derived image read for 60 Honda ID candidates. Eleven IDs are inferred solely from source-named examples; one table ID has an inferred family offset and conflicts with its named example; two source-table entries have no independently checked sample. Example- or model-sized bounds range from 48 KiB to 1 MiB; all starts are assumed, including nonzero MSX offsets. Conflicting or commented source associations are not confirmed identities. 1 MiB reads may take a long time; logs may include image data. Physical K-Line/security/read integration is synthetic-tested only; no verified backup.",
+      "regions": {
+       "flash": {
+        "start": 0,
+        "size": 1048576,
+        "block": 8,
+        "writable": false,
+        "note": "Maximum bound 1 MiB; sizes and start addresses vary by ID and are inferred from source examples or model descriptions. Three Alex VFR candidates use 128-byte requests; others use 8. Neither read completeness nor live protocol is verified."
+       }
+      },
+      "programming": {
+       "protocol": "honda-pgmfi-flash-research",
+       "security": {
+        "required": false
+       }
+      }
+     },
+     "kline": {
+      "baud": 10400,
+      "init": "honda-pgmfi-flash-research",
+      "inter_byte_delay": 0
+     },
+     "can": {},
+     "session": {
+      "protocol": "honda-pgmfi-flash-research",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "tester_present_interval": 2.0,
+      "physical_evidence_note": "Source-derived attempt for explicitly listed IDs; GuzziOnBoard has synthetic tests only, not hardware verification."
      },
      "actuators": [],
      "routines": [],
@@ -1965,7 +2056,8 @@
    "Kawasaki",
    "Moto Guzzi",
    "Suzuki",
-   "Triumph"
+   "Triumph",
+   "Yamaha"
   ],
   "models": [
    {
@@ -2175,6 +2267,91 @@
       "notes": "999 / 999S (2003-2005 shape). ECU family newly modelled here - fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "999 (2003-2006)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "ADV 150",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "ADV 150",
+      "year_from": 2018,
+      "year_to": 2021,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "ADV 150 (2018-2021)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "ADV 160",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "ADV 160",
+      "year_from": 2022,
+      "year_to": 2023,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "ADV 160 (2022-2023)",
+      "can": {}
+     },
+     {
+      "make": "Honda",
+      "model": "ADV 160",
+      "year_from": 2026,
+      "year_to": 2026,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "ADV 160 (2026-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "AEROX 155",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "AEROX 155",
+      "year_from": 2017,
+      "year_to": 2022,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "AEROX 155 (2017-2022)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "AEROX NEW",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "AEROX NEW",
+      "year_from": 2021,
+      "year_to": 2024,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "AEROX NEW (2021-2024)",
       "can": {}
      }
     ]
@@ -3495,6 +3672,24 @@
       "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning.",
       "confidence": "unknown",
       "label": "CRF450RL (2021-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "CT 125",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "CT 125",
+      "year_from": 2022,
+      "year_to": 2022,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "CT 125 (2022-2022)",
       "can": {}
      }
     ]
@@ -7070,6 +7265,24 @@
     ]
    },
    {
+    "model": "Grom / MSX 125",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "Grom / MSX 125",
+      "year_from": 2013,
+      "year_to": 2022,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "Grom / MSX 125 (2013-2022)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Hypermotard 1100",
     "variants": [
      {
@@ -7281,6 +7494,24 @@
     ]
    },
    {
+    "model": "MT15",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "MT15",
+      "year_from": 2019,
+      "year_to": 2026,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "MT15 (2019-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Mana 850",
     "variants": [
      {
@@ -7294,6 +7525,24 @@
       "notes": "GuzziTek master list maps the Mana 850 to the 5AM. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled. The Mana also carries a CVT transmission controller selectable as ECU 'mana_tcu'; captured routine bytes are recorded for provenance, but every physical TCU operation remains blocked because session, security, and safety preconditions are incomplete.",
       "confidence": "inferred",
       "label": "Mana 850 (2008-2012)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Mio M3",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "Mio M3",
+      "year_from": 2015,
+      "year_to": 2021,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "Mio M3 (2015-2021)",
       "can": {}
      }
     ]
@@ -7505,6 +7754,42 @@
       "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming.",
       "confidence": "unknown",
       "label": "NC750 / NC750X (2014-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "NMAX 155",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "NMAX 155",
+      "year_from": 2017,
+      "year_to": 2022,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "NMAX 155 (2017-2022)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "NMAX NEW",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "NMAX NEW",
+      "year_from": 2021,
+      "year_to": 2026,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "NMAX NEW (2021-2026)",
       "can": {}
      }
     ]
@@ -7863,6 +8148,55 @@
       "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
       "confidence": "documented",
       "label": "Norge 850 (2007-2011)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "PCX 160",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "PCX 160",
+      "year_from": 2021,
+      "year_to": 2023,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "PCX 160 (2021-2023)",
+      "can": {}
+     },
+     {
+      "make": "Honda",
+      "model": "PCX 160",
+      "year_from": 2025,
+      "year_to": 2026,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "PCX 160 (2025-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "PCX-150",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "PCX-150",
+      "year_from": 2017,
+      "year_to": 2020,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "PCX-150 (2017-2020)",
       "can": {}
      }
     ]
@@ -9643,6 +9977,24 @@
     ]
    },
    {
+    "model": "WR 155",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "WR 155",
+      "year_from": 2021,
+      "year_to": 2026,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "WR 155 (2021-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Wave 110",
     "variants": [
      {
@@ -10197,6 +10549,24 @@
     ]
    },
    {
+    "model": "XMAX",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "XMAX",
+      "year_from": 2017,
+      "year_to": 2026,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "XMAX (2017-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "XR1200",
     "variants": [
      {
@@ -10259,6 +10629,42 @@
       "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming.",
       "confidence": "unknown",
       "label": "XRE 300 (2009-2012)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "XSR 155",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "XSR 155",
+      "year_from": 2019,
+      "year_to": 2026,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "XSR 155 (2019-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "YZF-R15",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "YZF-R15",
+      "year_from": 2014,
+      "year_to": 2026,
+      "ecu": "bikestudio_reference_only",
+      "displacement": "",
+      "tps": "",
+      "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+      "confidence": "unknown",
+      "label": "YZF-R15 (2014-2026)",
       "can": {}
      }
     ]
@@ -14184,6 +14590,132 @@
     "year_from": 2017,
     "year_to": 2017,
     "ecu": "suzuki_dl650_2017_research"
+   },
+   {
+    "make": "Yamaha",
+    "model": "YZF-R15",
+    "year_from": 2014,
+    "year_to": 2026,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Yamaha",
+    "model": "Mio M3",
+    "year_from": 2015,
+    "year_to": 2021,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Yamaha",
+    "model": "AEROX 155",
+    "year_from": 2017,
+    "year_to": 2022,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Yamaha",
+    "model": "NMAX 155",
+    "year_from": 2017,
+    "year_to": 2022,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Honda",
+    "model": "Grom / MSX 125",
+    "year_from": 2013,
+    "year_to": 2022,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Honda",
+    "model": "CT 125",
+    "year_from": 2022,
+    "year_to": 2022,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Yamaha",
+    "model": "NMAX NEW",
+    "year_from": 2021,
+    "year_to": 2026,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Honda",
+    "model": "ADV 150",
+    "year_from": 2018,
+    "year_to": 2021,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Honda",
+    "model": "ADV 160",
+    "year_from": 2022,
+    "year_to": 2023,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Honda",
+    "model": "ADV 160",
+    "year_from": 2026,
+    "year_to": 2026,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Honda",
+    "model": "PCX 160",
+    "year_from": 2021,
+    "year_to": 2023,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Honda",
+    "model": "PCX 160",
+    "year_from": 2025,
+    "year_to": 2026,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Honda",
+    "model": "PCX-150",
+    "year_from": 2017,
+    "year_to": 2020,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Yamaha",
+    "model": "AEROX NEW",
+    "year_from": 2021,
+    "year_to": 2024,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Yamaha",
+    "model": "MT15",
+    "year_from": 2019,
+    "year_to": 2026,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Yamaha",
+    "model": "XSR 155",
+    "year_from": 2019,
+    "year_to": 2026,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Yamaha",
+    "model": "WR 155",
+    "year_from": 2021,
+    "year_to": 2026,
+    "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Yamaha",
+    "model": "XMAX",
+    "year_from": 2017,
+    "year_to": 2026,
+    "ecu": "bikestudio_reference_only"
    }
   ],
   "ecus": [
@@ -15608,6 +16140,38 @@
     "parameters": []
    },
    {
+    "id": "bikestudio_reference_only",
+    "family": "BikeStudio vehicle/ECU part reference (not an ECU family)",
+    "display_name": "BikeStudio part reference only — no ECU protocol",
+    "transport": "none",
+    "confidence": "unknown",
+    "years": "Source-listed years only; see individual parts and markets",
+    "notes": "Reference-only placeholder, not an ECU family or proof that vehicles share ECU hardware. BikeStudio part numbers, market and years are independent lookup leads; this profile offers no live, simulated, security, memory or programming capability.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://bikestudio.io/ecu?lang=en"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "No ECU memory protocol or programming implementation comes from part fitment data."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "reference-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "A part-reference listing does not supply an ECU diagnostic protocol.",
+     "simulator_supported": false
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
     "id": "generic_obd_can_11bit",
     "family": "Generic OBD-II 11-bit CAN (opt-in)",
     "display_name": "Generic OBD-II 11-bit CAN (read-only, ECU-only)",
@@ -16095,7 +16659,7 @@
     "transport": "kline",
     "confidence": "unknown",
     "years": "unspecified",
-    "notes": "Dash/DashBle report CB500F examples and show source captures but do not state model year, market, ECU or software. ECU-only opt-in, not fitment to the selected bike. GuzziOnBoard integration has synthetic tests only. Table 00 ECM ID is an unverified raw candidate; no memory, DTC, controls or simulator. An explicitly confirmed, experimental 256 KiB read is available only if the live ID matches MGZ-A03; not a verified backup.",
+    "notes": "Dash/DashBle report CB500F examples and show source captures but do not state model year, market, ECU or software. ECU-only opt-in, not fitment to the selected bike. GuzziOnBoard integration has synthetic tests only. Table 00 ECM ID is an unverified raw candidate. No DTC, controls or simulator. An explicitly confirmed experimental 256 KiB read is available for source-reported MGZ-A03, C02, C03 or D02 IDs only; not a verified backup.",
     "capabilities": [
      "identify",
      "live"
@@ -16115,18 +16679,18 @@
      "write_supported": false,
      "write_blocked_reason": "No ECU flash writing is implemented for this profile.",
      "research_read_only": true,
-     "hardware_note": "Experimental, source-derived MGZ-A03 read only. Exact live ECM ID required; security exchange is untested by GuzziOnBoard. A completed file is research-only, not a verified backup.",
+     "hardware_note": "Experimental, source-derived MGZ-A03/C02/C03/D02 read attempt. An exact live ECM ID is required; security and reads are untested by GuzziOnBoard on hardware. A completed file is research-only, not a verified backup.",
      "regions": {
       "flash": {
        "start": 0,
        "size": 262144,
-       "block": 12,
+       "block": 8,
        "writable": false,
-       "note": "Source-reported MGZ-A03 only; unverified by GuzziOnBoard."
+       "note": "Source-reported MGZ-A03/C02/C03/D02 only; unverified by GuzziOnBoard."
       }
      },
      "programming": {
-      "protocol": "honda-mgz-a03-research",
+      "protocol": "honda-mgz-research",
       "security": {
        "required": false
       }
@@ -16675,6 +17239,67 @@
       "confidence": "inferred"
      }
     ]
+   },
+   {
+    "id": "honda_pgmfi_flash_research",
+    "family": "Honda PGM-FI source-ID flash research",
+    "display_name": "Honda PGM-FI (ECU-only experimental image read)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "Source-reported IDs only",
+    "notes": "ECU-only research session for exact source-table or source-example-inferred five-byte ECM candidates; not a vehicle fitment guarantee. Explicit confirmation required. GuzziOnBoard has synthetic tests only, no hardware verification. No diagnostic sensor tables, DTCs, writes, recovery or simulator. A completed file is not a verified backup.",
+    "capabilities": [
+     "identify"
+    ],
+    "effective_capabilities": [
+     "identify"
+    ],
+    "sources": [
+     "https://github.com/WiseNoodle/honda-moto-ecu-suite/tree/85431bd831b2c50a640fac35dccf36c09df20c07",
+     "https://github.com/PhatDatPQ/eculib/tree/7921cc46551fd26d487ec778e8822ace4777899e",
+     "https://github.com/AlexKovalevich/HondaECU/tree/db0a6cb8e516aac2406a231380c93e258c722b7c",
+     "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952"
+    ],
+    "memory": {
+     "read_supported": true,
+     "write_supported": false,
+     "write_blocked_reason": "No ECU flash writing is implemented for this profile.",
+     "research_read_only": true,
+     "hardware_note": "Experimental source-derived image read for 60 Honda ID candidates. Eleven IDs are inferred solely from source-named examples; one table ID has an inferred family offset and conflicts with its named example; two source-table entries have no independently checked sample. Example- or model-sized bounds range from 48 KiB to 1 MiB; all starts are assumed, including nonzero MSX offsets. Conflicting or commented source associations are not confirmed identities. 1 MiB reads may take a long time; logs may include image data. Physical K-Line/security/read integration is synthetic-tested only; no verified backup.",
+     "regions": {
+      "flash": {
+       "start": 0,
+       "size": 1048576,
+       "block": 8,
+       "writable": false,
+       "note": "Maximum bound 1 MiB; sizes and start addresses vary by ID and are inferred from source examples or model descriptions. Three Alex VFR candidates use 128-byte requests; others use 8. Neither read completeness nor live protocol is verified."
+      }
+     },
+     "programming": {
+      "protocol": "honda-pgmfi-flash-research",
+      "security": {
+       "required": false
+      }
+     }
+    },
+    "kline": {
+     "baud": 10400,
+     "init": "honda-pgmfi-flash-research",
+     "inter_byte_delay": 0
+    },
+    "can": {},
+    "session": {
+     "protocol": "honda-pgmfi-flash-research",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "tester_present_interval": 2.0,
+     "physical_evidence_note": "Source-derived attempt for explicitly listed IDs; GuzziOnBoard has synthetic tests only, not hardware verification."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
    },
    {
     "id": "honda_pgmfi_research",
@@ -25832,6 +26457,240 @@
    "confidence": "unknown",
    "label": "V-Strom DL650XAL7 (2017-2017)",
    "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "YZF-R15",
+   "year_from": 2014,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "YZF-R15 (2014-2026)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "Mio M3",
+   "year_from": 2015,
+   "year_to": 2021,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "Mio M3 (2015-2021)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "AEROX 155",
+   "year_from": 2017,
+   "year_to": 2022,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "AEROX 155 (2017-2022)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "NMAX 155",
+   "year_from": 2017,
+   "year_to": 2022,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "NMAX 155 (2017-2022)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "Grom / MSX 125",
+   "year_from": 2013,
+   "year_to": 2022,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "Grom / MSX 125 (2013-2022)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "CT 125",
+   "year_from": 2022,
+   "year_to": 2022,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "CT 125 (2022-2022)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "NMAX NEW",
+   "year_from": 2021,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "NMAX NEW (2021-2026)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "ADV 150",
+   "year_from": 2018,
+   "year_to": 2021,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "ADV 150 (2018-2021)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "ADV 160",
+   "year_from": 2022,
+   "year_to": 2023,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "ADV 160 (2022-2023)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "ADV 160",
+   "year_from": 2026,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "ADV 160 (2026-2026)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "PCX 160",
+   "year_from": 2021,
+   "year_to": 2023,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "PCX 160 (2021-2023)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "PCX 160",
+   "year_from": 2025,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "PCX 160 (2025-2026)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "PCX-150",
+   "year_from": 2017,
+   "year_to": 2020,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "PCX-150 (2017-2020)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "AEROX NEW",
+   "year_from": 2021,
+   "year_to": 2024,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "AEROX NEW (2021-2024)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "MT15",
+   "year_from": 2019,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "MT15 (2019-2026)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "XSR 155",
+   "year_from": 2019,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "XSR 155 (2019-2026)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "WR 155",
+   "year_from": 2021,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "WR 155 (2021-2026)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "XMAX",
+   "year_from": 2017,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
+   "confidence": "unknown",
+   "label": "XMAX (2017-2026)",
+   "can": {}
   }
  ],
  "profiles": {
@@ -27349,6 +28208,28 @@
     ]
    }
   },
+  "bikestudio_reference_only": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "BikeStudiovehicle/ECUpartreference(notanECUfamily)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "reference-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "A part-reference listing does not supply an ECU diagnostic protocol.",
+    "simulator_supported": false
+   },
+   "identification": {
+    "available": false
+   }
+  },
   "generic_obd_can_11bit": {
    "parameters": {
     "rpm": {
@@ -28200,6 +29081,30 @@
    },
    "identification": {
     "available": false
+   }
+  },
+  "honda_pgmfi_flash_research": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "HondaPGM-FIsource-IDflashresearchHW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "honda-pgmfi-flash-research",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "Source-derived attempt for explicitly listed IDs; GuzziOnBoard has synthetic tests only, not hardware verification."
+   },
+   "identification": {
+    "available": true,
+    "note": "Raw five-byte ECM ID candidate only; a source match is not confirmed part identification or programming identity."
    }
   },
   "honda_pgmfi_research": {
@@ -32280,6 +33185,383 @@
    "url": "../guzzionboard/xdfs/bmw/MBC1_BMW_C600_V1.01.xdf"
   },
   {
+   "title": "Buell B3R1D / BUE1D EEPROM maps (research)",
+   "path": "guzzionboard/xdfs/buell/B3R1D_source_research.xdf",
+   "version": "0.1",
+   "tables": 4,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 3444,
+   "categories": [],
+   "filename": "B3R1D_source_research.xdf",
+   "brand": "buell",
+   "brand_label": "Buell",
+   "family": "B3R1D",
+   "label": "B3R1D / BUE1D EEPROM four-map source adaptation (research only)",
+   "fits": [
+    {
+     "brand": "buell",
+     "brand_label": "Buell",
+     "label": "B3R1D / BUE1D ECM IDs; verify independently"
+    }
+   ],
+   "fits_brands": [
+    "Buell"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+   "url": "../guzzionboard/xdfs/buell/B3R1D_source_research.xdf"
+  },
+  {
+   "title": "Buell B3R2D / BUE2D EEPROM maps (research)",
+   "path": "guzzionboard/xdfs/buell/B3R2D_source_research.xdf",
+   "version": "0.1",
+   "tables": 4,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 3796,
+   "categories": [],
+   "filename": "B3R2D_source_research.xdf",
+   "brand": "buell",
+   "brand_label": "Buell",
+   "family": "B3R2D",
+   "label": "B3R2D / BUE2D EEPROM four-map source adaptation (research only)",
+   "fits": [
+    {
+     "brand": "buell",
+     "brand_label": "Buell",
+     "label": "B3R2D / BUE2D ECM IDs; verify independently"
+    }
+   ],
+   "fits_brands": [
+    "Buell"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+   "url": "../guzzionboard/xdfs/buell/B3R2D_source_research.xdf"
+  },
+  {
+   "title": "Buell B3R3D / BUE3D EEPROM maps (research)",
+   "path": "guzzionboard/xdfs/buell/B3R3D_source_research.xdf",
+   "version": "0.1",
+   "tables": 4,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 3924,
+   "categories": [],
+   "filename": "B3R3D_source_research.xdf",
+   "brand": "buell",
+   "brand_label": "Buell",
+   "family": "B3R3D",
+   "label": "B3R3D / BUE3D EEPROM four-map source adaptation (research only)",
+   "fits": [
+    {
+     "brand": "buell",
+     "brand_label": "Buell",
+     "label": "B3R3D / BUE3D ECM IDs; verify independently"
+    }
+   ],
+   "fits_brands": [
+    "Buell"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+   "url": "../guzzionboard/xdfs/buell/B3R3D_source_research.xdf"
+  },
+  {
+   "title": "Buell BUECB EEPROM maps (research)",
+   "path": "guzzionboard/xdfs/buell/BUECB_source_research.xdf",
+   "version": "0.1",
+   "tables": 4,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 1138,
+   "categories": [],
+   "filename": "BUECB_source_research.xdf",
+   "brand": "buell",
+   "brand_label": "Buell",
+   "family": "BUECB",
+   "label": "BUECB EEPROM four-map source adaptation (research only)",
+   "fits": [
+    {
+     "brand": "buell",
+     "brand_label": "Buell",
+     "label": "BUECB ECM IDs; verify independently"
+    }
+   ],
+   "fits_brands": [
+    "Buell"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+   "url": "../guzzionboard/xdfs/buell/BUECB_source_research.xdf"
+  },
+  {
+   "title": "Buell BUEGB EEPROM maps (research)",
+   "path": "guzzionboard/xdfs/buell/BUEGB_source_research.xdf",
+   "version": "0.1",
+   "tables": 4,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 1202,
+   "categories": [],
+   "filename": "BUEGB_source_research.xdf",
+   "brand": "buell",
+   "brand_label": "Buell",
+   "family": "BUEGB",
+   "label": "BUEGB EEPROM four-map source adaptation (research only)",
+   "fits": [
+    {
+     "brand": "buell",
+     "brand_label": "Buell",
+     "label": "BUEGB ECM IDs; verify independently"
+    }
+   ],
+   "fits_brands": [
+    "Buell"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+   "url": "../guzzionboard/xdfs/buell/BUEGB_source_research.xdf"
+  },
+  {
+   "title": "Buell BUEGC EEPROM maps (research)",
+   "path": "guzzionboard/xdfs/buell/BUEGC_source_research.xdf",
+   "version": "0.1",
+   "tables": 4,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 1100,
+   "categories": [],
+   "filename": "BUEGC_source_research.xdf",
+   "brand": "buell",
+   "brand_label": "Buell",
+   "family": "BUEGC",
+   "label": "BUEGC EEPROM four-map source adaptation (research only)",
+   "fits": [
+    {
+     "brand": "buell",
+     "brand_label": "Buell",
+     "label": "BUEGC ECM IDs; verify independently"
+    }
+   ],
+   "fits_brands": [
+    "Buell"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+   "url": "../guzzionboard/xdfs/buell/BUEGC_source_research.xdf"
+  },
+  {
+   "title": "Buell BUEIA EEPROM maps (research)",
+   "path": "guzzionboard/xdfs/buell/BUEIA_source_research.xdf",
+   "version": "0.1",
+   "tables": 4,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 1056,
+   "categories": [],
+   "filename": "BUEIA_source_research.xdf",
+   "brand": "buell",
+   "brand_label": "Buell",
+   "family": "BUEIA",
+   "label": "BUEIA EEPROM four-map source adaptation (research only)",
+   "fits": [
+    {
+     "brand": "buell",
+     "brand_label": "Buell",
+     "label": "BUEIA ECM IDs; verify independently"
+    }
+   ],
+   "fits_brands": [
+    "Buell"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+   "url": "../guzzionboard/xdfs/buell/BUEIA_source_research.xdf"
+  },
+  {
+   "title": "Buell BUEIB / BUEIC / B2RIB EEPROM maps (research)",
+   "path": "guzzionboard/xdfs/buell/BUEIB_source_research.xdf",
+   "version": "0.1",
+   "tables": 4,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 1210,
+   "categories": [],
+   "filename": "BUEIB_source_research.xdf",
+   "brand": "buell",
+   "brand_label": "Buell",
+   "family": "BUEIB",
+   "label": "BUEIB / BUEIC / B2RIB EEPROM four-map source adaptation (research only)",
+   "fits": [
+    {
+     "brand": "buell",
+     "brand_label": "Buell",
+     "label": "BUEIB / BUEIC / B2RIB ECM IDs; verify independently"
+    }
+   ],
+   "fits_brands": [
+    "Buell"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+   "url": "../guzzionboard/xdfs/buell/BUEIB_source_research.xdf"
+  },
+  {
+   "title": "Buell BUEJA / BUEKA EEPROM maps (research)",
+   "path": "guzzionboard/xdfs/buell/BUEJA_source_research.xdf",
+   "version": "0.1",
+   "tables": 4,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 1072,
+   "categories": [],
+   "filename": "BUEJA_source_research.xdf",
+   "brand": "buell",
+   "brand_label": "Buell",
+   "family": "BUEJA",
+   "label": "BUEJA / BUEKA EEPROM four-map source adaptation (research only)",
+   "fits": [
+    {
+     "brand": "buell",
+     "brand_label": "Buell",
+     "label": "BUEJA / BUEKA ECM IDs; verify independently"
+    }
+   ],
+   "fits_brands": [
+    "Buell"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+   "url": "../guzzionboard/xdfs/buell/BUEJA_source_research.xdf"
+  },
+  {
+   "title": "Buell BUEOD EEPROM maps (research)",
+   "path": "guzzionboard/xdfs/buell/BUEOD_source_research.xdf",
+   "version": "0.1",
+   "tables": 4,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 2820,
+   "categories": [],
+   "filename": "BUEOD_source_research.xdf",
+   "brand": "buell",
+   "brand_label": "Buell",
+   "family": "BUEOD",
+   "label": "BUEOD EEPROM four-map source adaptation (research only)",
+   "fits": [
+    {
+     "brand": "buell",
+     "brand_label": "Buell",
+     "label": "BUEOD ECM IDs; verify independently"
+    }
+   ],
+   "fits_brands": [
+    "Buell"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+   "url": "../guzzionboard/xdfs/buell/BUEOD_source_research.xdf"
+  },
+  {
+   "title": "Buell BUEWD EEPROM maps (research)",
+   "path": "guzzionboard/xdfs/buell/BUEWD_source_research.xdf",
+   "version": "0.1",
+   "tables": 4,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 3156,
+   "categories": [],
+   "filename": "BUEWD_source_research.xdf",
+   "brand": "buell",
+   "brand_label": "Buell",
+   "family": "BUEWD",
+   "label": "BUEWD EEPROM four-map source adaptation (research only)",
+   "fits": [
+    {
+     "brand": "buell",
+     "brand_label": "Buell",
+     "label": "BUEWD ECM IDs; verify independently"
+    }
+   ],
+   "fits_brands": [
+    "Buell"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+   "url": "../guzzionboard/xdfs/buell/BUEWD_source_research.xdf"
+  },
+  {
+   "title": "Buell BUEYD EEPROM maps (research)",
+   "path": "guzzionboard/xdfs/buell/BUEYD_source_research.xdf",
+   "version": "0.1",
+   "tables": 4,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 3272,
+   "categories": [],
+   "filename": "BUEYD_source_research.xdf",
+   "brand": "buell",
+   "brand_label": "Buell",
+   "family": "BUEYD",
+   "label": "BUEYD EEPROM four-map source adaptation (research only)",
+   "fits": [
+    {
+     "brand": "buell",
+     "brand_label": "Buell",
+     "label": "BUEYD ECM IDs; verify independently"
+    }
+   ],
+   "fits_brands": [
+    "Buell"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+   "url": "../guzzionboard/xdfs/buell/BUEYD_source_research.xdf"
+  },
+  {
+   "title": "Buell BUEZD EEPROM maps (research)",
+   "path": "guzzionboard/xdfs/buell/BUEZD_source_research.xdf",
+   "version": "0.1",
+   "tables": 4,
+   "constants": 0,
+   "unsupported": 0,
+   "region_size": 3412,
+   "categories": [],
+   "filename": "BUEZD_source_research.xdf",
+   "brand": "buell",
+   "brand_label": "Buell",
+   "family": "BUEZD",
+   "label": "BUEZD EEPROM four-map source adaptation (research only)",
+   "fits": [
+    {
+     "brand": "buell",
+     "brand_label": "Buell",
+     "label": "BUEZD ECM IDs; verify independently"
+    }
+   ],
+   "fits_brands": [
+    "Buell"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+   "url": "../guzzionboard/xdfs/buell/BUEZD_source_research.xdf"
+  },
+  {
    "title": "15M Marelli",
    "path": "guzzionboard/xdfs/ducati/15M_Ducati_750SS_V2.28.xdf",
    "version": "2.28",
@@ -33843,6 +35125,111 @@
    "research_only": false,
    "source_url": "https://github.com/roccofz1/HondaECU/blob/dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109/definitions/xdf/CBR1000RR_2012_US.xdf",
    "url": "../guzzionboard/xdfs/honda/CBR1000RR_2012_US.xdf"
+  },
+  {
+   "title": "Honda VFR1200F 2010 NA 38770-MGE-773",
+   "path": "guzzionboard/xdfs/honda/HONDA_VFR1200F_MGE_701.xdf",
+   "version": "1.0.0-RC1",
+   "tables": 46,
+   "constants": 2,
+   "unsupported": 0,
+   "region_size": 1048574,
+   "categories": [
+    "Fuel",
+    "Ignition Timing",
+    "Limiters",
+    "Throttle Limiters",
+    "Unknown"
+   ],
+   "filename": "HONDA_VFR1200F_MGE_701.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "Honda Keihin VFR MGE-701",
+   "label": "Honda VFR1200F MGE-701 filename (title says MGE-773; verify before use) (research only)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "Honda VFR1200F MGE-701 filename (title says MGE-773; verify before use) (research only)"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/AlexKovalevich/HondaECU/blob/db0a6cb8e516aac2406a231380c93e258c722b7c/xdfs/VFR1200F_38770-MGE-773/HONDA_VFR1200F_38770-MGE-701.xdf",
+   "url": "../guzzionboard/xdfs/honda/HONDA_VFR1200F_MGE_701.xdf"
+  },
+  {
+   "title": "Honda VFR1200F 2010 NA 38770-MGE-773",
+   "path": "guzzionboard/xdfs/honda/HONDA_VFR1200F_MGE_773.xdf",
+   "version": "1.0.0-RC1",
+   "tables": 45,
+   "constants": 2,
+   "unsupported": 0,
+   "region_size": 1048574,
+   "categories": [
+    "Fuel",
+    "Ignition Timing",
+    "Limiters",
+    "Throttle Limiters",
+    "Unknown"
+   ],
+   "filename": "HONDA_VFR1200F_MGE_773.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "Honda Keihin VFR MGE-773",
+   "label": "Honda VFR1200F 2010 NA MGE-773 (research only)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "Honda VFR1200F 2010 NA 38770-MGE-773 (research only)"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/AlexKovalevich/HondaECU/blob/db0a6cb8e516aac2406a231380c93e258c722b7c/xdfs/VFR1200F_38770-MGE-773/HONDA_VFR1200F_38770-MGE-773.xdf",
+   "url": "../guzzionboard/xdfs/honda/HONDA_VFR1200F_MGE_773.xdf"
+  },
+  {
+   "title": "Honda VFR1200F 2013 German 38770-MGE-D41",
+   "path": "guzzionboard/xdfs/honda/HONDA_VFR1200F_MGE_D41.xdf",
+   "version": "1.0.0-RC1",
+   "tables": 45,
+   "constants": 2,
+   "unsupported": 0,
+   "region_size": 1048574,
+   "categories": [
+    "Fuel",
+    "Ignition Timing",
+    "Limiters",
+    "Throttle Limiters",
+    "Unknown"
+   ],
+   "filename": "HONDA_VFR1200F_MGE_D41.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "Honda Keihin VFR MGE-D41",
+   "label": "Honda VFR1200F 2013 German MGE-D41 (research only)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "Honda VFR1200F 2013 German MGE-D41 (research only)"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": true,
+   "source_url": "https://github.com/AlexKovalevich/HondaECU/blob/db0a6cb8e516aac2406a231380c93e258c722b7c/xdfs/VFR1200F_38770-MGE-773/HONDA_VFR1200F_38770-MGE-D41.xdf",
+   "url": "../guzzionboard/xdfs/honda/HONDA_VFR1200F_MGE_D41.xdf"
   },
   {
    "title": "Husqvarna MBC1",

@@ -259,6 +259,7 @@ class KLineTransport(Transport):
             "honda-cb500f-dashble": "honda-cb500f-dashble",
             "honda-ctx700-minidash": "honda-ctx700-minidash",
             "honda-pgmfi-research": "honda-pgmfi-research",
+            "honda-pgmfi-flash-research": "honda-pgmfi-flash-research",
             "aster-versys-2012": "aster-versys-2012",
             "kawasaki-kds-research": "kawasaki-kds-research",
             "aster-gsxr600-2011": "aster-gsxr600-2011",
@@ -284,7 +285,7 @@ class KLineTransport(Transport):
                     break
             result.attempts = attempts
             return result
-        if selected in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research"):
+        if selected in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research", "honda-pgmfi-flash-research"):
             return self._honda_init(connection, selected)
         if selected in ("aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research"):
             return self._fast_init(connection, target=0x11 if selected in ("aster-versys-2012", "kawasaki-kds-research") else 0x12,

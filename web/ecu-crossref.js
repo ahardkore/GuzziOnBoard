@@ -15,7 +15,7 @@
       const [c, maps] = await Promise.all([api('/api/catalog'), api('/api/maps')]);
       catalog = c; definitions = maps.xdfs || [];
       select.replaceChildren(new Option('— choose a profile —', ''));
-      [...c.ecus].sort((a,b) => a.display_name.localeCompare(b.display_name)).forEach(profile => select.add(new Option(profile.display_name, profile.id)));
+      [...c.ecus].filter(profile => !['bikestudio_reference_only', 'honda_pgmfi_flash_research'].includes(profile.id)).sort((a,b) => a.display_name.localeCompare(b.display_name)).forEach(profile => select.add(new Option(profile.display_name, profile.id)));
       const familyGroup = document.createElement('optgroup'); familyGroup.label = 'XDF family labels (definition catalog only)';
       [...new Set(definitions.filter(x => x.catalogued && x.family && x.family !== 'HONDA-RESEARCH').map(x => x.family))].sort().forEach(family => familyGroup.append(new Option(`XDF family · ${family}`, `xdf:${family}`)));
       select.append(familyGroup);

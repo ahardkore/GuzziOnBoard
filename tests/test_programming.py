@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import tempfile
+from dataclasses import replace
 
 import pytest
 
@@ -355,11 +356,10 @@ def arm_for_writing(service, monkeypatch):
         service.profile.memory["programming"], "confidence", "verified-capture"
     )
     monkeypatch.setitem(service.profile.memory["regions"]["flash"], "writable", True)
-    # EcuProfile is frozen, and deliberately so.
-    object.__setattr__(
-        service.profile, "capabilities",
-        list(service.profile.capabilities) + ["memory_write"],
-    )
+    # Never mutate the cached frozen catalog profile across test cases.
+    monkeypatch.setattr(service, "profile", replace(
+        service.profile, capabilities=tuple(service.profile.capabilities) + ("memory_write",),
+    ))
     service.gate.mode = Mode.PROGRAMMING
     service.gate.state.battery_v = 13.2
     service.gate.state.engine_running = False
@@ -791,3 +791,23 @@ def test_memory_read_holds_session_lock_through_transfer(service, monkeypatch):
     monkeypatch.setattr(service, "_read_5am_source_blocks", read_blocks)
     service.read_region()
     assert locked == [True]
+
+
+def test_write_readiness_reports_disabled_writer_and_region_without_token(service, monkeypatch):
+    """A green policy gate must not hide a disabled implementation."""
+    backup = service.backup('flash')
+    arm_for_writing(service, monkeypatch)
+    monkeypatch.setitem(service.profile.memory, 'write_supported', False)
+    decision = service.check_write('flash')
+    assert not decision.allowed and decision.token is None
+    assert 'write-supported' in decision.reason()
+    with pytest.raises(SafetyViolation, match='write-supported') as error:
+        service.write_region(FirmwareImage.from_file(backup['path']), 'unused')
+    assert not error.value.decision.allowed
+    assert not service.diag.transport.ecu.erased
+
+    monkeypatch.setitem(service.profile.memory, 'write_supported', True)
+    monkeypatch.setitem(service.profile.memory['regions']['flash'], 'writable', False)
+    decision = service.check_write('flash')
+    assert not decision.allowed and decision.token is None
+    assert 'writable-region' in decision.reason()

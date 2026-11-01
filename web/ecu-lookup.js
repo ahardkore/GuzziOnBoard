@@ -90,6 +90,17 @@
       link.target = '_blank'; link.rel = 'noopener noreferrer'; li.append(link); list.append(li);
     });
     external.append(list);
+    if (input.part) {
+      const button = addText(external, 'button', 'Find this part in the BikeStudio reference');
+      button.type = 'button'; button.className = 'btn small';
+      button.addEventListener('click', () => {
+        show('garage');
+        $('bikeStudioLookup').open = true;
+        $('bikeStudioQuery').value = input.part;
+        $('bikeStudioQuery').dispatchEvent(new Event('input', {bubbles:true}));
+        $('bikeStudioLookup').scrollIntoView({block:'nearest'});
+      });
+    }
   });
   fields.forEach(([, , id]) => $(id).addEventListener('input', clearResults));
   $('ecuLookupClear').addEventListener('click', () => { fields.forEach(([, , id]) => { $(id).value = ''; }); clearResults(); });

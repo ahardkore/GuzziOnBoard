@@ -214,3 +214,29 @@ def test_no_cataloged_harley_year_has_conflicting_protocols():
             if left.ecu==right.ecu or left.model.casefold()!=right.model.casefold():
                 continue
             assert left.year_to < right.year_from or right.year_to < left.year_from
+
+
+def test_memory_block_is_missing_reader_not_read_only_safety_gate(tmp_path):
+    from guzzionboard.programming import ProgrammingError, ProgrammingService
+    from guzzionboard.safety import Risk
+
+    transport = FakeCan([b'\x7e\x00'])
+    diag = service(transport)
+    diag.connect()
+    try:
+        # No write opt-in, prior backup, or ECU identity is needed by the
+        # central safety decision for reads. The separate programming service
+        # still has no Harley reader to call.
+        assert diag.gate.evaluate('read', Risk.READ).allowed
+        assert not diag.gate.allow_programming and not diag.gate.state.verified_backup
+        program = ProgrammingService(diag, image_dir=tmp_path)
+        caps = program.capabilities()
+        assert caps['read_supported'] is False
+        assert 'No ECU memory reader' in caps['read_blocked_reason']
+        assert caps['security_required'] is None and caps['security_available'] is None
+        with pytest.raises(ProgrammingError, match='reading is not supported'):
+            program.read_region()
+        # No memory, unlock, or programming frame is sent by this rejection.
+        assert transport.conn.sent == [b'\x3e\x00']
+    finally:
+        diag.disconnect()

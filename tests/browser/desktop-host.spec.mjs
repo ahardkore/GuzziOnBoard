@@ -10,6 +10,8 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync, readdirSync, existsSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
 
 const EXPORTS = join(process.cwd(), '.desktop-test-data', 'exports');
 
@@ -547,7 +549,7 @@ test('desktop selects scoped Honda MGZ-A03 offline builder and flags source XDFs
   await expect(page.locator('#mapChecksumProvider option[value="honda-cb500-mgz-a03-v1"]')).toHaveCount(1);
   await page.locator('#xdfOnlyFitting').uncheck();
   await page.selectOption('#xdfSelect', '38770-MGZ.xdf');
-  await expect(page.locator('#xdfFitNote')).toContainText('Research only: image builds are blocked');
+  await expect(page.locator('#xdfFitNote')).toContainText('Research only: normal firmware builds are blocked');
   await expect(page.locator('#xdfFitNote')).toContainText('default endian conflicts with A03');
   const status = await page.evaluate(async () => (await fetch('/api/status')).json());
   expect(status.connected).toBe(false);
@@ -729,6 +731,50 @@ test('Honda CB500F DashBle override remains ECU-only with source limits', async 
   expect(request).not.toHaveProperty('year');
 });
 
+test('Honda source-ID reader is ECU-only even from a reference-only selection', async ({page}) => {
+  await page.goto('/');
+  await page.locator('#bikeStudioLookup > summary').click();
+  await page.locator('#bikeStudioQuery').fill('ADV 150');
+  await page.locator('#bikeStudioYear').fill('2021');
+  await page.getByRole('button', {name:'Choose Honda ADV 150 2021 in Garage'}).click();
+  await expect(page.locator('#connectBtn')).toBeDisabled();
+  await page.getByText('Override: pick an ECU family directly').click();
+  await page.selectOption('#ecuOverride', 'honda_pgmfi_flash_research');
+  const kline = page.locator('input[name="transport"][value="kline"]');
+  if (await kline.isEnabled()) await kline.check();
+  else await kline.evaluate(el => { el.checked = true; el.dispatchEvent(new Event('change', {bubbles:true})); });
+  await page.locator('#checklistAccept').check();
+  const request = await page.evaluate(() => selectionRequest());
+  expect(request.transport).toBe('kline');
+  expect(request.ecu).toBe('honda_pgmfi_flash_research');
+  expect(request).not.toHaveProperty('model');
+  expect(request).not.toHaveProperty('year');
+  await expect(page.locator('#connectBtn')).toBeEnabled();
+  await page.route('**/api/memory/check-write', async route => route.fulfill({json:{allowed:false,checks:[]}}));
+  await page.route('**/api/memory', async route => route.fulfill({json:{
+    capabilities: {ecu:'honda_pgmfi_flash_research',family:'Honda',protocol:'Honda K-Line',
+      research_read_only:true,read_supported:true,write_supported:false,regions:{flash:{size:262144}}},
+    base_map:{intact:false},checkpoints:{}
+  }}));
+  await page.locator('[data-view="firmware"]').click();
+  await page.evaluate(() => renderMemoryCapabilities({
+    capabilities: {ecu:'honda_pgmfi_flash_research',family:'Honda',protocol:'Honda K-Line',
+      research_read_only:true,read_supported:true,write_supported:false,regions:{flash:{size:262144}}},
+    base_map:{intact:false},checkpoints:{}
+  }));
+  await expect(page.locator('#memCaps')).toContainText('60 source-derived Honda candidates');
+  await expect(page.locator('#memRegion')).toContainText('48 KiB–1 MiB candidate by ECM ID');
+  await expect(page.locator('#backupBtn')).toBeDisabled();
+  await page.locator('#readBtn').click();
+  await expect(page.locator('#modalTitle')).toHaveText('Experimental Honda source-ID research read');
+  await expect(page.locator('#modalBody')).toContainText('not been tested on a physical ECU');
+  await expect(page.locator('#modalBody')).toContainText('lockout');
+  await expect(page.locator('#modalBody')).toContainText('nonzero starts for MSX IDs');
+  await expect(page.locator('#modalBody')).toContainText('session logs can contain image data');
+  await page.locator('#modalCancel').click();
+  expect(page.failures).toEqual([]);
+});
+
 test('experimental Honda research read requires its own acknowledgement', async ({ page }) => {
   await page.goto('/');
   await page.locator('[data-view="firmware"]').click();
@@ -737,7 +783,7 @@ test('experimental Honda research read requires its own acknowledgement', async 
       research_read_only: true, read_supported: true, write_supported: false,
       regions: {flash: {size: 262144}} }, base_map: {intact: false}, checkpoints: {}
   }));
-  await expect(page.locator('#memCaps')).toContainText('experimental MGZ-A03 only');
+  await expect(page.locator('#memCaps')).toContainText('experimental MGZ-A03/C02/C03/D02 only');
   await expect(page.locator('#memCaps')).toContainText('unverified on hardware');
   await expect(page.locator('#backupBtn')).toBeDisabled();
   await expect(page.locator('#baseMapSaveBtn')).toBeDisabled();
@@ -748,7 +794,7 @@ test('experimental Honda research read requires its own acknowledgement', async 
     await route.fulfill({status: 202, contentType: 'application/json', body: '{}'});
   });
   await page.locator('#readBtn').click();
-  await expect(page.locator('#modalTitle')).toHaveText('Experimental MGZ-A03 research read');
+  await expect(page.locator('#modalTitle')).toHaveText('Experimental MGZ research read');
   await expect(page.locator('#modalBody')).toContainText('not a verified backup');
   await page.locator('#modalCancel').click();
   expect(reads).toBe(0);
@@ -823,7 +869,7 @@ test('Harley Delphi CAN override remains ECU-only and explains live identity sco
   if (await can.isEnabled()) await can.check();
   else await can.evaluate(el => { el.checked = true; el.dispatchEvent(new Event('change', {bubbles:true})); });
   await expect(page.locator('#canFields')).toContainText('five raw identity DIDs');
-  await expect(page.locator('#canFields')).toContainText('No ECU memory');
+  await expect(page.locator('#canFields')).toContainText('Garage identity session does not provide ECU memory');
   const request = await page.evaluate(() => selectionRequest());
   expect(request.ecu).toBe('harley_delphi_can_uds');
   expect(request.transport).toBe('can');
@@ -1411,4 +1457,690 @@ test('desktop Power Vision log mapping requires an explicit cylinder AFR', async
   await expect(page.locator('#mapLogTarget')).toHaveValue('Set AFR');
   await page.locator('#mapLogMeasured').selectOption('AFR1');
   await expect(page.locator('#mapLogMeasured')).toHaveValue('AFR1');
+});
+
+test('desktop explains missing Harley reader without claiming security is unnecessary', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="firmware"]').click();
+  await page.evaluate(() => renderMemoryCapabilities({
+    capabilities: { ecu: 'harley_delphi_can_uds', family: 'Harley Delphi CAN', protocol: 'none',
+      read_supported: false, write_supported: false, security_required: null, security_available: null,
+      read_blocked_reason: 'No ECU memory reader is implemented for this profile.',
+      write_blocked_reason: 'Programming is not implemented.', regions: {} },
+    base_map: { intact: false }, checkpoints: {},
+  }));
+  await expect(page.locator('#memCaps')).toContainText('No ECU memory reader is implemented');
+  await expect(page.locator('#memCaps')).toContainText('unknown — no memory reader implemented');
+  await expect(page.locator('#memCaps')).toContainText('Separate experimental tool');
+  await expect(page.locator('#readBtn')).toBeDisabled();
+  await expect(page.locator('#backupBtn')).toBeDisabled();
+});
+
+test('desktop reads and exports a synthetic Buell source-layout EEPROM image', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  const data = Buffer.from(Array.from({length: 1210}, (_, i) => i & 255));
+  const requests = [];
+  await page.route('**/api/tools/buell-ddfi', async (route) => {
+    const body = route.request().postDataJSON(); requests.push(body);
+    const result = body.action === 'identify'
+      ? {version: 'BUEIB310 12-11-03'}
+      : {version: 'BUEIB310 12-11-03', kind: 'eeprom-image', layout: 'BUEIB',
+         length: data.length, data_hex: data.toString('hex').toUpperCase(),
+         sha256: 'synthetic', repeated_match: true};
+    await route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify(result)});
+  });
+  await page.locator('#buellPort').fill('/dev/ttyUSB0');
+  await page.locator('#buellConfirm').check();
+  await page.locator('#buellIdentify').click();
+  await expect(page.locator('#buellVersion')).toHaveValue('BUEIB310 12-11-03');
+  await page.locator('#buellCompare').check();
+  await page.locator('#buellConfirm').check();
+  await page.locator('#buellImage').click();
+  await expect(page.locator('#buellOut')).toContainText('Two complete reads matched');
+  expect(requests[1]).toMatchObject({action: 'image', compare_repeat: true, version: 'BUEIB310 12-11-03'});
+  await page.locator('#buellSaveImage').click();
+  await expect(page.locator('#buellOut')).toContainText('Saved:');
+  const name = (await page.locator('#buellOut').innerText()).match(/BUEIB-guzzionboard-\d+\.xpr/)[0];
+  expect(readFileSync(join(EXPORTS, name))).toEqual(data);
+  await page.locator('#buellPort').fill('/dev/ttyUSB1');
+  await expect(page.locator('#buellSaveImage')).toBeDisabled();
+});
+
+test('desktop edits and exports a synthetic Buell XPR with the bundled source XDF', async ({page}) => {
+  const source = join(resolve('.desktop-test-data'), 'BUEIB-synthetic.xpr');
+  const image = Buffer.from(Array.from({length: 1210}, (_, i) => i & 255));
+  writeFileSync(source, image);
+  await page.goto('/');
+  await page.locator('[data-view="firmware"]').click();
+  await page.locator('#xdfOnlyFitting').uncheck();
+  await page.locator('#mapsRefreshBtn').click();
+  await page.locator('#xdfSelect').selectOption('BUEIB_source_research.xdf');
+  await page.locator('#mapsImagePath').fill(source);
+  await page.locator('#mapsAddressBase').fill('0');
+  await page.locator('#mapsRenderBtn').click();
+  if (await page.locator('#modal').isVisible()) await page.locator('#modalConfirm').click();
+  const cell = page.locator('[data-map-kind="table"][data-map-id="0x3"][data-map-row="1"][data-map-col="0"]');
+  await expect(cell).toHaveAttribute('data-map-value', String(image[884]));
+  await page.locator('details.map-table-entry').filter({hasText: 'Tab_Fuel_Front'}).locator('summary').first().click();
+  await cell.dblclick();
+  await page.locator('#mapEditValue').fill('42');
+  await page.locator('#modalConfirm').click();
+  await page.locator('#mapResearchPreviewBtn').click();
+  await expect(page.locator('#userResearchExportBtn')).toBeVisible();
+  await page.locator('#researchRegionStart').fill('0');
+  await page.locator('#researchRegionEnd').fill('1210');
+  await page.locator('#userResearchExportBtn').click();
+  const response = page.waitForResponse((r) => r.url().includes('/api/maps/research-export') && r.status() === 201);
+  await page.locator('#modalConfirm').click();
+  const saved = await (await response).json();
+  expect(readFileSync(saved.path)[884]).toBe(42);
+  expect(readFileSync(source)).toEqual(image);
+  expect(JSON.parse(readFileSync(saved.manifest_path)).flash_ready).toBe(false);
+});
+
+test('desktop Buell write requires review and confirmation and invalidates stale plans', async ({ page }) => {
+  await page.goto('/'); await page.locator('[data-view="tools"]').click();
+  const calls = [];
+  await page.route('**/api/tools/buell-ddfi', async route => {
+    const body = route.request().postDataJSON(); calls.push(body);
+    const result = body.action === 'identify' ? {version:'BUEIB310 12-11-03'}
+      : body.action === 'prepare-write' ? {version:'BUEIB310 12-11-03', xdf:'BUEIB_source_research.xdf',
+          changes:[{offset:884,before:116,after:42}], base_sha256:'original', target_sha256:'edited',
+          warning:'Synthetic only', token:'synthetic-token', expires_seconds:300}
+      : {chunks_written:1,edited_bytes:1,backup_path:'/synthetic/backup.xpr',backup_sha256:'backup',note:'Synthetic only'};
+    await route.fulfill({status:200, contentType:'application/json', body:JSON.stringify(result)});
+  });
+  await page.locator('#buellPort').fill('/dev/ttyUSB0');
+  await page.locator('#buellConfirm').check(); await page.locator('#buellIdentify').click();
+  await expect(page.locator('#buellVersion')).toHaveValue('BUEIB310 12-11-03');
+  await page.locator('#buellDdfi details > summary').click();
+  await page.locator('#buellWriteOriginal').fill('/tmp/BUEIB-original.xpr');
+  await page.locator('#buellWriteEdited').fill('/tmp/edited.bin');
+  await page.locator('#buellWriteConfirm').check(); await page.locator('#buellConfirm').check();
+  await page.locator('#buellWritePrepare').click();
+  await expect(page.locator('#buellWriteOut')).toContainText('0x374: 116 → 42');
+  await expect(page.locator('#buellWriteExecute')).toBeEnabled();
+  await page.locator('#buellWriteEdited').fill('/tmp/other.bin');
+  await expect(page.locator('#buellWriteExecute')).toBeDisabled();
+  await page.locator('#buellWritePrepare').click();
+  await expect(page.locator('#buellWriteExecute')).toBeEnabled();
+  await page.locator('#buellWriteExecute').click();
+  await expect(page.locator('#modal')).toContainText('synthetic tests');
+  expect(calls.filter(c => c.action === 'write')).toHaveLength(0);
+  await page.locator('#modalConfirm').click();
+  await expect(page.locator('#buellWriteOut')).toContainText('Fresh backup: /synthetic/backup.xpr');
+  expect(calls.filter(c => c.action === 'write')).toEqual([{action:'write',confirm:true,confirm_write:true,token:'synthetic-token'}]);
+  await expect(page.locator('#buellWriteExecute')).toBeDisabled();
+});
+
+test('Harley Delphi experimental read and reviewed write use local API only', async ({ page }) => {
+  const calls = [];
+  await page.route('**/api/tools/harley-memory', async route => {
+    const body = route.request().postDataJSON(); calls.push(body);
+    let response;
+    if (body.action === 'read') response = {identity:{F1EA:'41',F1ED:'42',F1F5:'43'},region:'tune',address:0x7f4000,length:16384,sha256:'abc',data_hex:'00'.repeat(16384),repeated_match:false,read_token:'read-token',original_tune_path:'/synthetic/original.bin',original_tune_sha256:'orig',original_tune_verified:false};
+    else if (body.action === 'prepare-from-read') response = {identity:{F1EA:'41',F1ED:'42',F1F5:'43'},original_sha256:'orig',target_sha256:'target',changed_bytes:1,changes:[{offset:10,before:0,after:1}],token:'single-use',expires_seconds:300,single_read:true};
+    else response = {backup_path:'/synthetic/backup.bin',backup_sha256:'backuphash',note:'Synthetic test.'};
+    await route.fulfill({json: response});
+  });
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').first().click();
+  await page.locator('#hdMemChannel').fill('can0');
+  await page.locator('#hdMemCapture').fill('/tmp/authorized-capture.txt');
+  await page.locator('#hdMemConfirm').check();
+  await page.locator('#hdMemRead').click();
+  await expect(page.locator('#hdMemOut')).toContainText('Single read only');
+  await expect(page.locator('#hdMemWritePanel')).toHaveJSProperty('open', true);
+  await expect(page.locator('#hdMemOriginal')).toHaveValue('/synthetic/original.bin');
+  await expect(page.locator('#hdMemPrepare')).toBeDisabled();
+  await page.locator('#hdMemEdited').fill('/tmp/edited.bin');
+  await page.locator('#hdMemPrepare').click();
+  await expect(page.locator('#hdMemWriteOut')).toContainText('0xA: 0 → 1');
+  await expect(page.locator('#hdMemWrite')).toBeDisabled();
+  await page.locator('#hdMemWriteConfirm').check();
+  await page.locator('#hdMemEdited').fill('/tmp/other.bin');
+  await expect(page.locator('#hdMemWrite')).toBeDisabled();
+  await expect(page.locator('#hdMemWriteConfirm')).not.toBeChecked();
+  await page.locator('#hdMemPrepare').click();
+  await page.locator('#hdMemWriteConfirm').check();
+  await page.locator('#hdMemWrite').click();
+  await expect(page.locator('#modalBody')).toContainText('without a fresh pre-write comparison');
+  await page.locator('#modalConfirm').click();
+  await expect(page.locator('#hdMemWriteOut')).toContainText('/synthetic/backup.bin');
+  expect(calls.map(c => c.action)).toEqual(['read','prepare-from-read','prepare-from-read','write']);
+  expect(calls[0].compare_repeat).toBe(false);
+  expect(calls[1].read_token).toBe('read-token');
+  expect(calls[1]).not.toHaveProperty('original_path');
+  expect(calls.at(-1).token).toBe('single-use');
+  expect(page.failures).toEqual([]);
+});
+
+test('BikeStudio reference searches parts and selects only an existing garage model', async ({page}) => {
+  await page.goto('/');
+  await page.locator('#bikeStudioLookup > summary').click();
+  await page.locator('#bikeStudioYear').fill('2014');
+  await page.locator('#bikeStudioQuery').fill('38770-MGZ-A03');
+  await expect(page.locator('#bikeStudioResults')).toContainText('38770-MGZ-A03');
+  await expect(page.locator('#bikeStudioResults')).toContainText('market: Asia');
+  await expect(page.locator('#bikeStudioResults')).toContainText('separate Honda PGM-FI ECU-only');
+  await expect(page.locator('#bikeStudioResults')).toContainText('this listing does not enable a read or write');
+  await expect(page.locator('#bikeStudioResults a', {hasText:'source part'})).toHaveAttribute('href', 'https://bikestudio.io/ecu/38770-mgz-a03?lang=en');
+  await page.getByRole('button', {name:'Choose Honda CB500F 2014 in Garage'}).click();
+  await expect(page.locator('#makeSelect')).toHaveValue('Honda');
+  await expect(page.locator('#modelSelect')).toHaveValue('CB500F');
+  await expect(page.locator('#yearSelect')).toHaveValue('2014');
+  await expect(page.locator('#bikeStudioGarage')).toContainText('38770-MGZ-A03');
+  await expect(page.locator('#bikeStudioGarage')).not.toContainText('38770-MGZ-B01');
+  await page.locator('#bikeStudioQuery').fill('38770-MGP-A92');
+  await expect(page.locator('#bikeStudioResults')).toContainText('separate Honda PGM-FI ECU-only');
+  await expect(page.locator('#bikeStudioResults')).toContainText('Synthetic-tested only');
+  await page.locator('#bikeStudioQuery').fill('38770-KYJ-922');
+  await expect(page.locator('#bikeStudioResults')).toContainText('separate Honda PGM-FI ECU-only');
+  await expect(page.locator('#bikeStudioResults')).toContainText('this listing does not enable a read or write');
+  await page.locator('#bikeStudioQuery').fill('38770-K0F-A01');
+  await page.locator('#bikeStudioYear').fill('2018');
+  await expect(page.locator('#bikeStudioResults')).toContainText('separate Honda PGM-FI ECU-only');
+  await page.locator('#bikeStudioQuery').fill('CT 125');
+  await page.locator('#bikeStudioYear').fill('2024');
+  await expect(page.locator('#bikeStudioResults')).toContainText('2025–2024 (invalid source range; review)');
+  await expect(page.locator('#bikeStudioResults')).toContainText('year unknown');
+  await expect(page.locator('#bikeStudioResults')).not.toContainText('38770-K2E-T11');
+  await page.locator('#bikeStudioQuery').fill('R15');
+  await page.locator('#bikeStudioYear').fill('2021');
+  await page.getByRole('button', {name:'Choose Yamaha YZF-R15 2021 in Garage'}).click();
+  await expect(page.locator('#modelSelect')).toHaveValue('YZF-R15');
+  await expect(page.locator('#bikeStudioGarage')).toContainText('BDJ0');
+  await expect(page.locator('#resolveResult')).toContainText('BikeStudio part reference only');
+  await expect(page.locator('#connectBtn')).toBeDisabled();
+  await expect(page.locator('#selectOfflineBtn')).toBeEnabled();
+  expect(page.failures).toEqual([]);
+});
+
+test('additional BikeStudio source candidates retain anomalies and year gaps', async ({page}) => {
+  await page.goto('/');
+  await page.locator('#bikeStudioLookup > summary').click();
+  await page.locator('#bikeStudioQuery').fill('CB 150 R');
+  await page.locator('#bikeStudioYear').fill('2014');
+  await expect(page.locator('#bikeStudioResults')).toContainText('2021–2019 (invalid source range; review)');
+  await expect(page.locator('#bikeStudioResults')).toContainText('source cc: 149,48');
+  await page.locator('#bikeStudioQuery').fill('ADV 160');
+  await page.locator('#bikeStudioYear').fill('2026');
+  await page.getByRole('button', {name:'Choose Honda ADV 160 2026 in Garage'}).click();
+  await expect(page.locator('#bikeStudioGarage')).toContainText('30400-K0WW-ND2');
+  await expect(page.locator('#bikeStudioGarage')).not.toContainText('30400-K0WL-NA1');
+  await expect(page.locator('#connectBtn')).toBeDisabled();
+  expect(await page.locator('#yearSelect option').allTextContents()).not.toContain('2024');
+  expect(page.failures).toEqual([]);
+});
+
+test('BikeStudio new PCX and XMAX selections keep gaps and unknown data', async ({page}) => {
+  await page.goto('/');
+  await page.locator('#bikeStudioLookup > summary').click();
+  await page.locator('#bikeStudioQuery').fill('PCX 160');
+  await page.locator('#bikeStudioYear').fill('2025');
+  await page.getByRole('button', {name:'Choose Honda PCX 160 2025 in Garage'}).click();
+  await expect(page.locator('#bikeStudioGarage')).toContainText('30400-K1ZH-B11');
+  await expect(page.locator('#connectBtn')).toBeDisabled();
+  expect(await page.locator('#yearSelect option').allTextContents()).not.toContain('2024');
+  await page.locator('#bikeStudioQuery').fill('XMAX');
+  await page.locator('#bikeStudioYear').fill('2023');
+  await expect(page.locator('#bikeStudioResults')).toContainText('B741 · source years: not stated (year unknown)');
+  await page.getByRole('button', {name:'Choose Yamaha XMAX 2023 in Garage'}).click();
+  await expect(page.locator('#bikeStudioGarage')).toContainText('B5X0');
+  await expect(page.locator('#connectBtn')).toBeDisabled();
+  expect(page.failures).toEqual([]);
+});
+
+test('BikeStudio market filtering is local, exact and retains unstated markets', async ({page}) => {
+  await page.goto('/');
+  await page.locator('#bikeStudioLookup > summary').click();
+  await page.locator('#bikeStudioQuery').fill('CBR 250 R');
+  await page.locator('#bikeStudioYear').fill('2014');
+  await page.locator('#bikeStudioMarket').fill('indonesia');
+  const box = page.locator('#bikeStudioResults .gate-card').filter({has:page.getByRole('heading', {name:'Honda CBR 250 R', exact:true})});
+  await expect(box).toContainText('38770-K33-N03');
+  await expect(box).toContainText('38770-K33-D22'); // market not stated
+  await expect(box).not.toContainText('38770-K33-T53'); // Asia is a distinct label
+  await page.locator('#bikeStudioMarket').fill('Asia');
+  await expect(box).toContainText('38770-K33-T53');
+  await expect(box).toContainText('38770-K33-D22');
+  await expect(box).not.toContainText('38770-K33-N03');
+  expect(page.failures).toEqual([]);
+});
+
+test('ECU identifier search opens the BikeStudio reference without changing bike', async ({page}) => {
+  await page.goto('/');
+  await page.locator('[data-view="tools"]').click();
+  await page.locator('#ecuPart').fill('38770-MGZ-A03');
+  await page.locator('#ecuLookupBtn').click();
+  await page.getByRole('button', {name:'Find this part in the BikeStudio reference'}).click();
+  await expect(page.locator('#bikeStudioQuery')).toHaveValue('38770-MGZ-A03');
+  await expect(page.locator('#bikeStudioResults')).toContainText('38770-MGZ-A03');
+  await page.locator('[data-view="tools"]').click();
+  await page.locator('#sharedEcuLoad').click();
+  await expect(page.locator('#sharedEcuFamily')).toBeEnabled();
+  expect(await page.locator('#sharedEcuFamily option[value="bikestudio_reference_only"]').count()).toBe(0);
+  expect(await page.locator('#sharedEcuFamily option[value="honda_pgmfi_flash_research"]').count()).toBe(0);
+  expect(page.failures).toEqual([]);
+});
+
+test('BikeStudio live lookup fetches only explicit public index and chosen model', async ({page}) => {
+  const requests = [];
+  await page.route('**/api/tools/bikestudio', async route => {
+    const body = route.request().postDataJSON(); requests.push(body);
+    const data = body.kind === 'index' ? {models:[
+      {slug:'honda-beat-110',label:'BeAT 110 (8)',aliases:'BeAT eSP'},
+      {slug:'yamaha-nmax-new',label:'NMAX NEW (13)',aliases:'NMAX Connected'}]} :
+      {slug:body.slug,rows:[{part:'BLE-H594A-00',part_slug:'ble-h594a-00',years:'2024–2026',cc:'155',market:'Asia'},
+                            {part:'B6Y-H594A-02',part_slug:'b6y-h594a-02',years:'2021–2024',cc:'155',market:'Asia'},
+                            {part:'UNKNOWN',part_slug:'unknown',years:'',cc:'',market:''}]};
+    await route.fulfill({json:data});
+  });
+  await page.goto('/');
+  await page.locator('#bikeStudioLookup > summary').click();
+  await page.locator('#bikeStudioOnline summary').click();
+  expect(requests).toHaveLength(0);
+  await page.locator('#bikeStudioOnlineLoad').click();
+  await expect(page.locator('#bikeStudioOnlineOut')).toContainText('Loaded 2 public model links');
+  await page.locator('#bikeStudioOnlineFilter').fill('NMAX Connected');
+  await page.locator('#bikeStudioOnlineModel').selectOption('yamaha-nmax-new');
+  await page.locator('#bikeStudioYear').fill('2022');
+  await page.locator('#bikeStudioOnlineRead').click();
+  await expect(page.locator('#bikeStudioOnlineOut')).toContainText('B6Y-H594A-02');
+  await expect(page.locator('#bikeStudioOnlineOut')).toContainText('year unknown');
+  await expect(page.locator('#bikeStudioOnlineOut')).not.toContainText('BLE-H594A-00');
+  await expect(page.locator('#bikeStudioOnlineOut a', {hasText:'source part'}).first()).toHaveAttribute('href','https://bikestudio.io/ecu/b6y-h594a-02?lang=en');
+  await page.locator('#bikeStudioMarket').fill('Indonesia');
+  await expect(page.locator('#bikeStudioOnlineOut')).not.toContainText('B6Y-H594A-02');
+  await expect(page.locator('#bikeStudioOnlineOut')).toContainText('UNKNOWN');
+  await page.locator('#bikeStudioMarket').fill('Asia');
+  await expect(page.locator('#bikeStudioOnlineOut')).toContainText('B6Y-H594A-02');
+  expect(requests).toEqual([{kind:'index',confirm_external:true},{kind:'model',slug:'yamaha-nmax-new',confirm_external:true}]);
+  expect(page.failures).toEqual([]);
+});
+
+test('desktop Buell single image read automatically saves and opens write review', async ({page}) => {
+  await page.goto('/'); await page.locator('[data-view="tools"]').click();
+  const calls = [];
+  const data = Buffer.alloc(1210, 1);
+  await page.route('**/api/tools/buell-ddfi', async route => {
+    const body = route.request().postDataJSON(); calls.push(body);
+    const result = body.action === 'identify' ? {version:'BUEIB310 12-11-03'}
+      : body.action === 'image' ? {version:'BUEIB310 12-11-03', kind:'eeprom-image', layout:'BUEIB',
+          length:data.length, data_hex:data.toString('hex').toUpperCase(), sha256:'synthetic',
+          read_token:'single-read-token', original_path:'/synthetic/BUEIB-original.xpr', original_verified:false}
+      : body.action === 'prepare-from-read' ? {version:'BUEIB310 12-11-03', xdf:'BUEIB_source_research.xdf',
+          changes:[{offset:884,before:1,after:42}], base_sha256:'original', target_sha256:'edited',
+          warning:'Synthetic only', token:'review-token', expires_seconds:300, single_read:true}
+      : {chunks_written:1,edited_bytes:1,backup_path:'/synthetic/BUEIB-original.xpr',backup_sha256:'original',note:'Synthetic only',single_read:true};
+    await route.fulfill({status:200, contentType:'application/json', body:JSON.stringify(result)});
+  });
+  await page.locator('#buellPort').fill('/dev/ttyUSB0');
+  await page.locator('#buellConfirm').check(); await page.locator('#buellIdentify').click();
+  await expect(page.locator('#buellVersion')).toHaveValue('BUEIB310 12-11-03');
+  await page.locator('#buellConfirm').check(); await page.locator('#buellImage').click();
+  await expect(page.locator('#buellWritePanel')).toHaveAttribute('open', '');
+  await expect(page.locator('#buellWriteOriginal')).toHaveValue('/synthetic/BUEIB-original.xpr');
+  await expect(page.locator('#buellOut')).toContainText('no SET was sent');
+  await page.locator('#buellSaveImage').click();
+  await expect(page.locator('#buellOut')).toContainText('Saved:');
+  await expect(page.locator('#buellWriteOriginal')).toHaveValue('/synthetic/BUEIB-original.xpr');
+  await page.locator('#buellWriteEdited').fill('/synthetic/edited.xpr');
+  await page.locator('#buellWriteConfirm').check(); await page.locator('#buellWritePrepare').click();
+  await expect(page.locator('#buellWriteExecute')).toBeEnabled();
+  expect(calls.filter(c => c.action === 'prepare-from-read')).toEqual([
+    {action:'prepare-from-read',confirm:true,read_token:'single-read-token',edited_path:'/synthetic/edited.xpr'}]);
+  expect(calls.filter(c => c.action === 'write')).toHaveLength(0);
+  await page.locator('#buellWriteExecute').click();
+  await expect(page.locator('#modal')).toContainText('only affected live chunks');
+  expect(calls.filter(c => c.action === 'write')).toHaveLength(0);
+  await page.locator('#modalConfirm').click();
+  await expect(page.locator('#buellWriteOut')).toContainText('Single-read original: /synthetic/BUEIB-original.xpr');
+  expect(calls.filter(c => c.action === 'write')).toHaveLength(1);
+});
+
+test('rusEFI one-read calibration review requires explicit write and burn confirmation', async ({page}) => {
+  await page.goto('/'); await page.locator('[data-view="tools"]').click();
+  const requests = [];
+  const signature = 'rusEFI synthetic.board.1234';
+  const ini = `[TunerStudio]\nsignature = "${signature}"\n[Constants]\npageSize=300\n`;
+  await page.route('**/api/tools/rusefi-read', async route => {
+    const body = route.request().postDataJSON(); requests.push(body);
+    const data = body.action === 'read-calibration'
+      ? {signature, length:300, sha256:'old', original_path:'/synthetic/rusefi-page0.bin', read_token:'read-token'}
+      : body.action === 'prepare-calibration'
+      ? {signature, changed_bytes:1, original_sha256:'old', target_sha256:'new', ini_sha256:'ini',
+         changes:[{offset:10,before:'01',after:'02'}],token:'plan-token',expires_seconds:300}
+      : {changed_bytes:1,chunks_written:1,original_path:'/synthetic/rusefi-page0.bin',note:'Synthetic only; persistence not verified.'};
+    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});
+  });
+  await page.locator('#rusefiPort').fill('/dev/ttyACM0');
+  await page.locator('#rusefiIni').setInputFiles({name:'rusefi.ini',mimeType:'text/plain',buffer:Buffer.from(ini)});
+  await expect(page.locator('#rusefiSignature')).toHaveValue(signature);
+  await page.locator('#rusefiConfirm').check();
+  await page.locator('#rusefiTunePanel > summary').click();
+  await page.locator('#rusefiTuneRead').click();
+  await expect(page.locator('#rusefiTuneOriginal')).toHaveValue('/synthetic/rusefi-page0.bin');
+  expect(requests[0]).toMatchObject({action:'read-calibration',port:'/dev/ttyACM0',baud:115200,ini,confirm:true});
+  await page.locator('#rusefiTuneEdited').fill('/synthetic/edited.bin');
+  await page.locator('#rusefiTuneConfirm').check();
+  await page.locator('#rusefiTunePrepare').click();
+  await expect(page.locator('#rusefiTuneOut')).toContainText('0xA: 01 → 02');
+  expect(requests.filter(x => x.action === 'write-calibration')).toHaveLength(0);
+  await page.locator('#rusefiTuneEdited').fill('/synthetic/other.bin');
+  await expect(page.locator('#rusefiTuneWrite')).toBeDisabled();
+  await page.locator('#rusefiTunePrepare').click();
+  await page.locator('#rusefiTuneWrite').click();
+  await expect(page.locator('#modal')).toContainText('previously pending burn');
+  expect(requests.filter(x => x.action === 'write-calibration')).toHaveLength(0);
+  await page.locator('#modalConfirm').click();
+  await expect(page.locator('#rusefiTuneOut')).toContainText('persistence not verified');
+  expect(requests.filter(x => x.action === 'write-calibration')).toEqual([
+    {action:'write-calibration',confirm:true,confirm_tuning:true,confirm_write:true,token:'plan-token'}]);
+  await expect(page.locator('#rusefiTuneWrite')).toBeDisabled();
+});
+
+test('Honda VFR research checksum review exports only a corrected copy', async ({ page }) => {
+  await page.goto('/'); await page.locator('[data-view="tools"]').click();
+  const original = Buffer.alloc(0x100000);
+  Buffer.from([1, 0, 0xaa, 5, 1]).copy(original, 0x36b57);
+  let sum = 0; for (const byte of original) sum = (sum + byte) & 255;
+  original[0x7fff8] = (-sum) & 255;
+  const edited = Buffer.from(original); edited[0x1234] = 37;
+  await page.locator('#hondaVfrVariant').selectOption('0100AA0501');
+  await page.locator('#hondaVfrOriginal').setInputFiles({name:'original.bin', mimeType:'application/octet-stream', buffer:original});
+  await page.locator('#hondaVfrEdited').setInputFiles({name:'edited.bin', mimeType:'application/octet-stream', buffer:edited});
+  await page.locator('#hondaVfrInspect').click();
+  await expect(page.locator('#hondaVfrOut')).toContainText('1 bytes differ');
+  await expect(page.locator('#hondaVfrExport')).toBeDisabled();
+  await page.locator('#hondaVfrConfirm').check();
+  await page.locator('#hondaVfrInspect').click();
+  await expect(page.locator('#hondaVfrExport')).toBeEnabled();
+  const before = new Set(readdirSync(EXPORTS));
+  await page.locator('#hondaVfrExport').click();
+  await expect(page.locator('#hondaVfrOut')).toContainText('Saved research copy:');
+  const filename = readdirSync(EXPORTS).find(name => name.startsWith('honda-38770-mge-773-research-') && !before.has(name));
+  expect(filename).toBeTruthy();
+  const result = readFileSync(join(EXPORTS, filename));
+  sum = 0; let changes = [];
+  for (let i=0; i<result.length; i++) { sum = (sum + result[i]) & 255; if (result[i] !== edited[i]) changes.push(i); }
+  expect(sum).toBe(0); expect(changes).toEqual([0x7fff8]);
+  await page.locator('#hondaVfrVariant').selectOption('4801011901');
+  await expect(page.locator('#hondaVfrExport')).toBeDisabled();
+  await page.locator('#hondaVfrInspect').click();
+  await expect(page.locator('#hondaVfrOut')).toContainText('Both images must contain the selected ID');
+  expect(page.failures).toEqual([]);
+});
+
+test('Honda source checksum rejects mismatched and corrupted synthetic candidates', () => {
+  const honda = createRequire(import.meta.url)('../../web/honda-research-checksum.js');
+  expect(Object.keys(honda.candidates).length).toBe(44);
+  for (const [variant, spec] of Object.entries(honda.candidates)) {
+    const original = new Uint8Array(spec.size);
+    original.set(variant.match(/../g).map(x => parseInt(x,16)), spec.id_offset);
+    original[spec.checksum_offset] = (-original.reduce((a,b) => a+b,0)) & 255;
+    const edited = original.slice(); edited[123] = 255;
+    const result = honda.inspect(original, edited, variant);
+    expect(result.corrected.reduce((a,b) => (a+b)&255,0)).toBe(0);
+    expect(result.changed).toBe(1); expect(original[123]).toBe(0); expect(edited[123]).toBe(255);
+    expect(() => honda.inspect(original, original, variant)).toThrow();
+    expect(() => honda.inspect(original, edited, 'wrong')).toThrow();
+    const corrupt = original.slice(); corrupt[1]++;
+    expect(() => honda.inspect(corrupt, edited, variant)).toThrow();
+    expect(() => honda.inspect(original.slice(0,-1), edited, variant)).toThrow();
+  }
+});
+
+test('one synthetic Honda VFR research read automatically opens its candidate XDF', async ({ page }) => {
+  const path = resolve('.desktop-test-data', 'vfr-synthetic-research.bin');
+  const image = Buffer.alloc(0x100000); Buffer.from([1,0,0xaa,5,1]).copy(image,0x36b57);
+  image[0x7fff8] = (-image.reduce((sum, n) => sum+n, 0)) & 255; writeFileSync(path, image);
+  await page.goto('/'); await page.locator('[data-view="firmware"]').click();
+  await page.evaluate(path => renderMemoryProgress({name:'read:flash', state:'done', result:{
+    path, research_only:true,
+    describe:{identity:{'ECM ID candidate':'01 00 AA 05 01', 'Source part candidate':'38770-MGE-773'}, meta:{protocol:'honda-source-id-research', candidate_source:'AlexKovalevich/HondaECU db0a6cb8'}}
+  }}), path);
+  await expect(page.locator('#hondaVfrHandoff')).toContainText('not a verified backup');
+  await expect(page.locator('#xdfSelect')).toHaveValue('HONDA_VFR1200F_MGE_773.xdf');
+  await expect(page.locator('#mapsImagePath')).toHaveValue(path);
+  await expect(page.locator('#mapsOut')).toContainText('Honda VFR1200F 2010 NA 38770-MGE-773');
+  await expect(page.locator('#mapsOut .map-value').first()).toBeVisible();
+  expect(readFileSync(path)).toEqual(image);
+  await page.evaluate(path => {
+    maps.changes.set('sentinel', { value: 1 });
+    return openHondaResearchMap(path, '38770-MGE-701');
+  }, path);
+  await expect(page.locator('#hondaVfrHandoff')).toContainText('existing staged edits were preserved');
+  await expect(page.locator('#xdfSelect')).toHaveValue('HONDA_VFR1200F_MGE_773.xdf');
+  expect(await page.evaluate(() => maps.changes.has('sentinel'))).toBe(true);
+  expect(page.failures.filter(error => !/server responded with a status of 409/.test(error))).toEqual([]);
+});
+
+test('Honda MGZ one-read handoff and source checksum review stay research-only', async ({ page }) => {
+  const path = resolve('.desktop-test-data', 'mgz-synthetic-research.bin');
+  const image = Buffer.alloc(0x40000); Buffer.from([1,1,0x25,5,1]).copy(image,0x17fc7);
+  image[0x3fff8] = (-image.reduce((sum,n) => sum+n,0)) & 255; writeFileSync(path,image);
+  await page.goto('/'); await page.locator('[data-view="firmware"]').click();
+  await page.evaluate(path => renderMemoryProgress({name:'read:flash', state:'done', result:{
+    path, research_only:true,
+    describe:{identity:{'ECM ID candidate':'01 01 25 05 01','Source part candidate':'38770-MGZ-A03'},
+      meta:{protocol:'honda-source-id-research',candidate_source:'WiseNoodle/honda-moto-ecu-suite 85431bd8'}}
+  }}), path);
+  await expect(page.locator('#xdfSelect')).toHaveValue('38770-MGZ.xdf');
+  await expect(page.locator('#hondaVfrHandoff')).toContainText('byte order conflicts');
+  await expect(page.locator('#mapsOut')).toContainText('table(s)');
+  await page.locator('[data-view="tools"]').click();
+  const edited = Buffer.from(image); edited[0x100] = 42;
+  await page.locator('#hondaVfrVariant').selectOption('0101250501');
+  await page.locator('#hondaVfrOriginal').setInputFiles({name:'original.bin',mimeType:'application/octet-stream',buffer:image});
+  await page.locator('#hondaVfrEdited').setInputFiles({name:'edited.bin',mimeType:'application/octet-stream',buffer:edited});
+  await page.locator('#hondaVfrConfirm').check(); await page.locator('#hondaVfrInspect').click();
+  await expect(page.locator('#hondaVfrOut')).toContainText('Checksum at 0x3FFF8');
+  await expect(page.locator('#hondaVfrExport')).toBeEnabled();
+  expect(readFileSync(path)).toEqual(image);
+  expect(page.failures.filter(error => !/server responded with a status of 409/.test(error))).toEqual([]);
+});
+
+test('Honda edited research map previews and exports a checksum-corrected copy in one workflow', async ({ page }) => {
+  const root = resolve('.desktop-test-data'), definitions = join(root, 'xdfs');
+  mkdirSync(definitions, {recursive:true});
+  const path = join(root, 'honda-checksum-workflow.bin');
+  const source = Buffer.alloc(0x40000); Buffer.from([1,1,0x25,5,1]).copy(source, 0x17fc7);
+  Buffer.from([10,20,30,40]).copy(source,0x20);
+  source[0x3fff8] = (-source.reduce((sum,n) => sum+n,0)) & 255; writeFileSync(path,source);
+  const xdf = `<XDFFORMAT><XDFHEADER><deftitle>Synthetic Honda workflow</deftitle><DEFAULTS signed="0" lsbfirst="0"/><REGION size="0x40000"/></XDFHEADER>
+  <XDFTABLE uniqueid="fuel"><title>Fuel</title><XDFAXIS id="x"><indexcount>2</indexcount></XDFAXIS><XDFAXIS id="y"><indexcount>2</indexcount></XDFAXIS>
+  <XDFAXIS id="z"><EMBEDDEDDATA mmedaddress="0x20" mmedelementsizebits="8" mmedrowcount="2" mmedcolcount="2"/><MATH equation="X"/></XDFAXIS></XDFTABLE></XDFFORMAT>`;
+  writeFileSync(join(definitions,'honda-workflow.xdf'),xdf);
+  await page.goto('/'); await page.locator('[data-view="firmware"]').click();
+  await page.locator('#xdfOnlyFitting').uncheck(); await page.locator('#mapsRefreshBtn').click();
+  await expect(page.locator('#xdfSelect option[value="honda-workflow.xdf"]')).toHaveCount(1);
+  await page.locator('#xdfSelect').selectOption('honda-workflow.xdf');
+  await page.locator('#mapsImagePath').fill(path); await page.locator('#mapsRenderBtn').click();
+  if (await page.locator('#modal').isVisible()) await page.locator('#modalConfirm').click();
+  const cell = page.locator('[data-map-kind="table"][data-map-id="fuel"][data-map-row="0"][data-map-col="1"]');
+  await expect(cell).toHaveAttribute('data-map-value','20'); await cell.dblclick();
+  await page.locator('#mapEditValue').fill('25'); await page.locator('#modalConfirm').click();
+  await page.locator('#mapResearchPreviewBtn').click();
+  const preview = page.locator('#mapResearchPreviewOut');
+  await expect(preview).toContainText('Honda checksum candidates');
+  await expect(preview).toContainText('38770-MGZ-A03');
+  await expect(preview).toContainText('Checksum byte 0x3FFF8');
+  await preview.locator('[data-honda-checksum-export]').click();
+  await expect(page.locator('#modal')).toBeVisible(); await page.locator('#modalConfirm').click();
+  await expect(preview).toContainText('Honda research copy saved');
+  const text = await preview.textContent(); const outputPath = text.match(/Image:\s*(\S+\.bin)/)?.[1];
+  expect(outputPath).toBeTruthy(); const result = readFileSync(outputPath);
+  expect(result[0x21]).toBe(25); expect(result.reduce((s,n)=>(s+n)&255,0)).toBe(0);
+  expect(result[0x3fff8]).not.toBe(source[0x3fff8]); expect(readFileSync(path)).toEqual(source);
+  expect(page.failures.filter(error => !/server responded with a status of 409/.test(error))).toEqual([]);
+});
+
+test('Buell single read opens source map and carries reviewed edits to write review', async ({page}) => {
+  const sourcePath = join(resolve('.desktop-test-data'), 'BUEIB-one-read.xpr');
+  const image = Buffer.from(Array.from({length:1210}, (_,i) => i & 255)); writeFileSync(sourcePath,image);
+  const digest = createHash('sha256').update(image).digest('hex'); const calls = [];
+  await page.route('**/api/tools/buell-ddfi', async route => {
+    const body = route.request().postDataJSON(); calls.push(body);
+    const response = body.action === 'identify' ? {version:'BUEIB310 12-11-03'}
+      : body.action === 'image' ? {version:'BUEIB310 12-11-03',kind:'eeprom-image',layout:'BUEIB',
+          length:image.length,data_hex:image.toString('hex').toUpperCase(),sha256:digest,
+          read_token:'single-read-token',original_path:sourcePath,original_verified:false,map_xdf:'BUEIB_source_research.xdf'}
+      : {version:'BUEIB310 12-11-03',xdf:'BUEIB_source_research.xdf',changes:[{offset:884,before:image[884],after:42}],
+         base_sha256:digest,target_sha256:'synthetic',warning:'Synthetic tests only',token:'plan',expires_seconds:300,single_read:true};
+    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(response)});
+  });
+  await page.goto('/'); await page.locator('[data-view="tools"]').click();
+  await page.locator('#buellPort').fill('/dev/ttyUSB0'); await page.locator('#buellConfirm').check();
+  await page.locator('#buellIdentify').click(); await page.locator('#buellConfirm').check();
+  await page.locator('#buellImage').click(); await expect(page.locator('#buellOpenMap')).toBeEnabled();
+  await expect(page.locator('#buellMapStatus')).toContainText('opened in Maps');
+  await page.locator('#buellOpenMap').click();
+  await expect(page.locator('#xdfSelect')).toHaveValue('BUEIB_source_research.xdf');
+  await expect(page.locator('#mapsImagePath')).toHaveValue(sourcePath);
+  await page.locator('details.map-table-entry').filter({hasText:'Tab_Fuel_Front'}).locator('summary').first().click();
+  const cell = page.locator('[data-map-kind="table"][data-map-id="0x3"][data-map-row="1"][data-map-col="0"]');
+  await cell.dblclick(); await page.locator('#mapEditValue').fill('42'); await page.locator('#modalConfirm').click();
+  await page.locator('#mapResearchPreviewBtn').click();
+  await expect(page.locator('#buellMapExportBtn')).toBeVisible();
+  await page.locator('#buellMapExportBtn').click();
+  const response = page.waitForResponse(r => r.url().includes('/api/maps/research-export') && r.status() === 201);
+  await page.locator('#modalConfirm').click(); const saved = await (await response).json();
+  await expect(page.locator('#mapResearchPreviewOut')).toContainText('Edited path filled');
+  expect(readFileSync(saved.path)[884]).toBe(42); expect(readFileSync(sourcePath)).toEqual(image);
+  await page.locator('[data-view="tools"]').click();
+  await expect(page.locator('#buellWriteEdited')).toHaveValue(saved.path);
+  await page.locator('#buellWriteConfirm').check(); await page.locator('#buellWritePrepare').click();
+  await expect(page.locator('#buellWriteExecute')).toBeEnabled();
+  expect(calls.filter(c=>c.action==='prepare-from-read')).toEqual([{action:'prepare-from-read',confirm:true,read_token:'single-read-token',edited_path:saved.path}]);
+  expect(calls.filter(c=>c.action==='write')).toHaveLength(0);
+  expect(page.failures).toEqual([]);
+});
+
+test('Harley saved single-read tune flows through chosen XDF into reviewed write', async ({page}) => {
+  const root = resolve('.desktop-test-data'), xdfs = join(root,'xdfs'); mkdirSync(xdfs,{recursive:true});
+  const sourcePath = join(root,'harley-one-read.bin'), image = Buffer.alloc(0x4000);
+  Buffer.from([10,20,30,40]).copy(image,0x20); writeFileSync(sourcePath,image);
+  const digest = createHash('sha256').update(image).digest('hex');
+  const xdf = `<XDFFORMAT><XDFHEADER><deftitle>Synthetic Harley one-read</deftitle><DEFAULTS signed="0" lsbfirst="0"/><REGION size="0x4000"/></XDFHEADER>
+  <XDFTABLE uniqueid="fuel"><title>Fuel</title><XDFAXIS id="x"><indexcount>2</indexcount></XDFAXIS><XDFAXIS id="y"><indexcount>2</indexcount></XDFAXIS><XDFAXIS id="z"><EMBEDDEDDATA mmedaddress="0x20" mmedelementsizebits="8" mmedrowcount="2" mmedcolcount="2"/><MATH equation="X"/></XDFAXIS></XDFTABLE></XDFFORMAT>`;
+  writeFileSync(join(xdfs,'harley-one-read.xdf'),xdf); const calls=[];
+  await page.route('**/api/tools/harley-memory', async route => {
+    const body=route.request().postDataJSON(); calls.push(body);
+    const response=body.action==='read' ? {identity:{F1EA:'41',F1ED:'42',F1F5:'43'},region:'tune',address:0x7f4000,length:16384,sha256:digest,data_hex:image.toString('hex').toUpperCase(),repeated_match:false,read_token:'one-read',original_tune_path:sourcePath,original_tune_sha256:digest,original_tune_verified:false}
+      : {identity:{F1EA:'41',F1ED:'42',F1F5:'43'},original_sha256:digest,target_sha256:'target',changed_bytes:1,changes:[{offset:33,before:20,after:25}],token:'plan',expires_seconds:300};
+    await route.fulfill({json:response});
+  });
+  await page.goto('/'); await page.locator('[data-view="tools"]').click();
+  await page.locator('#hdMemChannel').fill('can0'); await page.locator('#hdMemCapture').fill('/tmp/test-auth');
+  await page.locator('#hdMemConfirm').check(); await page.locator('#hdMemRead').click();
+  await expect(page.locator('#hdMemOpenMap')).toBeEnabled(); await page.locator('#hdMemOpenMap').click();
+  await expect(page.locator('#mapsImagePath')).toHaveValue(sourcePath);
+  await page.locator('#xdfOnlyFitting').uncheck(); await page.locator('#xdfSelect').selectOption('harley-one-read.xdf');
+  await page.locator('#mapsAddressBase').fill('0'); await page.locator('#mapsRenderBtn').click();
+  if (await page.locator('#modal').isVisible()) await page.locator('#modalConfirm').click();
+  const cell=page.locator('[data-map-kind="table"][data-map-id="fuel"][data-map-row="0"][data-map-col="1"]');
+  await expect(cell).toHaveAttribute('data-map-value','20'); await cell.dblclick();
+  await page.locator('#mapEditValue').fill('25'); await page.locator('#modalConfirm').click();
+  await page.locator('#mapResearchPreviewBtn').click(); await page.locator('#harleyResearchExportBtn').click();
+  const response=page.waitForResponse(r=>r.url().includes('/api/maps/harley-research-export') && r.status()===201);
+  await page.locator('#modalConfirm').click(); const saved=await (await response).json();
+  await expect(page.locator('#mapResearchPreviewOut')).toContainText('Edited tune path filled');
+  expect(readFileSync(saved.path)[33]).toBe(25); expect(readFileSync(sourcePath)).toEqual(image);
+  await page.locator('[data-view="tools"]').click(); await expect(page.locator('#hdMemEdited')).toHaveValue(saved.path);
+  await page.locator('#hdMemPrepare').click(); await expect(page.locator('#hdMemWriteOut')).toContainText('0x21: 20 → 25');
+  expect(calls.filter(c=>c.action==='prepare-from-read')).toEqual([{action:'prepare-from-read',confirm:true,read_token:'one-read',edited_path:saved.path}]);
+  expect(calls.filter(c=>c.action==='write')).toHaveLength(0); expect(page.failures).toEqual([]);
+});
+
+test('rusEFI saved page flows through user XDF into calibration write review', async ({page}) => {
+  const root=resolve('.desktop-test-data'), xdfs=join(root,'xdfs'); mkdirSync(xdfs,{recursive:true});
+  const sourcePath=join(root,'rusefi-one-read.bin'), image=Buffer.alloc(300);
+  Buffer.from([10,20,30,40]).copy(image,0x20); writeFileSync(sourcePath,image);
+  const digest=createHash('sha256').update(image).digest('hex'), signature='rusEFI synthetic.board.1234';
+  const xdf=`<XDFFORMAT><XDFHEADER><deftitle>Synthetic rusEFI</deftitle><DEFAULTS signed="0" lsbfirst="0"/><REGION size="300"/></XDFHEADER>
+  <XDFTABLE uniqueid="fuel"><title>Fuel</title><XDFAXIS id="x"><indexcount>2</indexcount></XDFAXIS><XDFAXIS id="y"><indexcount>2</indexcount></XDFAXIS><XDFAXIS id="z"><EMBEDDEDDATA mmedaddress="0x20" mmedelementsizebits="8" mmedrowcount="2" mmedcolcount="2"/><MATH equation="X"/></XDFAXIS></XDFTABLE></XDFFORMAT>`;
+  writeFileSync(join(xdfs,'rusefi-one-read.xdf'),xdf); const calls=[];
+  await page.route('**/api/tools/rusefi-read',async route=>{
+    const body=route.request().postDataJSON(); calls.push(body);
+    const response=body.action==='read-calibration' ? {signature,length:300,sha256:digest,original_path:sourcePath,read_token:'read-token'}
+      : {signature,length:300,original_sha256:digest,target_sha256:'target',ini_sha256:'ini',changed_bytes:1,changes:[{offset:33,before:'14',after:'19'}],token:'plan',expires_seconds:300};
+    await route.fulfill({json:response});
+  });
+  await page.goto('/'); await page.locator('[data-view="tools"]').click();
+  await page.locator('#rusefiPort').fill('/dev/ttyACM0');
+  await page.locator('#rusefiIni').setInputFiles({name:'synthetic.ini',mimeType:'text/plain',buffer:Buffer.from(`[TunerStudio]\nsignature="${signature}"\n[Constants]\npageSize=300\n`)});
+  await page.locator('#rusefiConfirm').check(); await page.locator('#rusefiTunePanel > summary').click(); await page.locator('#rusefiTuneRead').click();
+  await expect(page.locator('#rusefiOpenMap')).toBeEnabled(); await page.locator('#rusefiOpenMap').click();
+  await expect(page.locator('#mapsImagePath')).toHaveValue(sourcePath);
+  await page.locator('#xdfOnlyFitting').uncheck(); await page.locator('#xdfSelect').selectOption('rusefi-one-read.xdf');
+  await page.locator('#mapsAddressBase').fill('0'); await page.locator('#mapsRenderBtn').click();
+  if (await page.locator('#modal').isVisible()) await page.locator('#modalConfirm').click();
+  const cell=page.locator('[data-map-kind="table"][data-map-id="fuel"][data-map-row="0"][data-map-col="1"]');
+  await expect(cell).toHaveAttribute('data-map-value','20'); await cell.dblclick();
+  await page.locator('#mapEditValue').fill('25'); await page.locator('#modalConfirm').click();
+  await page.locator('#mapResearchPreviewBtn').click(); await page.locator('#rusefiMapExportBtn').click();
+  const response=page.waitForResponse(r=>r.url().includes('/api/maps/research-export') && r.status()===201);
+  await page.locator('#modalConfirm').click(); const saved=await (await response).json();
+  await expect(page.locator('#mapResearchPreviewOut')).toContainText('Edited path filled in the rusEFI panel');
+  expect(readFileSync(saved.path)[33]).toBe(25); expect(readFileSync(sourcePath)).toEqual(image);
+  await page.locator('[data-view="tools"]').click(); await expect(page.locator('#rusefiTuneEdited')).toHaveValue(saved.path);
+  await page.locator('#rusefiTuneConfirm').check(); await page.locator('#rusefiTunePrepare').click();
+  await expect(page.locator('#rusefiTuneWrite')).toBeEnabled();
+  expect(calls.filter(c=>c.action==='prepare-calibration')).toEqual([{action:'prepare-calibration',confirm:true,confirm_tuning:true,read_token:'read-token',edited_path:saved.path}]);
+  expect(calls.filter(c=>c.action==='write-calibration')).toHaveLength(0); expect(page.failures).toEqual([]);
+});
+
+test('Buell automatic map handoff preserves staged edits and can be retried after clearing', async ({page}) => {
+  const sourcePath=join(resolve('.desktop-test-data'),'BUEIB-preserve.xpr');
+  const data=Buffer.from(Array.from({length:1210},(_,i)=>i&255)); writeFileSync(sourcePath,data);
+  const digest=createHash('sha256').update(data).digest('hex');
+  await page.route('**/api/tools/buell-ddfi',async route=>{
+    const body=route.request().postDataJSON();
+    await route.fulfill({json:body.action==='identify' ? {version:'BUEIB310 12-11-03'} :
+      {version:'BUEIB310 12-11-03',kind:'eeprom-image',layout:'BUEIB',length:data.length,data_hex:data.toString('hex').toUpperCase(),sha256:digest,read_token:'current',original_path:sourcePath,map_xdf:'BUEIB_source_research.xdf'}});
+  });
+  await page.goto('/'); await page.locator('[data-view="firmware"]').click();
+  await page.locator('#xdfOnlyFitting').uncheck(); await page.locator('#mapsRefreshBtn').click();
+  await page.locator('#xdfSelect').selectOption('BUEIB_source_research.xdf');
+  await page.locator('#mapsImagePath').fill(sourcePath); await page.locator('#mapsAddressBase').fill('0');
+  await page.locator('#mapsRenderBtn').click(); if (await page.locator('#modal').isVisible()) await page.locator('#modalConfirm').click();
+  await page.locator('details.map-table-entry').filter({hasText:'Tab_Fuel_Front'}).locator('summary').first().click();
+  const cell=page.locator('[data-map-kind="table"][data-map-id="0x3"][data-map-row="1"][data-map-col="0"]');
+  await cell.dblclick(); await page.locator('#mapEditValue').fill('42'); await page.locator('#modalConfirm').click();
+  await expect(page.locator('#mapResearchPreviewBtn')).toBeEnabled();
+  await page.locator('[data-view="tools"]').click(); await page.locator('#buellPort').fill('/dev/ttyUSB0');
+  await page.locator('#buellConfirm').check(); await page.locator('#buellIdentify').click();
+  await page.locator('#buellConfirm').check(); await page.locator('#buellImage').click();
+  await expect(page.locator('#buellMapStatus')).toContainText('Existing staged map edits were preserved');
+  await expect(page.locator('#buellOpenMap')).toBeEnabled();
+  await page.locator('[data-view="firmware"]').click(); await expect(page.locator('#mapResearchPreviewBtn')).toBeEnabled();
+  await page.locator('#mapClearChangesBtn').click();
+  await page.locator('[data-view="tools"]').click(); await page.locator('#buellOpenMap').click();
+  await expect(page.locator('#buellMapStatus')).toContainText('opened in Maps');
+  await expect(page.locator('#mapsImagePath')).toHaveValue(sourcePath); expect(page.failures).toEqual([]);
+});
+
+test('Buell export preserves an edited path changed during confirmation', async ({page}) => {
+  const sourcePath=join(resolve('.desktop-test-data'),'BUEIB-race.xpr');
+  const image=Buffer.from(Array.from({length:1210},(_,i)=>i&255)); writeFileSync(sourcePath,image);
+  const digest=createHash('sha256').update(image).digest('hex');
+  await page.route('**/api/tools/buell-ddfi',async route=>{
+    const b=route.request().postDataJSON(); await route.fulfill({json:b.action==='identify' ? {version:'BUEIB310 12-11-03'} :
+      {version:'BUEIB310 12-11-03',kind:'eeprom-image',layout:'BUEIB',length:image.length,data_hex:image.toString('hex').toUpperCase(),sha256:digest,read_token:'valid',original_path:sourcePath,map_xdf:'BUEIB_source_research.xdf'}});
+  });
+  await page.goto('/'); await page.locator('[data-view="tools"]').click();
+  await page.locator('#buellPort').fill('/dev/ttyUSB0'); await page.locator('#buellConfirm').check();
+  await page.locator('#buellIdentify').click(); await page.locator('#buellConfirm').check(); await page.locator('#buellImage').click();
+  await expect(page.locator('#buellOpenMap')).toBeEnabled(); await page.locator('#buellOpenMap').click();
+  await page.locator('details.map-table-entry').filter({hasText:'Tab_Fuel_Front'}).locator('summary').first().click();
+  await page.locator('[data-map-kind="table"][data-map-id="0x3"][data-map-row="1"][data-map-col="0"]').dblclick();
+  await page.locator('#mapEditValue').fill('42'); await page.locator('#modalConfirm').click();
+  await page.locator('#mapResearchPreviewBtn').click(); await page.locator('#buellMapExportBtn').click();
+  await page.evaluate(() => { const x=document.querySelector('#buellWriteEdited'); x.value='/manual/selected.xpr'; x.dispatchEvent(new Event('input',{bubbles:true})); });
+  await page.locator('#modalConfirm').click();
+  await expect(page.locator('#mapResearchPreviewOut')).toContainText('edited path changed during export and was preserved');
+  await page.locator('[data-view="tools"]').click(); await expect(page.locator('#buellWriteEdited')).toHaveValue('/manual/selected.xpr');
+  await expect(page.locator('#buellWriteExecute')).toBeDisabled(); expect(page.failures).toEqual([]);
 });

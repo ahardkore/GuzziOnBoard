@@ -1,0 +1,2049 @@
+{
+  "source": "https://bikestudio.io/ecu?lang=en",
+  "accessed": "2026-10-31",
+  "note": "Curated partial transcription of public model pages, not a copy of the complete database. Source-reported years, market and displacement are retained verbatim; neither fitment nor protocol is independently validated.",
+  "groups": [
+    {
+      "make": "Honda",
+      "model": "CB 500 F | CBR 500 R",
+      "slug": "honda-cb-500-f-cbr-500-r",
+      "aliases": [
+        "CB 500 F MGZ"
+      ],
+      "garage_models": [
+        "CB500F",
+        "CBR500R"
+      ],
+      "entries": [
+        {
+          "part": "38770-MGZ-B01",
+          "years": "2016",
+          "cc": "500",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MGZ-A03",
+          "years": "2013–2016",
+          "cc": "500",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MGZ-C02",
+          "years": "2013–2016",
+          "cc": "500",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MGZ-C03",
+          "years": "2013–2016",
+          "cc": "500",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MGZ-D02",
+          "years": "2013–2016",
+          "cc": "500",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "CB 500 F",
+      "slug": "honda-cb-500-f",
+      "aliases": [
+        "CB 500 F MJW"
+      ],
+      "garage_models": [
+        "CB500F"
+      ],
+      "entries": [
+        {
+          "part": "38770-MJW-D11",
+          "years": "2018–2019",
+          "cc": "500",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MJW-D51",
+          "years": "2018–2019",
+          "cc": "500",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MJW-B31",
+          "years": "2018",
+          "cc": "500",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MJW-B41",
+          "years": "2018",
+          "cc": "500",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MJW-BT1",
+          "years": "2017–2018",
+          "cc": "500",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MJW-N41",
+          "years": "2016–2018",
+          "cc": "150",
+          "market": "Indonesia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "CBR 500 R",
+      "slug": "honda-cbr-500-r",
+      "aliases": [
+        "CBR 500 R MGZ",
+        "CBR 500 R MJW"
+      ],
+      "garage_models": [
+        "CBR500R"
+      ],
+      "entries": [
+        {
+          "part": "38770-MJW-DR1",
+          "years": "2018–2019",
+          "cc": "",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MJW-AQ1",
+          "years": "2017–2018",
+          "cc": "",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MJW-N11",
+          "years": "2016–2018",
+          "cc": "150",
+          "market": "Indonesia"
+        },
+        {
+          "part": "38770-MJW-T11",
+          "years": "2016–2017",
+          "cc": "150",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MGZ-U02",
+          "years": "2013–2014",
+          "cc": "150",
+          "market": ""
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "CB 500 X",
+      "slug": "honda-cb-500-x",
+      "aliases": [
+        "CB 500 X MGZ",
+        "CB 500 X MJW"
+      ],
+      "garage_models": [
+        "CB500X"
+      ],
+      "entries": [
+        {
+          "part": "38770-MJW-UZ1",
+          "years": "2018–2019",
+          "cc": "",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MGZ-B81",
+          "years": "2016",
+          "cc": "500",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MJW-961",
+          "years": "2016",
+          "cc": "500",
+          "market": "Indonesia"
+        },
+        {
+          "part": "38770-MJW-D91",
+          "years": "2016",
+          "cc": "500",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MGZ-D82",
+          "years": "2014",
+          "cc": "500",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MGZ-D83",
+          "years": "2014",
+          "cc": "500",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "CBR 600 RR",
+      "slug": "honda-cbr-600-rr",
+      "aliases": [
+        "CBR 600 RR MEE",
+        "CBR 600 RR MFJ",
+        "CBR 600 RR MJC"
+      ],
+      "garage_models": [
+        "CBR600RR"
+      ],
+      "entries": [
+        {
+          "part": "38770-MJC-A01",
+          "years": "2013–2019",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MJC-D01",
+          "years": "2013–2019",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFJ-D42",
+          "years": "2009–2012",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFJ-D04",
+          "years": "2007–2008",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFJ-F03",
+          "years": "2007–2008",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEE-A02",
+          "years": "2005–2006",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEE-D01",
+          "years": "2005–2006",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEE-F02",
+          "years": "2005–2006",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEE-613",
+          "years": "2004",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEE-622",
+          "years": "2003–2004",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEE-612",
+          "years": "2003",
+          "cc": "150",
+          "market": ""
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "CBR 1000 RR",
+      "slug": "honda-cbr-1000-rr",
+      "aliases": [
+        "CBR 1000 RR MEL",
+        "CBR 1000 RR MFL",
+        "CBR 1000 RR MGP",
+        "CBR 1000 RR MKF"
+      ],
+      "garage_models": [
+        "CBR1000RR",
+        "CBR1000RR (US)"
+      ],
+      "entries": [
+        {
+          "part": "38770-MKFA-DK2",
+          "years": "2019",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MKF-D43",
+          "years": "2017–2019",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MKF-H11",
+          "years": "2017–2018",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MKF-L13",
+          "years": "2017–2018",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MKF-A22",
+          "years": "2017",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MKFA-A22",
+          "years": "2017",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MGP-A92",
+          "years": "2014–2016",
+          "cc": "1000",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-MGP-D62",
+          "years": "2014–2016",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MGP-F63",
+          "years": "2014–2016",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MGP-T42",
+          "years": "2014–2016",
+          "cc": "1000",
+          "market": ""
+        },
+        {
+          "part": "38770-MGP-A01",
+          "years": "2012–2013",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MGP-D01",
+          "years": "2012–2013",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MGP-F01",
+          "years": "2012–2013",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MGP-J01",
+          "years": "2012–2013",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MGP-L01",
+          "years": "2012–2013",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-L21",
+          "years": "2010–2012",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-A21",
+          "years": "2010–2011",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-D21",
+          "years": "2010–2011",
+          "cc": "1000",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MFL-F21",
+          "years": "2010–2011",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-J21",
+          "years": "2010–2011",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-691",
+          "years": "2009",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-741",
+          "years": "2009",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-761",
+          "years": "2009",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-861",
+          "years": "2009",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-871",
+          "years": "2009",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-J41",
+          "years": "2009",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-622",
+          "years": "2008",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-644",
+          "years": "2008",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-671",
+          "years": "2008",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-702",
+          "years": "2008",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MFL-773",
+          "years": "2008",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEL-D21",
+          "years": "2006–2007",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEL-F21",
+          "years": "2006–2007",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEL-A21",
+          "years": "2006",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEL-A22",
+          "years": "2006",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEL-L22",
+          "years": "2006",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEL-D01",
+          "years": "2005",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEL-613",
+          "years": "2004–2005",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEL-622",
+          "years": "2004–2005",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MEL-643",
+          "years": "2004–2005",
+          "cc": "150",
+          "market": ""
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "CRF 250 L",
+      "slug": "honda-crf-250-l",
+      "aliases": [
+        "CRF 250 L KZZ"
+      ],
+      "garage_models": [
+        "CRF250L"
+      ],
+      "entries": [
+        {
+          "part": "38770-KZZ-J01",
+          "years": "2017–2019",
+          "cc": "249,6",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-KZZ-J11",
+          "years": "2017–2019",
+          "cc": "249,6",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-KZZ-J81",
+          "years": "2017–2019",
+          "cc": "249,6",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-KZZ-903",
+          "years": "2014–2016",
+          "cc": "249,6",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-KZZ-93A",
+          "years": "2014–2016",
+          "cc": "249,6",
+          "market": "Philippines"
+        },
+        {
+          "part": "38770-KZZ-A22",
+          "years": "2014–2016",
+          "cc": "249,6",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-KZZ-914",
+          "years": "2013–2016",
+          "cc": "249,6",
+          "market": ""
+        },
+        {
+          "part": "38770-KZZ-932",
+          "years": "2013–2015",
+          "cc": "249,6",
+          "market": "Philippines"
+        },
+        {
+          "part": "38770-KZZ-902",
+          "years": "2012–2013",
+          "cc": "249,6",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "CRF 300 L",
+      "slug": "honda-crf-300-l",
+      "aliases": [
+        "CRF 300 L K1T"
+      ],
+      "garage_models": [
+        "CRF300L"
+      ],
+      "entries": [
+        {
+          "part": "38770-K1T-EE1",
+          "years": "2024",
+          "cc": "249,6",
+          "market": "Philippines"
+        },
+        {
+          "part": "38770-K1T-HA1",
+          "years": "2023",
+          "cc": "249,6",
+          "market": "Philippines"
+        },
+        {
+          "part": "38770-K1T-H01",
+          "years": "2021",
+          "cc": "249,6",
+          "market": "Philippines"
+        },
+        {
+          "part": "38770-K1T-HJ2",
+          "years": "2021",
+          "cc": "249,6",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-K1T-T01",
+          "years": "2021",
+          "cc": "249,6",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-K1T-T11",
+          "years": "2021",
+          "cc": "249,6",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "Grom | MSX 125",
+      "slug": "honda-grom-msx-125",
+      "aliases": [
+        "Grom 125",
+        "MSX125",
+        "MSX 125SF",
+        "Grom K26"
+      ],
+      "garage_models": [
+        "MSX125",
+        "MSX125 GROM",
+        "Grom / MSX 125"
+      ],
+      "entries": [
+        {
+          "part": "38770-K26-B42",
+          "years": "2020–2022",
+          "cc": "124.89",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K26-G01",
+          "years": "2020–2021",
+          "cc": "124.89",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K26-G11",
+          "years": "2020–2021",
+          "cc": "124.89",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K26-B02",
+          "years": "2016–2019",
+          "cc": "124.89",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-K26-B13",
+          "years": "2016–2019",
+          "cc": "124.89",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K26-C31",
+          "years": "2016–2019",
+          "cc": "124.89",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K26-901",
+          "years": "2013–2015",
+          "cc": "124.89",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-K26-911",
+          "years": "2013–2015",
+          "cc": "124.89",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-K26-921",
+          "years": "2013–2015",
+          "cc": "124.89",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-K26-931",
+          "years": "2013–2015",
+          "cc": "124.89",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K26-C01",
+          "years": "",
+          "cc": "124.89",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K26-M01",
+          "years": "",
+          "cc": "124.89",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "CT 125",
+      "slug": "honda-ct-125",
+      "aliases": [
+        "CT125 Hunter Cub",
+        "Trail 125",
+        "CT 125 K0G",
+        "CT 125 K2E"
+      ],
+      "garage_models": [
+        "CT 125"
+      ],
+      "entries": [
+        {
+          "part": "38770-K2E-T31",
+          "years": "2025–2024",
+          "cc": "109.10",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-K2E-T02",
+          "years": "2022–2021",
+          "cc": "124.89",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-K2E-T11",
+          "years": "2022",
+          "cc": "109.10",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-K0G-902",
+          "years": "",
+          "cc": "124.89",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "CBR 250 RR",
+      "slug": "honda-cbr-250-rr",
+      "aliases": [
+        "CBR250RR SP",
+        "CBR250RR Quick Shifter",
+        "CBR 250 RR K64"
+      ],
+      "garage_models": [
+        "CBR250RR"
+      ],
+      "entries": [
+        {
+          "part": "38770-K64-NM1",
+          "years": "2023",
+          "cc": "249.7",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K64-NP1",
+          "years": "2023",
+          "cc": "249.7",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K64-MB1",
+          "years": "2020",
+          "cc": "249.7",
+          "market": "Malaysia"
+        },
+        {
+          "part": "38770-K64-NA1",
+          "years": "2020",
+          "cc": "249.7",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K64-ND1",
+          "years": "2020",
+          "cc": "249.7",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K64-J01",
+          "years": "2017–2019",
+          "cc": "249.7",
+          "market": ""
+        },
+        {
+          "part": "38770-K64-N01",
+          "years": "2017–2019",
+          "cc": "249.7",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K64-N04",
+          "years": "2017–2019",
+          "cc": "249.7",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "CBR 150 R",
+      "slug": "honda-cbr-150-r",
+      "aliases": [
+        "All New CBR150R",
+        "CBR150R lokal",
+        "CBR 150 R K45",
+        "CBR 150 R KPP"
+      ],
+      "garage_models": [
+        "CBR 150 R",
+        "CBR150R FI"
+      ],
+      "entries": [
+        {
+          "part": "38770-K45-MS1",
+          "years": "2025–2026",
+          "cc": "149.16",
+          "market": "Malaysia"
+        },
+        {
+          "part": "38770-K45-NL1",
+          "years": "2021–2023",
+          "cc": "149.16",
+          "market": "Indonesia"
+        },
+        {
+          "part": "38770-K45-NL1-PP1",
+          "years": "2021–2023",
+          "cc": "149.16",
+          "market": "Indonesia"
+        },
+        {
+          "part": "38770-K45-TL2",
+          "years": "2021–2023",
+          "cc": "149.16",
+          "market": "Malaysia"
+        },
+        {
+          "part": "38770-K45-NA1",
+          "years": "2019–2021",
+          "cc": "149.16",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K45-N42",
+          "years": "2017–2018",
+          "cc": "149.16",
+          "market": "Indonesia"
+        },
+        {
+          "part": "38770-K45-N01",
+          "years": "2015–2016",
+          "cc": "149.4",
+          "market": "Indonesia"
+        },
+        {
+          "part": "38770-K45-N11",
+          "years": "2015–2016",
+          "cc": "149.4",
+          "market": "Indonesia"
+        },
+        {
+          "part": "38770-KPP-N02",
+          "years": "2010–2014",
+          "cc": "149.4",
+          "market": ""
+        },
+        {
+          "part": "38770-KPP-602",
+          "years": "2010–2012",
+          "cc": "149.4",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "X-ADV 750",
+      "slug": "honda-x-adv-750",
+      "aliases": [
+        "X-ADV",
+        "X-ADV 750 MKH"
+      ],
+      "garage_models": [
+        "X-ADV 750"
+      ],
+      "entries": [
+        {
+          "part": "38770-MKH-C02",
+          "years": "2018–2019",
+          "cc": "745",
+          "market": ""
+        },
+        {
+          "part": "38770-MKH-C03",
+          "years": "2018–2019",
+          "cc": "745",
+          "market": ""
+        },
+        {
+          "part": "38770-MKH-D22",
+          "years": "2018–2019",
+          "cc": "745",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MKH-D23",
+          "years": "2018–2019",
+          "cc": "745",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MKH-D01",
+          "years": "2017–2018",
+          "cc": "745",
+          "market": ""
+        }
+      ]
+    },
+    {
+      "make": "Yamaha",
+      "model": "YZF-R15",
+      "slug": "yamaha-yzf-r15",
+      "aliases": [
+        "R15",
+        "R15 V3",
+        "R15 V4",
+        "R15M"
+      ],
+      "garage_models": [
+        "YZF-R15"
+      ],
+      "entries": [
+        {
+          "part": "BDJ0",
+          "years": "2021–2026",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BDJ1",
+          "years": "2021–2026",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BK60",
+          "years": "2017–2021",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "2PK0",
+          "years": "2014–2017",
+          "cc": "150",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Yamaha",
+      "model": "Mio M3",
+      "slug": "yamaha-mio-m3",
+      "aliases": [
+        "Mio M3 125",
+        "Mio S",
+        "Mio Z"
+      ],
+      "garage_models": [
+        "Mio M3"
+      ],
+      "entries": [
+        {
+          "part": "BN10",
+          "years": "2015–2021",
+          "cc": "125",
+          "market": "Asia"
+        },
+        {
+          "part": "2PH0",
+          "years": "2015–2018",
+          "cc": "125",
+          "market": "Asia"
+        },
+        {
+          "part": "2PH1",
+          "years": "2015–2018",
+          "cc": "125",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Yamaha",
+      "model": "AEROX 155",
+      "slug": "yamaha-aerox-155",
+      "aliases": [
+        "Aerox 155 VVA",
+        "Aerox 155 S",
+        "Aerox 155 R",
+        "NVX 155"
+      ],
+      "garage_models": [
+        "AEROX 155"
+      ],
+      "entries": [
+        {
+          "part": "B63-H594A-01",
+          "years": "2017–2022",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "B63-H594A-30",
+          "years": "2017–2022",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BF6-H594A-01",
+          "years": "2017–2022",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BF6-H594A-02",
+          "years": "2017–2022",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BF6-H594A-60",
+          "years": "2017–2022",
+          "cc": "155",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Yamaha",
+      "model": "NMAX 155",
+      "slug": "yamaha-nmax-155",
+      "aliases": [
+        "NMAX 155 ABS",
+        "NMAX 155 non-ABS"
+      ],
+      "garage_models": [
+        "NMAX 155"
+      ],
+      "entries": [
+        {
+          "part": "B6H-H594A-31",
+          "years": "2020–2022",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "B1T-H594A-00",
+          "years": "2017–2022",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "B6H-H594A-00",
+          "years": "2017–2022",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "B6H-H594A-01/02",
+          "years": "2017–2022",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "B6H-H594A-02",
+          "years": "2017–2022",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "B6H-H594A-10",
+          "years": "2017–2022",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "B6H-H594A-30",
+          "years": "2017–2022",
+          "cc": "155",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "BeAT 110",
+      "slug": "honda-beat-110",
+      "aliases": [
+        "BeAT FI",
+        "BeAT eSP",
+        "BeAT Street",
+        "BeAT Deluxe",
+        "BeAT Sporty",
+        "BeAT CBS ISS",
+        "BeAT 110 K25",
+        "BeAT 110 K81"
+      ],
+      "garage_models": [
+        "BeAT 110"
+      ],
+      "entries": [
+        {
+          "part": "30400-K81A-N11",
+          "years": "2018–2019",
+          "cc": "108",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K81A-N12",
+          "years": "2018–2019",
+          "cc": "108",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K81F-M02",
+          "years": "2018–2019",
+          "cc": "108",
+          "market": "Malaysia"
+        },
+        {
+          "part": "30400-K81H-M11",
+          "years": "2017–2019",
+          "cc": "108",
+          "market": "Malaysia"
+        },
+        {
+          "part": "30400-K81H-N52",
+          "years": "2017–2019",
+          "cc": "108",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K81H-N62",
+          "years": "2017–2019",
+          "cc": "108",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K81A-N02",
+          "years": "2017–2018",
+          "cc": "108",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K25G-601",
+          "years": "2015–2017",
+          "cc": "108",
+          "market": "Indonesia"
+        }
+      ]
+    },
+    {
+      "make": "Yamaha",
+      "model": "NMAX NEW",
+      "slug": "yamaha-nmax-new",
+      "aliases": [
+        "All New NMAX 155",
+        "NMAX 155 Connected",
+        "NMAX Connected ABS"
+      ],
+      "garage_models": [
+        "NMAX NEW"
+      ],
+      "entries": [
+        {
+          "part": "BLE-H594A-00",
+          "years": "2024–2026",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BTD-H594A-10",
+          "years": "2024–2026",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BTF-H594A-10",
+          "years": "2024–2026",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BTP-H594A-00",
+          "years": "2024–2026",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BTP-H594A-10",
+          "years": "2024–2026",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BBD-H594A-00",
+          "years": "2023–2026",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BNN-H594A-00",
+          "years": "2023–2026",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "B6Y-H594A-02",
+          "years": "2021–2024",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "B6Y-H594A-10",
+          "years": "2021–2024",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "B6Y-H594A-20/50",
+          "years": "2021–2024",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "B6Y-H594A-30/60",
+          "years": "2021–2024",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BAL-H594A-00",
+          "years": "2021–2024",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BFV-H594A-00",
+          "years": "2021–2024",
+          "cc": "155",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "CBR 650 F",
+      "slug": "honda-cbr-650-f",
+      "aliases": [
+        "CBR 650 F MJE",
+        "CBR 650 F MKN",
+        "CBR 650 F MKU"
+      ],
+      "garage_models": [
+        "CBR650F"
+      ],
+      "entries": [
+        {
+          "part": "38770-MKU-U51",
+          "years": "2019–2020",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MKN-T11",
+          "years": "2019",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MKNA-S11",
+          "years": "2019",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MJE-BB1",
+          "years": "2018–2019",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MJE-HB3",
+          "years": "2018–2019",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MJE-VB1",
+          "years": "2018–2019",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MJE-A02",
+          "years": "2015–2017",
+          "cc": "150",
+          "market": ""
+        },
+        {
+          "part": "38770-MJE-T15",
+          "years": "2014–2017",
+          "cc": "150",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MJE-T52",
+          "years": "2014–2017",
+          "cc": "550",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-MJE-S11",
+          "years": "2014–2016",
+          "cc": "150",
+          "market": ""
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "CBR 250 R",
+      "slug": "honda-cbr-250-r",
+      "aliases": [
+        "CBR 250 R K33",
+        "CBR 250 R KYJ"
+      ],
+      "garage_models": [
+        "CBR250R"
+      ],
+      "entries": [
+        {
+          "part": "38770-K33-D22",
+          "years": "2014–2016",
+          "cc": "249",
+          "market": ""
+        },
+        {
+          "part": "38770-K33-N03",
+          "years": "2014–2016",
+          "cc": "249",
+          "market": "Indonesia"
+        },
+        {
+          "part": "38770-K33-T53",
+          "years": "2014–2016",
+          "cc": "249",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-KYJ-711",
+          "years": "2011–2014",
+          "cc": "249",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-KYJ-901",
+          "years": "2011–2014",
+          "cc": "249",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-KYJ-922",
+          "years": "2011–2014",
+          "cc": "249",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-KYJ-971",
+          "years": "2011–2014",
+          "cc": "249",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "CB 150 R",
+      "slug": "honda-cb-150-r",
+      "aliases": [
+        "CB150R StreetFire",
+        "New CB150R",
+        "All New CB150R",
+        "CB 150 R K15",
+        "CB 150 R K94"
+      ],
+      "garage_models": [
+        "CB150R StreetFire"
+      ],
+      "entries": [
+        {
+          "part": "38770-K94-T02",
+          "years": "2021–2019",
+          "cc": "149.16",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-K15-711",
+          "years": "2021",
+          "cc": "149.16",
+          "market": "Indonesia"
+        },
+        {
+          "part": "38770-K15-601",
+          "years": "2019–2021",
+          "cc": "149.16",
+          "market": "Indonesia"
+        },
+        {
+          "part": "38770-K15-888",
+          "years": "2019–2021",
+          "cc": "149.16",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-K15-921",
+          "years": "2016–2017",
+          "cc": "149.16",
+          "market": "Indonesia"
+        },
+        {
+          "part": "38770-K15-903",
+          "years": "2013–2014",
+          "cc": "149,48",
+          "market": "Indonesia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "ADV 150",
+      "slug": "honda-adv-150",
+      "aliases": [
+        "ADV 150 ABS",
+        "ADV 150 CBS",
+        "ADV 150 K0W"
+      ],
+      "garage_models": [
+        "ADV 150"
+      ],
+      "entries": [
+        {
+          "part": "30400-K0WA-N01",
+          "years": "2018–2021",
+          "cc": "150",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K0WA-N11",
+          "years": "2018–2021",
+          "cc": "150",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K0WF-T01",
+          "years": "2018–2021",
+          "cc": "150",
+          "market": "Thailand"
+        },
+        {
+          "part": "30400-K0WH-M11",
+          "years": "2018–2021",
+          "cc": "150",
+          "market": "Malaysia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "ADV 160",
+      "slug": "honda-adv-160",
+      "aliases": [
+        "ADV 160 ABS",
+        "ADV 160 CBS",
+        "ADV160 RoadSync",
+        "ADV 160 K0W"
+      ],
+      "garage_models": [
+        "ADV 160"
+      ],
+      "entries": [
+        {
+          "part": "30400-K0WW-ND2",
+          "years": "2026",
+          "cc": "156.9",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K0WW-NE2",
+          "years": "2026",
+          "cc": "156.9",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K0WX-TB1",
+          "years": "2026",
+          "cc": "156.9",
+          "market": "Thailand"
+        },
+        {
+          "part": "30400-K0WL-MA1",
+          "years": "2023",
+          "cc": "156.9",
+          "market": "Malaysia"
+        },
+        {
+          "part": "30400-K0WM-TA1",
+          "years": "2023",
+          "cc": "156.9",
+          "market": "Thailand"
+        },
+        {
+          "part": "30400-K0WL-NA1",
+          "years": "2022–2023",
+          "cc": "156.9",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K0WL-NA1-IN01",
+          "years": "2022–2023",
+          "cc": "156.9",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K0WL-NB1-IN01",
+          "years": "2022–2023",
+          "cc": "156.9",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K0WL-NB1-IN11",
+          "years": "2022–2023",
+          "cc": "156.9",
+          "market": "Indonesia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "PCX 160",
+      "slug": "honda-pcx-160",
+      "aliases": [
+        "All New PCX 160",
+        "PCX 160 ABS",
+        "PCX 160 CBS",
+        "PCX 160 RoadSync",
+        "PCX 160 K1Z"
+      ],
+      "garage_models": [
+        "PCX 160"
+      ],
+      "entries": [
+        {
+          "part": "30400-K1ZT-TF2",
+          "years": "2026",
+          "cc": "156.9",
+          "market": "Thailand"
+        },
+        {
+          "part": "30400-K1ZH-B11",
+          "years": "2025",
+          "cc": "156.9",
+          "market": "Asia"
+        },
+        {
+          "part": "30400-K1ZT-TC1",
+          "years": "2025",
+          "cc": "156.9",
+          "market": "Thailand"
+        },
+        {
+          "part": "30400-K1ZT-TF1",
+          "years": "2025",
+          "cc": "156.9",
+          "market": "Thailand"
+        },
+        {
+          "part": "30400-K1ZV-NA1",
+          "years": "2025",
+          "cc": "156.9",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K1ZV-NC1",
+          "years": "2025",
+          "cc": "156.9",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K1ZV-NF1",
+          "years": "2025",
+          "cc": "156.9",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K1ZN-N41",
+          "years": "2023",
+          "cc": "156.9",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K1ZN-N51",
+          "years": "2023",
+          "cc": "156.9",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K1ZP-T51",
+          "years": "2023",
+          "cc": "156.9",
+          "market": "Thailand"
+        },
+        {
+          "part": "30400-K1ZP-T71",
+          "years": "2023",
+          "cc": "156.9",
+          "market": "Thailand"
+        },
+        {
+          "part": "30400-K1ZF-T11",
+          "years": "2021–2023",
+          "cc": "156.9",
+          "market": "Thailand"
+        },
+        {
+          "part": "30400-K1ZG-N31",
+          "years": "2021–2023",
+          "cc": "156.9",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K1ZF-T01",
+          "years": "2021",
+          "cc": "156.9",
+          "market": "Thailand"
+        },
+        {
+          "part": "30400-K1ZG-N21",
+          "years": "2021",
+          "cc": "156.9",
+          "market": "Indonesia"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "PCX-150",
+      "slug": "honda-pcx-150",
+      "aliases": [
+        "PCX 150 lokal",
+        "PCX 150 ABS",
+        "PCX-150 K35",
+        "PCX-150 K36",
+        "PCX-150 K96",
+        "PCX-150 K97"
+      ],
+      "garage_models": [
+        "PCX-150"
+      ],
+      "entries": [
+        {
+          "part": "30400-K36F-T01",
+          "years": "2019–2020",
+          "cc": "150",
+          "market": "Thailand"
+        },
+        {
+          "part": "30400-K36S-T31",
+          "years": "2019–2020",
+          "cc": "150",
+          "market": "Thailand"
+        },
+        {
+          "part": "30400-K96A-T01",
+          "years": "2019–2020",
+          "cc": "150",
+          "market": "Vietnam"
+        },
+        {
+          "part": "30400-K96A-V01",
+          "years": "2019–2020",
+          "cc": "150",
+          "market": "Vietnam"
+        },
+        {
+          "part": "30400-K97A-S01",
+          "years": "2019–2020",
+          "cc": "150",
+          "market": "Malaysia"
+        },
+        {
+          "part": "30400-K97F-T01",
+          "years": "2019–2020",
+          "cc": "150",
+          "market": "Thailand"
+        },
+        {
+          "part": "30400-K97G-N31",
+          "years": "2019–2020",
+          "cc": "150",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K35K-K21",
+          "years": "2018–2020",
+          "cc": "150",
+          "market": "Asia"
+        },
+        {
+          "part": "30400-K97G-N01",
+          "years": "2018–2019",
+          "cc": "150",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K36J-N11",
+          "years": "2017–2019",
+          "cc": "150",
+          "market": "Indonesia"
+        },
+        {
+          "part": "30400-K97A-U01",
+          "years": "2017–2019",
+          "cc": "150",
+          "market": "Philippines"
+        },
+        {
+          "part": "30400-K97A-V01",
+          "years": "2017–2019",
+          "cc": "150",
+          "market": "Vietnam"
+        }
+      ]
+    },
+    {
+      "make": "Honda",
+      "model": "Monkey | Z 125",
+      "slug": "honda-monkey-z-125",
+      "aliases": [
+        "Monkey 125",
+        "Monkey K0F"
+      ],
+      "garage_models": [
+        "Monkey / Z 125"
+      ],
+      "entries": [
+        {
+          "part": "38770-K0F-TE1",
+          "years": "2024",
+          "cc": "124.89",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K0F-N71",
+          "years": "2023",
+          "cc": "124.89",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K0F-T61",
+          "years": "2020–2021",
+          "cc": "124.89",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K0F-A01",
+          "years": "2018–2019",
+          "cc": "124.89",
+          "market": "Asia"
+        },
+        {
+          "part": "38770-K0F-M01",
+          "years": "2018–2019",
+          "cc": "124.89",
+          "market": "Malaysia"
+        },
+        {
+          "part": "38770-K0F-T01",
+          "years": "2018–2019",
+          "cc": "124.89",
+          "market": "Thailand"
+        },
+        {
+          "part": "38770-K0F-V01",
+          "years": "2018–2019",
+          "cc": "124.89",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Yamaha",
+      "model": "AEROX NEW",
+      "slug": "yamaha-aerox-new",
+      "aliases": [
+        "All New Aerox 155",
+        "Aerox 155 Connected",
+        "Aerox Connected ABS",
+        "NVX 155 V2"
+      ],
+      "garage_models": [
+        "AEROX NEW"
+      ],
+      "entries": [
+        {
+          "part": "BDL-H594A-11",
+          "years": "2023",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "B8R-H594A-10",
+          "years": "2022–2024",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BBP-H594A-01",
+          "years": "2021–2024",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BBP-H594A-11",
+          "years": "2021–2024",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BBP-H594A-20",
+          "years": "2021–2024",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BBP-H594A-50",
+          "years": "2021–2024",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BBR-H594A-01",
+          "years": "2021–2024",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BBR-H594A-11",
+          "years": "2021–2024",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BBR-H594A-20",
+          "years": "2021–2024",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BBR-H594A-30",
+          "years": "2021–2024",
+          "cc": "155",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Yamaha",
+      "model": "MT15",
+      "slug": "yamaha-mt15",
+      "aliases": [
+        "MT 15 VVA"
+      ],
+      "garage_models": [
+        "MT15"
+      ],
+      "entries": [
+        {
+          "part": "B8D1",
+          "years": "2019–2026",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "B8D0",
+          "years": "",
+          "cc": "",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Yamaha",
+      "model": "XSR 155",
+      "slug": "yamaha-xsr-155",
+      "aliases": [],
+      "garage_models": [
+        "XSR 155"
+      ],
+      "entries": [
+        {
+          "part": "BBS1",
+          "years": "2022–2026",
+          "cc": "155",
+          "market": "Asia"
+        },
+        {
+          "part": "BBS0",
+          "years": "2019–2022",
+          "cc": "155",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Yamaha",
+      "model": "WR 155",
+      "slug": "yamaha-wr-155",
+      "aliases": [
+        "WR155R"
+      ],
+      "garage_models": [
+        "WR 155"
+      ],
+      "entries": [
+        {
+          "part": "B3M0",
+          "years": "2021–2026",
+          "cc": "155",
+          "market": "Asia"
+        }
+      ]
+    },
+    {
+      "make": "Yamaha",
+      "model": "XMAX",
+      "slug": "yamaha-xmax",
+      "aliases": [
+        "XMAX 250",
+        "XMAX 250 ABS"
+      ],
+      "garage_models": [
+        "XMAX"
+      ],
+      "entries": [
+        {
+          "part": "BKA0",
+          "years": "2024–2025",
+          "cc": "250",
+          "market": "Asia"
+        },
+        {
+          "part": "BKA2",
+          "years": "2022–2026",
+          "cc": "250",
+          "market": "Asia"
+        },
+        {
+          "part": "B5X0",
+          "years": "2022–2024",
+          "cc": "292",
+          "market": "Asia"
+        },
+        {
+          "part": "B5X1",
+          "years": "2022–2024",
+          "cc": "292",
+          "market": "Asia"
+        },
+        {
+          "part": "BPV0",
+          "years": "2018–2022",
+          "cc": "250",
+          "market": "Asia"
+        },
+        {
+          "part": "B740",
+          "years": "2017–2022",
+          "cc": "292",
+          "market": "Asia"
+        },
+        {
+          "part": "B742",
+          "years": "2017–2019",
+          "cc": "292",
+          "market": "Asia"
+        },
+        {
+          "part": "B741",
+          "years": "",
+          "cc": "",
+          "market": "Asia"
+        }
+      ]
+    }
+  ]
+}

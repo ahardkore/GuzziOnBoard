@@ -137,3 +137,95 @@ def test_buell_repeat_setting_is_strict_and_read_only(monkeypatch):
         with pytest.raises(ValueError, match='Repeat comparison'):
             buell.run('/dev/ttyUSB0', 'stock', action, VERSION, 1, 0, 1, repeat)
     assert not calls
+
+
+class ImageSerial(FakeSerial):
+    """Synthetic ECM: returns a distinct deterministic byte at every address."""
+    def __init__(self, version=VERSION, *, corrupt_pass=False, short=False):
+        super().__init__([])
+        self.version = version
+        self.corrupt_pass = corrupt_pass
+        self.short = short
+        self.image_pass = 0
+
+    def write(self, data):
+        self.sent.append(data)
+        payload = data[6:-2]
+        if payload == b'V':
+            self.pending.extend(reply(self.version.encode()))
+        elif len(payload) == 4 and payload[0] == 0x52:
+            offset, page, length = payload[1:]
+            if page == 0 and offset == 0xfc:
+                self.image_pass += 1
+            values = bytes((page * 17 + offset + i) & 0xff for i in range(length))
+            if self.corrupt_pass and self.image_pass == 2 and page == 2 and offset == 0:
+                values = b'\xff' + values[1:]
+            if self.short and page == 3:
+                values = values[:-1]
+            self.pending.extend(reply(values))
+        else:
+            raise AssertionError(f'unexpected request {payload.hex()}')
+        return len(data)
+
+
+def test_bueib_full_source_image_and_page_zero_layout(monkeypatch):
+    conn = ImageSerial(); install(monkeypatch, conn)
+    result = buell.run('/dev/ttyUSB0', 'stock', 'image', VERSION)
+    data = bytes.fromhex(result['data_hex'])
+    assert result['layout'] == 'BUEIB' and result['length'] == 1210
+    assert data[0] == 17 and data[256] == 34
+    assert data[0x200] == 51 and data[0x29e] == 68 and data[0x49e] == 102
+    assert data[1206:] == bytes((252, 253, 254, 255))
+    assert result['sha256'] == __import__('hashlib').sha256(data).hexdigest()
+    assert result['synthetic_tested'] and not result['repeated_match']
+    assert [frame[6:-2] for frame in conn.sent[1:5]] == [bytes((0x52, x, 0, 1)) for x in range(252, 256)]
+    assert all(frame[6] in (0x56, 0x52) for frame in conn.sent)
+    assert conn.closed
+
+
+def test_buecb_image_and_unknown_layout_fails_before_open(monkeypatch):
+    version = 'BUECB123 TEST'; conn = ImageSerial(version); calls = install(monkeypatch, conn)
+    result = buell.run('/dev/ttyUSB0', 'stock', 'image', version)
+    assert result['length'] == 1138 and result['layout'] == 'BUECB'
+    assert all(frame[8] != 0 for frame in conn.sent[1:])
+    assert calls
+    conn = ImageSerial(); calls = install(monkeypatch, conn)
+    with pytest.raises(ValueError, match='No source-scoped image layout'):
+        buell.run('/dev/ttyUSB0', 'stock', 'image', 'ZZZZZ123')
+    assert calls == []
+
+
+def test_full_image_mismatch_or_short_response_discards_output(monkeypatch):
+    conn = ImageSerial(corrupt_pass=True); install(monkeypatch, conn)
+    with pytest.raises(TransportError, match='image reads disagree'):
+        buell.run('/dev/ttyUSB0', 'stock', 'image', VERSION, compare_repeat=True)
+    assert conn.closed and all(frame[6] in (0x56, 0x52) for frame in conn.sent)
+    conn = ImageSerial(short=True); install(monkeypatch, conn)
+    with pytest.raises(TransportError, match='image response length mismatch'):
+        buell.run('/dev/ttyUSB0', 'stock', 'image', VERSION)
+    assert conn.closed
+
+
+def test_all_source_image_layouts_have_valid_geometry():
+    sizes = {
+        'BUEGC': 1100, 'BUEIA': 1056, 'BUEJA': 1072, 'BUEKA': 1072,
+        'B2RIB': 1210, 'BUECB': 1138, 'BUEGB': 1202, 'BUEIB': 1210,
+        'BUEIC': 1210, 'B3R1D': 3444, 'B3R2D': 3796, 'B3R3D': 3924,
+        'BUE1D': 3444, 'BUE2D': 3796, 'BUE3D': 3924, 'BUEOD': 2820,
+        'BUEWD': 3156, 'BUEYD': 3272, 'BUEZD': 3412,
+    }
+    assert set(buell.IMAGE_LAYOUTS) == set(sizes)
+    for name, layout in buell.IMAGE_LAYOUTS.items():
+        assert sum(length for _, length in layout) == sizes[name]
+        assert len({page for page, _ in layout}) == len(layout)
+        assert all(0 <= page <= 31 and 1 <= length <= 256 for page, length in layout)
+
+
+def test_ddfi3_image_page_zero_and_length(monkeypatch):
+    version = 'BUE2D001 TEST'; conn = ImageSerial(version); install(monkeypatch, conn)
+    result = buell.run('/dev/ttyUSB0', 'stock', 'image', version)
+    data = bytes.fromhex(result['data_hex'])
+    assert result['length'] == 3796 and len(data) == 3796
+    assert data[-40:] == bytes(range(216, 256))
+    assert [x[7] for x in conn.sent[1:41]] == list(range(216, 256))
+    assert all(x[6] in (0x56, 0x52) for x in conn.sent)

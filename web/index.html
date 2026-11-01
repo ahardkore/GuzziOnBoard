@@ -109,6 +109,26 @@
           <span>Year</span>
           <select id="yearSelect"></select>
         </label>
+        <div id="bikeStudioGarage" class="small" aria-live="polite">BikeStudio reference candidates load locally.</div>
+        <details class="advanced" id="bikeStudioLookup">
+          <summary>Find a bike or ECU part · BikeStudio reference</summary>
+          <p class="small muted">Search a partial offline index of BikeStudio's Honda and Yamaha part listings. Matching parts are leads, not an ECU identification, protocol, compatibility or write authorization. The source has some inconsistent years and displacements; check each part, year and market against the actual bike. No query is sent online unless you open a source link.</p>
+          <label class="field"><span>Bike, alias or ECU part number</span><input id="bikeStudioQuery" maxlength="100" placeholder="e.g. CBR500R, R15, 38770-MGZ-A03"></label>
+          <label class="field"><span>Optional model year</span><input id="bikeStudioYear" type="number" min="1900" max="2100" placeholder="e.g. 2014"></label>
+          <label class="field"><span>Optional exact source market</span><input id="bikeStudioMarket" maxlength="100" placeholder="e.g. Indonesia, Asia"></label>
+          <p class="small muted">Market filter matches source wording only. Unstated markets remain visible; Asia and Indonesia are different labels, so check both. This is not a fitment guarantee.</p>
+          <div id="bikeStudioResults" class="small" aria-live="polite">Enter a bike name or ECU part.</div>
+          <details id="bikeStudioOnline">
+            <summary>Look up more models on BikeStudio (internet)</summary>
+            <p class="small muted">One click fetches the public model index; another fetches only the selected model's public part table. BikeStudio receives your IP address and selected model. No VIN, ECU image, bike selection or diagnostic data is sent. Results stay in this tab. This source integration is synthetic-tested; page changes, network restrictions or site policies may prevent retrieval. The hosted demo cannot make this request.</p>
+            <button class="btn small" id="bikeStudioOnlineLoad">Load public model index</button>
+            <label class="field"><span>Filter public model names or aliases</span><input id="bikeStudioOnlineFilter" maxlength="100" placeholder="e.g. BeAT 110, NMAX"></label>
+            <label class="field"><span>Source model</span><select id="bikeStudioOnlineModel" disabled><option value="">— load index first —</option></select></label>
+            <button class="btn small" id="bikeStudioOnlineRead" disabled>Load selected model's ECU parts</button>
+            <div id="bikeStudioOnlineOut" aria-live="polite">No external request made.</div>
+          </details>
+          <p class="small muted">Our partial index is not the complete database. <a href="https://bikestudio.io/ecu?lang=en" target="_blank" rel="noopener noreferrer">Open the full BikeStudio ECU database</a>. Additional pinouts, ECM IDs, calibration and flash-size details are described by the source as available in its Partner app.</p>
+        </details>
         <div id="resolveResult" class="resolve"></div>
         <button class="btn" id="selectOfflineBtn" disabled>Select for offline maps</button>
         <p class="muted small">Selects the vehicle without opening a diagnostic session. Disconnect any active session first.</p>
@@ -154,7 +174,7 @@
           </label>
           <p class="muted small" id="canIntrepidNote" hidden>Enter a single Intrepid CAN network name such as HSCAN (or its documented CAN network ID) in Device above, and the exact device serial here. Direct neoVI requires python_ics installed in the Python environment; standard packaged builds do not include it. On Linux, an externally configured Intrepid SocketCAN interface can use the profile default instead. Adapter support does not establish ECU compatibility; this integration is synthetic-tested only. The backend sets the CAN bitrate on the selected hardware. Use only Intrepid hardware with libicsneo.</p>
           <p class="muted small" id="canSlcanNote" hidden>For classic-CAN SLCAN adapters, enter an explicit serial device above, such as COM5 or /dev/ttyACM0. The default serial speed is 115200; append @speed (e.g. COM5@115200) if needed. The adapter is configured for the selected ECU profile bitrate and transmits diagnostic requests. Synthetic-tested only; verify adapter wiring, firmware and bike compatibility. CAN-FD and automatic fitment are not provided.</p>
-          <p class="muted small">Harley Delphi CAN identity research is available by source-listed vehicle or ECU-only override. This integration has synthetic tests only and may not work for a selected bike. It requires 500 kbit/s and fixed 0x7E0/0x7E8; enter an explicit SocketCAN channel (e.g. can0) or PCAN channel (e.g. PCAN_USBBUS1). This attempts tester-present, five raw identity DIDs and four raw source-observed DIDs; a response does not verify fitment and the source may require authentication. No ECU memory, security, or programming is provided.</p>
+          <p class="muted small">Harley Delphi CAN identity research is available by source-listed vehicle or ECU-only override. This integration has synthetic tests only and may not work for a selected bike. It requires 500 kbit/s and fixed 0x7E0/0x7E8; enter an explicit SocketCAN channel (e.g. can0) or PCAN channel (e.g. PCAN_USBBUS1). This attempts tester-present, five raw identity DIDs and four raw source-observed DIDs; a response does not verify fitment and the source may require authentication. This Garage identity session does not provide ECU memory, security, or programming; the separate experimental Tools memory panel has a different workflow.</p>
           <p class="muted small">Generic OBD-II 11-bit CAN is an explicit ECU-only option, not a claim of compatibility with the selected motorcycle. It needs a compatible CAN interface and correctly wired adapter, 500 kbit/s and a physical OBD ECU ID pair; this integration has not been hardware-tested. It reads supported standard live PIDs and emission-related stored faults, not ECU memory.</p>
           <label class="field">
             <span>Request id (tester &rarr; ECU)</span>
@@ -490,6 +510,17 @@
       <p class="muted small">This uses the application's existing vehicle and XDF catalogs. Review the <a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/guzzionboard/catalog/vehicles.json" target="_blank" rel="noopener noreferrer">vehicle catalog source list</a> (not attribution for each individual entry) and <a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/guzzionboard/xdfs/PROVENANCE.json" target="_blank" rel="noopener noreferrer">XDF provenance</a>. A model may have multiple fitments in the same year. XDF family labels are discovery leads only; check the source, part number, software, layout and checksum independently.</p>
     </article>
 
+    <article class="panel" id="hondaVfrChecksum">
+      <h2>Honda source-ID · calibration checksum</h2>
+      <p class="small muted">44 source-scoped Honda ECM candidates. Choose an original and a separately edited copy of the stated length. The tool checks the candidate ID and original zero byte sum, then proposes a source-listed checksum-byte correction. It cannot establish identity, completeness, fitment, other checksums or permission to write. Some sizes and offsets are inferred; some have no matching checked example. Source XDFs require careful review. GuzziOnBoard has synthetic tests only; no physical ECU tested.</p>
+      <label class="field"><span>Exact source candidate</span><select id="hondaVfrVariant"><option value="">Choose an ECM candidate</option></select></label>
+      <label class="field"><span>Original image</span><input id="hondaVfrOriginal" type="file" accept=".bin,application/octet-stream"></label>
+      <label class="field"><span>Edited image (same size)</span><input id="hondaVfrEdited" type="file" accept=".bin,application/octet-stream"></label>
+      <label class="check"><input type="checkbox" id="hondaVfrConfirm"> I selected the correct source layout and understand the corrected copy is research-only, not flash-ready</label>
+      <div class="toolbar"><button class="btn" id="hondaVfrInspect">Review checksum correction</button><button class="btn" id="hondaVfrExport" disabled>Save corrected research copy</button></div>
+      <pre id="hondaVfrOut" class="small" aria-live="polite">No image selected.</pre>
+    </article>
+
     <article class="panel" id="hondaOffline">
       <h2>Honda K-Line · offline response decoder</h2>
       <p class="muted small">Paste complete Honda K-Line response frames, one hex frame per line. This experimental decoder uses a third-party implementation tested by its author on a 2005 CBR600RR; fitment and results have not been validated by GuzziOnBoard. It does not connect to a motorcycle, send requests, or upload data. The table 11 candidate is separately based on a CRF250L project. Models, sensors and layouts can vary. Do not use results for safety decisions.</p>
@@ -601,6 +632,30 @@
       <p class="muted small">CSV contains only the current bounded window, in long format, with source IP and provider/channel identifiers. No stale sample fill, unit conversion or automatic tuning is performed; network identifiers may be sensitive. <a href="https://github.com/rob9206/DynoAI_3/tree/cc22636aafa40a0b4ce4c27b5e0cc50795012b87" target="_blank" rel="noopener noreferrer">DynoAI source</a>.</p>
     </article>
 
+    <article class="panel" id="harleyMemory">
+      <h2>Harley Delphi CAN · experimental live memory</h2>
+      <p class="small"><strong>Synthetic-tested only; no GuzziOnBoard hardware test.</strong> Source-scoped candidate Delphi CAN protocol, not every Harley ECU. A read first downloads an opaque authentication payload to ECU address zero: this can alter ECU state. Use only an appropriate capture/payload you are authorized to use. No payload is bundled; the app calculates the seed key automatically. Verify bike, adapter and wiring, ignition on, engine stopped and stable power.</p>
+      <label class="field"><span>CAN adapter interface</span><select id="hdMemInterface"><option value="socketcan">SocketCAN</option><option value="slcan">SLCAN</option><option value="pcan">PCAN USB</option></select></label>
+      <label class="field"><span>Adapter channel</span><input id="hdMemChannel" placeholder="can0, PCAN_USBBUS1 or COM3 / /dev/ttyUSB0" maxlength="255"></label>
+      <label class="field"><span>Local CAN capture (.txt) or 2006-byte authentication payload path</span><input id="hdMemCapture" placeholder="Absolute path to an authorized capture or payload" maxlength="4096"></label>
+      <label class="field"><span>Source-defined region</span><select id="hdMemRegion"><option value="tune">16 KiB tune (read 0x7F4000)</option><option value="calibration">160 KiB calibration (0x7D8000)</option><option value="config_low">2 KiB low configuration (0x800)</option><option value="config_mid">1 KiB mid configuration (0x740000)</option></select></label>
+      <label class="check"><input type="checkbox" id="hdMemRepeat"> Read the entire region twice and compare (slower)</label>
+      <label class="check"><input type="checkbox" id="hdMemConfirm"> I checked the ECU, wiring, authorized payload, engine and power and accept that authentication sends an opaque download and can change ECU state</label>
+      <div class="toolbar"><button class="btn" id="hdMemRead">Read selected memory</button><button class="btn" id="hdMemSave" disabled>Save read</button></div>
+      <pre class="small" id="hdMemOut" aria-live="polite">No memory read.</pre>
+      <p class="small muted">Read replies are checked for their echoed format and address; the two trailing bytes are not validated. Repeat comparisons, identity DIDs and hashes do not prove checksum, fitment or recovery. See <a href="https://github.com/rob9206/lawflo/tree/6255518dc9118d960efa42d6d9dc975926bbd579/ZOOSH_ECU-main/HarleyECUDump" target="_blank" rel="noopener noreferrer">source capture and tooling</a>.</p>
+      <details class="danger-zone" id="hdMemWritePanel"><summary>Experimental Delphi 16 KiB tune write</summary>
+        <p class="small"><strong>Can permanently damage the ECU.</strong> One successful tune or calibration read automatically saves a single-read original and opens this review. The original is not independently verified. The read session closes: the write reconnects and checks raw DIDs, but does not reread the original before writing. DIDs may not uniquely identify an ECU; changes or an ECU swap since reading will not necessarily be detected. This writes the entire 16 KiB at source-reported write address 0x4000. Fitment, checksum/signature and recovery are not established, and engine speed is not automatically checked. Readback is not a safety or checksum guarantee; a failed transfer can leave the ECU in an uncertain state.</p>
+        <div class="toolbar"><button class="btn" id="hdMemOpenMap" disabled>Open saved tune in Maps</button></div>
+        <p id="hdMemMapStatus" class="small" aria-live="polite">A user-selected matching XDF is required; the ECU read does not identify a definition.</p>
+        <label class="field"><span>Automatically saved single-read original (research only)</span><input id="hdMemOriginal" placeholder="Read tune or calibration first" readonly></label>
+        <label class="field"><span>Edited 16 KiB tune path</span><input id="hdMemEdited" placeholder="Absolute path of the reviewed tune"></label>
+        <label class="check"><input type="checkbox" id="hdMemWriteConfirm"> Same ECU and tune unchanged since the read; engine stopped, ignition on and stable power. I reviewed every change and accept the single-read, unknown checksum, fitment and recovery risks.</label>
+        <div class="toolbar"><button class="btn" id="hdMemPrepare" disabled>Review tune changes</button><button class="btn danger" id="hdMemWrite" disabled>Write reviewed tune</button></div>
+        <pre class="small" id="hdMemWriteOut" aria-live="polite">Read the ECU first, then review a write.</pre>
+      </details>
+    </article>
+
     <article class="panel" id="buellDdfi">
       <h2>Buell DDFI · live serial research</h2>
       <p class="muted small">For compatible Buell DDFI / DDFI-2 / DDFI-3 ECMs using an appropriate Buell TTL serial or paired Bluetooth serial adapter, <strong>not ELM327/J1850, OBD or direct RS-232</strong>. 5 V TTL maximum; verify adapter voltage, wiring, grounding, bike and protocol before connecting. Opening a port may change control lines. This integration is synthetic-tested only; no physical bike has been tested.</p>
@@ -608,11 +663,23 @@
       <label class="field"><span>ECM protocol (verify before selecting)</span><select id="buellMode"><option value="stock">Stock / P&amp;A · 9600 baud</option><option value="factory_race">Factory race · 19200 baud</option></select></label>
       <label class="field"><span>Exact ECM version (identify first)</span><input id="buellVersion" maxlength="64" placeholder="ECM version"></label>
       <div class="toolbar"><label>EEPROM page <input type="number" id="buellPage" value="1" min="1" max="31"></label><label>Offset <input type="number" id="buellOffset" value="0" min="0" max="255"></label><label>Length (1–256) <input type="number" id="buellLength" value="16" min="1" max="256"></label></div>
-      <label class="check"><input type="checkbox" id="buellCompare"> Read this range twice and reject differences (slower; not a verified backup)</label>
-      <label class="check"><input type="checkbox" id="buellConfirm"> I verified the Buell ECM, TTL adapter and wiring, and understand this is a synthetic-tested read-only integration</label>
-      <div class="toolbar"><button class="btn" id="buellIdentify">Identify ECM</button><button class="btn" id="buellRuntime">Read runtime snapshot</button><button class="btn" id="buellRead">Read EEPROM range</button></div>
+      <label class="check"><input type="checkbox" id="buellCompare"> Read range or image twice and reject differences (slower; not independent verification)</label>
+      <label class="check"><input type="checkbox" id="buellConfirm"> I verified the Buell ECM, TTL adapter and wiring, and understand these operations are synthetic-tested</label>
+      <div class="toolbar"><button class="btn" id="buellIdentify">Identify ECM</button><button class="btn" id="buellRuntime">Read runtime snapshot</button><button class="btn" id="buellRead">Read EEPROM range</button><button class="btn" id="buellImage">Read source-layout EEPROM image</button><button class="btn" id="buellSaveImage" disabled>Save EEPROM XPR</button></div>
+      <p class="muted small">Full source-described EEPROM layouts are available for 19 identified DDFI ECM IDs. This integration is synthetic-tested, not hardware-tested; responses do not echo addresses. A saved image is not independently verified. The comparison checkbox can repeat an image read. A successful single image read automatically saves an original for editable Maps input and write review; writing still requires explicit review and confirmation.</p>
       <pre id="buellOut" class="small" aria-live="polite">Not connected.</pre>
-      <p class="muted small">Each action reconnects, identifies and checks the ECM version. EEPROM pages and geometry are operator-selected and vary by ECM; page 0 and pages 32+ are excluded; the remaining numbers are not automatically verified as physical pages. A range is not a complete backup or flash authorization. Runtime layouts vary by ECM; a 100-byte BUEIA frame also shows source-described candidate values. No write, fault-clear, actuator, reset or tuning commands are sent. <a href="https://github.com/bkp123/ecmdroid/tree/2f17d29f5b08f67fb357ee8f2ec21e7ae930343e" target="_blank" rel="noopener noreferrer">EcmDroid source</a> · <a href="https://www.ecmspy.com/eeprom_info.shtml" target="_blank" rel="noopener noreferrer">EcmSpy protocol and wiring notes</a>.</p>
+      <p class="muted small">Each read action reconnects and identifies the ECM. Range reads exclude page 0 and pages 32+; image reads use the source-described geometry including page 0 where present. A range is not a complete backup. Runtime layouts vary by ECM; a 100-byte BUEIA frame also shows source-described candidate values. Read actions never send SET, fault-clear, actuator or reset commands. <a href="https://github.com/bkp123/ecmdroid/tree/2f17d29f5b08f67fb357ee8f2ec21e7ae930343e" target="_blank" rel="noopener noreferrer">EcmDroid source</a> · <a href="https://www.ecmspy.com/eeprom_info.shtml" target="_blank" rel="noopener noreferrer">EcmSpy protocol and wiring notes</a>.</p>
+      <details class="danger-zone" id="buellWritePanel">
+        <summary>Experimental Buell fuel / spark EEPROM write</summary>
+        <p class="small"><b>Live write; synthetic tests only, no physical ECU tested.</b> Wrong values, lost power, or protocol failure can damage the ECM. Only source-defined fuel/spark map and axis changes are accepted; page zero is never written. One image read automatically saves a research original and opens review. The one-read path checks version, stopped RPM and each affected chunk, but does not reread the whole image; an ECM swap or unrelated changes can go undetected. SET resends full affected chunks, then reads them back. The original is not independently verified and does not prove safety or fitment.</p>
+        <div class="toolbar"><button class="btn" id="buellOpenMap" disabled>Open the saved read in Maps</button></div>
+        <p id="buellMapStatus" class="small" aria-live="polite">Read an image to prepare a candidate source definition.</p>
+        <label class="field"><span>Original XPR path (automatically saved after a read)</span><input id="buellWriteOriginal" placeholder="Read an image or enter an ECM-ID-prefixed XPR path"></label>
+        <label class="field"><span>Edited image path</span><input id="buellWriteEdited" placeholder="Absolute path of the reviewed research copy"></label>
+        <label class="check"><input type="checkbox" id="buellWriteConfirm"> Engine stopped, ignition on, stable power; I reviewed the original, ECM ID, edited map values and synthetic-only warning</label>
+        <div class="toolbar"><button class="btn" id="buellWritePrepare">Review EEPROM differences</button><button class="btn danger" id="buellWriteExecute" disabled>Write reviewed EEPROM changes</button></div>
+        <pre id="buellWriteOut" class="small" aria-live="polite">No write prepared.</pre>
+      </details>
     </article>
 
     <article class="panel" id="rusefiResearch">
@@ -629,7 +696,18 @@
       <div class="toolbar"><button class="btn" id="rusefiIdentify">Identify controller</button><button class="btn" id="rusefiRead">Read selected page range</button><button class="btn" id="rusefiOutputs">Read live output bytes</button></div>
       <pre id="rusefiOut" class="small" aria-live="polite">Not connected.</pre>
       <p class="muted small"><a href="https://rusefi.com/build_server/" target="_blank" rel="noopener noreferrer">rusEFI snapshot build server</a> · <a href="https://wiki.rusefi.com/INI-lookup-logic/" target="_blank" rel="noopener noreferrer">Signature lookup guide</a>. The INI parser only extracts a signature; it does not validate a definition's contents or authenticity.</p>
-      <p class="muted small">Each action opens and closes the selected local serial device. Identify sends a signature request; page and output reads verify that signature then request one bounded range. Live output is a raw snapshot; use the matching INI to interpret it. Result bytes are not decoded, not an ECU backup, and may be zeros when the controller is locked. The transport CRC is not a calibration checksum. No ECU write or burn command is sent. <a href="https://github.com/rusefi/rusefi/tree/5359cc971b60a9a0ee3f0f2a870dbb64f0ad36ef" target="_blank" rel="noopener noreferrer">rusEFI source</a>.</p>
+      <p class="muted small">Each action opens and closes the selected local serial device. Identify sends a signature request; page and output reads verify that signature then request one bounded range. Live output is a raw snapshot; use the matching INI to interpret it. Result bytes are not decoded, not an ECU backup, and may be zeros when the controller is locked. These read actions send no write or burn command. <a href="https://github.com/rusefi/rusefi/tree/5359cc971b60a9a0ee3f0f2a870dbb64f0ad36ef" target="_blank" rel="noopener noreferrer">rusEFI source</a>.</p>
+      <details id="rusefiTunePanel" class="danger-zone">
+        <summary>Experimental rusEFI calibration read and write</summary>
+        <p class="small"><b>Synthetic-tested only; no physical controller tested.</b> Only aftermarket rusEFI settings page zero and supported multi-page INIs. Read once to save a research original; the INI is used locally to determine the page size and commands, not to validate tune contents. Edit a copy using a matching user XDF in Maps or another compatible editor. This integration does not decode the INI's maps. It writes changed bytes to working RAM, checks them and the full-page CRC, then explicitly burns. The CRC request can also complete a previously pending burn. CRC/readback do not prove persistent flash, identity, correct values, or safety; RAM writes can affect operation before burn. Never operate the engine during this process.</p>
+        <div class="toolbar"><button class="btn" id="rusefiTuneRead">Read settings page and open review</button><button class="btn" id="rusefiOpenMap" disabled>Open saved page in Maps</button></div>
+        <p id="rusefiMapStatus" class="small" aria-live="polite">Choose a user-supplied matching XDF; the INI signature does not identify an XDF.</p>
+        <label class="field"><span>Automatically saved original</span><input id="rusefiTuneOriginal" readonly></label>
+        <label class="field"><span>Edited same-size settings image</span><input id="rusefiTuneEdited" placeholder="Absolute path to edited page-zero image"></label>
+        <label class="check"><input type="checkbox" id="rusefiTuneConfirm"> Engine stopped, ignition on and stable power; same aftermarket controller and matching INI, no other tuning software, and I accept uncertain RAM/burn and synthetic-only risks</label>
+        <div class="toolbar"><button class="btn" id="rusefiTunePrepare" disabled>Review calibration changes</button><button class="btn danger" id="rusefiTuneWrite" disabled>Write and burn reviewed calibration</button></div>
+        <pre id="rusefiTuneOut" class="small" aria-live="polite">Select the matching INI and read the settings page first.</pre>
+      </details>
     </article>
 
     <article class="panel" id="yamahaResearch">
@@ -1023,7 +1101,7 @@
 
     <article class="panel">
       <h2>Maps &amp; tables</h2>
-      <p class="muted small">Render a dump as named fuel and ignition tables with a TunerPro XDF definition &mdash; 94 GuzziDiag definitions and one Honda CBR1000RR definition ship bundled. Drop <code>.xdf</code> files into <code>~/.guzzionboard/xdfs/</code> to correct or extend them. Rendering and comparison are read-only; the advanced builder below always writes a new file and never changes its source.</p>
+      <p class="muted small">Render a dump as named fuel and ignition tables with a TunerPro XDF definition &mdash; GuzziDiag and source-derived research definitions ship bundled, including source-derived Buell DDFI EEPROM maps. Drop <code>.xdf</code> files into <code>~/.guzzionboard/xdfs/</code> to correct or extend them. Rendering and comparison are read-only; the advanced builder below always writes a new file and never changes its source.</p>
       <p class="muted small">The chooser is grouped by motorcycle, not by the title the definition's author happened to type: definitions for the ECU family on the bench come first, everything else is listed under the bikes it was published for and marked as not matching. Picking a map from the wrong family does not give slightly wrong numbers &mdash; it reads a different calibration layout at the same addresses. A mismatched definition can be viewed, but the builder refuses to use it.</p>
       <div class="toolbar">
         <label class="inline">Bike
@@ -1156,6 +1234,7 @@
         </div>
         <div id="mapBuildOut"></div>
       </div>
+      <div id="hondaVfrHandoff" aria-live="polite"></div>
       <div id="mapsOut"></div>
     </article>
 
@@ -1273,8 +1352,11 @@
 <script src="app.js"></script>
 <script src="workshop.js"></script>
 <script src="ecu-lookup.js"></script>
+<script src="bikestudio-fitment.js"></script>
 <script src="ecu-crossref.js"></script>
 <script src="honda-offline.js"></script>
+<script src="honda-checksum-candidates.js"></script>
+<script src="honda-research-checksum.js"></script>
 <script src="multibrand-offline.js"></script>
 <script src="yamaha-checksum.js"></script>
 <script src="bajaj-checksum.js"></script>
@@ -1289,6 +1371,7 @@
 <script src="jetdrive.js"></script>
 <script src="pvv-editor.js"></script>
 <script src="buell-ddfi.js"></script>
+<script src="harley-memory.js"></script>
 <script src="rusefi-ini.js"></script>
 <script src="rusefi-read.js"></script>
 </body>

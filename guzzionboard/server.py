@@ -31,7 +31,12 @@ from . import canlog
 from . import harley_hdlan_listen
 from . import yamaha_mt03_listen
 from . import rusefi_read
+from . import rusefi_tune
 from . import buell_ddfi
+from . import buell_burn
+from . import harley_memory
+from . import honda_checksum_research
+from . import bikestudio
 from . import jetdrive
 from . import j2534
 from . import klinelog
@@ -363,8 +368,19 @@ class Api:
         self._hdlan_lock = threading.Lock()
         self._yamaha_observation_lock = threading.Lock()
         self._rusefi_lock = threading.Lock()
+        self._rusefi_active = threading.Event()
+        self._rusefi_read = None
+        self._rusefi_plan = None
         self._buell_lock = threading.Lock()
+        self._buell_write_plan = None
+        self._buell_read = None
+        self._buell_writing = threading.Event()
+        self._harley_memory_lock = threading.Lock()
+        self._harley_memory_plan = None
+        self._harley_memory_read = None
+        self._harley_memory_active = threading.Event()
         self._jetdrive_lock = threading.Lock()
+        self._bikestudio_lock = threading.Lock()
 
     # -- catalog ----------------------------------------------------------
     def get_catalog(self, query: dict) -> tuple[int, dict]:
@@ -1543,6 +1559,7 @@ class Api:
             "xdf": {"path": xdf.path, "sha256": xdf_hash, "title": xdf.title},
             "address_base": effective_base, "changes": changes, "diff": diff,
             "candidate_sha256": hashlib.sha256(candidate).hexdigest(),
+            "honda_checksum_candidates": honda_checksum_research.proposals(source.data, candidate),
             "declared_checksums": list(xdf.checksums),
             "warning": ("Research preview only: vehicle/ECU/software fitment and "
                         "checksum correctness are not established. No checksum was "
@@ -1594,8 +1611,14 @@ class Api:
                 layout = "operator-declared file range (not verified)"
             resolved = self._load_xdf(body["xdf"])
             info = fitment(resolved.path)
-            if info.get("family") or info.get("research_only") or info.get("catalogued"):
-                raise TuningError("use an uncatalogued user-supplied XDF for this research export")
+            # Catalogued research-only definitions are useful precisely when a
+            # complete hardware validation record does not yet exist. Permit the
+            # explicit, range-bounded offline workflow, never the Delphi shortcut
+            # or the normal programming/build gate. Fitment remains an operator
+            # assertion and the output remains research-only.
+            known = info.get("family") or info.get("catalogued") or info.get("research_only")
+            if known and (delphi_layout or not info.get("research_only")):
+                raise TuningError("use an uncatalogued user-supplied XDF or a catalogued research-only XDF for this research export")
             xdf_bytes = read_xdf_bytes(resolved.path)
             if hashlib.sha256(xdf_bytes).hexdigest() != preview["xdf"]["sha256"]:
                 raise TuningError("XDF SHA-256 changed; render it again")
@@ -1608,10 +1631,32 @@ class Api:
                 raise TuningError("the reviewed edits do not change the source image")
             if source.data[:start] != candidate[:start] or source.data[end:] != candidate[end:]:
                 raise TuningError("edits must stay inside the selected file region")
+            checksum = None
+            if body.get("honda_checksum_ecm_id") is not None:
+                if delphi_layout or body.get("confirm_honda_checksum") is not True:
+                    raise TuningError("explicit Honda research checksum confirmation is required")
+                ecm = body.get("honda_checksum_ecm_id")
+                if not isinstance(ecm, str):
+                    raise TuningError("choose an exact Honda checksum candidate")
+                checksum = next((p for p in preview["honda_checksum_candidates"] if p["ecm_id"] == ecm), None)
+                if checksum is None:
+                    raise TuningError("Honda checksum candidate no longer matches the reviewed source and edits")
+                if body.get("expected_checksum_output_sha256") != checksum["output_sha256"]:
+                    raise TuningError("corrected output changed; review the Honda checksum preview again")
+                if not start <= checksum["checksum_offset"] < end:
+                    raise TuningError("Honda checksum byte is outside the selected file region")
+                candidate = bytearray(candidate)
+                candidate[checksum["checksum_offset"]] = checksum["after"]
+                candidate_hash = hashlib.sha256(candidate).hexdigest()
+                if candidate_hash != checksum["output_sha256"] or sum(candidate) & 255:
+                    raise TuningError("Honda checksum output verification failed")
             manifest = {
                 "schema": "guzzionboard.harley-research-edit/v1" if delphi_layout else "guzzionboard.research-edit/v1",
                 "research_only": True, "flash_ready": False,
-                "warning": "Not flash-ready: fitment, checksums and signatures are not verified or repaired.",
+                "warning": ("Not flash-ready: only the selected source-described whole-file byte sum was adjusted; fitment, other checksums and signatures are not verified."
+                            if checksum else "Not flash-ready: fitment, checksums and signatures are not verified or repaired."),
+                "honda_checksum": checksum,
+                "reviewed_candidate_sha256": preview["candidate_sha256"],
                 "layout": layout, "region_start": start, "region_end_exclusive": end,
                 "region_basis": "source-described" if delphi_layout else "operator-declared-not-verified",
                 "source": preview["source"], "xdf": preview["xdf"],
@@ -1997,6 +2042,20 @@ class Api:
             "instructions": "" if ok else adapter_mod.latency_fix_instructions(port),
         }
 
+    def post_tools_bikestudio(self, body: dict) -> tuple[int, dict]:
+        """Fetch one explicitly requested public source page, never a caller URL."""
+        if body.get("confirm_external") is not True:
+            return 400, {"error": "Confirm the request to BikeStudio first."}
+        if not self._bikestudio_lock.acquire(blocking=False):
+            return 409, {"error": "A BikeStudio request is already running."}
+        try:
+            try:
+                return 200, bikestudio.fetch(body.get("kind"), body.get("slug", ""))
+            except bikestudio.BikeStudioError as exc:
+                return 502, {"error": str(exc)}
+        finally:
+            self._bikestudio_lock.release()
+
     def post_tools_jetdrive(self, body: dict) -> tuple[int, dict]:
         """Observe a bounded local Dynojet multicast window, optionally request metadata."""
         if body.get("confirm") is not True:
@@ -2018,26 +2077,175 @@ class Api:
             with self.ws._lock:
                 if self.ws.service is not None and self.ws.service.connected:
                     return 409, {"error": "Disconnect the current ECU session first."}
-                return 200, buell_ddfi.run(body.get("port"), body.get("mode"), body.get("action"),
-                                           body.get("version"), body.get("page"), body.get("offset"), body.get("length"),
-                                           body.get("compare_repeat", False))
+                action = body.get("action")
+                if action == "prepare-from-read":
+                    self._buell_write_plan = None
+                    stored, supplied = self._buell_read, body.get("read_token")
+                    if not stored or not isinstance(supplied, str) or not secrets.compare_digest(supplied, stored[0]):
+                        return 400, {"error": "A current Buell source-layout image read is required; read again."}
+                    plan = buell_burn.prepare_from_read(stored[1], body.get("edited_path"))
+                    token = secrets.token_urlsafe(32)
+                    self._buell_write_plan = (token, time.monotonic() + 300, plan)
+                    return 200, {**buell_burn.describe(plan), "token": token, "expires_seconds": 300}
+                if action == "prepare-write":
+                    self._buell_write_plan = None
+                    plan = buell_burn.prepare(body.get("port"), body.get("mode"), body.get("version"),
+                                              body.get("original_path"), body.get("edited_path"))
+                    token = secrets.token_urlsafe(32)
+                    self._buell_write_plan = (token, time.monotonic() + 300, plan)
+                    return 200, {**buell_burn.describe(plan), "token": token, "expires_seconds": 300}
+                if action == "write":
+                    if body.get("confirm_write") is not True:
+                        return 400, {"error": "Explicitly confirm the synthetic-tested EEPROM write."}
+                    pending = self._buell_write_plan
+                    # Single use, including on failed writes: never replay an uncertain SET.
+                    self._buell_write_plan = None
+                    supplied = body.get("token")
+                    if (not pending or not isinstance(supplied, str)
+                            or not secrets.compare_digest(supplied, pending[0])
+                            or time.monotonic() > pending[1]):
+                        return 400, {"error": "Write plan is absent, expired or already used; prepare again."}
+                    self._buell_read = None  # Never reuse after any authorized SET attempt.
+                    self._buell_writing.set()
+                    try:
+                        return 200, buell_burn.execute(pending[2])
+                    finally:
+                        self._buell_writing.clear()
+                self._buell_write_plan = None
+                self._buell_read = None
+                result = buell_ddfi.run(body.get("port"), body.get("mode"), action,
+                                        body.get("version"), body.get("page"), body.get("offset"), body.get("length"),
+                                        body.get("compare_repeat", False))
+                if action == "image":
+                    try:
+                        evidence = buell_burn.capture_original(body.get("port"), body.get("mode"), result)
+                    except OSError as exc:
+                        result["write_review_unavailable"] = f"Could not save original image: {exc}"
+                    else:
+                        read_token = secrets.token_urlsafe(32)
+                        self._buell_read = (read_token, evidence)
+                        result.update({"read_token": read_token, "original_path": evidence.backup_path,
+                                       "original_verified": False,
+                                       "map_xdf": buell_burn.MAP_DEFINITIONS[evidence.version[:5]] + "_source_research.xdf"})
+                return 200, result
         finally:
             self._buell_lock.release()
 
+    def post_tools_harley_memory(self, body: dict) -> tuple[int, dict]:
+        """Explicit opt-in source-scoped Delphi memory research, local only."""
+        if body.get("confirm") is not True:
+            return 400, {"error": "Confirm the adapter, ECU, opaque auth download and synthetic-only warning."}
+        if not self._harley_memory_lock.acquire(blocking=False):
+            return 409, {"error": "A Harley memory operation is already running."}
+        try:
+            with self.ws._lock:
+                if self.ws.service is not None and self.ws.service.connected:
+                    return 409, {"error": "Disconnect the current ECU session first."}
+                action = body.get("action")
+                if action == "prepare-from-read":
+                    self._harley_memory_plan = None
+                    stored = self._harley_memory_read
+                    token = body.get("read_token")
+                    if (not stored or not isinstance(token, str)
+                            or not secrets.compare_digest(token, stored[0])):
+                        return 400, {"error": "A current tune or calibration read is required; read again."}
+                    plan = harley_memory.prepare_from_read(stored[1], body.get("edited_path"))
+                    plan_token = secrets.token_urlsafe(32)
+                    self._harley_memory_plan = (plan_token, time.monotonic() + 300, plan)
+                    return 200, {**harley_memory.describe(plan), "token": plan_token, "expires_seconds": 300}
+                if action == "prepare-write":
+                    self._harley_memory_plan = None
+                    if body.get("confirm_write") is not True:
+                        return 400, {"error": "Confirm the write, unknown checksum and manual engine/power checks."}
+                    plan = harley_memory.prepare(body.get("interface"), body.get("channel"),
+                        body.get("capture_path"), body.get("identity"),
+                        body.get("original_path"), body.get("edited_path"))
+                    token = secrets.token_urlsafe(32)
+                    self._harley_memory_plan = (token, time.monotonic() + 300, plan)
+                    return 200, {**harley_memory.describe(plan), "token": token, "expires_seconds": 300}
+                if action == "write":
+                    pending = self._harley_memory_plan
+                    self._harley_memory_plan = None
+                    supplied = body.get("token")
+                    if (body.get("confirm_write") is not True or not pending or not isinstance(supplied, str)
+                            or not secrets.compare_digest(supplied, pending[0]) or time.monotonic() > pending[1]):
+                        return 400, {"error": "Write plan is absent, expired, unconfirmed or already used."}
+                    self._harley_memory_read = None  # Never reuse after any authorized attempt.
+                    self._harley_memory_active.set()
+                    try:
+                        return 200, harley_memory.execute(pending[2])
+                    finally:
+                        self._harley_memory_active.clear()
+                self._harley_memory_plan = None
+                if action != "read":
+                    return 400, {"error": "Unknown Harley memory action."}
+                self._harley_memory_read = None
+                self._harley_memory_active.set()
+                try:
+                    result, evidence = harley_memory.read_with_evidence(body.get("interface"), body.get("channel"),
+                        body.get("capture_path"), body.get("region"), body.get("compare_repeat", False))
+                    if evidence is not None:
+                        read_token = secrets.token_urlsafe(32)
+                        self._harley_memory_read = (read_token, evidence)
+                        result["read_token"] = read_token
+                    return 200, result
+                finally:
+                    self._harley_memory_active.clear()
+        finally:
+            self._harley_memory_lock.release()
+
     def post_tools_rusefi_read(self, body: dict) -> tuple[int, dict]:
-        """Explicitly selected aftermarket rusEFI USB port; identify or read one range."""
+        """Explicit aftermarket rusEFI reads and separately reviewed calibration burn."""
         if body.get("confirm") is not True:
             return 400, {"error": "Confirm the rusEFI controller, port, wiring and limitations first."}
         action = body.get("action")
-        if action not in ("identify", "read", "outputs"):
-            return 400, {"error": "Select identify, page read or output read."}
+        if action not in ("identify", "read", "outputs", "read-calibration", "prepare-calibration", "write-calibration"):
+            return 400, {"error": "Select a rusEFI read or reviewed calibration action."}
         if not self._rusefi_lock.acquire(blocking=False):
             return 409, {"error": "A rusEFI operation is already running."}
         try:
             with self.ws._lock:
                 if self.ws.service is not None and self.ws.service.connected:
                     return 409, {"error": "Disconnect the current ECU session first."}
+                if action == "prepare-calibration":
+                    self._rusefi_plan = None
+                    stored, supplied = self._rusefi_read, body.get("read_token")
+                    if (body.get("confirm_tuning") is not True or not stored or not isinstance(supplied, str)
+                            or not secrets.compare_digest(supplied, stored[0])):
+                        return 400, {"error": "Confirm tuning risks and read the current calibration first."}
+                    plan = rusefi_tune.prepare(stored[1], body.get("edited_path"))
+                    token = secrets.token_urlsafe(32)
+                    self._rusefi_plan = (token, time.monotonic() + 300, plan)
+                    return 200, {**rusefi_tune.describe(plan), "token": token, "expires_seconds": 300}
+                if action == "write-calibration":
+                    if body.get("confirm_tuning") is not True or body.get("confirm_write") is not True:
+                        return 400, {"error": "Explicitly confirm the calibration write and burn."}
+                    pending = self._rusefi_plan
+                    self._rusefi_plan = None
+                    supplied = body.get("token")
+                    if (not pending or not isinstance(supplied, str) or not secrets.compare_digest(supplied, pending[0])
+                            or time.monotonic() > pending[1]):
+                        return 400, {"error": "Plan is absent, expired or already used; read and review again."}
+                    self._rusefi_read = None
+                    self._rusefi_active.set()
+                    try:
+                        return 200, rusefi_tune.execute(pending[2])
+                    finally:
+                        self._rusefi_active.clear()
+                self._rusefi_plan = None
+                self._rusefi_read = None
                 args = (body.get("port"), body.get("baud"))
+                if action == "read-calibration":
+                    self._rusefi_active.set()
+                    try:
+                        result, evidence = rusefi_tune.read_original(*args, body.get("ini"))
+                        if evidence is not None:
+                            token = secrets.token_urlsafe(32)
+                            self._rusefi_read = (token, evidence)
+                            result["read_token"] = token
+                        return 200, result
+                    finally:
+                        self._rusefi_active.clear()
                 if action == "identify":
                     return 200, rusefi_read.run(*args)
                 if body.get("signature") is None:
@@ -2357,7 +2565,9 @@ ROUTES_POST = {
     "/api/tools/canlog": "post_tools_canlog",
     "/api/tools/harley-hdlan-listen": "post_tools_harley_hdlan_listen",
     "/api/tools/jetdrive": "post_tools_jetdrive",
+    "/api/tools/bikestudio": "post_tools_bikestudio",
     "/api/tools/buell-ddfi": "post_tools_buell_ddfi",
+    "/api/tools/harley-memory": "post_tools_harley_memory",
     "/api/tools/rusefi-read": "post_tools_rusefi_read",
     "/api/tools/yamaha-mt03-listen": "post_tools_yamaha_mt03_listen",
     "/api/tools/klinelog": "post_tools_klinelog",

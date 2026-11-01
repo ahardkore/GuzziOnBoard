@@ -53,7 +53,7 @@ def _read_exact(connection, count: int, deadline: float) -> bytes:
     return bytes(data)
 
 
-def _exchange(connection, payload: bytes) -> bytes:
+def _exchange(connection, payload: bytes, *, expected_status: int = 0) -> bytes:
     wire = packet(payload)
     if connection.write(wire) != len(wire):
         raise TransportError('Incomplete serial write; session stopped.')
@@ -65,8 +65,8 @@ def _exchange(connection, payload: bytes) -> bytes:
     checksum = struct.unpack('>I', _read_exact(connection, 4, end))[0]
     if zlib.crc32(data) != checksum:
         raise TransportError('rusEFI response CRC mismatch; no data accepted.')
-    if data[0] != 0:
-        raise TransportError(f'rusEFI returned an error status 0x{data[0]:02X}.')
+    if data[0] != expected_status:
+        raise TransportError(f'rusEFI returned an unexpected status 0x{data[0]:02X}.')
     return data[1:]
 
 

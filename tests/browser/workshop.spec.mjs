@@ -776,6 +776,10 @@ test('hosted Buell reader refuses access to serial hardware', async ({ page }) =
   await page.locator('#buellConfirm').check();
   await page.locator('#buellIdentify').click();
   await expect(page.locator('#buellOut')).toContainText('hosted demo cannot access serial hardware');
+  await page.locator('#buellDdfi details > summary').click();
+  await page.locator('#buellWritePrepare').click();
+  await expect(page.locator('#buellWriteOut')).toContainText('Hosted demo cannot access serial hardware');
+  await expect(page.locator('#buellWriteExecute')).toBeDisabled();
 });
 
 test('hosted JetDrive capture cannot access the dyno network', async ({ page }) => {
@@ -803,4 +807,59 @@ test('offline OpenETV research calculates and rejects stale or invalid tables', 
   await page.locator('#etvEngine').fill('RPM,0,50\n1000,0,0');
   await page.locator('#etvCalculate').click();
   await expect(out).toContainText('no nonzero rows');
+});
+
+
+test('hosted Harley Delphi memory panel refuses hardware operations', async ({ page }) => {
+  await page.goto('/web/index.html');
+  await page.locator('[data-view="tools"]').click();
+  await page.locator('#hdMemChannel').fill('can0');
+  await page.locator('#hdMemCapture').fill('/tmp/capture.txt');
+  await page.locator('#hdMemConfirm').check();
+  await page.locator('#hdMemRead').click();
+  await expect(page.locator('#hdMemOut')).toContainText('hosted demo cannot access local CAN hardware');
+  await page.locator('#harleyMemory summary').click();
+  await expect(page.locator('#hdMemPrepare')).toBeDisabled();
+  await expect(page.locator('#hdMemWrite')).toBeDisabled();
+});
+
+test('hosted BikeStudio reference searches locally without enabling new ECU sessions', async ({page}) => {
+  const external = [];
+  page.on('request', request => { if (request.url().includes('bikestudio.io')) external.push(request.url()); });
+  await page.goto('/web/index.html');
+  await page.locator('#bikeStudioLookup > summary').click();
+  await page.locator('#bikeStudioQuery').fill('YZF-R15');
+  await page.locator('#bikeStudioYear').fill('2021');
+  await expect(page.locator('#bikeStudioResults')).toContainText('BDJ0');
+  await expect(page.locator('#bikeStudioResults')).toContainText('BK60');
+  await expect(page.locator('#bikeStudioResults')).not.toContainText('2PK0');
+  await expect(page.locator('#bikeStudioResults button')).toHaveCount(0);
+  await page.locator('#bikeStudioQuery').fill('CBR 250 R');
+  await page.locator('#bikeStudioYear').fill('2014');
+  await page.locator('#bikeStudioMarket').fill('Indonesia');
+  const cbr = page.locator('#bikeStudioResults .gate-card').filter({has:page.getByRole('heading', {name:'Honda CBR 250 R', exact:true})});
+  await expect(cbr).toContainText('38770-K33-N03');
+  await expect(cbr).toContainText('38770-K33-D22');
+  await expect(cbr).not.toContainText('38770-K33-T53');
+  expect(external).toEqual([]);
+});
+
+test('hosted BikeStudio live lookup does not call an external proxy', async ({page}) => {
+  const external = [];
+  page.on('request', req => { if (req.url().includes('/api/tools/bikestudio') || req.url().includes('bikestudio.io')) external.push(req.url()); });
+  await page.goto('/web/index.html');
+  await page.locator('#bikeStudioLookup > summary').click();
+  await page.locator('#bikeStudioOnline summary').click();
+  await page.locator('#bikeStudioOnlineLoad').click();
+  await expect(page.locator('#bikeStudioOnlineOut')).toContainText('hosted demo cannot fetch');
+  expect(external).toEqual([]);
+});
+
+test('hosted rusEFI calibration panel refuses local hardware access', async ({page}) => {
+  await page.goto('/web/index.html');
+  await page.locator('[data-view="tools"]').click();
+  await page.locator('#rusefiTunePanel > summary').click();
+  await page.locator('#rusefiTuneRead').click();
+  await expect(page.locator('#rusefiTuneOut')).toContainText('hosted demo cannot access serial hardware');
+  await expect(page.locator('#rusefiTuneWrite')).toBeDisabled();
 });

@@ -564,6 +564,11 @@ class Workstation:
                     raise TransportUnavailable("Honda K-Line requires the exact Honda CBR600RR 2005 selection")
                 if self.selection.transport_kind != "kline" or mode != "read_only":
                     raise TransportUnavailable("Honda K-Line supports physical K-Line and read-only mode only")
+            if profile.session.get("protocol") == "honda-pgmfi-flash-research":
+                if self.selection.entry is not None:
+                    raise TransportUnavailable("Honda flash research requires an explicit ECU-only selection")
+                if self.selection.transport_kind != "kline" or mode != "read_only":
+                    raise TransportUnavailable("Honda flash research supports physical K-Line and read-only mode only")
             if profile.session.get("protocol") == "honda-pgmfi-research":
                 if (self.selection.entry is None or self.selection.make.casefold() != "honda"
                         or self.selection.entry.ecu != profile.id):

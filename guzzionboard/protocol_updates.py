@@ -66,9 +66,6 @@ from pathlib import Path
 from . import __version__
 from .confirmations import (
     ConfirmationError,
-    derive_claims,
-    parse_capture,
-    validate_bundle,
     verify_confirmation,
 )
 from .signing import (

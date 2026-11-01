@@ -7,8 +7,6 @@ with synthetic frames only. Frames may vary between ECUs and motorcycles.
 """
 from __future__ import annotations
 
-from .canlog import CanFrame
-
 # PGN and source address, without CAN priority. Extended J1939 only.
 PGN_SOURCE = {(61444, 0), (65262, 0), (65265, 11), (65276, 0), (65215, 11)}
 MASK = 0x03FFFFFF

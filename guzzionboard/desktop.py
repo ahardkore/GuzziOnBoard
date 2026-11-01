@@ -42,7 +42,7 @@ import threading
 import time
 import traceback
 import webbrowser
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -379,6 +379,14 @@ class ExportDesk:
             Path(directory).expanduser().absolute() if directory
             else resources.default_export_dir()
         )
+        self.initial_directory = self.directory
+
+    def set_directory(self, directory: Path | str) -> Path:
+        raw = str(directory or "").strip()
+        if not raw or "\x00" in raw:
+            raise ValueError("export directory must be a non-empty path")
+        self.directory = Path(raw).expanduser().absolute()
+        return self.directory
 
     def write_text(self, name: str, text: str) -> dict:
         path = resources.unique_path(self.directory, name)
@@ -481,6 +489,10 @@ class DesktopBridge:
         }
 
     # -- files -----------------------------------------------------------
+    def set_export_dir(self, directory: Path | str) -> dict:
+        updated = self.desk.set_directory(directory)
+        return {"ok": True, "exports": str(updated)}
+
     def save_text(self, name: str, content: str) -> dict:
         return self.desk.write_text(name, content)
 
@@ -652,6 +664,10 @@ class DesktopApp:
         self._stopped = False
         self._closing_anyway = False
         self._log_handle = None
+        self._orig_stdout = None
+        self._orig_stderr = None
+        self._tee_stdout = None
+        self._tee_stderr = None
         #: Set by the window watchdog when the window never appeared; a
         #: support question can be answered from the log alone.
         self.window_watchdog_fired = False
@@ -677,8 +693,12 @@ class DesktopApp:
             )
         except OSError:
             return
-        sys.stdout = _Tee(sys.stdout, self._log_handle)
-        sys.stderr = _Tee(sys.stderr, self._log_handle)
+        self._orig_stdout = sys.stdout
+        self._orig_stderr = sys.stderr
+        self._tee_stdout = _Tee(sys.stdout, self._log_handle)
+        self._tee_stderr = _Tee(sys.stderr, self._log_handle)
+        sys.stdout = self._tee_stdout
+        sys.stderr = self._tee_stderr
         print(
             f"\n--- {resources.APP_NAME} {self.version} starting "
             f"({sys.platform}, {self.backend.kind}:{self.backend.renderer or 'n/a'}"
@@ -1039,6 +1059,18 @@ class DesktopApp:
             self._server_thread.join(timeout=5)
             self._server_thread = None
         print("GuzziOnBoard stopped.")
+        if self._tee_stdout is not None and sys.stdout is self._tee_stdout:
+            sys.stdout = self._orig_stdout
+        if self._tee_stderr is not None and sys.stderr is self._tee_stderr:
+            sys.stderr = self._orig_stderr
+        self._tee_stdout = None
+        self._tee_stderr = None
+        if self._log_handle is not None:
+            try:
+                self._log_handle.close()
+            except OSError:
+                pass
+            self._log_handle = None
 
     # -- helpers ----------------------------------------------------------
     @staticmethod

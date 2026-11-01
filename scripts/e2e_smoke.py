@@ -52,7 +52,7 @@ def api(method: str, path: str, body: dict | None = None, timeout: int = 90):
         raise SystemExit(
             f"cannot reach {BASE} ({e}); start the server first: "
             "python3 run_server.py --port 8099"
-        )
+        ) from e
 
 
 def check(name: str, ok: bool, detail: str = "") -> None:

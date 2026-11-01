@@ -105,7 +105,7 @@ def _run_worker(path: Path, request: dict) -> dict:
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         detail = result.stderr.decode("utf-8", "replace")[:300]
         raise ChecksumUnavailable(
-            f"isolated checksum worker returned invalid output"
+            "isolated checksum worker returned invalid output"
             + (f": {detail}" if detail else "")
         ) from exc
     if result.returncode != 0 or not response.get("ok"):

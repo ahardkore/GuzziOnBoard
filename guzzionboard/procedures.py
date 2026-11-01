@@ -496,8 +496,8 @@ class ProcedureRun:
         else:
             try:
                 parsed = float(value)
-            except (TypeError, ValueError):
-                raise ProcedureError(f"{step.key}: a number is needed")
+            except (TypeError, ValueError) as exc:
+                raise ProcedureError(f"{step.key}: a number is needed") from exc
             shown = f"{parsed} {step.input_unit}".strip()
         self.context.inputs[step.key] = parsed
         return {"step": step.key, "kind": "input", "title": step.title,

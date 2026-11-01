@@ -2207,3 +2207,50 @@ test('desktop equipment guide opens locally and retains affiliate disclosure and
   await expect.poll(() => page.evaluate(() => window.openedEquipmentUrl)).toContain('tag=hardkore26-20');
   expect(page.failures).toEqual([]);
 });
+
+test('desktop File menu, Save/Load presets, and ZT-2 DIF export write through desktop host', async ({ page }) => {
+  const customPresetDir = join(process.cwd(), '.desktop-test-data', 'preset-reports');
+  mkdirSync(customPresetDir, { recursive: true });
+
+  await page.goto('/');
+  await expect(page.locator('body')).toHaveAttribute('data-desktop', '1');
+
+  // Desktop-only File menu entries are visible
+  await page.locator('#fileMenuBtn').click();
+  await expect(page.locator('#fileOpenExports')).toBeVisible();
+  await expect(page.locator('#fileOpenData')).toBeVisible();
+  await page.locator('#fileOpenPrefs').click();
+  await expect(page.locator('#prefsModal')).toBeVisible();
+
+  // Add custom Save Location Preset and save
+  await page.locator('[data-prefs-tab="save-presets"]').click();
+  await page.locator('#prefSaveNameInput').fill('Desktop Preset Reports');
+  await page.locator('#prefSavePathInput').fill(customPresetDir);
+  await page.locator('#prefAddSavePresetBtn').click();
+  await page.locator('#prefsSaveBtn').click();
+  await expect(page.locator('#prefsModal')).toBeHidden();
+
+  // File -> Save Service Report to Save Preset writes directly into customPresetDir
+  await page.locator('#fileMenuBtn').click();
+  await page.locator('#fileSaveToPreset').click();
+  await expect.poll(() => (existsSync(customPresetDir) ? readdirSync(customPresetDir).some((n) => /^guzzionboard-report-.*\.txt$/.test(n)) : false)).toBe(true);
+
+  // Reset preferences so EXPORTS remains the active desktop export folder
+  await page.locator('#menubarPresetSummary').click();
+  await page.locator('[data-prefs-tab="workstation"]').click();
+  await page.locator('#prefResetBtn').click();
+  await expect.poll(() => page.evaluate(() => window.gobDesktop.exports)).toBe(EXPORTS);
+  await page.locator('#prefsCloseX').click();
+
+  // Verify ZT-2 DIF download routes through gobDesktop.saveText into EXPORTS
+  await page.locator('[data-view="tools"]').click();
+  await page.evaluate(() => {
+    state.z2dif = 'TABLE\n0,1\n"0,0"\n1,14.7\nEOD\n';
+    document.querySelector('#z2DownloadBtn').disabled = false;
+  });
+  await page.locator('#z2DownloadBtn').click();
+  const difPath = await waitForExport(/^zt2-converted.*\.dif$/);
+  expect(readFileSync(difPath, 'utf-8')).toContain('14.7');
+  expect(page.failures).toEqual([]);
+});
+

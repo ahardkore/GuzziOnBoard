@@ -251,7 +251,7 @@ def _run_checks(result: Result, exports: Path, host: str) -> None:
             f"{ecu.get('family') or 'nothing selected'} over {selected.get('transport')}",
         )
         status, body = _post(port, "/api/connect", {"mode": "simulator"}, token=token)
-        connected = json.loads(body or b"{}")
+        json.loads(body or b"{}")
         result.record(status == 200, "connect to the simulator", f"HTTP {status}")
         status, body = _get(port, "/api/identify", token=token)
         identity = json.loads(body or b"{}")

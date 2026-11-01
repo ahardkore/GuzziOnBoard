@@ -194,9 +194,9 @@ def load_plugins(directory: str | Path = PLUGIN_DIR) -> list[Provider]:
         try:
             spec.loader.exec_module(module)
             provider = Provider(
-                ecu_id=getattr(module, "ECU_ID"),
+                ecu_id=module.ECU_ID,
                 name=getattr(module, "NAME", path.stem),
-                fn=getattr(module, "key"),
+                fn=module.key,
                 verified=bool(getattr(module, "VERIFIED", False)),
                 note=getattr(module, "NOTE", ""),
                 source=str(path),

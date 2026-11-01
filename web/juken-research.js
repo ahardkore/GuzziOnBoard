@@ -78,9 +78,14 @@ jukenSave.onclick = () => {
   if (!table) return;
   // Linear order only: the source's TPS/RPM orientation is unconfirmed.
   const csv = 'linear_index,raw_value\n' + table.values.map((value, index) => `${index},${value}`).join('\n') + '\n';
+  const filename = `juken5-${table.name}-raw-research.csv`;
+  if (typeof download === 'function') {
+    download(filename, csv, 'text/csv');
+    return;
+  }
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
   const link = document.createElement('a');
-  link.href = url; link.download = `juken5-${table.name}-raw-research.csv`;
+  link.href = url; link.download = filename;
   document.body.appendChild(link); link.click(); link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };

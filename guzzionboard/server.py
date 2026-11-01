@@ -89,6 +89,7 @@ from .tuning import (
 )
 from .safety import SafetyViolation, TokenError
 from .security import SecurityUnavailable, describe_all, load_plugins
+from . import preferences as preferences_mod
 from . import procedures
 from . import replay
 from . import sessiondiff
@@ -539,6 +540,44 @@ class Api:
     def post_desktop_quit(self, body: dict) -> tuple[int, dict]:
         desktop = self._require_desktop("closing the app")
         return 200, desktop.quit()
+
+    # -- workstation preferences ------------------------------------------
+    def _default_export_dir(self):
+        desk = getattr(self.desktop, "desk", None)
+        return getattr(desk, "initial_directory", None) or getattr(desk, "directory", None)
+
+    def get_preferences(self, query: dict) -> tuple[int, dict]:
+        return 200, preferences_mod.load(self._default_export_dir())
+
+    def get_preferences_browse(self, query: dict) -> tuple[int, dict]:
+        scope = str((query.get("scope") or ["load"])[0])
+        preset_id = (query.get("preset_id") or [None])[0]
+        return 200, preferences_mod.browse_preset(
+            scope,
+            str(preset_id) if preset_id else None,
+            default_export_dir=self._default_export_dir(),
+        )
+
+    def post_preferences(self, body: dict) -> tuple[int, dict]:
+        updated = preferences_mod.update(body, default_export_dir=self._default_export_dir())
+        if any(k in body for k in ("active_save_preset", "save_presets", "reset")):
+            setter = getattr(self.desktop, "set_export_dir", None)
+            if callable(setter) and updated.get("active_save_dir"):
+                setter(updated["active_save_dir"])
+        return 200, updated
+
+    def post_preferences_save_file(self, body: dict) -> tuple[int, dict]:
+        name = body.get("name")
+        content = body.get("content")
+        preset_id = body.get("preset_id")
+        if preset_id is not None and not isinstance(preset_id, str):
+            raise ValueError("'preset_id' must be a string")
+        return 200, preferences_mod.save_to_preset(
+            name,
+            content,
+            preset_id=preset_id,
+            default_export_dir=self._default_export_dir(),
+        )
 
     # -- diagnostics ------------------------------------------------------
     def get_identify(self, query: dict) -> tuple[int, dict]:
@@ -2523,6 +2562,8 @@ ROUTES_GET = {
     "/api/sessions/export": "get_export",
     "/api/desktop": "get_desktop",
     "/api/desktop/ping": "get_desktop_ping",
+    "/api/preferences": "get_preferences",
+    "/api/preferences/browse": "get_preferences_browse",
 }
 
 ROUTES_POST = {
@@ -2590,6 +2631,8 @@ ROUTES_POST = {
     "/api/desktop/open-external": "post_desktop_open_external",
     "/api/desktop/open-folder": "post_desktop_open_folder",
     "/api/desktop/quit": "post_desktop_quit",
+    "/api/preferences": "post_preferences",
+    "/api/preferences/save-file": "post_preferences_save_file",
 }
 
 

@@ -41,3 +41,12 @@ class HondaPgmfiSession(HondaCBR600RRSession):
 
     def tester_present(self):
         return self.request(b'\x71\x00')
+
+
+class HondaPgmfiFlashResearchSession(HondaPgmfiSession):
+    """Explicit ECU-only flash research session; no sensor polling or writes."""
+
+    def request(self, payload, *, timeout=None):
+        if bytes(payload) != b'\x71\x00':
+            raise PermissionError('Honda flash research session permits only the identity table')
+        return super().request(payload, timeout=timeout)

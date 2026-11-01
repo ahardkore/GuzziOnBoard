@@ -1,4 +1,4 @@
-# Harley Delphi offline calibration-region workspace
+# Harley Delphi tuning research
 
 ## Source and fitment
 
@@ -16,7 +16,7 @@ of the mapping with every Harley model, ECU, or software revision.
 The source also describes CAN/ISO-TP read and write tooling. Its wiring
 instructions differ between the ECU Dump and ECU Tool subprojects, and the
 sample dump metadata leaves part number and serial blank. It uses a
-vehicle-specific authentication payload; its SHA-256 verification is a file
+capture-derived authentication payload of unknown cross-ECU compatibility; its SHA-256 verification is a file
 integrity check, not a documented calibration checksum algorithm. Source code
 has an MIT text **and** a personal/educational-only disclaimer; no code or
 firmware was copied from it. Another source,
@@ -59,7 +59,7 @@ order or fitment are correct. No Harley XDF or tune values are bundled.
 1. Put your XDF in `~/.guzzionboard/xdfs/` and click **Reload**. Clear **Only
    definitions for this ECU** if it does not appear. Supply the absolute path to
    a raw 16 KiB tune or 160 KiB calibration. Obtain these separately: the
-   application does not yet read Harley ECU memory. The XDF must describe the
+   experimental live memory panel can obtain a source-scoped read. The XDF must describe the
    selected file and be uncatalogued; other catalogued families and definitions
    marked research-only cannot use this export.
 2. Check the displayed XDF address base. It is subtracted from XDF addresses to
@@ -88,7 +88,7 @@ which ECU or motorcycle they belong to.
 This is **synthetic-tested**, not tested on a Harley. The exported copy is not
 flash-ready: no checksum or signature is checked or repaired, no matching is
 certified, and it provides no ECU security, memory read, write, recovery or tuning
-verification. The scope is the published layout, not every Harley. It does not
+verification. This export is separate from the experimental live memory panel. The scope is the published layout, not every Harley. It does not
 relax the separate programming gates or override a catalogued XDF's restrictions.
 
 ## Additional diagnostic capture profiles
@@ -236,10 +236,10 @@ capture. Their units and semantics are unknown, so the app shows only the raw
 bytes and their big-endian integer representation. Each has the captured length
 checked; no sensor interpretation or safety state is inferred. Other arbitrary
 DIDs, security, session changes, resets, fault clear, memory operations and
-writes are refused. The source's memory-read path actually requires an opaque,
+writes are refused by this identity session. The separate Tools memory panel uses an opaque,
 vehicle-specific transfer payload sent using **RequestDownload (`34`) and
 TransferData (`36`)**, not merely a passive read. We do not treat that as
-read-only, nor replay a proprietary payload or claim it works across Harleys.
+read-only and do not claim a payload works across Harleys. The separate opt-in Tools panel sends a user-supplied capture-derived payload.
 The published sample does not establish target identity, firmware compatibility
 or checksum/recovery requirements for a safe flash. This integration has
 synthetic tests only and has not been tested on physical hardware.
@@ -269,13 +269,14 @@ software, checksum, tune applicability, or flash readiness. Tests use synthetic
 headers; the source reports dyno work but does not establish GuzziOnBoard's
 integration or any universal Harley fitment.
 
-## Buell DDFI live read research
+## Buell DDFI live EEPROM research
 
-An explicit Buell TTL-serial tool can identify compatible DDFI ECMs, request a
-runtime snapshot and read an operator-selected EEPROM page range. The tool is
-synthetic-tested only; it is not stock Harley J1850, a full backup, or tuning.
-See [BUELL_DDFI_RESEARCH.md](BUELL_DDFI_RESEARCH.md) for source scope, adapter,
-permissions, and the BUEIA/BUE1D definition-title discrepancy.
+A separate Buell TTL-serial tool can identify compatible DDFI ECMs, read
+source-described EEPROM images, edit fuel/spark maps and explicitly write the
+changed normal-page map/axis bytes. It is **synthetic-tested only**, not stock
+Harley J1850 or full firmware flashing. See
+[BUELL_DDFI_RESEARCH.md](BUELL_DDFI_RESEARCH.md) for limitations, pre-write
+backup, readback, potential partial writes, adapter and permissions.
 
 ## DynoAI and Power Vision PVV
 
@@ -290,7 +291,8 @@ See [DYNOAI_AND_UPLOADS.md](DYNOAI_AND_UPLOADS.md).
 The rusEFI source includes a Harley engine configuration for its **own**
 aftermarket controllers, not a stock Delphi flash solution. The desktop has an
 explicit, synthetic-tested rusEFI signature / bounded page and live output read
-in Tools; it does not write or burn. The Power Vision article concerns the
+in Tools, plus a separately confirmed experimental page-zero calibration writer
+for supported matching INIs. It is not a stock Harley ECU writer. The Power Vision article concerns the
 handheld tuner's USB file protocol, not the motorcycle ECU. See
 [RUSEFI_AND_POWERVISION_RESEARCH.md](RUSEFI_AND_POWERVISION_RESEARCH.md) for
 usage, testing and protocol limitations.
@@ -320,5 +322,87 @@ not infer Harley flashing support from the non-Harley MT05 protocol. The
 source-described HarleyECUTool CAN sequence is narrower: it requires an
 ECU-specific opaque authentication payload and the public material does not
 establish a reusable calibration checksum or a complete, supported recovery
-path. These facts leave physical ECU reading and writing unimplemented, not
-merely hidden behind a confidence setting.
+path. The separate experimental live panel now implements a source-scoped attempt, not universal support; see below.
+
+
+## Experimental live Delphi CAN memory panel
+
+**Tools → Harley Delphi CAN · experimental live memory** is an opt-in local
+path for the narrower lawflo Delphi CAN sequence; this GuzziOnBoard
+implementation has synthetic tests only, **no physical adapter or motorcycle
+test**. It is separate from the Garage identity profile and the ordinary
+programming workflow. It does not change profile support flags or publish a
+read as independently verified evidence. Other Harley protocols, years,
+ECUs and adapters are not automatically covered.
+
+1. Install the hardware extra, configure a 500 kbit/s SocketCAN interface,
+   or explicitly choose an SLCAN serial device or PCAN USB channel (which
+   requires the PCAN Basic driver). Disconnect other diagnostic or
+   tuning sessions. Confirm compatible ECU, diagnostic connector and wiring,
+   ignition on, engine stopped and stable power. The source projects have
+   conflicting wiring notes; verify against the actual motorcycle.
+2. Provide an **authorized** local capture text file from the source's CAN
+   capture format, or a raw **2006-byte** payload. A capture must contain a
+   complete, sequential `36 01` transfer after the address-zero download and
+   its ECU acknowledgement; differing accepted payloads in one file are
+   rejected as ambiguous. The app computes the 2-byte seed key itself; users
+   do not need to generate it locally. No capture, payload or key is bundled.
+   A payload may be bound to a particular ECU, VIN or license; source tests do
+   not establish universality. Using any third-party material requires rights.
+3. Select a region and read. The application sends `10 03` on functional
+   `0x7DF`, security access and an opaque **download to address zero**. That
+   authentication transfer may itself change ECU state even during a read.
+   Afterward it retrieves source-defined 256-byte blocks, checks the response
+   length, format and echoed address, and can repeat the read. The two trailing
+   response bytes have unknown semantics and are not checked. No partial read
+   is returned or padded with `FF` on error. The 16 KiB tune is the
+   source-described calibration slice at `0x7F4000`; a calibration read is
+   160 KiB from `0x7D8000`. Two additional source-defined configuration regions
+   are also available. A successful **single** tune or calibration read now
+   automatically saves its 16 KiB tune (or source-described tune slice) as a
+   local, single-read research original and opens the write-review panel. If
+   saving fails, the read can still be saved manually but write review is not
+   enabled. Configuration reads do not enable tune review. The original is not
+   independently verified and is not promoted to general programming evidence.
+4. Choose a separately edited 16 KiB target. The Maps research export accepts
+   an XDF supplied by the user; no matching Harley definition is bundled. The
+   server uses its own immutable read snapshot, capture bytes and identity,
+   not a browser-supplied original or identity, and displays the changes and
+   hashes. The read snapshot remains in memory until another read, a write
+   attempt or app restart; a prepared write plan expires after five minutes.
+   Confirm engine stopped, correct ECU, sustained power and that the ECU and
+   tune have not changed since the read **manually**; there is no automatic
+   RPM check. After explicit final confirmation the app checks its saved
+   original, reconnects and compares three raw identity DIDs. **It does not
+   reread the tune before writing.** DIDs may not uniquely identify the ECU,
+   so an ECU swap or tune change since the original read may go undetected.
+   It sends the source-described 16 KiB download to `0x4000`, transfers 64
+   blocks with acknowledgements, then reauthenticates and reads back. A failure
+   after download is attempted is an uncertain ECU state, not automatically
+   retried or reset. The legacy local API path using an independently supplied
+   original retains its two pre-write reads; it is not the desktop's one-read
+   workflow.
+
+**Limitations:** No ECU checksum/signature algorithm, checksum correction,
+recovery mechanism or comprehensive fitment verification is established.
+The entire tune is written, including unchanged bytes. A readback match does
+not validate a checksum, trailer, data semantics or ability to start. Never
+interpret an interrupted transfer as a rollback. Opaque authentication may
+change state even if a tune download has not yet been sent. Backups and raw
+identity DIDs can contain sensitive data; keep them private. The source writer
+does not send a transfer-exit command, and this implementation does not invent
+one. Source-reported behavior is not hardware validation of GuzziOnBoard.
+
+### Single-read tune handoff to Maps
+
+A successful tune or calibration read saves the 16 KiB tune slice and enables
+**Open saved tune in Maps**. The operator must choose and render a matching
+user-supplied XDF; raw DIDs do not establish a definition. Existing staged map
+edits are not discarded. After editing, the Delphi research-copy export fills
+its path back into the current Harley write-review panel only if the original
+path/hash and read are still current. A concurrently changed edited-path field
+is preserved. The exported image and manifest remain research-only; no checksum
+is repaired and no write occurs during handoff. The separate write review and
+explicit confirmation still apply, including the single-read, identity,
+checksum, power, uncertain-state and recovery limitations above. The browser
+workflow is synthetic-tested with a mocked ECU API, not a physical Harley.

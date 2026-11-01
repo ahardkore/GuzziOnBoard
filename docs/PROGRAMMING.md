@@ -10,6 +10,7 @@ reason is named.
 | Operation | State |
 |---|---|
 | Read flash, IAW 5AM | Source-derived physical partial read attempt, with four blocks filled `FF` rather than read. Requires a SecurityAccess key provider. Synthetic integration tests only; not a verified backup. |
+| Read flash, source-listed Honda IDs | Separate ECU-only experimental K-Line read for 43 exact source-reported ECM IDs (and a narrower four-ID CB500F option). Synthetic tests only; security can be rejected or cause lockout, and any output is a research file, not a verified backup. [Details](EXTERNAL_MOTORCYCLE_RESEARCH.md#separate-honda-source-id-image-read-attempt). |
 | Read flash, 7SM / 15M / 15RC / MIU G3 | Generic memory framework exists, but these family profiles expose no read capability because session, security, and/or region geometry are incomplete. |
 | Read flash, P8 / 16M | Not exposed: no validated in-circuit read sequence is available here. P8 maps commonly live on a socketed EPROM that can be preserved with a programmer. |
 | Read EEPROM, non-5AM families | Generic framework only; no incomplete family profile declares a hardware capability. |
@@ -367,3 +368,41 @@ Pull the headlight fuse or put the battery on a tender.
   per-family coverage, the HW1xx/HW3xx warning, the 1 ms latency requirement,
   the `.ddg` jump-table test, TesterCode `WLoad1039T`.
 - ISO 14230-2 and ISO 14230-3 for framing and service semantics.
+
+## What currently prevents a first read?
+
+A diagnostic connection, an ECU memory reader, and an ECU writer are three
+separate capabilities. The central safety decision allows `Risk.READ` without
+a programming acknowledgement or previous backup. `ProgrammingService.read_region`
+then needs an implemented reader and known region, and normally needs identity
+and any required ECU security exchange; it does not require a verified backup.
+The existing Harley Delphi CAN and J1850 research profiles expose diagnostics,
+but neither profile has a calibration/memory reader in the ordinary ProgrammingService workflow.
+Their protocol sessions accept only a limited set of diagnostic requests. The
+read button is disabled for that missing implementation, not because a previous
+backup or write opt-in is required. Removing the flag alone would not supply a
+reader, a security exchange, or memory geometry. A separate opt-in Tools panel now attempts the source-scoped Delphi CAN read/write sequence, with a user-provided authentication payload and substantial limitations; see `HARLEY_TUNING.md`.
+
+The write path has additional real restrictions: it requires an implemented and
+profile-enabled writer as well as an armed gate, compatible image, verified
+backup and other checks. Neither Harley writer nor physical 5AM writing is
+currently enabled in this ordinary programming workflow; the separate Delphi
+CAN Tools writer is experimental and does not use this gate. One source-scoped tune/calibration read can now automatically supply its research original and open write review; it does not prove completeness and is not freshly reread before that separately confirmed write. See `HARLEY_TUNING.md`. The physical 5AM read is an experimental **partial** read,
+not a verified full backup or proof of full tuning. The simulator's generic
+`0x23` direct-read model is not the physical 5AM banked reader; the direct
+helper now refuses that variant on physical 5AM rather than sending the wrong
+command.
+
+Automatic read reporting does not supply a protocol: it is opt-in/configured
+and currently accepts only a qualifying complete read using an already declared
+reader and exact region geometry, not experimental/partial output. One report
+can promote read-level metadata, but it does not create a reader or enable
+writing; the hosted service's `read_supported` requirement therefore cannot
+bootstrap an undeclared reader. This is a real limitation of the present
+workflow, not evidence that all ECUs have already been unlocked.
+
+The write-readiness decision also reports the declared writer and writable
+region alongside safety preconditions, and does not mint a confirmation token
+if either is unavailable. Previously the standalone gate could report all
+policy checks satisfied even when the separate writer flag still blocked the
+operation; the final write path nevertheless checked the flag.

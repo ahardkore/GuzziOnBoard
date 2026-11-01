@@ -1455,7 +1455,7 @@
     "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CBR500R_MGZ_2013-2016/38770-MGZ.xdf",
     "brand": "honda",
     "family": "HONDA-RESEARCH",
-    "label": "Honda CBR500R MGZ 2013-2016 / 38770-MGZ (research only) · default endian conflicts with A03",
+    "label": "Honda CBR500R MGZ 2013-2016 / 38770-MGZ (research only) \u00b7 default endian conflicts with A03",
     "xdf_filename": "38770-MGZ.xdf",
     "vendor_path": "honda/38770-MGZ.xdf",
     "used_by": [
@@ -1575,14 +1575,254 @@
     "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
     "brand": "honda",
     "family": "CB500-MGZ-A03",
-    "label": "Honda CB500F / CBR500R 2013–2016 MGZ-A03 (scoped offline adaptation)",
+    "label": "Honda CB500F / CBR500R 2013\u20132016 MGZ-A03 (scoped offline adaptation)",
     "xdf_filename": "CB500_MGZ_A03_gob.xdf",
     "vendor_path": "honda/CB500_MGZ_A03_gob.xdf",
     "used_by": [
       {
         "brand": "honda",
-        "label": "CB500F / CBR500R 2013–2016, 38770-MGZ-A03 only"
+        "label": "CB500F / CBR500R 2013\u20132016, 38770-MGZ-A03 only"
       }
     ]
+  },
+  {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "brand": "buell",
+    "family": "BUEIB",
+    "label": "BUEIB / BUEIC / B2RIB EEPROM four-map source adaptation (research only)",
+    "xdf_filename": "BUEIB_source_research.xdf",
+    "vendor_path": "buell/BUEIB_source_research.xdf",
+    "used_by": [
+      {
+        "brand": "buell",
+        "label": "BUEIB / BUEIC / B2RIB ECM IDs; verify independently"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "brand": "buell",
+    "family": "BUEGC",
+    "label": "BUEGC EEPROM four-map source adaptation (research only)",
+    "xdf_filename": "BUEGC_source_research.xdf",
+    "vendor_path": "buell/BUEGC_source_research.xdf",
+    "used_by": [
+      {
+        "brand": "buell",
+        "label": "BUEGC ECM IDs; verify independently"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "brand": "buell",
+    "family": "BUEIA",
+    "label": "BUEIA EEPROM four-map source adaptation (research only)",
+    "xdf_filename": "BUEIA_source_research.xdf",
+    "vendor_path": "buell/BUEIA_source_research.xdf",
+    "used_by": [
+      {
+        "brand": "buell",
+        "label": "BUEIA ECM IDs; verify independently"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "brand": "buell",
+    "family": "BUEJA",
+    "label": "BUEJA / BUEKA EEPROM four-map source adaptation (research only)",
+    "xdf_filename": "BUEJA_source_research.xdf",
+    "vendor_path": "buell/BUEJA_source_research.xdf",
+    "used_by": [
+      {
+        "brand": "buell",
+        "label": "BUEJA / BUEKA ECM IDs; verify independently"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "brand": "buell",
+    "family": "BUECB",
+    "label": "BUECB EEPROM four-map source adaptation (research only)",
+    "xdf_filename": "BUECB_source_research.xdf",
+    "vendor_path": "buell/BUECB_source_research.xdf",
+    "used_by": [
+      {
+        "brand": "buell",
+        "label": "BUECB ECM IDs; verify independently"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "brand": "buell",
+    "family": "BUEGB",
+    "label": "BUEGB EEPROM four-map source adaptation (research only)",
+    "xdf_filename": "BUEGB_source_research.xdf",
+    "vendor_path": "buell/BUEGB_source_research.xdf",
+    "used_by": [
+      {
+        "brand": "buell",
+        "label": "BUEGB ECM IDs; verify independently"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "brand": "buell",
+    "family": "B3R1D",
+    "label": "B3R1D / BUE1D EEPROM four-map source adaptation (research only)",
+    "xdf_filename": "B3R1D_source_research.xdf",
+    "vendor_path": "buell/B3R1D_source_research.xdf",
+    "used_by": [
+      {
+        "brand": "buell",
+        "label": "B3R1D / BUE1D ECM IDs; verify independently"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "brand": "buell",
+    "family": "B3R2D",
+    "label": "B3R2D / BUE2D EEPROM four-map source adaptation (research only)",
+    "xdf_filename": "B3R2D_source_research.xdf",
+    "vendor_path": "buell/B3R2D_source_research.xdf",
+    "used_by": [
+      {
+        "brand": "buell",
+        "label": "B3R2D / BUE2D ECM IDs; verify independently"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "brand": "buell",
+    "family": "B3R3D",
+    "label": "B3R3D / BUE3D EEPROM four-map source adaptation (research only)",
+    "xdf_filename": "B3R3D_source_research.xdf",
+    "vendor_path": "buell/B3R3D_source_research.xdf",
+    "used_by": [
+      {
+        "brand": "buell",
+        "label": "B3R3D / BUE3D ECM IDs; verify independently"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "brand": "buell",
+    "family": "BUEOD",
+    "label": "BUEOD EEPROM four-map source adaptation (research only)",
+    "xdf_filename": "BUEOD_source_research.xdf",
+    "vendor_path": "buell/BUEOD_source_research.xdf",
+    "used_by": [
+      {
+        "brand": "buell",
+        "label": "BUEOD ECM IDs; verify independently"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "brand": "buell",
+    "family": "BUEWD",
+    "label": "BUEWD EEPROM four-map source adaptation (research only)",
+    "xdf_filename": "BUEWD_source_research.xdf",
+    "vendor_path": "buell/BUEWD_source_research.xdf",
+    "used_by": [
+      {
+        "brand": "buell",
+        "label": "BUEWD ECM IDs; verify independently"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "brand": "buell",
+    "family": "BUEYD",
+    "label": "BUEYD EEPROM four-map source adaptation (research only)",
+    "xdf_filename": "BUEYD_source_research.xdf",
+    "vendor_path": "buell/BUEYD_source_research.xdf",
+    "used_by": [
+      {
+        "brand": "buell",
+        "label": "BUEYD ECM IDs; verify independently"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "brand": "buell",
+    "family": "BUEZD",
+    "label": "BUEZD EEPROM four-map source adaptation (research only)",
+    "xdf_filename": "BUEZD_source_research.xdf",
+    "vendor_path": "buell/BUEZD_source_research.xdf",
+    "used_by": [
+      {
+        "brand": "buell",
+        "label": "BUEZD ECM IDs; verify independently"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/AlexKovalevich/HondaECU/blob/db0a6cb8e516aac2406a231380c93e258c722b7c/xdfs/VFR1200F_38770-MGE-773/HONDA_VFR1200F_38770-MGE-773.xdf",
+    "brand": "honda",
+    "family": "Honda Keihin VFR MGE-773",
+    "label": "Honda VFR1200F 2010 NA MGE-773 (research only)",
+    "xdf_filename": "HONDA_VFR1200F_MGE_773.xdf",
+    "vendor_path": "honda/HONDA_VFR1200F_MGE_773.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "Honda VFR1200F 2010 NA 38770-MGE-773 (research only)"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/AlexKovalevich/HondaECU/blob/db0a6cb8e516aac2406a231380c93e258c722b7c/xdfs/VFR1200F_38770-MGE-773/HONDA_VFR1200F_38770-MGE-701.xdf",
+    "brand": "honda",
+    "family": "Honda Keihin VFR MGE-701",
+    "label": "Honda VFR1200F MGE-701 filename (title says MGE-773; verify before use) (research only)",
+    "xdf_filename": "HONDA_VFR1200F_MGE_701.xdf",
+    "vendor_path": "honda/HONDA_VFR1200F_MGE_701.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "Honda VFR1200F MGE-701 filename (title says MGE-773; verify before use) (research only)"
+      }
+    ],
+    "research_only": true
+  },
+  {
+    "source_url": "https://github.com/AlexKovalevich/HondaECU/blob/db0a6cb8e516aac2406a231380c93e258c722b7c/xdfs/VFR1200F_38770-MGE-773/HONDA_VFR1200F_38770-MGE-D41.xdf",
+    "brand": "honda",
+    "family": "Honda Keihin VFR MGE-D41",
+    "label": "Honda VFR1200F 2013 German MGE-D41 (research only)",
+    "xdf_filename": "HONDA_VFR1200F_MGE_D41.xdf",
+    "vendor_path": "honda/HONDA_VFR1200F_MGE_D41.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "Honda VFR1200F 2013 German MGE-D41 (research only)"
+      }
+    ],
+    "research_only": true
   }
 ]

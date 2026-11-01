@@ -5,7 +5,7 @@
   "transport": "kline",
   "confidence": "unknown",
   "years": "unspecified",
-  "notes": "Dash/DashBle report CB500F examples and show source captures but do not state model year, market, ECU or software. ECU-only opt-in, not fitment to the selected bike. GuzziOnBoard integration has synthetic tests only. Table 00 ECM ID is an unverified raw candidate; no memory, DTC, controls or simulator. An explicitly confirmed, experimental 256 KiB read is available only if the live ID matches MGZ-A03; not a verified backup.",
+  "notes": "Dash/DashBle report CB500F examples and show source captures but do not state model year, market, ECU or software. ECU-only opt-in, not fitment to the selected bike. GuzziOnBoard integration has synthetic tests only. Table 00 ECM ID is an unverified raw candidate. No DTC, controls or simulator. An explicitly confirmed experimental 256 KiB read is available for source-reported MGZ-A03, C02, C03 or D02 IDs only; not a verified backup.",
   "session": {
     "protocol": "honda-cb500f-dashble",
     "physical_supported": true,
@@ -22,18 +22,18 @@
     "write_supported": false,
     "write_blocked_reason": "No ECU flash writing is implemented for this profile.",
     "research_read_only": true,
-    "hardware_note": "Experimental, source-derived MGZ-A03 read only. Exact live ECM ID required; security exchange is untested by GuzziOnBoard. A completed file is research-only, not a verified backup.",
+    "hardware_note": "Experimental, source-derived MGZ-A03/C02/C03/D02 read attempt. An exact live ECM ID is required; security and reads are untested by GuzziOnBoard on hardware. A completed file is research-only, not a verified backup.",
     "regions": {
       "flash": {
         "start": 0,
         "size": 262144,
-        "block": 12,
+        "block": 8,
         "writable": false,
-        "note": "Source-reported MGZ-A03 only; unverified by GuzziOnBoard."
+        "note": "Source-reported MGZ-A03/C02/C03/D02 only; unverified by GuzziOnBoard."
       }
     },
     "programming": {
-      "protocol": "honda-mgz-a03-research",
+      "protocol": "honda-mgz-research",
       "security": {
         "required": false
       }

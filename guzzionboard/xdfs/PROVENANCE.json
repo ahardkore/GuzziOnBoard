@@ -1048,6 +1048,166 @@
     "version": "GuzziOnBoard 1",
     "verified_parse": true,
     "license": "GPL-3.0 (repository)",
-    "note": "Changed missing-item byte-order default from little to big based on observed 800–9300 RPM axis in source A03 image; added checksum-provider declaration. No hardware validation."
+    "note": "Changed missing-item byte-order default from little to big based on observed 800\u20139300 RPM axis in source A03 image; added checksum-provider declaration. No hardware validation."
+  },
+  "buell/BUEIB_source_research.xdf": {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "sha256": "928b0fd1aa8fb8678b9ae63471e2bd05fc9b463bca7be36ca982c28dd0752b13",
+    "title": "BUEIB / BUEIC / B2RIB EEPROM four-map adaptation",
+    "author": "EcmDroid / XBTune, adapted by GuzziOnBoard",
+    "version": "0.1",
+    "verified_parse": true,
+    "license": "GPL-3.0; see docs/BUELL_DDFI_RESEARCH.md",
+    "note": "Adaptation of selected geometry, not a copy of the full database; synthetic tests only."
+  },
+  "buell/BUEGC_source_research.xdf": {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "sha256": "b417b91afa7566f3aac242864017c54f8b25357f96f065088d50fcf43c11170a",
+    "title": "BUEGC EEPROM four-map source adaptation (research only)",
+    "author": "EcmDroid / XBTune, adapted by GuzziOnBoard",
+    "version": "0.1",
+    "verified_parse": true,
+    "license": "GPL-3.0; see docs/BUELL_DDFI_RESEARCH.md",
+    "note": "Adaptation of selected geometry, not a copy of the full database; synthetic tests only."
+  },
+  "buell/BUEIA_source_research.xdf": {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "sha256": "be63b340ce06195f08a573689bef92b6f4de6654b107d9cb28aac69cbe2688a2",
+    "title": "BUEIA EEPROM four-map source adaptation (research only)",
+    "author": "EcmDroid / XBTune, adapted by GuzziOnBoard",
+    "version": "0.1",
+    "verified_parse": true,
+    "license": "GPL-3.0; see docs/BUELL_DDFI_RESEARCH.md",
+    "note": "Adaptation of selected geometry, not a copy of the full database; synthetic tests only."
+  },
+  "buell/BUEJA_source_research.xdf": {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "sha256": "f006a8c1f6cf7b549f1f470f8bb047892ebbc5dbbe2fb4848bf3c3bad6c3ccef",
+    "title": "BUEJA / BUEKA EEPROM four-map source adaptation (research only)",
+    "author": "EcmDroid / XBTune, adapted by GuzziOnBoard",
+    "version": "0.1",
+    "verified_parse": true,
+    "license": "GPL-3.0; see docs/BUELL_DDFI_RESEARCH.md",
+    "note": "Adaptation of selected geometry, not a copy of the full database; synthetic tests only."
+  },
+  "buell/BUECB_source_research.xdf": {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "sha256": "91dff2aaba72fa7e5201f3308fad15cc22a2550d4be9de9d15f6f3c9263e95f2",
+    "title": "BUECB EEPROM four-map source adaptation (research only)",
+    "author": "EcmDroid / XBTune, adapted by GuzziOnBoard",
+    "version": "0.1",
+    "verified_parse": true,
+    "license": "GPL-3.0; see docs/BUELL_DDFI_RESEARCH.md",
+    "note": "Adaptation of selected geometry, not a copy of the full database; synthetic tests only."
+  },
+  "buell/BUEGB_source_research.xdf": {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "sha256": "83efa7c65b00904f6b06dbabc40b58afd30ee4c10f83032a3c975ecff2e421e1",
+    "title": "BUEGB EEPROM four-map source adaptation (research only)",
+    "author": "EcmDroid / XBTune, adapted by GuzziOnBoard",
+    "version": "0.1",
+    "verified_parse": true,
+    "license": "GPL-3.0; see docs/BUELL_DDFI_RESEARCH.md",
+    "note": "Adaptation of selected geometry, not a copy of the full database; synthetic tests only."
+  },
+  "buell/B3R1D_source_research.xdf": {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "sha256": "0cb59ea569e6f1cecaead7590314a82120bff3a67234f061dd665f4fa4b1e913",
+    "title": "B3R1D / BUE1D EEPROM four-map source adaptation (research only)",
+    "author": "EcmDroid / XBTune, adapted by GuzziOnBoard",
+    "version": "0.1",
+    "verified_parse": true,
+    "license": "GPL-3.0; see docs/BUELL_DDFI_RESEARCH.md",
+    "note": "Adaptation of selected geometry, not a copy of the full database; synthetic tests only."
+  },
+  "buell/B3R2D_source_research.xdf": {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "sha256": "e1654eba6dbd386c117d923556f8c51816089deaf785c0cc2892bf77690c34f1",
+    "title": "B3R2D / BUE2D EEPROM four-map source adaptation (research only)",
+    "author": "EcmDroid / XBTune, adapted by GuzziOnBoard",
+    "version": "0.1",
+    "verified_parse": true,
+    "license": "GPL-3.0; see docs/BUELL_DDFI_RESEARCH.md",
+    "note": "Adaptation of selected geometry, not a copy of the full database; synthetic tests only."
+  },
+  "buell/B3R3D_source_research.xdf": {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "sha256": "53e13f881cc580e4b4acac308afb00f2f7b4cb9a28789540ae9252a2b133554e",
+    "title": "B3R3D / BUE3D EEPROM four-map source adaptation (research only)",
+    "author": "EcmDroid / XBTune, adapted by GuzziOnBoard",
+    "version": "0.1",
+    "verified_parse": true,
+    "license": "GPL-3.0; see docs/BUELL_DDFI_RESEARCH.md",
+    "note": "Adaptation of selected geometry, not a copy of the full database; synthetic tests only."
+  },
+  "buell/BUEOD_source_research.xdf": {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "sha256": "57002b8e13b0816ee880883c1947c66ceec75f7b3af373f841ada8de5bd56948",
+    "title": "BUEOD EEPROM four-map source adaptation (research only)",
+    "author": "EcmDroid / XBTune, adapted by GuzziOnBoard",
+    "version": "0.1",
+    "verified_parse": true,
+    "license": "GPL-3.0; see docs/BUELL_DDFI_RESEARCH.md",
+    "note": "Adaptation of selected geometry, not a copy of the full database; synthetic tests only."
+  },
+  "buell/BUEWD_source_research.xdf": {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "sha256": "ee7f058de44f71a7f782affea117af6379da4d0cdb86de5e6511e73c7f6c9b8c",
+    "title": "BUEWD EEPROM four-map source adaptation (research only)",
+    "author": "EcmDroid / XBTune, adapted by GuzziOnBoard",
+    "version": "0.1",
+    "verified_parse": true,
+    "license": "GPL-3.0; see docs/BUELL_DDFI_RESEARCH.md",
+    "note": "Adaptation of selected geometry, not a copy of the full database; synthetic tests only."
+  },
+  "buell/BUEYD_source_research.xdf": {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "sha256": "4f67f2e41db7265f77c4d3c93b5174790f25350255a8e63d2599c667b8ba88ac",
+    "title": "BUEYD EEPROM four-map source adaptation (research only)",
+    "author": "EcmDroid / XBTune, adapted by GuzziOnBoard",
+    "version": "0.1",
+    "verified_parse": true,
+    "license": "GPL-3.0; see docs/BUELL_DDFI_RESEARCH.md",
+    "note": "Adaptation of selected geometry, not a copy of the full database; synthetic tests only."
+  },
+  "buell/BUEZD_source_research.xdf": {
+    "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
+    "sha256": "b0f228b84a559179122bb623302b2aab95abafa00fa9b9bed8b31cf25e4a4e64",
+    "title": "BUEZD EEPROM four-map source adaptation (research only)",
+    "author": "EcmDroid / XBTune, adapted by GuzziOnBoard",
+    "version": "0.1",
+    "verified_parse": true,
+    "license": "GPL-3.0; see docs/BUELL_DDFI_RESEARCH.md",
+    "note": "Adaptation of selected geometry, not a copy of the full database; synthetic tests only."
+  },
+  "honda/HONDA_VFR1200F_MGE_773.xdf": {
+    "source_url": "https://github.com/AlexKovalevich/HondaECU/blob/db0a6cb8e516aac2406a231380c93e258c722b7c/xdfs/VFR1200F_38770-MGE-773/HONDA_VFR1200F_38770-MGE-773.xdf",
+    "sha256": "34c115c5989d38a8caf61b19212301e79cc2bed149efca59565ab1c750dde19a",
+    "title": "Honda VFR1200F 2010 NA 38770-MGE-773",
+    "author": "Alex Kovalevich",
+    "version": "1.0.0-RC1",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository; author states he created and freely released the XDF)",
+    "note": "Original source XDF unchanged; selected labels and scaling may be uncertain. No firmware bundled. Research only; GuzziOnBoard hardware untested."
+  },
+  "honda/HONDA_VFR1200F_MGE_701.xdf": {
+    "source_url": "https://github.com/AlexKovalevich/HondaECU/blob/db0a6cb8e516aac2406a231380c93e258c722b7c/xdfs/VFR1200F_38770-MGE-773/HONDA_VFR1200F_38770-MGE-701.xdf",
+    "sha256": "e96e3c5727416417970d35838d5dd581aa3e87d388e2ecc2f332b11222e7eb7a",
+    "title": "Honda VFR1200F 2010 NA 38770-MGE-773",
+    "author": "Alex Kovalevich",
+    "version": "1.0.0-RC1",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository; author states he created and freely released the XDF)",
+    "note": "Filename MGE-701 conflicts with embedded title MGE-773; fitment unverified. Original source XDF unchanged; source values can be uncertain. No firmware bundled."
+  },
+  "honda/HONDA_VFR1200F_MGE_D41.xdf": {
+    "source_url": "https://github.com/AlexKovalevich/HondaECU/blob/db0a6cb8e516aac2406a231380c93e258c722b7c/xdfs/VFR1200F_38770-MGE-773/HONDA_VFR1200F_38770-MGE-D41.xdf",
+    "sha256": "890d5d6408ad58abe2db95bed856ab6b05f3f353bd110d9ecc9f2fb9ec33bf57",
+    "title": "Honda VFR1200F 2013 German 38770-MGE-D41",
+    "author": "Alex Kovalevich",
+    "version": "1.0.0-RC1",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository; author states he created and freely released the XDF)",
+    "note": "Source title names a 2013 German MGE-D41; do not generalize. Original source XDF unchanged; source values can be uncertain. No firmware bundled."
   }
 }

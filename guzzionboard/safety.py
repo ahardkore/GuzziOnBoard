@@ -180,12 +180,14 @@ class SafetyGate:
         operation_confidence: str | None = None,
         image_hardware: str | None = None,
         image_embedded_hardware: "tuple[str, ...] | list[str] | None" = None,
+        additional_checks: "tuple[Check, ...]" = (),
     ) -> Decision:
         checks: list[Check] = []
         simulated = self.mode is Mode.SIMULATOR
 
         if risk is Risk.READ:
-            decision = Decision(True, operation, risk, (Check("read-only", True),))
+            read_checks = (Check("read-only", True), *additional_checks)
+            decision = Decision(all(c.passed for c in read_checks), operation, risk, read_checks)
             self._record(decision)
             return decision
 
@@ -323,6 +325,7 @@ class SafetyGate:
                     )
                 )
 
+        checks.extend(additional_checks)
         allowed = all(c.passed for c in checks)
         token = None
         if allowed:

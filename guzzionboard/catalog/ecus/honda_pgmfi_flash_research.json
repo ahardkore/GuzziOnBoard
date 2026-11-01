@@ -1,0 +1,59 @@
+{
+  "id": "honda_pgmfi_flash_research",
+  "family": "Honda PGM-FI source-ID flash research",
+  "display_name": "Honda PGM-FI (ECU-only experimental image read)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "Source-reported IDs only",
+  "notes": "ECU-only research session for exact source-table or source-example-inferred five-byte ECM candidates; not a vehicle fitment guarantee. Explicit confirmation required. GuzziOnBoard has synthetic tests only, no hardware verification. No diagnostic sensor tables, DTCs, writes, recovery or simulator. A completed file is not a verified backup.",
+  "session": {
+    "protocol": "honda-pgmfi-flash-research",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "tester_present_interval": 2.0,
+    "physical_evidence_note": "Source-derived attempt for explicitly listed IDs; GuzziOnBoard has synthetic tests only, not hardware verification."
+  },
+  "identification": {
+    "available": true,
+    "note": "Raw five-byte ECM ID candidate only; a source match is not confirmed part identification or programming identity."
+  },
+  "memory": {
+    "read_supported": true,
+    "write_supported": false,
+    "write_blocked_reason": "No ECU flash writing is implemented for this profile.",
+    "research_read_only": true,
+    "hardware_note": "Experimental source-derived image read for 60 Honda ID candidates. Eleven IDs are inferred solely from source-named examples; one table ID has an inferred family offset and conflicts with its named example; two source-table entries have no independently checked sample. Example- or model-sized bounds range from 48 KiB to 1 MiB; all starts are assumed, including nonzero MSX offsets. Conflicting or commented source associations are not confirmed identities. 1 MiB reads may take a long time; logs may include image data. Physical K-Line/security/read integration is synthetic-tested only; no verified backup.",
+    "regions": {
+      "flash": {
+        "start": 0,
+        "size": 1048576,
+        "block": 8,
+        "writable": false,
+        "note": "Maximum bound 1 MiB; sizes and start addresses vary by ID and are inferred from source examples or model descriptions. Three Alex VFR candidates use 128-byte requests; others use 8. Neither read completeness nor live protocol is verified."
+      }
+    },
+    "programming": {
+      "protocol": "honda-pgmfi-flash-research",
+      "security": {
+        "required": false
+      }
+    }
+  },
+  "capabilities": [
+    "identify"
+  ],
+  "sources": [
+    "https://github.com/WiseNoodle/honda-moto-ecu-suite/tree/85431bd831b2c50a640fac35dccf36c09df20c07",
+    "https://github.com/PhatDatPQ/eculib/tree/7921cc46551fd26d487ec778e8822ace4777899e",
+    "https://github.com/AlexKovalevich/HondaECU/tree/db0a6cb8e516aac2406a231380c93e258c722b7c",
+    "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "honda-pgmfi-flash-research",
+    "inter_byte_delay": 0
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "bikestudio_reference_only",
+  "family": "BikeStudio vehicle/ECU part reference (not an ECU family)",
+  "display_name": "BikeStudio part reference only — no ECU protocol",
+  "transport": "none",
+  "confidence": "unknown",
+  "years": "Source-listed years only; see individual parts and markets",
+  "notes": "Reference-only placeholder, not an ECU family or proof that vehicles share ECU hardware. BikeStudio part numbers, market and years are independent lookup leads; this profile offers no live, simulated, security, memory or programming capability.",
+  "session": {
+    "protocol": "reference-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "A part-reference listing does not supply an ECU diagnostic protocol.",
+    "simulator_supported": false
+  },
+  "identification": {"available": false},
+  "memory": {"read_supported": false, "write_supported": false,
+             "write_blocked_reason": "No ECU memory protocol or programming implementation comes from part fitment data."},
+  "capabilities": [],
+  "sources": ["https://bikestudio.io/ecu?lang=en"],
+  "parameters": [], "actuators": [], "routines": []
+}

@@ -18,7 +18,7 @@ from .protocol.legacy_iaw import LegacyIAWSession
 from .protocol.kawasaki_er6n import KawasakiER6nSession, decode_kawasaki_value
 from .protocol.aster_kline import AsterKLineSession, Versys2012Session, KawasakiKdsResearchSession, Gsxr6002011Session, Gsxr10002004Session, SuzukiGsxrResearchSession, Sv6502003Session, Sv650Ak7Session, decode_versys, decode_gsxr, decode_sv650ak7
 from .protocol.honda_cbr600rr import HondaCBR600RRSession, HondaCB500FDashSession, HondaCTX700Session, decode_honda, decode_honda_ctx
-from .protocol.honda_pgmfi import HondaPgmfiSession
+from .protocol.honda_pgmfi import HondaPgmfiSession, HondaPgmfiFlashResearchSession
 from .protocol.kawasaki_ninja7 import KawasakiNinja7Session
 from .protocol.triumph_daytona import TriumphDaytonaSession
 from .protocol.harley_j1850 import HarleyJ1850Session
@@ -146,10 +146,10 @@ class DiagnosticsService:
                 method = "can"
             if exact_method == "harley-j1850-harleydroid" and (self.transport.name != "elm_j1850" or not self.transport.is_physical or self.gate.mode.value != "read_only"):
                 raise TransportUnavailable("Harley J1850 requires the ELM serial transport and read-only mode")
-            if exact_method in ("kawasaki-er6n", "triumph-daytona-2012", "harley-j1850-harleydroid", "aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research", "honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research") and method != exact_method:
+            if exact_method in ("kawasaki-er6n", "triumph-daytona-2012", "harley-j1850-harleydroid", "aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research", "honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research", "honda-pgmfi-flash-research") and method != exact_method:
                 raise TransportUnavailable(f"{self.profile.family} requires its profile-default initialization")
-            if exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research"):
-                expected = {"honda-cbr600rr-2005": "honda_cbr600rr_2005", "honda-cb500f-dashble": "honda_cb500f_dashble", "honda-ctx700-minidash": "honda_ctx700_minidash", "honda-pgmfi-research": "honda_pgmfi_research"}[exact_method]
+            if exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research", "honda-pgmfi-flash-research"):
+                expected = {"honda-cbr600rr-2005": "honda_cbr600rr_2005", "honda-cb500f-dashble": "honda_cb500f_dashble", "honda-ctx700-minidash": "honda_ctx700_minidash", "honda-pgmfi-research": "honda_pgmfi_research", "honda-pgmfi-flash-research": "honda_pgmfi_flash_research"}[exact_method]
                 if (self.profile.id != expected or self.transport.name != "kline"
                         or not self.transport.is_physical or self.gate.mode != Mode.READ_ONLY
                         or getattr(self.transport, "baud", 10400) != 10400):
@@ -285,13 +285,13 @@ class DiagnosticsService:
                     self.connection = None
                     self.session = None
                     raise
-            elif exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research"):
+            elif exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research", "honda-pgmfi-flash-research"):
                 if (self.init_result.protocol != "honda-cbr600rr" or not self.init_result.handshake_complete
                         or self.init_result.response != bytes.fromhex("02 04 00 fa")):
                     self.connection.close()
                     self.connection = None
                     raise ProtocolError("Honda profile requires the exact initialization response")
-                cls = {"honda-cbr600rr-2005": HondaCBR600RRSession, "honda-cb500f-dashble": HondaCB500FDashSession, "honda-ctx700-minidash": HondaCTX700Session, "honda-pgmfi-research": HondaPgmfiSession}[exact_method]
+                cls = {"honda-cbr600rr-2005": HondaCBR600RRSession, "honda-cb500f-dashble": HondaCB500FDashSession, "honda-ctx700-minidash": HondaCTX700Session, "honda-pgmfi-research": HondaPgmfiSession, "honda-pgmfi-flash-research": HondaPgmfiFlashResearchSession}[exact_method]
                 self.session = cls(connection=self.connection, on_frame=self.log.frame, write_guard=lambda _: False)
             elif exact_method in ("aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research"):
                 from .protocol.kwp2000 import decode_frame
@@ -1154,13 +1154,22 @@ class DiagnosticsService:
         checks in ProgrammingService. A diagnostic connection alone does not
         imply that a memory reader has been implemented.
         """
+        memory = self.profile.memory or {}
+        read_protocol = (memory.get("programming") or {}).get("protocol", "read_memory_by_address")
+        # The direct helper issues service 0x23. A declared region reader does
+        # not imply that this command is valid for the physical ECU: 5AM, for
+        # example, uses a separate bank-selected TransferData sequence. The
+        # simulator intentionally has its own contiguous 0x23 model.
+        direct_variant = not self.transport.is_physical or read_protocol == "read_memory_by_address"
         checks = (
             Check("connected", self.connected, "connect before reading memory"),
-            Check("read-path", bool(self.profile.memory.get("read_supported"))
-                  and not self.profile.memory.get("research_read_only"),
+            Check("read-path", bool(memory.get("read_supported"))
+                  and not memory.get("research_read_only"),
                   "no direct KWP read path for this profile; an experimental reader may have its own workflow"),
             Check("protocol", isinstance(self.session, KWP2000Session),
                   "direct memory reading requires a KWP2000 session"),
+            Check("reader-variant", direct_variant,
+                  "this physical ECU uses a different memory reader; use the profile-specific region read workflow"),
         )
         return Decision(all(c.passed for c in checks), "memory-read", Risk.READ, checks)
 

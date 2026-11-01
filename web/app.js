@@ -666,6 +666,7 @@ async function loadCatalog() {
         return `<span class="tag ${live ? '' : 'muted-tag'}" title="${live ? 'available' : 'declared but gated by confidence'}">${esc(c)}</span>`;
       }).join(' ')}</td>
     </tr>`).join('');
+  document.dispatchEvent(new Event('gob-catalog-ready'));
 }
 
 function vehiclesOf(make) {
@@ -813,7 +814,8 @@ function updateConnectEnabled() {
   const physical = isPhysicalTransport(currentTransport());
   const ok = haveVehicle && (!physical || $('#checklistAccept').checked);
   const demoWithoutSimulator = isHostedDemo() && state.resolved?.ecu_detail?.session?.simulator_supported === false;
-  $('#connectBtn').disabled = !ok || state.connected || demoWithoutSimulator;
+  const referenceOnly = !$('#ecuOverride').value && state.resolved?.ecu_detail?.id === 'bikestudio_reference_only';
+  $('#connectBtn').disabled = !ok || state.connected || demoWithoutSimulator || referenceOnly;
   $('#selectOfflineBtn').disabled = !haveVehicle || state.connected;
 }
 
@@ -892,7 +894,7 @@ function selectionRequest() {
   const ecuOverride = $('#ecuOverride').value;
   const body = ecuOverride
     ? { ecu: ecuOverride, transport: currentTransport(), device: $('#deviceInput').value,
-        ...(!['generic_obd_can_11bit', 'honda_cb500f_dashble', 'honda_ctx700_minidash', 'harley_delphi_can_uds', 'kawasaki_kds_generic_research', 'suzuki_sds_generic_research'].includes(ecuOverride) && $('#modelSelect').value && $('#yearSelect').value ? {
+        ...(!['generic_obd_can_11bit', 'honda_cb500f_dashble', 'honda_pgmfi_flash_research', 'honda_ctx700_minidash', 'harley_delphi_can_uds', 'kawasaki_kds_generic_research', 'suzuki_sds_generic_research'].includes(ecuOverride) && $('#modelSelect').value && $('#yearSelect').value ? {
           make: $('#makeSelect').value, model: $('#modelSelect').value,
           year: parseInt($('#yearSelect').value, 10),
         } : {}) }
@@ -952,7 +954,7 @@ async function connect() {
       await api('/api/checklist', { method: 'POST', body: { accepted: $('#checklistAccept').checked } });
     }
     const initMethod = currentTransport() === 'kline' ? $('#initMethod').value : '';
-    if (['kawasaki_er6n_2006', 'triumph_daytona_675_2012', 'kawasaki_versys650_2012', 'kawasaki_kds_research', 'suzuki_gsxr600_2011', 'honda_cbr600rr_2005', 'honda_cb500f_dashble', 'honda_ctx700_minidash', 'honda_pgmfi_research', 'suzuki_gsxr1000_2004', 'suzuki_sv650ak7_2007', 'suzuki_sv650_2003', 'suzuki_sds_gsxr_research'].includes(selection.ecu?.id) && initMethod) {
+    if (['kawasaki_er6n_2006', 'triumph_daytona_675_2012', 'kawasaki_versys650_2012', 'kawasaki_kds_research', 'suzuki_gsxr600_2011', 'honda_cbr600rr_2005', 'honda_cb500f_dashble', 'honda_pgmfi_flash_research', 'honda_ctx700_minidash', 'honda_pgmfi_research', 'suzuki_gsxr1000_2004', 'suzuki_sv650ak7_2007', 'suzuki_sv650_2003', 'suzuki_sds_gsxr_research'].includes(selection.ecu?.id) && initMethod) {
       throw new Error('This model requires ECU profile default handshake; select it before connecting.');
     }
     Prefs.set('initMethod', initMethod);
@@ -1960,7 +1962,7 @@ function setupDesktopRow() {
     .then((r) => toast(r.note || `Opened ${r.path}`, r.ok ? 'ok' : 'warn'))
     .catch((err) => toast(err.message, 'bad'));
   row.querySelector('#deskQuitBtn').onclick = () => host.quit()
-    .then((r) => toast(r.note || 'Closing the app.', 'ok'))
+    .then((r) => toast(r.note || 'Closing the app.', r.ok ? 'ok' : 'warn'))
     .catch((err) => toast(err.message, 'bad'));
 }
 
@@ -2489,19 +2491,21 @@ function renderMemoryCapabilities(data) {
   const rows = [
     ['ECU', `${esc(c.family)} <span class="muted">(${esc(c.ecu)})</span>`],
     ['Protocol', `<code>${esc(c.protocol)}</code>`],
-    ['Read supported', c.research_read_only ? '<b class="warn">experimental MGZ-A03 only</b>' : c.partial_read_note ? '<b class="warn">experimental partial read</b>' : yesno(c.read_supported)],
+    ['Read supported', c.research_read_only ? (c.ecu === 'honda_pgmfi_flash_research' ? '<b class="warn">experimental: 60 source-derived Honda candidates only</b>' : '<b class="warn">experimental MGZ-A03/C02/C03/D02 only</b>') : c.partial_read_note ? '<b class="warn">experimental partial read</b>' : yesno(c.read_supported)],
     ['Write supported', c.simulated
       ? (c.write_supported ? '<b class="ok">yes <span class="muted">(sim&nbsp;)</span></b>' : yesno(false))
       : yesno(c.write_supported)],
-    ['SecurityAccess', c.research_read_only ? 'fixed source exchange; unverified on hardware' : c.security_required
+    ['SecurityAccess', !c.read_supported ? 'unknown — no memory reader implemented' : c.research_read_only ? 'fixed source exchange; unverified on hardware' : c.security_required
       ? (c.security_available
         ? '<b class="ok">required, provider available</b>'
         : '<b class="bad">required, no key provider</b>')
-      : 'not required'],
+      : 'not required by the implemented reader'],
   ];
   if (c.estimated_read_minutes) {
     rows.push(['Estimated read', `about ${c.estimated_read_minutes} minutes`]);
   }
+  if (!c.read_supported) rows.push(['Why memory read is unavailable', esc(c.read_blocked_reason || 'No ECU memory reader is implemented for this profile.')]);
+  if (c.ecu === 'harley_delphi_can_uds') rows.push(['Separate experimental tool', 'Tools → Harley Delphi CAN live memory: source-scoped read and reviewed tune write using a user-supplied authorized capture. Authentication sends an opaque download; synthetic-tested only.']);
   if (c.write_blocked_reason) rows.push(['Why not writable', esc(c.write_blocked_reason)]);
   if (c.hardware_note) rows.push(['Hardware notes', esc(c.hardware_note)]);
   if (c.partial_read_note) rows.push(['Partial read warning', esc(c.partial_read_note)]);
@@ -2529,7 +2533,7 @@ function renderMemoryCapabilities(data) {
 
   const select = $('#memRegion');
   select.innerHTML = Object.entries(c.regions).map(([name, r]) => {
-    const size = r.size ? `${(r.size / 1024).toFixed(0)} KiB` : 'geometry unknown';
+    const size = c.ecu === 'honda_pgmfi_flash_research' ? '48 KiB–1 MiB candidate by ECM ID' : r.size ? `${(r.size / 1024).toFixed(0)} KiB` : 'geometry unknown';
     return `<option value="${esc(name)}">${esc(name)} — ${size}</option>`;
   }).join('');
 
@@ -2683,6 +2687,9 @@ function renderMemoryProgress(job) {
         <h4>${esc(job.name)} complete</h4>
         ${r.research_only ? '<p><b>Experimental research file — not a verified backup or flash-ready image.</b></p>' : ''}
         ${d.meta?.note ? `<p>${esc(d.meta.note)}</p>` : ''}
+        ${d.identity?.['ECM ID candidate'] ? `<p>ECM ID candidate: <code>${esc(d.identity['ECM ID candidate'])}</code> · part candidate: <code>${esc(d.identity['Source part candidate'] || 'unknown')}</code></p>` : ''}
+        ${d.identity?.['Source ID conflict'] ? `<p><b>Source conflict:</b> ${esc(d.identity['Source ID conflict'])}</p>` : ''}
+        ${d.meta?.source_id_table_status ? `<p class="small">${esc(d.meta.source_id_table_status)} · ${esc(d.meta.id_offset_basis || '')}</p>` : ''}
         ${r.verified !== undefined
           ? `<p>Two reads compared: <b>${r.verified ? 'identical' : 'DIFFERENT'}</b>
              (${r.attempts} attempts)</p>` : ''}
@@ -2696,6 +2703,51 @@ function renderMemoryProgress(job) {
     if (r.path) $('#imagePath').value = r.path;
     stopMemoryPoll();
     loadMemory();
+    if (r.research_only && r.path && d.meta?.protocol === 'honda-source-id-research') {
+      openHondaResearchMap(r.path, d.identity?.['Source part candidate']);
+    }
+  }
+}
+
+async function openHondaResearchMap(path, part) {
+  const candidates = {
+    '38770-MGE-773': 'HONDA_VFR1200F_MGE_773.xdf',
+    '38770-MGE-701': 'HONDA_VFR1200F_MGE_701.xdf',
+    '38770-MGE-D41': 'HONDA_VFR1200F_MGE_D41.xdf',
+    '38770-MEL-D21': '38770-MEL.xdf', '38770-MEL-F21': '38770-MEL.xdf',
+    '38770-MEL-A21': '38770-MEL.xdf', '38770-MEL-A22': '38770-MEL.xdf', '38770-MEL-L22': '38770-MEL.xdf',
+    '38770-MGZ-A03': '38770-MGZ.xdf', '38770-MGZ-C02': '38770-MGZ.xdf',
+    '38770-MGZ-C03': '38770-MGZ.xdf', '38770-MGZ-D02': '38770-MGZ.xdf',
+    '38770-MJW-AQ1': '38770-MJW.xdf', '38770-KYK-D12': '38770-KYK-D12.xdf',
+    '38770-K0F-A01': '38770-K0F-A01.xdf', '38770-K26-911': '38770-K26-911.xdf',
+    '38770-K26-B13': '38770-K26-B13.xdf', '38770-K26-C31': '38770-K26-C31.xdf',
+  };
+  const xdf = Object.hasOwn(candidates, part) ? candidates[part] : null;
+  if (!xdf) return;
+  const notice = $('#hondaVfrHandoff');
+  if (maps.changes.size) {
+    notice.innerHTML = '<div class="gate-card warn">New Honda research image saved, but existing staged edits were preserved. Finish or clear them before opening the new image.</div>';
+    toast('Honda research image saved; existing map edits were preserved.', 'warn');
+    return;
+  }
+  notice.innerHTML = `<div class="gate-card warn"><h4>Honda source-candidate research map · ${esc(part)}</h4><p>One read was saved and is opening for review. This is not a verified backup or flash-ready image. Neither the candidate ID nor this automatic XDF selection confirms fitment. ${part === '38770-MGE-701' ? 'The 701 XDF filename conflicts with its embedded 773 title. ' : ''}${part.startsWith('38770-MGZ-') ? 'The MGZ XDF default byte order conflicts with the A03 example; verify it before use. ' : ''}${part.startsWith('38770-K26-') ? 'The read start is inferred; verify the XDF file offset and memory layout. ' : ''}Some definitions include unsupported elements. Check all maps and scaling. No Honda write or recovery is available.</p></div>`;
+  try {
+    await loadXdfs();
+    if (maps.changes.size) throw new Error('Existing staged edits were preserved; open the saved read after clearing them.');
+    if (!maps.byFile[xdf]) throw new Error('Bundled research XDF is unavailable.');
+    if ($('#xdfBrand')) $('#xdfBrand').value = '';
+    if ($('#xdfOnlyFitting')) $('#xdfOnlyFitting').checked = false;
+    renderXdfOptions();
+    $('#xdfSelect').value = xdf;
+    renderXdfFitNote();
+    $('#mapsImagePath').value = path;
+    $('#mapsAddressBase').value = '';
+    const render = await api('/api/maps/render', { method: 'POST', body: { path, xdf, address_base: null } });
+    if (maps.changes.size) throw new Error('Existing staged edits were preserved; open the saved read after clearing them.');
+    renderMapsResult(render);
+    toast('Honda research map opened from the saved read; verify definition and fitment.', 'warn');
+  } catch (err) {
+    notice.innerHTML += `<div class="gate-card bad">Could not open the research map: ${esc(err.message)}. The saved read is unchanged.</div>`;
   }
 }
 
@@ -2921,8 +2973,9 @@ $('#baseMapRestoreBtn').onclick = async () => {
 $('#readBtn').onclick = async () => {
   if (!(await prepareEngineState('off', 'Prepare for a single ECU memory read.'))) return;
   const research = Boolean(fw.caps?.capabilities?.research_read_only);
-  if (research && !(await confirmDialog('Experimental MGZ-A03 research read',
-    'This untested implementation sends a fixed security exchange and reads only if the live ECM ID matches MGZ-A03. No write is sent. Keep power stable and the engine stopped. A returned file is not a verified backup or flash-ready image.',
+  const genericHondaRead = fw.caps?.capabilities?.ecu === 'honda_pgmfi_flash_research';
+  if (research && !(await confirmDialog(genericHondaRead ? 'Experimental Honda source-ID research read' : 'Experimental MGZ research read',
+    `This synthetic-tested implementation sends a fixed security exchange and reads only if the live ECM ID matches ${genericHondaRead ? 'one of 60 source-derived ID candidates' : 'the source-reported MGZ-A03, C02, C03 or D02'}. It has not been tested on a physical ECU; security may be rejected or cause a lockout. ${genericHondaRead ? 'Example- or model-sized bounds and read start addresses are assumptions, including nonzero starts for MSX IDs. Eleven IDs come from named examples, two entries lack independently checked examples, and one family-inferred entry conflicts with its named file. Other source associations are commented or conflicting. A 1 MiB attempt may take a long time; session logs can contain image data. ' : 'The sample-sized read assumes a zero start address. '}No write is sent. Keep power stable and the engine stopped. A returned file is not a verified backup or flash-ready image.`,
     'I understand — attempt the research read', { tone: 'danger' }))) return;
   $('#memResult').innerHTML = '';
   try {
@@ -3041,6 +3094,7 @@ const maps = {
   checksumProviders: [], checksumDirectory: '',
   recommendationPackages: [], recommendationDirectory: '',
   activePackage: null,
+  buellHandoff: null, harleyHandoff: null, rusefiHandoff: null,
   traceMappings: new Map(),
 };
 
@@ -3154,7 +3208,7 @@ function renderXdfFitNote() {
     ${bikes.length ? `<p class="small">Published for: ${bikes.map(esc).join(' · ')}</p>` : ''}
     ${entry.family === 'CBR1000RR-2012-US' ? '<p class="small">Offline build also requires the pinned XDF and exact A01 original-image SHA-256. No Honda programming is provided.</p>' : ''}
     ${entry.family === 'CB500-MGZ-A03' ? '<p class="small">Offline build requires the pinned adapted XDF and exact MGZ-A03 original-image SHA-256. Adapted byte order is inferred; no Honda programming is provided.</p>' : ''}
-    ${entry.research_only ? '<p class="small">Research only: image builds are blocked. Source byte order, region sizes and checksum handling require review.</p>' : ''}
+    ${entry.research_only ? '<p class="small">Research only: normal firmware builds are blocked. Source byte order, region sizes and checksum handling require review; a separate purpose-built tool may offer scoped EEPROM writing.</p>' : ''}
     ${fits === false ? '<p class="small">Rendering it is read-only and harmless, but the '
       + 'table names and addresses will not describe your ECU. Do not tune from it.</p>' : ''}
   </div>`;
@@ -3260,6 +3314,63 @@ async function loadXdfs() {
   } catch (err) {
     toast(`Could not list XDFs: ${err.message}`, 'bad');
   }
+}
+
+// Open one saved Buell read without discarding edits or inferring fitment. The
+// caller owns the read token and determines whether it remains current.
+async function openBuellResearchMap(read, isCurrent, snapshotTarget, onSaved) {
+  if (maps.changes.size) throw new Error('Existing staged map edits were preserved. Clear or finish them first.');
+  const previousRender = maps.render, previousVersion = researchPreviewVersion;
+  const previousPath = $('#mapsImagePath').value;
+  await loadXdfs();
+  if (!isCurrent() || maps.changes.size || maps.render !== previousRender ||
+      researchPreviewVersion !== previousVersion || $('#mapsImagePath').value !== previousPath)
+    throw new Error('The read or map selection changed; existing work was preserved.');
+  if (!maps.byFile[read.map_xdf]) throw new Error('The source research definition is unavailable.');
+  const render = await api('/api/maps/render', {method:'POST', body:{
+    path:read.original_path, xdf:read.map_xdf, address_base:0,
+  }});
+  if (!isCurrent() || maps.changes.size || maps.render !== previousRender ||
+      researchPreviewVersion !== previousVersion || $('#mapsImagePath').value !== previousPath)
+    throw new Error('The read or map selection changed; existing work was preserved.');
+  if (render.source?.path !== read.original_path || render.source?.sha256 !== read.sha256)
+    throw new Error('The saved original does not match the read.');
+  if ($('#xdfBrand')) $('#xdfBrand').value = '';
+  if ($('#xdfOnlyFitting')) $('#xdfOnlyFitting').checked = false;
+  renderXdfOptions();
+  $('#xdfSelect').value = read.map_xdf;
+  $('#mapsImagePath').value = read.original_path;
+  $('#mapsAddressBase').value = '0';
+  renderXdfFitNote();
+  renderMapsResult(render);
+  maps.buellHandoff = {path:read.original_path, sha256:read.sha256, xdf:read.map_xdf, isCurrent, snapshotTarget, onSaved};
+}
+
+// Neither Delphi identity nor a rusEFI signature selects an XDF. Prefill only
+// the saved original; the operator must choose and render their own definition.
+async function openUserResearchMap(kind, path, sha256, isCurrent, snapshotTarget, onSaved) {
+  if (!isCurrent()) throw new Error('The read is no longer current.');
+  if (maps.changes.size) throw new Error('Existing staged map edits were preserved. Clear or finish them first.');
+  const previousRender = maps.render, previousVersion = researchPreviewVersion, previousPath = $('#mapsImagePath').value;
+  await loadXdfs();
+  if (!isCurrent() || maps.changes.size || maps.render !== previousRender ||
+      researchPreviewVersion !== previousVersion || $('#mapsImagePath').value !== previousPath)
+    throw new Error('The read or map selection changed; existing work was preserved.');
+  maps[kind + 'Handoff'] = {path, sha256, isCurrent, snapshotTarget, onSaved};
+  maps.render = null; maps.selection.clear(); maps.selectionAnchor = null;
+  maps.undo = []; maps.redo = []; maps.preview = null;
+  invalidateResearchPreview();
+  $('#mapsOut').innerHTML = '<p class="muted small">Choose and render a matching XDF for the saved image. Fitment is not established.</p>';
+  $('#mapsImagePath').value = path;
+  syncMapEditorButtons(); renderMapBuildState();
+  show('firmware');
+  toast('Saved image path filled. Choose and render your matching XDF; fitment and checksum are not verified.', 'warn');
+}
+async function openHarleyResearchMap(read, isCurrent, snapshotTarget, onSaved) {
+  return openUserResearchMap('harley', read.original_tune_path, read.original_tune_sha256, isCurrent, snapshotTarget, onSaved);
+}
+async function openRusefiResearchMap(read, isCurrent, snapshotTarget, onSaved) {
+  return openUserResearchMap('rusefi', read.original_path, read.sha256, isCurrent, snapshotTarget, onSaved);
 }
 
 function suggestXdf() {
@@ -4451,12 +4562,79 @@ $('#mapResearchPreviewBtn').onclick = async () => {
       <p class="small">${result.changes.length} change(s); ${result.changes.filter((c) => c.quantized).length} quantized. XDF checksum declarations: ${esc(result.declared_checksums.join(', ') || 'none (does not prove no checksum exists)')}.</p>
       <div class="table-wrap"><table class="data"><thead><tr><th>Item</th><th>Cell</th><th>Before</th><th>Requested</th><th>Stored</th></tr></thead><tbody>${rows}</tbody></table></div>
       ${result.changes.length > 40 ? '<p class="small">Showing the first 40 changes.</p>' : ''}
+      ${!isHostedDemo() && maps.buellHandoff?.isCurrent() && maps.buellHandoff.path === result.source.path && maps.buellHandoff.sha256 === result.source.sha256 && maps.buellHandoff.xdf === selectedXdf ? '<button class="btn danger" id="buellMapExportBtn">Save reviewed copy for Buell write review…</button><p class="small">No ECU is contacted. The subsequent review only accepts source-defined fuel/spark and axis bytes, not page zero.</p>' : ''}
+      ${!isHostedDemo() && maps.rusefiHandoff?.isCurrent() && maps.rusefiHandoff.path === result.source.path && maps.rusefiHandoff.sha256 === result.source.sha256 ? '<button class="btn danger" id="rusefiMapExportBtn">Save reviewed copy for rusEFI write review…</button><p class="small">No ECU is contacted. The page and user-selected XDF are not verified for fitment.</p>' : ''}
+      ${!isHostedDemo() && result.honda_checksum_candidates?.length ? `<div class="gate-card warn"><h4>Honda checksum candidates · research only</h4><p>Matching bytes are not ECU identification or fitment proof. Review the source, ID, layout, checksum location and output hash. Only the displayed whole-file byte sum will be adjusted; no ECU is contacted.</p>${result.honda_checksum_candidates.map((c, index) => `<p class="small"><b>${esc(c.part)}</b> · ID ${esc(c.ecm_id)} · Source ${esc(c.source)} · ID position 0x${c.id_offset.toString(16).toUpperCase()} (${esc(c.id_basis)}) · assumed start 0x${c.read_start.toString(16).toUpperCase()}<br>Checksum byte 0x${c.checksum_offset.toString(16).toUpperCase()}: ${c.before} → ${c.after}<br>Corrected SHA-256 <code>${esc(c.output_sha256)}</code>${c.conflict ? `<br><b>Source conflict:</b> ${esc(c.conflict)}` : ''}${c.commented ? '<br>Association is commented out in one source table.' : ''}<br><button class="btn danger" data-honda-checksum-export="${index}">Export corrected research copy…</button></p>`).join('')}</div>` : ''}
       ${!isHostedDemo() && [0x4000, 0x28000].includes(result.source.bytes)
         ? '<button class="btn danger" id="harleyResearchExportBtn">Export reviewed Delphi research copy…</button>' : ''}
       ${!isHostedDemo() ? `<div class="toolbar"><label class="inline">Editable file start <input id="researchRegionStart" size="12" placeholder="e.g. 0x4000"></label>
         <label class="inline">End, exclusive <input id="researchRegionEnd" size="12" placeholder="e.g. 0x8000"></label>
         <button class="btn danger" id="userResearchExportBtn">Export within my file range…</button></div>
         <p class="muted small">For other ECU images, enter the intended file offsets (decimal or hex). The range is your assertion, not auto-detected fitment. The result remains research only, not flash-ready.</p>` : ''}</div>`;
+    const buellExport = $('#buellMapExportBtn');
+    if (buellExport) buellExport.onclick = async () => {
+      const handoff = maps.buellHandoff;
+      if (!handoff?.isCurrent()) return toast('Buell read is no longer current.', 'bad');
+      const targetBefore = handoff.snapshotTarget();
+      const accepted = await confirmDialog('Save Buell research copy for review?',
+        '<p>The reviewed edits will be saved as a separate copy; the whole image is the selected research range. This does not contact the ECM, establish fitment or authorize writing. The next review checks permitted fuel/spark and axis changes; live writing needs another explicit confirmation.</p>',
+        'Save copy for review', {tone:'danger'});
+      if (!accepted || version !== researchPreviewVersion || selectedXdf !== $('#xdfSelect').value || maps.buellHandoff !== handoff || !handoff.isCurrent()) return;
+      buellExport.disabled = true;
+      try {
+        const saved = await api('/api/maps/research-export', {method:'POST', body:{
+          ...body, region_start:0, region_end:result.source.bytes,
+          expected_candidate_sha256:result.candidate_sha256, accept_research_only:true,
+        }});
+        if (version !== researchPreviewVersion || maps.buellHandoff !== handoff || !handoff.isCurrent()) return;
+        const attached = handoff.onSaved(saved.path, targetBefore);
+        out.insertAdjacentHTML('beforeend', `<div class="gate-card warn"><h4>Buell research copy saved for write review</h4><p class="small">Image: <code>${esc(saved.path)}</code><br>Manifest: <code>${esc(saved.manifest_path)}</code><br>SHA-256: <code>${esc(saved.manifest.output_sha256)}</code></p><p>${attached ? 'Edited path filled in the Buell panel.' : 'The edited path changed during export and was preserved; enter the saved path manually if desired.'} Return to the Buell panel to acknowledge risks and review differences. No ECM write was sent.</p></div>`);
+      } catch (err) { if (version === researchPreviewVersion) toast(`Buell research export refused: ${err.message}`, 'bad'); }
+      finally { if (version === researchPreviewVersion) buellExport.disabled = false; }
+    };
+    const rusefiExport = $('#rusefiMapExportBtn');
+    if (rusefiExport) rusefiExport.onclick = async () => {
+      const handoff = maps.rusefiHandoff;
+      if (!handoff?.isCurrent()) return toast('rusEFI read is no longer current.', 'bad');
+      const targetBefore = handoff.snapshotTarget();
+      const accepted = await confirmDialog('Save rusEFI research copy for review?',
+        '<p>Save the reviewed edits as a separate page-zero copy. The entire page is the selected research range. Your XDF, values, fitment and checksums are not verified. No ECU is contacted; write and burn require a separate review and confirmation.</p>',
+        'Save copy for review', {tone:'danger'});
+      if (!accepted || version !== researchPreviewVersion || selectedXdf !== $('#xdfSelect').value || maps.rusefiHandoff !== handoff || !handoff.isCurrent()) return;
+      rusefiExport.disabled = true;
+      try {
+        const saved = await api('/api/maps/research-export', {method:'POST', body:{
+          ...body, region_start:0, region_end:result.source.bytes,
+          expected_candidate_sha256:result.candidate_sha256, accept_research_only:true,
+        }});
+        if (version !== researchPreviewVersion || maps.rusefiHandoff !== handoff || !handoff.isCurrent()) return;
+        const attached = handoff.onSaved(saved.path, targetBefore);
+        out.insertAdjacentHTML('beforeend', `<div class="gate-card warn"><h4>rusEFI research copy saved</h4><p class="small">Image: <code>${esc(saved.path)}</code><br>Manifest: <code>${esc(saved.manifest_path)}</code><br>SHA-256: <code>${esc(saved.manifest.output_sha256)}</code></p><p>${attached ? 'Edited path filled in the rusEFI panel.' : 'The edited path changed during export and was preserved; enter the saved path manually if desired.'} Return to rusEFI to acknowledge risks and review differences. No write or burn was sent.</p></div>`);
+      } catch (err) { if (version === researchPreviewVersion) toast(`rusEFI research export refused: ${err.message}`, 'bad'); }
+      finally { if (version === researchPreviewVersion) rusefiExport.disabled = false; }
+    };
+    out.querySelectorAll('[data-honda-checksum-export]').forEach(button => {
+      button.onclick = async () => {
+        const candidate = result.honda_checksum_candidates[Number(button.dataset.hondaChecksumExport)];
+        if (!candidate) return;
+        const accepted = await confirmDialog('Export Honda checksum research copy?',
+          `<p>For candidate <b>${esc(candidate.part)}</b> / <code>${esc(candidate.ecm_id)}</code>, export the reviewed edits and adjust only the byte at <code>0x${candidate.checksum_offset.toString(16).toUpperCase()}</code> so the file sum is zero. The whole file is the selected edit range. Fitment, other checksums and signatures are not verified; this is <b>not flash-ready</b>. The original stays unchanged and no ECU is contacted.</p>`,
+          'Export corrected research copy', {tone:'danger'});
+        if (!accepted || version !== researchPreviewVersion || selectedXdf !== $('#xdfSelect').value) return;
+        button.disabled = true;
+        try {
+          const saved = await api('/api/maps/research-export', { method:'POST', body:{
+            ...body, region_start:0, region_end:result.source.bytes,
+            expected_candidate_sha256:result.candidate_sha256, accept_research_only:true,
+            honda_checksum_ecm_id:candidate.ecm_id, confirm_honda_checksum:true,
+            expected_checksum_output_sha256:candidate.output_sha256,
+          }});
+          if (version !== researchPreviewVersion) return;
+          out.insertAdjacentHTML('beforeend', `<div class="gate-card warn"><h4>Honda research copy saved · not flash-ready</h4><p class="small">Image: <code>${esc(saved.path)}</code><br>Manifest: <code>${esc(saved.manifest_path)}</code><br>SHA-256: <code>${esc(saved.manifest.output_sha256)}</code></p><p class="small">Only the selected checksum byte was adjusted; other checksums, fitment and signatures remain unverified. No ECU was contacted.</p></div>`);
+        } catch (err) { if (version === researchPreviewVersion) toast(`Honda research export refused: ${err.message}`, 'bad'); }
+        finally { if (version === researchPreviewVersion) button.disabled = false; }
+      };
+    });
     const userExport = $('#userResearchExportBtn');
     if (userExport) userExport.onclick = async () => {
       const start = $('#researchRegionStart').value.trim();
@@ -4487,6 +4665,10 @@ $('#mapResearchPreviewBtn').onclick = async () => {
     };
     const exportButton = $('#harleyResearchExportBtn');
     if (exportButton) exportButton.onclick = async () => {
+      const handoff = maps.harleyHandoff;
+      const handoffMatches = handoff?.isCurrent() && result.source.bytes === 0x4000 &&
+        handoff.path === result.source.path && handoff.sha256 === result.source.sha256;
+      const targetBefore = handoffMatches ? handoff.snapshotTarget() : null;
       const accepted = await confirmDialog('Export Delphi research copy?',
         '<p>This uses the source-described Delphi 16 KiB tune layout, not automatic bike identification. '
         + 'Fitment, checksums, signatures and ECU writing are not established. '
@@ -4499,10 +4681,12 @@ $('#mapResearchPreviewBtn').onclick = async () => {
           ...body, expected_candidate_sha256: result.candidate_sha256, accept_research_only: true,
         } });
         if (version !== researchPreviewVersion) return;
+        const attached = handoffMatches && maps.harleyHandoff === handoff && handoff.isCurrent()
+          ? handoff.onSaved(saved.path, targetBefore) : false;
         out.insertAdjacentHTML('beforeend', `<div class="gate-card warn"><h4>Research copy saved · not flash-ready</h4>
           <p class="small">Image: <code>${esc(saved.path)}</code><br>Manifest: <code>${esc(saved.manifest_path)}</code><br>
           SHA-256: <code>${esc(saved.manifest.output_sha256)}</code></p>
-          <p class="small">No ECU was contacted and no checksum was repaired.</p></div>`);
+          <p class="small">No ECU was contacted and no checksum was repaired. ${attached ? 'Edited tune path filled for Harley write review.' : handoffMatches ? 'The read or edited path changed; the saved path was not attached.' : ''}</p></div>`);
       } catch (err) {
         if (version === researchPreviewVersion) toast(`Research export refused: ${err.message}`, 'bad');
       } finally { if (version === researchPreviewVersion) exportButton.disabled = false; }

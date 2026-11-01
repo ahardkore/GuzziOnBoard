@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='utf-8'?>
+<XDFFORMAT version="1.60">
+  <XDFHEADER>
+    <deftitle>Buell BUEGB EEPROM maps (research)</deftitle>
+    <description>Source-derived flat XPR EEPROM image; use only with the matching ECM ID and verify definition. Synthetic tests only. Not flash-ready.</description>
+    <author>EcmDroid / XBTune; adapted by GuzziOnBoard</author>
+    <fileversion>0.1</fileversion>
+    <BASEOFFSET offset="0" subtract="0" />
+    <DEFAULTS datasizeinbits="8" signed="0" lsbfirst="1" float="0" />
+    <REGION type="0xFFFFFFFF" startaddress="0x0" size="0x4b2" regionflags="0x0" name="XPR EEPROM" desc="Page 0 stored at end" />
+  </XDFHEADER>
+  <XDFTABLE uniqueid="0x1">
+    <title>Tab_Spark_Front</title>
+    <XDFAXIS id="x">
+      <EMBEDDEDDATA mmedtypeflags="0x02" mmedaddress="0x25c" mmedelementsizebits="16" />
+      <units>RPM</units>
+      <indexcount>10</indexcount>
+      <MATH equation="X" />
+    </XDFAXIS>
+    <XDFAXIS id="y">
+      <EMBEDDEDDATA mmedtypeflags="0x02" mmedaddress="0x252" mmedelementsizebits="8" />
+      <units>Load</units>
+      <indexcount>10</indexcount>
+      <MATH equation="X" />
+    </XDFAXIS>
+    <XDFAXIS id="z">
+      <EMBEDDEDDATA mmedtypeflags="0x02" mmedaddress="0x296" mmedelementsizebits="8" mmedrowcount="10" mmedcolcount="10" mmedmajorstridebits="80" />
+      <units>degrees</units>
+      <decimalpl>2</decimalpl>
+      <MATH equation="X*0.25" />
+    </XDFAXIS>
+  </XDFTABLE>
+  <XDFTABLE uniqueid="0x2">
+    <title>Tab_Spark_Rear</title>
+    <XDFAXIS id="x">
+      <EMBEDDEDDATA mmedtypeflags="0x02" mmedaddress="0x25c" mmedelementsizebits="16" />
+      <units>RPM</units>
+      <indexcount>10</indexcount>
+      <MATH equation="X" />
+    </XDFAXIS>
+    <XDFAXIS id="y">
+      <EMBEDDEDDATA mmedtypeflags="0x02" mmedaddress="0x252" mmedelementsizebits="8" />
+      <units>Load</units>
+      <indexcount>10</indexcount>
+      <MATH equation="X" />
+    </XDFAXIS>
+    <XDFAXIS id="z">
+      <EMBEDDEDDATA mmedtypeflags="0x02" mmedaddress="0x2fa" mmedelementsizebits="8" mmedrowcount="10" mmedcolcount="10" mmedmajorstridebits="80" />
+      <units>degrees</units>
+      <decimalpl>2</decimalpl>
+      <MATH equation="X*0.25" />
+    </XDFAXIS>
+  </XDFTABLE>
+  <XDFTABLE uniqueid="0x3">
+    <title>Tab_Fuel_Front</title>
+    <XDFAXIS id="x">
+      <EMBEDDEDDATA mmedtypeflags="0x02" mmedaddress="0x27c" mmedelementsizebits="16" />
+      <units>RPM</units>
+      <indexcount>13</indexcount>
+      <MATH equation="X" />
+    </XDFAXIS>
+    <XDFAXIS id="y">
+      <EMBEDDEDDATA mmedtypeflags="0x02" mmedaddress="0x270" mmedelementsizebits="8" />
+      <units>Load</units>
+      <indexcount>12</indexcount>
+      <MATH equation="X" />
+    </XDFAXIS>
+    <XDFAXIS id="z">
+      <EMBEDDEDDATA mmedtypeflags="0x02" mmedaddress="0x35e" mmedelementsizebits="8" mmedrowcount="12" mmedcolcount="13" mmedmajorstridebits="112" />
+      <units>raw</units>
+      <decimalpl>0</decimalpl>
+      <MATH equation="X" />
+    </XDFAXIS>
+  </XDFTABLE>
+  <XDFTABLE uniqueid="0x4">
+    <title>Tab_Fuel_Rear</title>
+    <XDFAXIS id="x">
+      <EMBEDDEDDATA mmedtypeflags="0x02" mmedaddress="0x27c" mmedelementsizebits="16" />
+      <units>RPM</units>
+      <indexcount>13</indexcount>
+      <MATH equation="X" />
+    </XDFAXIS>
+    <XDFAXIS id="y">
+      <EMBEDDEDDATA mmedtypeflags="0x02" mmedaddress="0x270" mmedelementsizebits="8" />
+      <units>Load</units>
+      <indexcount>12</indexcount>
+      <MATH equation="X" />
+    </XDFAXIS>
+    <XDFAXIS id="z">
+      <EMBEDDEDDATA mmedtypeflags="0x02" mmedaddress="0x406" mmedelementsizebits="8" mmedrowcount="12" mmedcolcount="13" mmedmajorstridebits="112" />
+      <units>raw</units>
+      <decimalpl>0</decimalpl>
+      <MATH equation="X" />
+    </XDFAXIS>
+  </XDFTABLE>
+</XDFFORMAT>

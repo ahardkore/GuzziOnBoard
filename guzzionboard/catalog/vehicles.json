@@ -16,11 +16,11 @@
   "https://www.woolichracing.com/products/kawasaki/z650/kawasaki-z650-ecu-flashing.aspx: commercial Kawasaki part and year-list research",
   "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce: Suzuki SV650AK7 2007 author-tested K-Line reference",
   "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32: Triumph Daytona 675 2012 author-tested read-only OBD reference",
-  "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952: CB500F / CBR500R 2013–2016 MGZ-A03 offline reference",
+  "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952: CB500F / CBR500R 2013\u20132016 MGZ-A03 offline reference",
   "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3: author-reported 2012 Versys 650 and 2011 GSX-R600 read-only K-Line",
   "https://mcuinnovations.com/news/protocol-honda_keihin_kline_pgmfi/: source-listed Honda Keihin PGM-FI models; model-specific diagnostic support unverified",
   "https://github.com/uronour/suzuki-Kawasaki-ecu-tool/tree/4f92cc2adab254595b08c21e2c90b4c57d2e9cc6: source-reported 2004 Suzuki GSX-R1000 SDS",
-  "https://github.com/synfinatic/sv650sds/tree/bacf803a9056241ef270acf0e7e31467961aeba5: SV650 2003–2005 SDS research and live capture",
+  "https://github.com/synfinatic/sv650sds/tree/bacf803a9056241ef270acf0e7e31467961aeba5: SV650 2003\u20132005 SDS research and live capture",
   "https://mcuinnovations.com/vehicles/protocols/honda_keihin_kline_pgmfi/",
   "https://www.obd2tool.com/goods-5014-OBD+Tool+For+Fuel+Injected+Honda+Motorcycles+Support+Multi-languages.html",
   "https://support.aimshop.com/downloads/stockEcu/bike/suzuki/Suzuki_SDS_Protocol_102_eng.pdf",
@@ -35,7 +35,8 @@
   "https://www.aimtechnologies.com/aim-support/docs/SoloDL_HondaCRF-HDS_250dal2010+450dal2009_100_eng.pdf",
   "https://www.honda.co.jp/HRC/products/racingkit/crf250r/settingtool/",
   "https://www.amazon.com/AMHTDOL-Diagnostic-Connector-Motorcycles-Compatible/dp/B0GVTYHT94",
-  "https://github.com/sunsided/suzuki-sds-obdii-gateway/tree/20644c2e21ca2a867e086409c7f130230a7327d7: 2017 DL650XAL7 SDS gateway, explicitly unverified on bike"
+  "https://github.com/sunsided/suzuki-sds-obdii-gateway/tree/20644c2e21ca2a867e086409c7f130230a7327d7: 2017 DL650XAL7 SDS gateway, explicitly unverified on bike",
+  "https://bikestudio.io/ecu?lang=en"
  ],
  "vehicles": [
   {
@@ -1370,7 +1371,7 @@
    "year_to": 2026,
    "ecu": "kawasaki_z650_2023_2026",
    "confidence": "inferred",
-   "notes": "Vendor year range and ECU numbers are research leads, not proof for every market, year or motorcycle. No physical diagnostics, simulation or programming in this profile. Vendor product title says 2023–2025 but its feature list says 2023–2026; verify 2026 applicability."
+   "notes": "Vendor year range and ECU numbers are research leads, not proof for every market, year or motorcycle. No physical diagnostics, simulation or programming in this profile. Vendor product title says 2023\u20132025 but its feature list says 2023\u20132026; verify 2026 applicability."
   },
   {
    "make": "Kawasaki",
@@ -1424,7 +1425,7 @@
    "year_to": 2012,
    "ecu": "honda_cbr1000rr_2012_us",
    "confidence": "inferred",
-   "notes": "HondaECU repository: 2012 US XDF; source image 38770-MGP-A01 2012–2013. Offline build is locked to the exact source and definition; no live Honda sessions or programming."
+   "notes": "HondaECU repository: 2012 US XDF; source image 38770-MGP-A01 2012\u20132013. Offline build is locked to the exact source and definition; no live Honda sessions or programming."
   },
   {
    "make": "Honda",
@@ -2030,7 +2031,7 @@
    "model": "SV650",
    "ecu": "suzuki_sv650_2003",
    "confidence": "unknown",
-   "notes": "Source reports 03–05 SV650 communication; raw SDS snapshot only. Integration synthetic-tested, no ECU ID, memory or programming.",
+   "notes": "Source reports 03\u201305 SV650 communication; raw SDS snapshot only. Integration synthetic-tested, no ECU ID, memory or programming.",
    "year_from": 2003,
    "year_to": 2005
   },
@@ -4579,7 +4580,7 @@
    "year_to": 2024,
    "ecu": "honda_pgmfi_research",
    "confidence": "unknown",
-   "notes": "HondaECU-1 lists a 2019 CRF110F K-Line ECU; Dynojet lists CRF110F 2019–2024 for its Power Vision. This is not confirmation that this separate implementation works on every ECU. Synthetic tests only; read-only attempt, no memory or programming."
+   "notes": "HondaECU-1 lists a 2019 CRF110F K-Line ECU; Dynojet lists CRF110F 2019\u20132024 for its Power Vision. This is not confirmation that this separate implementation works on every ECU. Synthetic tests only; read-only attempt, no memory or programming."
   },
   {
    "make": "Honda",
@@ -4787,7 +4788,7 @@
    "year_to": 2005,
    "ecu": "suzuki_sds_gsxr_research",
    "confidence": "unknown",
-   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation’s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
+   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation\u2019s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
   },
   {
    "make": "Suzuki",
@@ -4796,7 +4797,7 @@
    "year_to": 2023,
    "ecu": "suzuki_sds_gsxr_research",
    "confidence": "unknown",
-   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation’s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
+   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation\u2019s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
   },
   {
    "make": "Suzuki",
@@ -4805,7 +4806,7 @@
    "year_to": 2005,
    "ecu": "suzuki_sds_gsxr_research",
    "confidence": "unknown",
-   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation’s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
+   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation\u2019s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
   },
   {
    "make": "Suzuki",
@@ -4814,7 +4815,7 @@
    "year_to": 2017,
    "ecu": "suzuki_sds_gsxr_research",
    "confidence": "unknown",
-   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation’s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
+   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation\u2019s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
   },
   {
    "make": "Honda",
@@ -4950,6 +4951,204 @@
    "ecu": "suzuki_dl650_2017_research",
    "confidence": "unknown",
    "notes": "Source proposes this bike and explicitly reports no bike verification. This integration has synthetic tests only; raw live SDS attempt, no memory or tuning."
+  },
+  {
+   "make": "Yamaha",
+   "model": "YZF-R15",
+   "year_from": 2014,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Yamaha",
+   "model": "Mio M3",
+   "year_from": 2015,
+   "year_to": 2021,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Yamaha",
+   "model": "AEROX 155",
+   "year_from": 2017,
+   "year_to": 2022,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Yamaha",
+   "model": "NMAX 155",
+   "year_from": 2017,
+   "year_to": 2022,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Honda",
+   "model": "Grom / MSX 125",
+   "year_from": 2013,
+   "year_to": 2022,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Honda",
+   "model": "CT 125",
+   "year_from": 2022,
+   "year_to": 2022,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Yamaha",
+   "model": "NMAX NEW",
+   "year_from": 2021,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Honda",
+   "model": "ADV 150",
+   "year_from": 2018,
+   "year_to": 2021,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Honda",
+   "model": "ADV 160",
+   "year_from": 2022,
+   "year_to": 2023,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Honda",
+   "model": "ADV 160",
+   "year_from": 2026,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Honda",
+   "model": "PCX 160",
+   "year_from": 2021,
+   "year_to": 2023,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Honda",
+   "model": "PCX 160",
+   "year_from": 2025,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Honda",
+   "model": "PCX-150",
+   "year_from": 2017,
+   "year_to": 2020,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Yamaha",
+   "model": "AEROX NEW",
+   "year_from": 2021,
+   "year_to": 2024,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Yamaha",
+   "model": "MT15",
+   "year_from": 2019,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Yamaha",
+   "model": "XSR 155",
+   "year_from": 2019,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Yamaha",
+   "model": "WR 155",
+   "year_from": 2021,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Yamaha",
+   "model": "XMAX",
+   "year_from": 2017,
+   "year_to": 2026,
+   "ecu": "bikestudio_reference_only",
+   "displacement": "",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
   }
  ]
 }

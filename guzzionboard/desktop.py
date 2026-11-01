@@ -540,6 +540,8 @@ class DesktopBridge:
         }
 
     def quit(self) -> dict:
+        if self.app.busy().get("running"):
+            return {"ok": False, "note": "A memory operation is running; wait until it finishes before quitting."}
         self.app.request_quit("asked from the window")
         return {"ok": True, "note": "The workstation is shutting down."}
 
@@ -969,6 +971,12 @@ class DesktopApp:
         api = getattr(self.handler, "api", None)
         if api is None:
             return {"running": False, "name": None, "state": "idle"}
+        if api._harley_memory_active.is_set():
+            return {"running": True, "name": "Harley Delphi memory operation", "state": "running"}
+        if api._buell_writing.is_set():
+            return {"running": True, "name": "Buell EEPROM write", "state": "running"}
+        if api._rusefi_active.is_set():
+            return {"running": True, "name": "rusEFI calibration operation", "state": "running"}
         try:
             status = api.jobs.status()
         except Exception:                     # pragma: no cover - defensive

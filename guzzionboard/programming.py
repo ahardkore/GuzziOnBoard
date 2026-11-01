@@ -69,7 +69,7 @@ from .firmware import (
     summarise_findings,
 )
 from .protocol.kwp2000 import NegativeResponse, ProtocolError, Service
-from .safety import Decision, Mode, Risk, SafetyGate, SafetyViolation
+from .safety import Check, Decision, Mode, Risk, SafetyGate, SafetyViolation
 from .security import SecurityUnavailable, best_provider
 
 #: Where backups and checkpoints live.
@@ -204,6 +204,11 @@ class ProgrammingService:
             "protocol": self.spec.get("protocol", "none"),
             "regions": {n: r.as_dict() for n, r in regions.items()},
             "read_supported": bool(memory.get("read_supported")),
+            "read_blocked_reason": (
+                "No ECU memory reader is implemented for this profile. "
+                + str(memory.get("read_blocked_reason") or memory.get("write_blocked_reason") or "")
+                if not memory.get("read_supported") else ""
+            ),
             "write_supported": bool(memory.get("write_supported")),
             "write_blocked_reason": memory.get("write_blocked_reason", ""),
             # These two are set only on simulated sessions — see
@@ -212,8 +217,12 @@ class ProgrammingService:
             # letting a green Write row imply the same of real hardware.
             "simulated": bool(memory.get("simulated")),
             "simulation_note": memory.get("simulation_note", ""),
-            "security_required": bool(self.spec.get("security", {}).get("required")),
-            "security_available": self._security_available(),
+            # Without a reader, missing security metadata does not mean the
+            # ECU has no security requirements.
+            "security_required": (bool(self.spec.get("security", {}).get("required"))
+                                  if memory.get("read_supported") else None),
+            "security_available": (self._security_available()
+                                   if memory.get("read_supported") else None),
             "hardware_note": memory.get("hardware_note", ""),
             "research_read_only": bool(memory.get("research_read_only")),
             "partial_read_note": (
@@ -445,8 +454,8 @@ class ProgrammingService:
                 f"{self.profile.family}: reading is not supported by this build "
                 f"({memory.get('write_blocked_reason', 'no verified read path')})"
             )
-        if self.profile.id == "honda_cb500f_dashble":
-            return self._read_honda_mgz_research(region_name, experimental_confirmation)
+        if self.profile.id in ("honda_cb500f_dashble", "honda_pgmfi_flash_research"):
+            return self._read_honda_research(region_name, experimental_confirmation)
         if not self.diag.identity:
             raise ProgrammingError("identify the ECU before reading its memory")
 
@@ -508,23 +517,69 @@ class ProgrammingService:
                 pass  # optional evidence sharing must never invalidate a completed read
         return image
 
-    def _read_honda_mgz_research(self, region_name: str, confirmed: bool) -> FirmwareImage:
-        from .protocol.honda_cbr600rr import HondaCB500FDashSession, read_mgz_a03_research_image
+    def _read_honda_research(self, region_name: str, confirmed: bool) -> FirmwareImage:
+        from .protocol.honda_cbr600rr import (HondaCB500FDashSession, HONDA_RESEARCH_LAYOUTS,
+                                               HONDA_EXAMPLE_INFERRED_IDS, HONDA_RESEARCH_IMAGE_SIZES,
+                                               HONDA_RESEARCH_STARTS, HONDA_RESEARCH_EXAMPLE_PARTS,
+                                               HONDA_RESEARCH_COMMENTED_IDS, HONDA_VFR_RESEARCH_IDS,
+                                               HONDA_TABLE_ONLY_IDS, HONDA_EXAMPLE_ONLY_IDS,
+                                               HONDA_FAMILY_INFERRED_IDS, HONDA_SOURCE_CONFLICTS,
+                                               read_honda_research_image)
+        from .protocol.honda_pgmfi import HondaPgmfiFlashResearchSession
         if (confirmed is not True or region_name != "flash" or self.gate.mode != Mode.READ_ONLY
                 or not self.diag.transport.is_physical or self.diag.transport.name != "kline"):
-            raise ProgrammingError("MGZ-A03 research read requires explicit confirmation, read-only physical K-Line and the flash region")
+            raise ProgrammingError("Honda research read requires explicit confirmation, read-only physical K-Line and the flash region")
         started = time.time()
         with self.diag._lock:
             session = self.diag._require()
-            if type(session) is not HondaCB500FDashSession:
-                raise ProgrammingError("MGZ-A03 research read requires its exact Honda session")
+            expected = HondaCB500FDashSession if self.profile.id == "honda_cb500f_dashble" else HondaPgmfiFlashResearchSession
+            if type(session) is not expected:
+                raise ProgrammingError("Honda research read requires its exact Honda session")
             def progress(done, total):
                 self.diag._touch()
-                self._emit("research-read", done, total, "Experimental MGZ-A03 read; not a verified backup")
-            data = read_mgz_a03_research_image(session, progress)
+                self._emit("research-read", done, total, "Experimental Honda read; not a verified backup")
+            data, ecm_id = read_honda_research_image(session, progress)
+        part, id_offset = HONDA_RESEARCH_LAYOUTS[ecm_id]
         image = FirmwareImage(data=bytearray(data), ecu_id=self.profile.id, region=region_name,
-                              source="research-read", identity={"ECM ID candidate": "01 01 25 05 01"},
-                              meta={"protocol": "honda-mgz-a03-research", "verified_backup": False,
+                              source="research-read", identity={"ECM ID candidate": ecm_id.hex(' ').upper(),
+                                                               "Source part candidate": part,
+                                                               **({"Conflicting source example label": HONDA_RESEARCH_EXAMPLE_PARTS[ecm_id]}
+                                                                  if ecm_id in HONDA_RESEARCH_EXAMPLE_PARTS else {}),
+                                                               **({"Source ID conflict": HONDA_SOURCE_CONFLICTS[ecm_id]}
+                                                                  if ecm_id in HONDA_SOURCE_CONFLICTS else {})},
+                              meta={"protocol": "honda-source-id-research", "source_id_offset": id_offset,
+                                    "candidate_source": ("AlexKovalevich/HondaECU db0a6cb8"
+                                                         if ecm_id in HONDA_VFR_RESEARCH_IDS else
+                                                         "aeaphichart/HondaECU-1 b59ae98b"
+                                                         if ecm_id in HONDA_TABLE_ONLY_IDS else
+                                                         "WiseNoodle/honda-moto-ecu-suite 85431bd8"),
+                                    "read_block_size": 128 if ecm_id in HONDA_VFR_RESEARCH_IDS else 8,
+                                    "source_id_table_status": ("example-only ID/part candidate; table may conflict"
+                                                               if ecm_id in HONDA_EXAMPLE_ONLY_IDS else
+                                                               "active table ID; named example has a different ID"
+                                                               if ecm_id in HONDA_FAMILY_INFERRED_IDS else
+                                                               "commented out upstream; matching example"
+                                                               if ecm_id in HONDA_RESEARCH_COMMENTED_IDS
+                                                               else "active upstream entry"),
+                                    "id_offset_basis": ("source ID table; no example independently checked"
+                                                        if ecm_id in HONDA_TABLE_ONLY_IDS else
+                                                        "inferred from another family example; named example ID conflicts"
+                                                        if ecm_id in HONDA_FAMILY_INFERRED_IDS else
+                                                        "inferred from source-named example image"
+                                                        if ecm_id in HONDA_EXAMPLE_INFERRED_IDS
+                                                        else "source ID table, confirmed in example image"),
+                                    "sample_size": (None if ecm_id in HONDA_TABLE_ONLY_IDS | HONDA_FAMILY_INFERRED_IDS else HONDA_RESEARCH_IMAGE_SIZES[ecm_id]),
+                                    "read_size": HONDA_RESEARCH_IMAGE_SIZES[ecm_id],
+                                    "read_size_basis": ("source model/family ROM size; no example independently checked"
+                                                        if ecm_id in HONDA_TABLE_ONLY_IDS else
+                                                        "another family example; named example ID conflicts"
+                                                        if ecm_id in HONDA_FAMILY_INFERRED_IDS else
+                                                        "source-named example file length"),
+                                    "read_start": HONDA_RESEARCH_STARTS[ecm_id],
+                                    "address_basis": ("source table offset used as assumed read start; example file origin not established"
+                                                      if HONDA_RESEARCH_STARTS[ecm_id]
+                                                      else "zero start assumed; example file origin not established"),
+                                    "verified_backup": False,
                                     "duration_s": round(time.time() - started, 1),
                                     "note": "Source-derived experimental read, not a verified backup or flash-ready image."})
         self.log.action("research_memory_read_complete", {"size": image.size, "sha256": image.sha256,
@@ -823,11 +878,19 @@ class ProgrammingService:
         if image is not None:
             image_hardware = str((image.identity or {}).get("Hardware", "")).strip()
             image_embedded = extract_hardware_strings(image.data)
+        memory = self.profile.memory or {}
+        region = self.regions().get(region_name)
         decision = self.gate.evaluate(
             f"write:{region_name}", Risk.IRREVERSIBLE,
             profile=self.profile, capability="memory_write",
             image_hardware=image_hardware,
             image_embedded_hardware=image_embedded,
+            additional_checks=(
+                Check("write-supported", bool(memory.get("write_supported")),
+                      str(memory.get("write_blocked_reason") or "no ECU writer enabled for this profile")),
+                Check("writable-region", bool(region and region.writable),
+                      f"{region_name!r} is not a declared writable region"),
+            ),
         )
         self.log.decision(decision.as_dict())
         return decision

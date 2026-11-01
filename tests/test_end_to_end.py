@@ -486,3 +486,22 @@ def test_direct_memory_read_rejects_bad_arguments_and_truncated_blocks(catalog, 
     with pytest.raises(ProtocolError, match='returned 1 bytes, expected 4'):
         service.read_memory(0, 4)
     service.disconnect()
+
+
+def test_physical_5am_direct_generic_read_refused_before_sending(catalog, monkeypatch):
+    """The simulator's service 0x23 model is not the physical 5AM reader."""
+    from guzzionboard.safety import SafetyViolation
+
+    service, _, _ = build(catalog)
+    service.connect()
+    # Replace only the physical flag after connection: no hardware is used.
+    monkeypatch.setattr(service.transport, 'is_physical', True)
+    sent = []
+    monkeypatch.setattr(service.session, 'read_memory_by_address',
+                        lambda *args: sent.append(args))
+    decision = service.check_memory_read()
+    assert not decision.allowed and 'reader-variant' in decision.reason()
+    with pytest.raises(SafetyViolation, match='profile-specific region read'):
+        service.read_memory(0, 16)
+    assert sent == []
+    service.disconnect()

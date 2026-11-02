@@ -131,8 +131,8 @@
         <div class="menu-sep" role="separator"></div>
         <div class="menu-section-title">Calculators &amp; Research</div>
         <button type="button" class="menu-item" data-menu-tool="#ecuLookup" role="menuitem"><span>ECU Part &amp; Label Lookup</span></button>
-        <button type="button" class="menu-item" data-menu-tool="#workshopGearing" role="menuitem"><span>Gearing &amp; Speed Calculator</span></button>
-        <button type="button" class="menu-item" data-menu-tool="#workshopValveShims" role="menuitem"><span>Valve Clearance &amp; Shim Sheet</span></button>
+        <button type="button" class="menu-item" data-menu-tool="#gearingPanel" role="menuitem"><span>Gearing &amp; Speed Calculator</span></button>
+        <button type="button" class="menu-item" data-menu-tool="#shimWorksheetPanel" role="menuitem"><span>Valve Clearance &amp; Shim Sheet</span></button>
         <button type="button" class="menu-item" data-menu-tool="#rusefiTunePanel" role="menuitem"><span>rusEFI / TunerStudio .ini Viewer</span></button>
         <button type="button" class="menu-item" data-menu-view="equipment" role="menuitem"><span>Adapter &amp; Cable Guide</span></button>
       </div>
@@ -851,7 +851,7 @@
       <div class="organizer-head">
         <div>
           <h2>Workshop utilities</h2>
-          <p class="muted">Standalone helpers that need no ECU connection. Filter by category, jump to a module, or search by bike, ECU family, or task.</p>
+          <p class="muted">Standalone helpers that need no ECU connection. Pick a <b>brand</b> to see only that manufacturer&rsquo;s modules, filter by category, jump to a module, or search by bike, ECU family, or task.</p>
         </div>
         <div class="organizer-head-actions">
           <button type="button" class="btn small" id="toolsFocusModeBtn" title="Switch between 2-column grid bench and single-tool focus pane">2-Column Bench</button>
@@ -859,6 +859,29 @@
         </div>
       </div>
       <div class="organizer-bar" id="toolsOrganizer">
+        <div class="tools-brand-bar">
+          <label class="tool-brand-pick" for="toolsBrandSelect">
+            <span>Brand</span>
+            <select id="toolsBrandSelect" aria-label="Show workshop tools for one brand, or every brand and general tools">
+              <option value="all">All brands &amp; general</option>
+              <option value="general">General &mdash; any motorcycle</option>
+              <optgroup label="Motorcycle brands">
+                <option value="bajaj">Bajaj</option>
+                <option value="buell">Buell</option>
+                <option value="cfmoto">CFMoto</option>
+                <option value="harley">Harley-Davidson</option>
+                <option value="honda">Honda</option>
+                <option value="yamaha">Yamaha</option>
+              </optgroup>
+              <optgroup label="Aftermarket &amp; equipment">
+                <option value="britek">BRT Juken</option>
+                <option value="dynojet">Dynojet / dyno</option>
+                <option value="rusefi">rusEFI</option>
+              </optgroup>
+            </select>
+          </label>
+          <span class="tool-brand-badge" id="toolsBrandBadge" aria-live="polite">All brands</span>
+        </div>
         <div class="filter-pills" role="tablist" aria-label="Workshop tool categories">
           <button type="button" class="filter-pill active" data-tool-filter="all" role="tab" aria-selected="true">All</button>
           <button type="button" class="filter-pill" data-tool-filter="workshop" role="tab" aria-selected="false">Workshop &amp; Service</button>
@@ -868,7 +891,7 @@
           <button type="button" class="filter-pill" data-tool-filter="hardware-research" role="tab" aria-selected="false">Live Serial / CAN</button>
         </div>
         <div class="organizer-search">
-          <input type="search" id="toolsSearchInput" placeholder="Filter tools (e.g. shim, gearing, Honda, checksum)&hellip;" aria-label="Filter workshop tools">
+          <input type="search" id="toolsSearchInput" placeholder="Search tools (e.g. shim, gearing, Honda, checksum)&hellip;" aria-label="Search workshop tools">
           <button type="button" class="btn small hidden" id="toolsSearchClear">Clear</button>
         </div>
       </div>
@@ -876,7 +899,7 @@
       <p class="muted small hidden" id="toolsEmptyNote">No tools match your current filter. Click <b>Clear</b> or choose <b>All</b> to show every utility.</p>
     </article>
 
-    <article class="panel" id="ecuLookup" data-tool-cat="reference">
+    <article class="panel" id="ecuLookup" data-tool-cat="reference" data-tool-brand="general">
       <h2>ECU number &amp; bike research</h2>
       <p class="muted small">Enter identifiers from the ECU label or identification report, not a VIN. Exact identifier matches are leads, not proof of fitment, software compatibility, checksum or flashing support. Hardware, software, part numbers and source reference codes are compared separately; a source code is not assumed to be a software ID.</p>
       <div class="toolbar">
@@ -898,7 +921,7 @@
       <p class="small muted">Other references (external links, no automatic lookup): <a href="https://www.ecmspy.com/supported.shtml" target="_blank" rel="noopener noreferrer">EcmSpy Buell ECM types</a> · <a href="https://tuneecu.net/AustrianCustomMapList.html" target="_blank" rel="noopener noreferrer">Austrian custom maps</a> · <a href="https://tuneecu.net/Twin_Custom_Tune_list.html" target="_blank" rel="noopener noreferrer">Triumph twin custom maps</a> · <a href="https://tuneecu.net/ObsoleteTune_List.html" target="_blank" rel="noopener noreferrer">Triumph obsolete 3/4-cylinder maps</a> · <a href="https://tuneecu.net/Twin_OEM_obsolete_Tune_list.html" target="_blank" rel="noopener noreferrer">Triumph twin obsolete maps</a>. Tune numbers are not ECU part numbers; custom tunes depend on bike configuration and require independent evaluation.</p>
     </article>
 
-    <article class="panel" id="sharedEcuResearch" data-tool-cat="reference">
+    <article class="panel" id="sharedEcuResearch" data-tool-cat="reference" data-tool-brand="general">
       <h2>Shared ECU family cross-reference</h2>
       <p class="muted small">Explore motorcycle entries mapped to the same catalog ECU profile across makes, alongside XDFs labelled for the related family. Entries and years are source-based leads, not proof of the same part number, hardware revision, software or interchangeable maps. Family similarity does not enable tuning or alter any safety gate.</p>
       <div class="toolbar"><button class="btn" id="sharedEcuLoad">Load catalog cross-reference</button><label class="inline">ECU profile <select id="sharedEcuFamily" disabled><option value="">— load and choose —</option></select></label></div>
@@ -906,7 +929,7 @@
       <p class="muted small">This uses the application's existing vehicle and XDF catalogs. Review the <a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/guzzionboard/catalog/vehicles.json" target="_blank" rel="noopener noreferrer">vehicle catalog source list</a> (not attribution for each individual entry) and <a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/guzzionboard/xdfs/PROVENANCE.json" target="_blank" rel="noopener noreferrer">XDF provenance</a>. A model may have multiple fitments in the same year. XDF family labels are discovery leads only; check the source, part number, software, layout and checksum independently.</p>
     </article>
 
-    <article class="panel" id="hondaVfrChecksum" data-tool-cat="calibration">
+    <article class="panel" id="hondaVfrChecksum" data-tool-cat="calibration" data-tool-brand="honda">
       <h2>Honda source-ID · calibration checksum</h2>
       <p class="small muted">44 source-scoped Honda ECM candidates. Choose an original and a separately edited copy of the stated length. The tool checks the candidate ID and original zero byte sum, then proposes a source-listed checksum-byte correction. It cannot establish identity, completeness, fitment, other checksums or permission to write. Some sizes and offsets are inferred; some have no matching checked example. Source XDFs require careful review. GuzziOnBoard has synthetic tests only; no physical ECU tested.</p>
       <label class="field"><span>Exact source candidate</span><select id="hondaVfrVariant"><option value="">Choose an ECM candidate</option></select></label>
@@ -917,7 +940,7 @@
       <pre id="hondaVfrOut" class="small" aria-live="polite">No image selected.</pre>
     </article>
 
-    <article class="panel" id="hondaOffline" data-tool-cat="telemetry">
+    <article class="panel" id="hondaOffline" data-tool-cat="telemetry" data-tool-brand="honda">
       <h2>Honda K-Line · offline response decoder</h2>
       <p class="muted small">Paste complete Honda K-Line response frames, one hex frame per line. This experimental decoder uses a third-party implementation tested by its author on a 2005 CBR600RR; fitment and results have not been validated by GuzziOnBoard. It does not connect to a motorcycle, send requests, or upload data. The table 11 candidate is separately based on a CRF250L project. Models, sensors and layouts can vary. Do not use results for safety decisions.</p>
       <label class="field"><span>Response bytes (hex, space-separated)</span>
@@ -927,7 +950,7 @@
       <p class="muted small">Accepts checksum-valid table 10 (22 bytes) and D1 (10 bytes) from the <a href="https://github.com/andreibaw/Honda_K-Line_KWP2000" target="_blank" rel="noopener">CBR600RR source</a>, plus table 11 (25 bytes) from the <a href="https://github.com/sophienyaa/Honda-Motorcycle-ECU-Tools" target="_blank" rel="noopener">CRF250L source</a>. The CRF source truncates some integer arithmetic; displayed fractions reflect its formulas, not its truncation. Unknown bytes remain in the original frame.</p>
     </article>
 
-    <article class="panel" id="multiResearch" data-tool-cat="telemetry">
+    <article class="panel" id="multiResearch" data-tool-cat="telemetry" data-tool-brand="general">
       <h2>Multi-brand offline capture research</h2>
       <p class="muted small">Choose an exact research profile and paste complete previously captured frames, one per line. Candidate interpretations come from third-party, model-specific projects; GuzziOnBoard has not tested them on a motorcycle. This tool never connects, transmits, unlocks, clears faults or uploads data. Do not use these values for riding, safety or tuning decisions.</p>
       <label class="field"><span>Profile (no automatic vehicle identification)</span><select id="multiResearchProfile">
@@ -946,7 +969,7 @@
       <p class="muted small">Interpretations are candidate values, not proof of vehicle fitment or frame authenticity. <a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/EXTERNAL_MOTORCYCLE_RESEARCH.md" target="_blank" rel="noopener">Sources, licenses and limitations</a>.</p>
     </article>
 
-    <article class="panel" id="etvResearch" data-tool-cat="calibration">
+    <article class="panel" id="etvResearch" data-tool-cat="calibration" data-tool-brand="general">
       <h2>Ride-by-wire torque inversion · offline research</h2>
       <p class="muted small">Adapted from <a href="https://github.com/silviosackewitz-code/OpenETV/tree/6b781e4fc11e5994531c367eb897f16d1a33318f" target="_blank" rel="noopener noreferrer">OpenETV</a>: estimate throttle opening from user-supplied engine torque and rider torque request tables. CSV rows are RPM, columns are throttle % (engine) or grip % (request), cells are Nm. Synthetic-tested only. Output is a model, not a measurement or flash-ready tune; verify exact ECU, units, map axes, actuator limits and control strategy, and validate on a dyno before riding. This tool does not identify an ECU, modify an image, or send commands.</p>
       <label class="field"><span>Engine torque CSV (first cell label, remaining header cells throttle %)</span><textarea id="etvEngine" rows="5" placeholder="RPM,0,50,100&#10;1000,-10,50,100&#10;2000,-10,60,110"></textarea></label>
@@ -955,7 +978,7 @@
       <pre id="etvOut" class="small" aria-live="polite">No calculation.</pre>
     </article>
 
-    <article class="panel" id="tuningResearch" data-tool-cat="reference">
+    <article class="panel" id="tuningResearch" data-tool-cat="reference" data-tool-brand="general">
       <h2>Multi-brand tuning research</h2>
       <p class="muted small">Research links are not supported tuning definitions. No maps, firmware, write commands or checksum repair are bundled for these bikes. A matching ECU, exact software, definition, checksum and legal use must be independently verified; a passing checksum alone does not establish fitment or safety.</p>
       <ul class="small">
@@ -967,7 +990,7 @@
       <p class="muted small">You can inspect a user-supplied XDF and image using the existing Maps workflow. The current build gate does not authorize unknown ECU families, and research references do not enable writing.</p>
     </article>
 
-    <article class="panel" id="jukenResearch" data-tool-cat="calibration">
+    <article class="panel" id="jukenResearch" data-tool-cat="calibration" data-tool-brand="britek">
       <h2>BRT Juken 5 · offline map-block research</h2>
       <p class="muted small">Inspect a user-supplied 10,248-byte raw core block locally using an independently published layout. The source explicitly says it has not tested the protocol or bulk decoding on real hardware; a file of this size does not prove Juken fitment, ECU identity, map encoding, orientation or scaling. No ECU is contacted, no firmware is generated, and results are not flash-ready.</p>
       <input type="file" id="jukenImage" aria-label="Juken raw core block">
@@ -980,7 +1003,7 @@
       <p class="muted small">CSV preserves linear cell indices; TPS/RPM orientation and units are not asserted. No file is uploaded or modified. <a href="https://github.com/cfbird/juken5/tree/8585b94715e5db01eb37bdd81c7b0a0a91c1d739" target="_blank" rel="noopener">Source, MIT license and limitations</a>.</p>
     </article>
 
-    <article class="panel" id="harleyRegion" data-tool-cat="calibration">
+    <article class="panel" id="harleyRegion" data-tool-cat="calibration" data-tool-brand="harley">
       <h2>Harley Delphi · offline calibration-region workspace</h2>
       <p class="muted small">For the Delphi layout described by HarleyECUTool (approximately 2014–2020). Inspect a local 160 KiB calibration or 16 KiB tune, compare two regions, or export the 16 KiB region as a new research file. This does not identify the motorcycle, decode maps, verify or repair calibration checksums, or flash an ECU. Source-to-bike fitment must be checked separately.</p>
       <label class="inline"><input type="checkbox" id="harleyRegionConfirm"> I intend to use the source-described Delphi memory layout</label>
@@ -993,7 +1016,7 @@
       <p class="muted small">The published mapping is one source's layout, not a universal Harley definition. Files remain local; exported bytes are not verified or flash-ready. <a href="https://github.com/rob9206/lawflo/tree/6255518dc9118d960efa42d6d9dc975926bbd579/ZOOSH_ECU-main/HarleyECUTool" target="_blank" rel="noopener">Source and scope</a>; see <code>docs/HARLEY_TUNING.md</code>.</p>
     </article>
 
-    <article class="panel" id="centurionResearch" data-tool-cat="calibration">
+    <article class="panel" id="centurionResearch" data-tool-cat="calibration" data-tool-brand="harley">
       <h2>Harley Centurion · local header research</h2>
       <p class="muted small">Inspect the candidate ECU-part and calibration fields of up to two user-supplied Delphi-like Centurion files. Field locations were observed in a limited source collection and may not apply to other versions. Unknown headers remain unknown; matching fields do not prove fitment, compatible tunes, checksum validity or flash readiness.</p>
       <label class="field"><span>First Centurion file</span><input type="file" id="centurionFirst" accept=".ori,application/octet-stream"></label>
@@ -1003,7 +1026,7 @@
       <p class="muted small">Files can contain VINs, customer and license information. Only the first 98 bytes are read locally; the observed VIN slot is not read; filenames are not displayed or uploaded. Candidate fields may contain sensitive information, so review before sharing. The tool does not extract, decrypt, edit, validate or flash the tune. No source customer files are bundled. <a href="https://github.com/aaronlumen/Performance-Harley-Davidson-Tuning/tree/a3250e460e1781b8f594e1b400e5a05058d23534" target="_blank" rel="noopener noreferrer">Source collection</a>.</p>
     </article>
 
-    <article class="panel" id="pvvEditor" data-tool-cat="calibration">
+    <article class="panel" id="pvvEditor" data-tool-cat="calibration" data-tool-brand="harley">
       <h2>Power Vision PVV · local table editor</h2>
       <p class="muted small">Open a user-supplied PVV XML file, inspect its tables and make explicit numeric cell edits to a separate XML copy. Based on the PVV layout described by DynoAI; no Power Vision device connection. This editor does not verify vehicle or calibration fitment, checksum, vendor acceptance, safety limits, or ECU recovery. The source file is never overwritten and no file is uploaded. Synthetic tests only.</p>
       <label class="field"><span>Local PVV XML file</span><input id="pvvFile" type="file" accept=".pvv,.xml,text/xml,application/xml"></label>
@@ -1016,7 +1039,7 @@
       <p class="muted small">Use the vendor's supported software to determine whether the copy can be imported and whether any checksum or other corrections are required. Changed numeric values are not recommendations. XML formatting may change; unsupported items and metadata are retained but not validated.</p>
     </article>
 
-    <article class="panel" id="jetdrivePanel" data-tool-cat="telemetry">
+    <article class="panel" id="jetdrivePanel" data-tool-cat="telemetry" data-tool-brand="dynojet">
       <h2>Dynojet JetDrive · live network observation</h2>
       <p class="muted small">Observe a three-second window of JetDrive-compatible multicast on your local dyno network. This is dyno telemetry, not a motorcycle ECU connection, tune writer, or authenticated source. Integration synthetic-tested only. Channel names and unit codes come from the provider and may be inaccurate; verify sensor mapping and timestamps independently before use.</p>
       <label class="field"><span>Multicast group</span><select id="jetdriveGroup"><option value="224.0.2.10">224.0.2.10</option><option value="239.255.60.60">239.255.60.60</option></select></label>
@@ -1028,7 +1051,7 @@
       <p class="muted small">CSV contains only the current bounded window, in long format, with source IP and provider/channel identifiers. No stale sample fill, unit conversion or automatic tuning is performed; network identifiers may be sensitive. <a href="https://github.com/rob9206/DynoAI_3/tree/cc22636aafa40a0b4ce4c27b5e0cc50795012b87" target="_blank" rel="noopener noreferrer">DynoAI source</a>.</p>
     </article>
 
-    <article class="panel" id="harleyMemory" data-tool-cat="hardware-research">
+    <article class="panel" id="harleyMemory" data-tool-cat="hardware-research" data-tool-brand="harley">
       <h2>Harley Delphi CAN · experimental live memory</h2>
       <p class="small"><strong>Synthetic-tested only; no GuzziOnBoard hardware test.</strong> Source-scoped candidate Delphi CAN protocol, not every Harley ECU. A read first downloads an opaque authentication payload to ECU address zero: this can alter ECU state. Use only an appropriate capture/payload you are authorized to use. No payload is bundled; the app calculates the seed key automatically. Verify bike, adapter and wiring, ignition on, engine stopped and stable power.</p>
       <label class="field"><span>CAN adapter interface</span><select id="hdMemInterface"><option value="socketcan">SocketCAN</option><option value="slcan">SLCAN</option><option value="pcan">PCAN USB</option></select></label>
@@ -1052,7 +1075,7 @@
       </details>
     </article>
 
-    <article class="panel" id="buellDdfi" data-tool-cat="hardware-research">
+    <article class="panel" id="buellDdfi" data-tool-cat="hardware-research" data-tool-brand="buell">
       <h2>Buell DDFI · live serial research</h2>
       <p class="muted small">For compatible Buell DDFI / DDFI-2 / DDFI-3 ECMs using an appropriate Buell TTL serial or paired Bluetooth serial adapter, <strong>not ELM327/J1850, OBD or direct RS-232</strong>. 5 V TTL maximum; verify adapter voltage, wiring, grounding, bike and protocol before connecting. Opening a port may change control lines. This integration is synthetic-tested only; no physical bike has been tested.</p>
       <label class="field"><span>Explicit Buell serial device</span><input id="buellPort" maxlength="255" placeholder="COM3 or /dev/ttyUSB0"></label>
@@ -1078,7 +1101,7 @@
       </details>
     </article>
 
-    <article class="panel" id="rusefiResearch" data-tool-cat="hardware-research">
+    <article class="panel" id="rusefiResearch" data-tool-cat="hardware-research" data-tool-brand="rusefi">
       <h2>rusEFI aftermarket · live serial research</h2>
       <p class="muted small">For an explicitly selected <strong>aftermarket rusEFI controller</strong>, including one configured for a Harley engine; not for stock Delphi ECUs or a Power Vision tuner. Synthetic-tested only, not hardware-validated. Opening a serial port may change its control lines. Verify wiring, power, port and baud first; do not run alongside another tuning program.</p>
       <label class="field"><span>rusEFI USB serial port</span><input id="rusefiPort" placeholder="COM3 or /dev/ttyACM0" maxlength="255"></label>
@@ -1106,7 +1129,7 @@
       </details>
     </article>
 
-    <article class="panel" id="yamahaResearch" data-tool-cat="calibration">
+    <article class="panel" id="yamahaResearch" data-tool-cat="calibration" data-tool-brand="yamaha">
       <h2>Yamaha MT image checksum · offline research</h2>
       <p class="muted small">Inspect a user-supplied, plain binary image locally. This research check follows one third-party Yamaha MT word-sum layout; GuzziOnBoard has not validated it against a real image or motorcycle. Inspection does not edit or upload the file; an optional, explicitly confirmed research export can repair the checksum in a new copy. A match does <b>not</b> prove identity, software compatibility, signature validity, calibration safety or legal road use. Never use the result as authorization to flash.</p>
       <label class="field"><span>Exact variant claimed by the source</span><select id="yamahaVariant">
@@ -1121,7 +1144,7 @@
       <p class="muted small">The selection is a user claim, not an ECU match. Unsupported lengths, nonmatching trailer structure and files with external headers are refused. SHA-256 is shown when available. Source and limitations are documented in <a href="https://github.com/NetworkDir/moto-ecu-checksum/tree/43ccc5f3663e2a175b7217f802bc302830e6862b" target="_blank" rel="noopener">moto-ecu-checksum</a>.</p>
     </article>
 
-    <article class="panel" id="bajajChecksum" data-tool-cat="calibration">
+    <article class="panel" id="bajajChecksum" data-tool-cat="calibration" data-tool-brand="bajaj">
       <h2>Bajaj RS200 · Dell'Orto checksum research</h2>
       <p class="muted small">For the source-reported 2024 RS200 <code>JL351458010651</code> calibration family only. Inspect a user-supplied 768 KiB raw image locally and, after confirmation, export a new copy with one 16-bit checksum updated. The source reports agreement with a commercial correction tool for three calibrations; our exact label-at-offset gate and integration have only synthetic tests. No ECU connection or flashing is provided. A signature/ID match does not prove fitment or a safe calibration.</p>
       <input type="file" id="bajajImage" aria-label="Bajaj RS200 binary image">
@@ -1131,7 +1154,7 @@
       <p class="muted small">Checks only one reported calibration checksum; other checksums and signatures may exist. No firmware or definitions are bundled. <a href="https://github.com/NetworkDir/moto-ecu-checksum/tree/43ccc5f3663e2a175b7217f802bc302830e6862b" target="_blank" rel="noopener">Source and reported tests</a>.</p>
     </article>
 
-    <article class="panel" id="cfmotoChecksum" data-tool-cat="calibration">
+    <article class="panel" id="cfmotoChecksum" data-tool-cat="calibration" data-tool-brand="cfmoto">
       <h2>CFMoto Bosch MSE6 checksum · offline research</h2>
       <p class="muted small">Inspect a local binary using the source's MSE6 record heuristic, reported for the 2024 NK250 and 2023 450SR. It does not identify an ECU or produce a file. The source explicitly reports mismatches on untouched running 450SR factory images. Do not use either result as permission to flash.</p>
       <input type="file" id="mseImage" aria-label="CFMoto binary image">
@@ -1141,7 +1164,7 @@
       <p class="muted small">The source searches a fixed window and infers records from structure; random data can match. Its code sums word starts strictly before the end address, despite an inclusive-end comment. No correction or programming is performed.</p>
     </article>
 
-    <article class="panel" id="workshopService" data-tool-cat="workshop">
+    <article class="panel" id="workshopService" data-tool-cat="workshop" data-tool-brand="general">
       <h2>Service interval worksheet</h2>
       <p class="muted small">Enter the <b>last documented service</b> and the interval for your exact motorcycle. This calculator does not infer that a previous service happened. Verify all intervals, initial services, severe-use requirements and procedures in the applicable manual. Kilometres only; records are not saved.</p>
       <details class="advanced">
@@ -1176,7 +1199,7 @@
       <div id="serviceDueOut" aria-live="polite"></div>
     </article>
 
-    <article class="panel" id="workshopManual" data-tool-cat="workshop">
+    <article class="panel" id="workshopManual" data-tool-cat="workshop" data-tool-brand="general">
       <h2>Search a local manual text</h2>
       <p class="muted small">Search a user-supplied UTF-8 <code>.txt</code> export locally for exact text such as a part number or torque term. The file stays in this tab's memory and is not uploaded or saved by this tool. PDF, OCR, semantic search and AI answers are not supported; export text separately and verify every result against the original manual.</p>
       <div class="toolbar"><input type="file" id="manualTextFile" accept=".txt,text/plain" aria-label="Manual text file">
@@ -1187,7 +1210,7 @@
       <div id="manualTextOut" aria-live="polite"></div>
     </article>
 
-    <article class="panel" id="shimWorksheetPanel" data-tool-cat="workshop">
+    <article class="panel" id="shimWorksheetPanel" data-tool-cat="workshop" data-tool-brand="general">
       <h2>Manual shim worksheet</h2>
       <p class="muted small">For a shim mechanism only when the workshop manual confirms a linear 1:1 relation. Enter the measured values, target range and direction yourself; no engine specifications or Ducati/Guzzi presets are assumed. This is arithmetic for review, not installation guidance.</p>
       <div class="toolbar">
@@ -1205,7 +1228,7 @@
       <div id="shimOut" aria-live="polite"></div>
     </article>
 
-    <article class="panel" id="gearingPanel" data-tool-cat="workshop">
+    <article class="panel" id="gearingPanel" data-tool-cat="workshop" data-tool-brand="general">
       <h2>Gearing &amp; road speed</h2>
       <p class="tip">
         <b>What it does:</b> tells you the road speed each gear gives you at a given engine speed
@@ -1232,7 +1255,7 @@
       <div id="gearOut"></div>
     </article>
 
-    <article class="panel" id="z2ConverterPanel" data-tool-cat="workshop">
+    <article class="panel" id="z2ConverterPanel" data-tool-cat="workshop" data-tool-brand="general">
       <h2>Wideband log converter &middot; Zeitronix ZT-2 &rarr; LogWorks</h2>
       <p class="tip">
         <b>What it does:</b> turns a CSV saved by the Zeitronix ZDL logger (AFR, RPM, TPS, MAP, EGT…)
@@ -1267,7 +1290,7 @@
       </div>
     </article>
 
-    <article class="panel" id="rpmSignalPanel" data-tool-cat="workshop">
+    <article class="panel" id="rpmSignalPanel" data-tool-cat="workshop" data-tool-brand="general">
       <h2>Bench RPM trigger signal</h2>
       <p class="tip">
         <b>What it does:</b> makes an ECU believe the engine is turning, on the bench, with no engine.
@@ -1817,6 +1840,26 @@
           <input type="search" id="helpSearchInput" placeholder="Search guides, tools, ECUs, protocols, checksums, XDFs&hellip;" aria-label="Search help articles and program features" autocomplete="off">
           <button type="button" class="btn small hidden" id="helpSearchClear">Clear</button>
         </div>
+        <label class="tool-brand-pick help-brand-pick" for="helpBrandSelect">
+          <span>Brand</span>
+          <select id="helpBrandSelect" aria-label="Narrow tool entries and the tool directory to one manufacturer">
+            <option value="all">All brands &amp; general</option>
+            <option value="general">General &mdash; any motorcycle</option>
+            <optgroup label="Motorcycle brands">
+              <option value="bajaj">Bajaj</option>
+              <option value="buell">Buell</option>
+              <option value="cfmoto">CFMoto</option>
+              <option value="harley">Harley-Davidson</option>
+              <option value="honda">Honda</option>
+              <option value="yamaha">Yamaha</option>
+            </optgroup>
+            <optgroup label="Aftermarket &amp; equipment">
+              <option value="britek">BRT Juken</option>
+              <option value="dynojet">Dynojet / dyno</option>
+              <option value="rusefi">rusEFI</option>
+            </optgroup>
+          </select>
+        </label>
       </div>
       <div class="help-search-status small muted hidden" id="helpSearchStats" aria-live="polite"></div>
     </article>

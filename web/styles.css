@@ -2821,3 +2821,122 @@ html[data-theme="light"] .help-spotlight-card { background: var(--panel); }
   .help-body { max-width: none; font-size: 10.5pt; }
   .help-table th, .help-table td { border-color: #999; }
 }
+
+/* --------------------------------------------------------------------------
+   Tools bench: organisation by brand
+   A brand <select> in the organizer bar, a heading per brand inside the bench,
+   and an "Only <brand>" affordance on each heading.
+   -------------------------------------------------------------------------- */
+.tools-brand-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.tool-brand-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 .74rem/1.2 var(--sans);
+  color: var(--muted);
+  letter-spacing: .02em;
+}
+#toolsBrandSelect {
+  appearance: none;
+  background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b9bb0' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 7px center;
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 5px 24px 5px 8px;
+  font: 600 .76rem/1.2 var(--sans);
+  cursor: pointer;
+  max-width: 240px;
+}
+#toolsBrandSelect:hover { border-color: var(--accent); }
+#toolsBrandSelect:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tool-brand-badge {
+  font: 600 .7rem/1.4 var(--mono);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+.tool-brand-badge.filtered {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.tools-brand-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  margin: 6px 0 0;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  background: var(--panel-2);
+}
+.tools-brand-name {
+  font: 700 .82rem/1.3 var(--sans);
+  color: var(--text);
+  letter-spacing: .01em;
+}
+.tools-brand-note {
+  flex: 1 1 220px;
+  min-width: 0;
+  font-size: .72rem;
+  color: var(--muted);
+}
+.tools-brand-count {
+  font: 600 .68rem/1.4 var(--mono);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.tools-brand-only {
+  padding: 2px 7px;
+  font-size: .68rem;
+}
+.tools-brand-only.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+@media screen and (min-width: 1120px) {
+  #tools:not(.hidden) > .tools-brand-heading {
+    grid-column: 1 / -1;
+    margin: 2px 0 0;
+  }
+}
+@media print {
+  .tools-brand-heading { break-after: avoid; }
+  .tools-brand-only, .tools-brand-bar { display: none !important; }
+}
+
+/* Brand chips used by the help center (tool entries and search results) */
+.help-brand-pick { margin-left: auto; }
+.help-brand-chip {
+  display: inline-block;
+  font: 700 .6rem/1.5 var(--mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  padding: 0 4px;
+  vertical-align: middle;
+}
+.help-brand-chip.small { font-size: .56rem; opacity: .85; }
+.help-brand-line { margin: 2px 0 6px; font-size: .78rem; color: var(--muted); }
+.help-brand-note { margin: -2px 0 8px; }
+.help-tool-card-meta {
+  font: 600 .64rem/1.4 var(--mono);
+  color: var(--muted);
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}

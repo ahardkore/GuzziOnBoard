@@ -94,8 +94,10 @@ def test_every_help_menu_topic_exists(index_html: str, topic_ids: set[str]):
 
 
 def test_categories_are_the_documented_seven(content: str):
-    categories = set(re.findall(r"\{ id: '([a-z]+)', label:", content))
-    assert categories == {"howto", "tools", "protocols", "ecus", "checksums", "safety", "glossary"}
+    block = re.search(r"const CATEGORIES = \[(.*?)\n  \];", content, re.S)
+    assert block, "web/help-content.js should declare CATEGORIES"
+    categories = re.findall(r"\{ id: '([a-z]+)', label:", block.group(1))
+    assert categories == ["howto", "tools", "protocols", "ecus", "checksums", "safety", "glossary"]
 
 
 def test_content_volume_is_a_complete_manual(topic_ids, tool_ids, protocol_ids, content):
@@ -313,3 +315,94 @@ def test_styles_cover_the_help_surfaces():
         assert selector in css, selector
     assert "@media print" in css
     assert '@media (max-width: 900px)' in css
+
+
+# -- brand organisation (Tools bench and the help directory) ----------------
+
+BRANDS_BLOCK = re.compile(r"const BRANDS = \[(.*?)\n  \];", re.S)
+
+
+def _brand_ids(content: str) -> list[str]:
+    match = BRANDS_BLOCK.search(content)
+    assert match, "web/help-content.js should declare a BRANDS array"
+    return re.findall(r"\{ id: '([a-z0-9-]+)', label:", match.group(1))
+
+
+def test_tools_bench_tags_every_panel_with_a_brand(index_html: str, content: str):
+    brands = _brand_ids(content)
+    assert brands[0] == "general"
+    assert {"harley", "honda", "buell", "yamaha", "bajaj", "cfmoto", "rusefi"} <= set(brands)
+
+    tools_section = index_html[index_html.index('id="tools"'):]
+    tools_section = tools_section[:tools_section.index("</section>")]
+    panels = re.findall(r"<article[^>]*data-tool-cat=\"[a-z-]+\"[^>]*>", tools_section)
+    assert len(panels) == 24, len(panels)
+    tagged = {}
+    for panel in panels:
+        pid = re.search(r'id="([^"]+)"', panel).group(1)
+        brand = re.search(r'data-tool-brand="([a-z0-9-]+)"', panel)
+        assert brand, f"{pid} has no data-tool-brand"
+        assert brand.group(1) in brands, (pid, brand.group(1))
+        tagged[pid] = brand.group(1)
+    # Every documented brand owns at least one bench module.
+    assert set(tagged.values()) == set(brands), set(brands) - set(tagged.values())
+    # The brand-specific ones land in the right group.
+    assert tagged["harleyMemory"] == "harley"
+    assert tagged["pvvEditor"] == "harley"
+    assert tagged["hondaOffline"] == "honda"
+    assert tagged["buellDdfi"] == "buell"
+    assert tagged["gearingPanel"] == "general"
+    assert tagged["ecuLookup"] == "general"
+
+
+def test_both_brand_dropdowns_offer_exactly_the_documented_brands(index_html: str, content: str):
+    brands = _brand_ids(content)
+    for select_id in ("toolsBrandSelect", "helpBrandSelect"):
+        block = re.search(
+            r'<select id="' + select_id + r'".*?</select>', index_html, re.S)
+        assert block, select_id
+        values = re.findall(r'<option value="([a-z0-9-]+)"', block.group(0))
+        assert values == ["all"] + brands, (select_id, values)
+
+
+def test_the_bench_and_help_lists_stay_in_step(content: str):
+    """web/app.js (the bench) and help-content.js (the directory) each keep a
+    brand list; they must agree, in order, or a heading and a filter diverge."""
+    app = _read(WEB / "app.js")
+    block = re.search(r"const TOOL_BRANDS = \[(.*?)\n  \];", app, re.S)
+    assert block, "web/app.js should declare TOOL_BRANDS"
+    app_ids = re.findall(r"\{ id: '([a-z0-9-]+)', label:", block.group(1))
+    assert app_ids == _brand_ids(content)
+
+
+def test_help_tool_entries_carry_the_brand_of_their_bench_panel(content: str):
+    brands = set(_brand_ids(content))
+    tagged = dict(re.findall(r"id: '([a-z0-9-]+)', name: '[^']+', category: '[a-z]+', brand: '([a-z0-9-]+)'", content))
+    assert len(tagged) == 13, sorted(tagged)
+    assert set(tagged.values()) <= brands
+    assert tagged["harley-memory"] == "harley"
+    assert tagged["honda-vfr-checksum"] == "honda"
+    assert tagged["jetdrive-panel"] == "dynojet"
+    assert tagged["juken-research"] == "britek"
+    # Everything without a brand is filed under General.
+    all_tools = re.findall(r"id: '([a-z0-9-]+)', name: '[^']+', category: '[a-z]+'", content)
+    assert set(tagged) <= set(all_tools)
+
+
+def test_bench_js_has_the_brand_plumbing():
+    app = _read(WEB / "app.js")
+    for symbol in ("TOOL_BRANDS", "initToolsBranding", "setToolBrand", "data-brand-only", "data-tool-brand"):
+        assert symbol in app, symbol
+    # Filtering must combine category, brand and search.
+    assert "brandMatch" in app and "catMatch" in app and "textMatch" in app
+
+    module = _read(WEB / "help-module.js")
+    for symbol in ("matchesBrand", "entryKindBrand", "renderToolDirectory", "helpBrandSelect"):
+        assert symbol in module, symbol
+
+
+def test_brand_styles_exist():
+    css = _read(STYLES)
+    for selector in (".tools-brand-bar", "#toolsBrandSelect", ".tool-brand-badge.filtered",
+                     ".tools-brand-heading", ".tools-brand-only", ".help-brand-chip"):
+        assert selector in css, selector

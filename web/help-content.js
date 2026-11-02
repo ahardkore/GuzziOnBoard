@@ -30,6 +30,23 @@
     { id: 'glossary', label: 'Glossary', blurb: 'Plain-language definitions of every ECU, tuning and workshop term used here.' },
   ];
 
+  /* Which manufacturer (or family) a tool belongs to. Mirrors the brand
+   * <select> on the Tools bench: 'general' means it works on any motorcycle
+   * or needs no bike at all. Keep both lists in step - tests/test_help_module.py
+   * compares them with the data-tool-brand attributes in web/index.html. */
+  const BRANDS = [
+    { id: 'general', label: 'General', note: 'works on any motorcycle, or needs no bike at all' },
+    { id: 'bajaj', label: 'Bajaj', note: "RS200 Dell'Orto image checksum research", oem: true },
+    { id: 'buell', label: 'Buell', note: 'DDFI / DDFI-2 / DDFI-3 serial and EEPROM', oem: true },
+    { id: 'cfmoto', label: 'CFMoto', note: 'Bosch MSE6 offline record research', oem: true },
+    { id: 'harley', label: 'Harley-Davidson', note: 'Delphi J1850 / CAN, Power Vision and Centurion files', oem: true },
+    { id: 'honda', label: 'Honda', note: 'Keihin PGM-FI frames and source-ID checksums', oem: true },
+    { id: 'yamaha', label: 'Yamaha', note: 'MT image checksum and dashboard stream observation', oem: true },
+    { id: 'britek', label: 'BRT Juken', note: 'aftermarket Juken 5 map blocks' },
+    { id: 'dynojet', label: 'Dynojet / dyno', note: 'JetDrive telemetry, not an ECU connection' },
+    { id: 'rusefi', label: 'rusEFI', note: 'aftermarket controller, .ini definitions and serial pages' },
+  ];
+
   /* ======================================================================
    * TOOLS — every view, panel, dialog and workshop utility.
    * help-module.js turns each entry into a searchable article at
@@ -163,10 +180,11 @@
     {
       id: 'view-tools', name: 'Tools — the workshop utilities bench', category: 'workshop',
       view: 'tools', selector: '#toolsOrganizer',
-      summary: 'Standalone helpers that need no ECU connection: reference research, offline calibration checks, brand-specific research, dyno telemetry and workshop maths.',
+      summary: 'Standalone helpers that need no ECU connection, grouped by manufacturer: General tools that fit any bike, then Bajaj, Buell, CFMoto, Harley-Davidson, Honda and Yamaha, plus aftermarket entries for BRT Juken, Dynojet and rusEFI.',
       steps: [
-        'Filter with the category pills (Reference, Calibration, Telemetry, Hardware research, Workshop).',
-        'Search by bike, ECU family, part number or task in the organizer search box.',
+        'Pick a brand in the Brand dropdown (or press "Only <brand>" on a group heading) to see just that maker\'s modules; General tools work on any motorcycle.',
+        'Filter with the category pills (Workshop & Service, Fitment & Reference, Decoders & Telemetry, Maps & Checksums, Live Serial / CAN). Brand and category combine.',
+        'Search by bike, ECU family, part number or task in the search box — search covers every brand at once.',
         'Open a module; most are collapsed <details> cards — click the summary row to expand.',
         'Focus mode hides every other module so one tool fills the bench.',
       ],
@@ -417,7 +435,7 @@
       tags: ['cross-reference', 'shared', 'family', 'xdf', 'fitment'],
     },
     {
-      id: 'honda-vfr-checksum', name: 'Honda source-ID · calibration checksum', category: 'calibration',
+      id: 'honda-vfr-checksum', name: 'Honda source-ID · calibration checksum', category: 'calibration', brand: 'honda',
       view: 'tools', selector: '#hondaVfrChecksum',
       summary: '44 source-scoped Honda ECM candidates: compares an original and an edited image of the stated length, validates the candidate ID and zero-byte sum, and proposes the checksum-byte correction.',
       steps: [
@@ -429,7 +447,7 @@
       tags: ['honda', 'checksum', 'calibration', 'zero byte sum', 'repair'],
     },
     {
-      id: 'honda-offline', name: 'Honda K-Line · offline response decoder', category: 'telemetry',
+      id: 'honda-offline', name: 'Honda K-Line · offline response decoder', category: 'telemetry', brand: 'honda',
       view: 'tools', selector: '#hondaOffline',
       summary: 'Decode complete Honda K-Line response frames pasted one hex frame per line, using a third-party implementation tested on a 2005 CBR600RR.',
       steps: [
@@ -473,7 +491,7 @@
       tags: ['tuning research', 'links', 'brands', 'sources'],
     },
     {
-      id: 'juken-research', name: 'BRT Juken 5 · offline map-block research', category: 'calibration',
+      id: 'juken-research', name: 'BRT Juken 5 · offline map-block research', category: 'calibration', brand: 'britek',
       view: 'tools', selector: '#jukenResearch',
       summary: 'Inspect a user-supplied 10,248-byte raw core block using an independently published layout.',
       steps: [
@@ -484,7 +502,7 @@
       tags: ['juken', 'brt', 'map block', 'research', 'offsets'],
     },
     {
-      id: 'harley-region', name: 'Harley Delphi · offline calibration region workspace', category: 'calibration',
+      id: 'harley-region', name: 'Harley Delphi · offline calibration region workspace', category: 'calibration', brand: 'harley',
       view: 'tools', selector: '#harleyRegion',
       summary: 'Inspect a local 160 KiB calibration or 16 KiB tune, compare two regions, or export the 16 KiB region as a new research file (HarleyECUTool layout, ~2014–2020).',
       steps: [
@@ -496,7 +514,7 @@
       tags: ['harley', 'delphi', 'calibration', 'region', 'tune', '160k', '16k'],
     },
     {
-      id: 'centurion-research', name: 'Harley Centurion · local header research', category: 'calibration',
+      id: 'centurion-research', name: 'Harley Centurion · local header research', category: 'calibration', brand: 'harley',
       view: 'tools', selector: '#centurionResearch',
       summary: 'Inspect candidate ECU-part and calibration fields of up to two user-supplied Delphi-like Centurion files.',
       steps: [
@@ -507,7 +525,7 @@
       tags: ['harley', 'centurion', 'header', 'research', 'compare'],
     },
     {
-      id: 'pvv-editor', name: 'Power Vision PVV · local table editor', category: 'calibration',
+      id: 'pvv-editor', name: 'Power Vision PVV · local table editor', category: 'calibration', brand: 'harley',
       view: 'tools', selector: '#pvvEditor',
       summary: 'Open a user-supplied PVV XML, inspect its tables and make explicit numeric cell edits into a separate XML copy.',
       steps: [
@@ -519,7 +537,7 @@
       tags: ['power vision', 'pvv', 'harley', 'xml', 'tables', 'editor'],
     },
     {
-      id: 'jetdrive-panel', name: 'Dynojet JetDrive · live network observation', category: 'telemetry',
+      id: 'jetdrive-panel', name: 'Dynojet JetDrive · live network observation', category: 'telemetry', brand: 'dynojet',
       view: 'tools', selector: '#jetdrivePanel',
       summary: 'Observe a three-second window of JetDrive-compatible multicast on the local dyno network and hand the capture to the AFR overlay.',
       steps: [
@@ -531,7 +549,7 @@
       tags: ['jetdrive', 'dynojet', 'dyno', 'multicast', 'afr', 'overlay'],
     },
     {
-      id: 'harley-memory', name: 'Harley Delphi CAN · experimental live memory', category: 'hardware',
+      id: 'harley-memory', name: 'Harley Delphi CAN · experimental live memory', category: 'hardware', brand: 'harley',
       view: 'tools', selector: '#harleyMemory',
       summary: 'Source-scoped candidate Delphi CAN memory read and 16 KiB tune write on a SocketCAN channel.',
       steps: [
@@ -543,7 +561,7 @@
       tags: ['harley', 'delphi', 'can', 'memory', 'read', 'write', 'experimental'],
     },
     {
-      id: 'buell-ddfi', name: 'Buell DDFI · live serial research', category: 'hardware',
+      id: 'buell-ddfi', name: 'Buell DDFI · live serial research', category: 'hardware', brand: 'buell',
       view: 'tools', selector: '#buellDdfi',
       summary: 'Live serial read and experimental fuel/spark EEPROM write for compatible Buell DDFI/DDFI-2/DDFI-3 ECMs over a TTL serial adapter.',
       steps: [
@@ -555,7 +573,7 @@
       tags: ['buell', 'ddfi', 'ttl', 'serial', 'eeprom', 'harley'],
     },
     {
-      id: 'rusefi-research', name: 'rusEFI aftermarket · live serial research', category: 'hardware',
+      id: 'rusefi-research', name: 'rusEFI aftermarket · live serial research', category: 'hardware', brand: 'rusefi',
       view: 'tools', selector: '#rusefiResearch',
       summary: 'Live serial research for an explicitly selected aftermarket rusEFI controller (including one running a Harley engine).',
       steps: [
@@ -567,7 +585,7 @@
       tags: ['rusefi', 'aftermarket', 'serial', 'live', 'tune', 'ini'],
     },
     {
-      id: 'yamaha-research', name: 'Yamaha MT image checksum · offline research', category: 'calibration',
+      id: 'yamaha-research', name: 'Yamaha MT image checksum · offline research', category: 'calibration', brand: 'yamaha',
       view: 'tools', selector: '#yamahaResearch',
       summary: 'Inspect a plain binary against one third-party Yamaha MT word-sum layout; inspection never edits or uploads the file.',
       steps: [
@@ -578,7 +596,7 @@
       tags: ['yamaha', 'checksum', 'image', 'research', 'word sum'],
     },
     {
-      id: 'bajaj-checksum', name: 'Bajaj RS200 · Dell’Orto checksum research', category: 'calibration',
+      id: 'bajaj-checksum', name: 'Bajaj RS200 · Dell’Orto checksum research', category: 'calibration', brand: 'bajaj',
       view: 'tools', selector: '#bajajChecksum',
       summary: 'Inspect a 768 KiB raw image for the source-reported 2024 RS200 JL351458010651 family and export a copy with one 16-bit checksum updated.',
       steps: [
@@ -589,7 +607,7 @@
       tags: ['bajaj', 'rs200', 'checksum', 'dellorto', 'export'],
     },
     {
-      id: 'cfmoto-checksum', name: 'CFMoto Bosch MSE6 · offline research', category: 'calibration',
+      id: 'cfmoto-checksum', name: 'CFMoto Bosch MSE6 · offline research', category: 'calibration', brand: 'cfmoto',
       view: 'tools', selector: '#cfmotoChecksum',
       summary: 'Inspect a local binary with the source’s MSE6 record heuristic (2024 NK250 / 2023 450SR); inspection only, no file produced.',
       steps: [
@@ -734,8 +752,9 @@
   ];
 
   window.GOB_HELP = {
-    version: '1.0.0',
+    version: '1.1.0',
     categories: CATEGORIES,
+    brands: BRANDS,
     tools: TOOLS,
   };
 }());
@@ -1648,7 +1667,8 @@
       related: ['tools-search-and-links', 'topic-tools-keyboard-shortcuts'],
       tools: [{ label: 'Open the tools bench', view: 'tools' }],
       body: `
-<p>This page lists every tool entry in the knowledge base. It is generated from the same data the search box uses, so a tool that is missing here is missing from search too — report it as a bug.</p>
+<p>Every tool is filed under its manufacturer — or under <b>General</b> when it works on any motorcycle (or needs no bike at all). The same grouping drives the Brand dropdown on the Tools bench; the brand picker below narrows this page.</p>
+<p>This directory is generated from the same data the search box uses, so a tool that is missing here is missing from search too — report it as a bug.</p>
 <div id="helpToolDirectory" class="help-tool-directory"><p class="muted">Loading tool directory…</p></div>`,
     },
     {
@@ -1671,6 +1691,9 @@
 
 <h3>How matching works</h3>
 <p>The query is split into tokens. A result must match <b>every</b> token somewhere (title, tags, summary, body), and results are ranked by where the match landed: title &gt; tags &gt; summary &gt; body. Exact title prefixes and phrase matches get a bonus. Matching is case- and accent-insensitive, and <code>-</code>, <code>_</code> and <code>.</code> are treated as separators so <code>5am</code>, <code>5-AM</code> and <code>IAW5AM</code> all find the same family.</p>
+
+<h3>Brand scope</h3>
+<p>Both the Tools bench and this help center filter by manufacturer. <b>General</b> holds the universal helpers (service intervals, gearing, shim arithmetic, capture decoders, ECU cross-reference), and each brand group holds only that maker&rsquo;s modules. A brand filter narrows tool entries; it never hides a guide, so a Harley workflow is still readable while Honda is selected.</p>
 
 <h3>Scopes</h3>
 <p>The spotlight has three scopes: <b>Everything</b>, <b>Guides &amp; Reference</b> and <b>Tools &amp; Views</b>, plus <b>ECUs &amp; XDFs</b> when catalog data is loaded. <kbd>Ctrl</kbd>+<kbd>K</kbd> opens it from anywhere; <kbd>F1</kbd> opens this center.</p>

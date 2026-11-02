@@ -47,6 +47,12 @@ Honda source-scoped research reads, automatic candidate XDF review and offline c
   offline multi-brand decoders, record and compare sessions, and produce
   reports. Workshop tools include service-interval arithmetic, manual-text
   search, gearing, log conversion and a bench signal generator.
+- **Find a tool by brand:** the Tools bench groups modules by manufacturer —
+  General tools that suit any motorcycle, then Bajaj, Buell, CFMoto,
+  Harley-Davidson, Honda and Yamaha, plus aftermarket entries for BRT Juken,
+  Dynojet and rusEFI. A Brand dropdown narrows the bench, brand and category
+  filters combine with the search box, and the same grouping drives the Help
+  center's tool directory.
 - **Use the desktop or browser interface:** the installed desktop shell and
   local browser workstation share the same application. The static hosted
   demo is useful for exploring the interface without installation.

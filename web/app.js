@@ -6451,7 +6451,7 @@ let updateRibbonTelemetry = null;
     item.addEventListener('click', () => {
       closeMenus();
       navigateToView('tools');
-      setToolsFilter('all', '');
+      setToolsFilter('all', '', 'all');
       const el = $(item.dataset.menuTool);
       if (el) {
         if (el.tagName === 'DETAILS') el.open = true;
@@ -6643,7 +6643,7 @@ let updateRibbonTelemetry = null;
   window.guzziOpenWorkspaceTarget = ({ view, selector, openDetails } = {}) => {
     closeMenus();
     if (view) navigateToView(view);
-    if (view === 'tools') setToolsFilter('all', '');
+    if (view === 'tools') setToolsFilter('all', '', 'all');
     if (view === 'firmware') setFirmwareFilter('all');
     if (openDetails) {
       const det = document.querySelector(openDetails);
@@ -6691,7 +6691,7 @@ let updateRibbonTelemetry = null;
   $('#fileLoadManual')?.addEventListener('click', () => {
     closeMenus();
     show('tools');
-    setToolsFilter('all', '');
+    setToolsFilter('all', '', 'all');
     $('#workshopManual')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     $('#manualTextFile')?.click();
   });
@@ -7008,8 +7008,68 @@ let updateRibbonTelemetry = null;
 
   /* ------------------------------------------- Section Organizers */
   let activeToolCat = 'all';
+  let activeToolBrand = 'all';
   let toolsFocusMode = false;
   let focusedToolId = '';
+
+  /* The Tools bench is grouped by manufacturer, with the universal helpers in
+   * their own "General" group first. Keep this list and the <select> in
+   * index.html in step: the option value is the `data-tool-brand` token, and
+   * the order here is the order the groups appear on the page. */
+  const TOOL_BRANDS = [
+    { id: 'general', label: 'General', note: 'works on any motorcycle, or needs no bike at all' },
+    { id: 'bajaj', label: 'Bajaj', note: "RS200 Dell'Orto image checksum research", oem: true },
+    { id: 'buell', label: 'Buell', note: 'DDFI / DDFI-2 / DDFI-3 serial and EEPROM', oem: true },
+    { id: 'cfmoto', label: 'CFMoto', note: 'Bosch MSE6 offline record research', oem: true },
+    { id: 'harley', label: 'Harley-Davidson', note: 'Delphi J1850 / CAN, Power Vision and Centurion files', oem: true },
+    { id: 'honda', label: 'Honda', note: 'Keihin PGM-FI frames and source-ID checksums', oem: true },
+    { id: 'yamaha', label: 'Yamaha', note: 'MT image checksum and dashboard stream observation', oem: true },
+    { id: 'britek', label: 'BRT Juken', note: 'aftermarket Juken 5 map blocks' },
+    { id: 'dynojet', label: 'Dynojet / dyno', note: 'JetDrive telemetry, not an ECU connection' },
+    { id: 'rusefi', label: 'rusEFI', note: 'aftermarket controller, .ini definitions and serial pages' },
+  ];
+  const toolBrandById = Object.fromEntries(TOOL_BRANDS.map((brand) => [brand.id, brand]));
+
+  function toolBrandOf(panel) {
+    return (panel.dataset.toolBrand || 'general').split(/\s+/).filter(Boolean);
+  }
+
+  /* Group the bench in the DOM itself (not just with CSS order), so the
+   * grouping also holds on a narrow screen and when the page is printed:
+   * a heading per brand, then that brand's panels. */
+  function initToolsBranding() {
+    const view = $('#tools');
+    if (!view || view.dataset.branded === '1') return;
+    view.dataset.branded = '1';
+    const panels = $$('#tools > article.panel[data-tool-cat]');
+    TOOL_BRANDS.forEach((brand) => {
+      const members = panels.filter((panel) => toolBrandOf(panel).includes(brand.id));
+      if (!members.length) return;
+      const heading = document.createElement('div');
+      heading.className = 'tools-brand-heading';
+      heading.dataset.brandHeading = brand.id;
+      heading.innerHTML = '<span class="tools-brand-name">' + esc(brand.label) + '</span>'
+        + '<span class="tools-brand-note">' + esc(brand.note) + '</span>'
+        + '<span class="tools-brand-count" data-brand-count="' + esc(brand.id) + '">'
+        + members.length + (members.length === 1 ? ' tool' : ' tools') + '</span>'
+        + '<button type="button" class="btn small tools-brand-only" data-brand-only="' + esc(brand.id) + '"'
+        + ' title="Show only ' + esc(brand.label) + ' tools">Only ' + esc(brand.label) + '</button>';
+      view.appendChild(heading);
+      members.forEach((panel) => view.appendChild(panel));
+    });
+    // Any panel whose brand token is not in the list stays visible at the end.
+    panels.forEach((panel) => {
+      if (!toolBrandOf(panel).some((token) => toolBrandById[token])) view.appendChild(panel);
+    });
+  }
+
+  function setToolBrand(brand) {
+    const next = brand && (brand === 'all' || toolBrandById[brand]) ? brand : 'all';
+    activeToolBrand = next;
+    const select = $('#toolsBrandSelect');
+    if (select && select.value !== next) select.value = next;
+    setToolsFilter(activeToolCat, $('#toolsSearchInput')?.value || '', next);
+  }
 
   function renderToolsQuickJump(matchingPanels) {
     const box = $('#toolsQuickJump');
@@ -7042,21 +7102,33 @@ let updateRibbonTelemetry = null;
     });
   }
 
-  function setToolsFilter(category = activeToolCat, query = $('#toolsSearchInput')?.value || '') {
+  function setToolsFilter(category = activeToolCat, query = $('#toolsSearchInput')?.value || '',
+                          brand = activeToolBrand) {
+    initToolsBranding();
     activeToolCat = category;
+    activeToolBrand = brand && (brand === 'all' || toolBrandById[brand]) ? brand : 'all';
     const needle = query.trim().toLowerCase();
     if ($('#toolsSearchInput') && $('#toolsSearchInput').value !== query) $('#toolsSearchInput').value = query;
-    $('#toolsSearchClear')?.classList.toggle('hidden', !needle && category === 'all');
+    if ($('#toolsBrandSelect') && $('#toolsBrandSelect').value !== activeToolBrand) {
+      $('#toolsBrandSelect').value = activeToolBrand;
+    }
+    $('#toolsSearchClear')?.classList.toggle('hidden',
+      !needle && category === 'all' && activeToolBrand === 'all');
     $$('#toolsOrganizer [data-tool-filter]').forEach((btn) => {
       const on = btn.dataset.toolFilter === category;
       btn.classList.toggle('active', on);
       btn.setAttribute('aria-selected', on ? 'true' : 'false');
     });
+    $$('#toolsOrganizer [data-brand-only]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.brandOnly === activeToolBrand);
+      btn.setAttribute('aria-pressed', btn.dataset.brandOnly === activeToolBrand ? 'true' : 'false');
+    });
     const panels = $$('#tools > article.panel[data-tool-cat]');
     const matching = panels.filter((panel) => {
       const catMatch = category === 'all' || panel.dataset.toolCat === category;
+      const brandMatch = activeToolBrand === 'all' || toolBrandOf(panel).includes(activeToolBrand);
       const textMatch = !needle || panel.textContent.toLowerCase().includes(needle);
-      return catMatch && textMatch;
+      return catMatch && brandMatch && textMatch;
     });
     if (toolsFocusMode && matching.length && !matching.some((p) => p.id === focusedToolId)) {
       focusedToolId = matching[0].id;
@@ -7066,8 +7138,31 @@ let updateRibbonTelemetry = null;
       const visible = isMatch && (!toolsFocusMode || panel.id === focusedToolId);
       panel.classList.toggle('hidden', !visible);
     });
+    // A group heading is shown when its brand is on screen and any of its
+    // modules survived the category/search filter; the count says how many.
+    $$('#tools > [data-brand-heading]').forEach((heading) => {
+      const brandId = heading.dataset.brandHeading;
+      const inGroup = matching.filter((panel) => toolBrandOf(panel).includes(brandId));
+      const brandOnScreen = activeToolBrand === 'all' || activeToolBrand === brandId;
+      const anyVisible = !toolsFocusMode || inGroup.some((panel) => panel.id === focusedToolId);
+      heading.classList.toggle('hidden', !brandOnScreen || !inGroup.length || !anyVisible);
+      const count = heading.querySelector(`[data-brand-count="${brandId}"]`);
+      if (count) {
+        const total = panels.filter((panel) => toolBrandOf(panel).includes(brandId)).length;
+        count.textContent = inGroup.length === total
+          ? `${total} tool${total === 1 ? '' : 's'}`
+          : `${inGroup.length} of ${total} tools`;
+      }
+    });
     const shown = matching.length;
     if ($('#toolsCountBadge')) $('#toolsCountBadge').textContent = `${shown} of ${panels.length} tools`;
+    const badge = $('#toolsBrandBadge');
+    if (badge) {
+      badge.textContent = activeToolBrand === 'all'
+        ? 'All brands'
+        : `${toolBrandById[activeToolBrand].label} · ${shown} tool${shown === 1 ? '' : 's'}`;
+      badge.classList.toggle('filtered', activeToolBrand !== 'all');
+    }
     $('#toolsEmptyNote')?.classList.toggle('hidden', shown > 0);
     renderToolsQuickJump(matching);
   }
@@ -7085,8 +7180,15 @@ let updateRibbonTelemetry = null;
   $$('#toolsOrganizer [data-tool-filter]').forEach((btn) => {
     btn.addEventListener('click', () => setToolsFilter(btn.dataset.toolFilter));
   });
+  $('#toolsBrandSelect')?.addEventListener('change', (ev) => setToolBrand(ev.target.value));
+  $('#tools')?.addEventListener('click', (ev) => {
+    const only = ev.target.closest?.('[data-brand-only]');
+    if (!only) return;
+    setToolBrand(only.dataset.brandOnly === activeToolBrand ? 'all' : only.dataset.brandOnly);
+    $('#tools .tools-brand-heading:not(.hidden)')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
   $('#toolsSearchInput')?.addEventListener('input', (ev) => setToolsFilter(activeToolCat, ev.target.value));
-  $('#toolsSearchClear')?.addEventListener('click', () => setToolsFilter('all', ''));
+  $('#toolsSearchClear')?.addEventListener('click', () => setToolsFilter('all', '', 'all'));
   setToolsFilter('all', '');
   updateIdeChrome();
 

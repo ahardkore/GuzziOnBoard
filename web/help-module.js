@@ -21,6 +21,8 @@
   const PROTOCOLS = Array.isArray(H.protocols) ? H.protocols : [];
   const GLOSSARY = Array.isArray(H.glossary) ? H.glossary : [];
   const CATEGORIES = Array.isArray(H.categories) ? H.categories : [];
+  const BRANDS = Array.isArray(H.brands) ? H.brands : [{ id: 'general', label: 'General' }];
+  const brandById = Object.fromEntries(BRANDS.map((brand) => [brand.id, brand]));
   const ECU_NOTES = H.ecuNotes || {};
 
   const KIND_LABEL = {
@@ -67,6 +69,7 @@
     route: null,
     lastRendered: null,
     category: 'all',
+    brand: 'all',
     query: '',
     index: [],
     built: false,
@@ -116,7 +119,8 @@
         title: tool.name,
         subtitle: tool.summary || '',
         category: tool.category || 'workshop',
-        tags: (tool.tags || []).concat(tool.view || []),
+        brand: tool.brand || 'general',
+        tags: (tool.tags || []).concat(tool.view || [], brandById[tool.brand || 'general']?.label || []),
         bodyText: stripTags([tool.summary, (tool.steps || []).join(' '), tool.caution].filter(Boolean).join(' ')),
         route: 'tool/' + tool.id,
         tool,
@@ -348,6 +352,7 @@
     for (const entry of entries) {
       if (opts.scope && opts.scope !== 'all' && entry.scope !== opts.scope) continue;
       if (opts.category && opts.category !== 'all' && entry.category !== opts.category) continue;
+      if (opts.brand && opts.brand !== 'all' && !matchesBrand(entry, opts.brand)) continue;
       const score = scoreEntry(entry, tokens, phrase);
       if (score > 0) results.push({ entry, score });
     }
@@ -546,8 +551,15 @@
 
   function renderToolArticle(tool) {
     const steps = (tool.steps || []).filter(Boolean);
+    const brand = brandById[tool.brand || 'general'];
+    const brandLine = brand && brand.id !== 'general'
+      ? '<p class="help-brand-line"><span class="help-brand-chip">' + esc(brand.label) + '</span> '
+        + esc(brand.note || '') + ' &middot; <a href="#help/tools-directory">all ' + esc(brand.label)
+        + ' tools</a></p>'
+      : '';
     return ''
       + articleHeader('tool', tool.name, tool.summary, tool.category)
+      + brandLine
       + jumpButtons([{ label: 'Open this in the program', view: tool.view, selector: tool.selector }])
       + (steps.length ? '<div class="help-body"><h3>How to use it</h3><ol class="help-steps">'
         + steps.map((step) => '<li>' + esc(step) + '</li>').join('') + '</ol></div>' : '')
@@ -671,36 +683,63 @@
   }
 
   function renderToolDirectory() {
-    const groups = [
-      ['Workspaces', (tool) => tool.id.startsWith('view-')],
-      ['ECU memory pipeline', (tool) => tool.category === 'memory'],
-      ['Diagnostics & I/O', (tool) => tool.category === 'diagnostics'],
-      ['Dash, logs & sessions', (tool) => tool.category === 'dash' && !tool.id.startsWith('view-')],
-      ['Calibration & research', (tool) => tool.category === 'calibration'],
-      ['Telemetry & hardware', (tool) => ['telemetry', 'hardware'].includes(tool.category)],
-      ['Workshop utilities', (tool) => tool.category === 'workshop'],
-      ['Search, dialogs & menu', (tool) => ['search', 'reference'].includes(tool.category)],
-    ];
-    const used = new Set();
-    const sections = groups.map(([label, predicate]) => {
-      const tools = TOOLS.filter((tool) => !used.has(tool.id) && predicate(tool));
-      tools.forEach((tool) => used.add(tool.id));
-      return [label, tools];
-    });
-    const leftovers = TOOLS.filter((tool) => !used.has(tool.id));
-    if (leftovers.length) sections.push(['More tools', leftovers]);
+    const brandOrder = BRANDS.map((brand) => brand.id);
+    const categoryOrder = CATEGORIES.map((cat) => cat.id);
+    const rank = (list, value) => {
+      const at = list.indexOf(value);
+      return at === -1 ? 99 : at;
+    };
+    const isWorkspace = (tool) => tool.id.startsWith('view-') || tool.category === 'search';
+    const pool = TOOLS.filter((tool) => state.brand === 'all' || (tool.brand || 'general') === state.brand);
+    const sections = [];
 
-    return sections.map(([label, tools]) => {
-      if (!tools.length) return '';
-      return '<section class="help-directory-group"><h3>' + esc(label) + ' <span class="muted small">('
-        + tools.length + ')</span></h3><div class="help-directory-grid">'
-        + tools.map((tool) => '<div class="help-directory-card" data-help-tool-card="' + esc(tool.id) + '">'
-          + '<a class="help-directory-title" href="#help/tool/' + encodeURIComponent(tool.id) + '">' + esc(tool.name) + '</a>'
-          + '<p class="small muted">' + esc(tool.summary || '') + '</p>'
-          + jumpButton({ label: 'Jump', view: tool.view, selector: tool.selector })
-          + '</div>').join('')
-        + '</div></section>';
-    }).join('');
+    const workspaces = pool.filter((tool) => isWorkspace(tool) && (tool.brand || 'general') === 'general');
+    if (workspaces.length && (state.brand === 'all' || state.brand === 'general')) {
+      sections.push({
+        id: 'workspaces', label: 'Workspaces, dialogs & search',
+        note: 'the program itself: each view, the dialogs and global search',
+        tools: workspaces.sort((a, b) => rank(categoryOrder, a.category) - rank(categoryOrder, b.category) || a.name.localeCompare(b.name)),
+      });
+    }
+
+    const byBrand = new Map();
+    pool.filter((tool) => !(isWorkspace(tool) && (tool.brand || 'general') === 'general')).forEach((tool) => {
+      const key = tool.brand || 'general';
+      if (!byBrand.has(key)) byBrand.set(key, []);
+      byBrand.get(key).push(tool);
+    });
+    Array.from(byBrand.keys())
+      .sort((a, b) => rank(brandOrder, a) - rank(brandOrder, b))
+      .forEach((brandId) => {
+        const brand = brandById[brandId] || { id: brandId, label: brandId };
+        sections.push({
+          id: brandId,
+          label: brandId === 'general' ? 'General tools — any motorcycle' : brand.label,
+          note: brandId === 'general'
+            ? 'these work on any bike, or need no bike at all'
+            : (brand.note || ''),
+          tools: byBrand.get(brandId).slice().sort((a, b) =>
+            rank(categoryOrder, a.category) - rank(categoryOrder, b.category) || a.name.localeCompare(b.name)),
+        });
+      });
+
+    if (!sections.length) return '<div class="help-empty"><p>No tools are listed for that brand.</p></div>';
+
+    return sections.map((section) => '<section class="help-directory-group" data-help-brand-group="'
+      + esc(section.id) + '">'
+      + '<h3>' + esc(section.label) + ' <span class="muted small">('
+      + section.tools.length + (section.tools.length === 1 ? ' tool' : ' tools') + ')</span></h3>'
+      + (section.note ? '<p class="small muted help-brand-note">' + esc(section.note) + '</p>' : '')
+      + '<div class="help-directory-grid">'
+      + section.tools.map((tool) => '<div class="help-directory-card" data-help-tool-card="' + esc(tool.id) + '">'
+        + '<a class="help-directory-title" href="#help/tool/' + encodeURIComponent(tool.id) + '">' + esc(tool.name) + '</a>'
+        + '<p class="small muted">' + esc(tool.summary || '') + '</p>'
+        + '<span class="help-tool-card-meta">' + esc(categoryLabel(tool.category))
+        + (tool.brand && tool.brand !== 'general' ? ' &middot; ' + esc(brandById[tool.brand]?.label || tool.brand) : '')
+        + '</span>'
+        + jumpButton({ label: 'Jump', view: tool.view, selector: tool.selector })
+        + '</div>').join('')
+      + '</div></section>').join('');
   }
 
   function renderEcuCatalogBlock() {
@@ -852,12 +891,33 @@
 
   /* ======================================================== help center */
 
+  /* A brand filter only narrows tool entries; articles stay available, because
+   * a guide about Harley files is still worth reading when Honda is selected. */
+  function entryKindBrand(entry) {
+    if (entry.kind !== 'tool') return '';
+    const brand = brandById[entry.brand || 'general'];
+    return brand && brand.id !== 'general' ? brand.label : '';
+  }
+
+  function brandOfEntry(entry) {
+    if (entry.kind === 'tool') return entry.brand || 'general';
+    return 'general';
+  }
+  function matchesBrand(entry, brand) {
+    if (!brand || brand === 'all') return true;
+    if (entry.kind !== 'tool' && entry.kind !== 'panel') return true;
+    return brandOfEntry(entry) === brand;
+  }
+
   function visibleTopics() {
     const query = state.query.trim();
     let pool = ensureIndex().filter((entry) => entry.kind !== 'action' && entry.kind !== 'panel');
     if (state.category !== 'all') pool = pool.filter((entry) => entry.category === state.category);
+    if (state.brand !== 'all') pool = pool.filter((entry) => matchesBrand(entry, state.brand));
     if (query) {
-      const hits = new Set(search(query, { category: state.category, limit: 400 }).map((row) => row.entry));
+      const hits = new Set(search(query, {
+        category: state.category, brand: state.brand, limit: 400,
+      }).map((row) => row.entry));
       pool = pool.filter((entry) => hits.has(entry));
     }
     return pool;
@@ -886,11 +946,17 @@
       const items = groups.get(key);
       return '<div class="help-tree-group">'
         + '<div class="help-tree-group-head"><span>' + esc(categoryLabel(key)) + '</span><span class="muted">' + items.length + '</span></div>'
-        + items.map((entry) => '<button type="button" class="help-tree-item'
-          + (entry.route === activeRoute ? ' active' : '') + '" data-help-route="' + esc(entry.route) + '">'
-          + '<span class="help-tree-kind">' + (KIND_LABEL[entry.kind] || '') + '</span>'
-          + '<span class="help-tree-title">' + esc(entry.title) + '</span>'
-          + '</button>').join('')
+        + items.map((entry) => {
+          const entryBrand = entry.kind === 'tool' && entry.brand && entry.brand !== 'general'
+            ? brandById[entry.brand] : null;
+          return '<button type="button" class="help-tree-item'
+            + (entry.route === activeRoute ? ' active' : '') + '" data-help-route="' + esc(entry.route) + '">'
+            + '<span class="help-tree-kind">' + (KIND_LABEL[entry.kind] || '') + '</span>'
+            + '<span class="help-tree-title">' + esc(entry.title)
+            + (entryBrand ? ' <span class="help-brand-chip small">' + esc(entryBrand.label) + '</span>' : '')
+            + '</span>'
+            + '</button>';
+        }).join('')
         + '</div>';
     }).join('');
     const groupLabel = $('#helpSidebarGroupLabel');
@@ -939,7 +1005,9 @@
       + ' data-help-open="' + esc(entry.route) + '">'
       + '<span class="help-result-kind kind-' + esc(entry.kind) + '">' + esc(KIND_LABEL[entry.kind] || 'REF') + '</span>'
       + '<span class="help-result-main">'
-      + '<span class="help-result-title">' + highlight(entry.title, tokenize(state.query || state.spot.query || '')) + '</span>'
+      + '<span class="help-result-title">' + highlight(entry.title, tokenize(state.query || state.spot.query || ''))
+      + (entryKindBrand(entry) ? ' <span class="help-brand-chip small">' + esc(entryKindBrand(entry)) + '</span>' : '')
+      + '</span>'
       + (row.snippet ? '<span class="help-result-snippet">' + row.snippet + '</span>' : '')
       + '</span>'
       + '<span class="help-result-arrow" aria-hidden="true">→</span>'
@@ -956,8 +1024,14 @@
     });
     const input = $('#helpSearchInput');
     if (input && input.value !== state.query) input.value = state.query;
+    const brandSelect = $('#helpBrandSelect');
+    if (brandSelect && brandSelect.value !== state.brand) brandSelect.value = state.brand;
     const badge = $('#helpArticleCountBadge');
-    if (badge && !badge.textContent.trim()) badge.textContent = '0 topics';
+    if (badge) {
+      const toolCount = TOOLS.filter((tool) => state.brand === 'all' || (tool.brand || 'general') === state.brand).length;
+      const base = state.index.filter((entry) => entry.kind !== 'action' && entry.kind !== 'panel').length;
+      badge.textContent = (state.brand === 'all' ? base : toolCount) + ' topics';
+    }
     renderSearchResultsPanel();
     if (!state.route) {
       const fromState = routeFromLocation();
@@ -1228,6 +1302,15 @@
         renderHelpCenter();
       });
     });
+
+    const brandSelect = $('#helpBrandSelect');
+    if (brandSelect) {
+      brandSelect.addEventListener('change', () => {
+        state.brand = brandSelect.value || 'all';
+        state.lastRendered = null;
+        renderHelpCenter();
+      });
+    }
 
     const searchInput = $('#helpSearchInput');
     if (searchInput) {

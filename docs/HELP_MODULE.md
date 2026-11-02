@@ -22,6 +22,7 @@ anywhere in the program.
 | `web/index.html` | `#help` workspace, `#helpSpotlightModal`, the Help menu and the menu-bar search chip. |
 | `web/styles.css` | Section 17: help layout, tables, cards, spotlight, light-theme and print rules. |
 | `tests/browser/help-center.spec.mjs` | Browser behaviour: search, deep links, jumps, spotlight keyboard control, generated explorers. |
+| `tests/browser/tools-brand.spec.mjs` | Tools bench and help directory brand grouping, the two Brand dropdowns, and brand/category/search composition. |
 | `tests/test_help_module.py` | Content integrity: unique ids, resolvable internal links, verbatim safety acknowledgements, geometry cross-checks against the catalog. |
 
 ## Adding an article
@@ -54,9 +55,68 @@ anywhere in the program.
 Tool entries live in the `TOOLS` array (`id`, `name`, `category`, `view`,
 `selector`, `summary`, `steps`, optional `caution`, `tags`). They are indexed
 individually, rendered at `#help/tool/<id>`, and listed in the generated
-directory at `#help/tools-directory`. Protocol entries live in `PROTOCOLS` and
+directory at `#help/tools-directory`. A hardware-specific entry also carries
+`brand: '<brand id>'`; leaving `brand` off files the tool under **General**
+(see below). Protocol entries live in `PROTOCOLS` and
 render a specification table from `transport`, `baud`, `init`, `addressing`,
 `framing` and `checksum`.
+
+## Brand organisation
+
+Everything hardware-specific is grouped by manufacturer, both on the Tools bench
+and in the help center, so the default view shows the universal helpers instead
+of a flat list of twenty-four modules.
+
+| Brand id | Shown as | Scope |
+| --- | --- | --- |
+| `general` | General tools — any motorcycle | Service intervals, gearing, shim maths, capture decoders, ECU cross-reference. Always listed first. |
+| `harley` | Harley-Davidson | Delphi J1850/CAN, Power Vision PVV files, Centurion research, 16 KiB memory work. |
+| `honda` | Honda | Keihin PGM-FI frames, source-ID checksums, offline calibration checks. |
+| `buell` | Buell | DDFI diagnostics. |
+| `yamaha` | Yamaha | Yamaha research workspace. |
+| `bajaj` | Bajaj | Checksum tooling. |
+| `cfmoto` | CFMoto | Checksum tooling. |
+| `britek` | BRT Juken | Aftermarket Juken map blocks. |
+| `dynojet` | Dynojet | JetDrive telemetry (a dyno aid, not an ECU connection). |
+| `rusefi` | rusEFI | `.ini` definitions and serial pages for the aftermarket controller. |
+
+The list exists twice on purpose — `TOOL_BRANDS` in `web/app.js` drives the
+bench headings and `BRANDS`/`brands` in `web/help-content.js` drives the help
+directory — and `tests/test_help_module.py` fails if the two drift apart. When
+you add a brand:
+
+1. Append the `{ id, label, note }` object to both lists **in the same
+   position** (`general` stays first; the rest are alphabetical by label).
+2. Add an `<optgroup>` entry and an `<option value="…">` to both
+   `#toolsBrandSelect` and `#helpBrandSelect` in `web/index.html`.
+3. Tag the bench panel with `data-tool-brand="<id>"` and, if the tool has a
+   help entry, add the same `brand:` to it.
+4. Add a `.tool-brand-*`/`.help-brand-*` accent in section 17 of
+   `web/styles.css` if the brand needs a colour.
+
+Behaviour on the bench (`#tools`):
+
+- `#toolsBrandSelect` (`all` | `general` | brand id) narrows the visible
+  modules; `#toolsBrandBadge` reports `All brands`, `General · 11 tools` or
+  `Harley-Davidson · 4 tools` and gains `.filtered`.
+- Each brand is a DOM group headed by `.tools-brand-heading` with
+  `[data-brand-count]` and an `Only <brand>` button (`[data-brand-only]`) that
+  toggles the filter and scrolls the group into view.
+- Brand, category pills and the search box compose. Clearing the search resets
+  the brand; jumping from the Tools menu does too, so a menu command can never
+  open a panel that the filter is hiding.
+
+Behaviour in the help center:
+
+- `#helpBrandSelect` (the "Brand" field in the organizer bar) filters the
+  knowledge-base tree, `guzziHelpSearch(query, { brand })` and the generated
+  tool directory, which re-groups itself by brand with General first and the
+  categories inside each group.
+- Guides, protocols, ECU notes, checksum references and the glossary are never
+  hidden by a brand filter — a Harley workflow must stay readable while Honda
+  is selected. Only tool entries are brand-scoped.
+- Entries that are brand-specific show a `.help-brand-chip`; a brand-specific
+  tool article prints a `.help-brand-line` linking to all tools of that brand.
 
 ## How search works
 
@@ -70,7 +130,9 @@ The index is rebuilt lazily and after the catalog/XDF data arrives:
 - panels not covered by a tool entry (clicking scrolls to the panel),
 - every `/api/catalog` ECU and every `/api/maps` XDF definition.
 
-A query is tokenised; a result must contain **every** token in some field.
+A query is tokenised; a result must contain **every** token in some field. The
+optional `brand` scope removes tool entries that belong to another
+manufacturer, but deliberately keeps every article (see above).
 Scores weight title > tags > summary > body, with a bonus for an exact phrase or
 a title prefix. Results are highlighted with `<mark>` and a snippet from the
 first match.
@@ -87,6 +149,15 @@ first match.
   `TUNING_ACKNOWLEDGEMENT`;
 - the IAW 5AM geometry quoted in the guides (0x4000, 0x4C000, 311,296 and
   327,680 bytes) matches `catalog/ecus/5am.json`;
+- every Tools-bench panel carries a `data-tool-brand` naming a documented
+  brand, every documented brand owns at least one panel, and both
+  `#toolsBrandSelect` and `#helpBrandSelect` offer exactly `all` plus the brand
+  list in the same order;
+- `TOOL_BRANDS` (`app.js`) and `BRANDS` (`help-content.js`) are identical, so a
+  heading can never disagree with the filter;
 - the browser suite checks that the tool directory lists exactly
-  `GOB_HELP.tools.length` cards, once each, and that the glossary lists every
-  term.
+  `GOB_HELP.tools.length` cards, once each, that the glossary lists every term,
+  and (`tests/browser/tools-brand.spec.mjs`) that the bench groups General
+  first, that Harley/Honda/General selections show only their own modules, that
+  the "Only <brand>" toggle clears itself, and that brand + category + search
+  compose.

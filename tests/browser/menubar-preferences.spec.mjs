@@ -207,9 +207,10 @@ test('tuning suite shell provides View/Tuning/Tools menus, perspective ribbon, t
 
   // Tools menu jumps directly to Gearing calculator & Single-Tool Focus mode isolates 1 panel
   await page.locator('#toolsMenuBtn').click();
-  await page.locator('[data-menu-tool="#workshopGearing"]').click();
+  await page.locator('[data-menu-tool="#gearingPanel"]').click();
   await expect(page.locator('#pageTitle')).toHaveText('Tools');
   await expect(page.locator('#toolsQuickJump')).toBeVisible();
+  await expect(page.locator('#gearingPanel')).toBeVisible();
 
   await page.locator('#toolsFocusModeBtn').click();
   await expect(page.locator('#toolsFocusModeBtn')).toHaveText('Single-Tool Focus');

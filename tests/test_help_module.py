@@ -336,7 +336,7 @@ def test_tools_bench_tags_every_panel_with_a_brand(index_html: str, content: str
     tools_section = index_html[index_html.index('id="tools"'):]
     tools_section = tools_section[:tools_section.index("</section>")]
     panels = re.findall(r"<article[^>]*data-tool-cat=\"[a-z-]+\"[^>]*>", tools_section)
-    assert len(panels) == 29, len(panels)
+    assert len(panels) == 33, len(panels)
     tagged = {}
     for panel in panels:
         pid = re.search(r'id="([^"]+)"', panel).group(1)
@@ -420,4 +420,4 @@ def test_every_tools_bench_panel_has_a_help_entry(index_html: str, content: str)
         pid = re.search(r'id="([^"]+)"', tag).group(1)
         described.append(pid)
         assert f"selector: '#{pid}'" in content, f"{pid} has no TOOLS entry in help-content.js"
-    assert len(described) >= 29, described
+    assert len(described) >= 33, described

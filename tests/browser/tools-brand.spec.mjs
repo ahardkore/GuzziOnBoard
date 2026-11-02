@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 
 test('the bench is grouped into general tools first, then one group per brand', async ({ page }) => {
   await expect(page.locator('#toolsBrandSelect')).toBeVisible();
-  await expect(page.locator('#toolsCountBadge')).toHaveText('29 of 29 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('33 of 33 tools');
   await expect(page.locator('#toolsBrandBadge')).toHaveText('All brands');
 
   const headings = page.locator('#tools > [data-brand-heading]');
@@ -35,7 +35,7 @@ test('the bench is grouped into general tools first, then one group per brand', 
   expect(new Set(panelOrder)).toEqual(new Set(BRANDS));
 
   await expect(page.locator('[data-brand-heading="general"]')).toContainText('General');
-  await expect(page.locator('[data-brand-heading="general"] [data-brand-count]')).toContainText('16 tools');
+  await expect(page.locator('[data-brand-heading="general"] [data-brand-count]')).toContainText('20 tools');
   await expect(page.locator('[data-brand-heading="harley"]')).toContainText('Harley-Davidson');
 });
 
@@ -45,7 +45,7 @@ test('the Brand dropdown narrows the bench to one manufacturer', async ({ page }
   await expect(visible).toHaveCount(4);
   const ids = await visible.evaluateAll((panels) => panels.map((panel) => panel.id).sort());
   expect(ids).toEqual(['centurionResearch', 'harleyMemory', 'harleyRegion', 'pvvEditor']);
-  await expect(page.locator('#toolsCountBadge')).toHaveText('4 of 29 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('4 of 33 tools');
   await expect(page.locator('#toolsBrandBadge')).toHaveText('Harley-Davidson · 4 tools');
   await expect(page.locator('#tools > [data-brand-heading]:not(.hidden)')).toHaveCount(1);
   await expect(page.locator('[data-brand-heading="harley"]')).toBeVisible();
@@ -57,11 +57,11 @@ test('the Brand dropdown narrows the bench to one manufacturer', async ({ page }
   await expect(page.locator('#hondaOffline')).toBeVisible();
 
   await page.locator('#toolsBrandSelect').selectOption('general');
-  await expect(page.locator('#tools > article.panel[data-tool-cat]:not(.hidden)')).toHaveCount(16);
-  await expect(page.locator('#toolsBrandBadge')).toHaveText('General · 16 tools');
+  await expect(page.locator('#tools > article.panel[data-tool-cat]:not(.hidden)')).toHaveCount(20);
+  await expect(page.locator('#toolsBrandBadge')).toHaveText('General · 20 tools');
 
   await page.locator('#toolsBrandSelect').selectOption('all');
-  await expect(page.locator('#tools > article.panel[data-tool-cat]:not(.hidden)')).toHaveCount(29);
+  await expect(page.locator('#tools > article.panel[data-tool-cat]:not(.hidden)')).toHaveCount(33);
 });
 
 test('an "Only <brand>" heading button filters and clears the brand', async ({ page }) => {
@@ -73,7 +73,7 @@ test('an "Only <brand>" heading button filters and clears the brand', async ({ p
   // Pressing the same toggle again returns to every brand.
   await page.locator('[data-brand-heading="yamaha"] [data-brand-only="yamaha"]').click();
   await expect(page.locator('#toolsBrandSelect')).toHaveValue('all');
-  await expect(page.locator('#tools > article.panel[data-tool-cat]:not(.hidden)')).toHaveCount(29);
+  await expect(page.locator('#tools > article.panel[data-tool-cat]:not(.hidden)')).toHaveCount(33);
 });
 
 test('brand, category and search combine, and an empty combination says so', async ({ page }) => {
@@ -96,7 +96,7 @@ test('brand, category and search combine, and an empty combination says so', asy
   await page.locator('#toolsSearchClear').click();
   await expect(page.locator('#toolsBrandSelect')).toHaveValue('all');
   await expect(page.locator('#toolsSearchInput')).toHaveValue('');
-  await expect(page.locator('#toolsCountBadge')).toHaveText('29 of 29 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('33 of 33 tools');
 });
 
 test('a Tools menu command clears any active brand filter before jumping', async ({ page }) => {

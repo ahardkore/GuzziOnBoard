@@ -8,6 +8,10 @@ and in the hosted demo, and nothing in them can change a motorcycle.
 They sit in the **General** brand group because none of them is
 manufacturer-specific; the definitions and captures they read can be.
 
+The four tools that read *other formats* — MLVLG logs, DBC databases, OBD-II
+transcripts and tune files — are documented in [format tools](FORMAT_TOOLS.md).
+
+
 | Tool | Panel id | Works on |
 | --- | --- | --- |
 | Checksum workbench & algorithm finder | `#checksumWorkbench` | a `.bin` image |

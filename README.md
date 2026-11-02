@@ -59,6 +59,10 @@ Honda source-scoped research reads, automatic candidate XDF review and offline c
   table, unit or address, a wideband lab converts logged volts to AFR and
   lambda against the controller's own curve, and a J1939/ISO-TP frame lab
   decodes captures and composes KWP2000 requests. All five work offline.
+- **Bring your own files:** import TunerStudio/MegaLogViewer `.mlg` logs, read a
+  Vector `.dbc` and decode a capture against it, decode OBD-II live data, trouble
+  codes and the VIN from an ELM327 transcript or candump capture, and compare two
+  tunes constant by constant and cell by cell.
 - **Use the desktop or browser interface:** the installed desktop shell and
   local browser workstation share the same application. The static hosted
   demo is useful for exploring the interface without installation.
@@ -206,6 +210,7 @@ and the [source review](docs/USER_SOURCE_REVIEW.md).
 | Workshop utilities and multi-brand sources | [Workshop tools](docs/WORKSHOP_REFERENCE_TOOLS.md) · [External research](docs/EXTERNAL_MOTORCYCLE_RESEARCH.md) · [Source review](docs/USER_SOURCE_REVIEW.md) |
 | Candidate tools, brand and general | [Tool expansion research](docs/TOOL_EXPANSION_RESEARCH.md) |
 | Offline analysis tools (checksums, ROM map, XDF finder, wideband, frames) | [Offline toolkit](docs/OFFLINE_TOOLKIT.md) |
+| Log, database, OBD-II and tune-file formats | [Format tools](docs/FORMAT_TOOLS.md) |
 | In-app help, guides and global search | [Help module](docs/HELP_MODULE.md) |
 | Project design and contributions | [Architecture](docs/ARCHITECTURE.md) · [Prior art](docs/PRIOR_ART.md) |
 

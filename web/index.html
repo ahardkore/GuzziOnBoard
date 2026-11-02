@@ -1520,6 +1520,126 @@
       </div>
       <pre class="mono-out" id="kwpOut" aria-live="polite"></pre>
     </article>
+
+    <article class="panel" id="mlgLogPanel" data-tool-cat="telemetry" data-tool-brand="general">
+      <h2>MLVLG log importer · TunerStudio &amp; MegaLogViewer</h2>
+      <p class="tip">
+        <b>What it does:</b> opens the binary <code>.mlg</code> logs that TunerStudio, MegaLogViewer and
+        Speeduino write and turns them into a CSV anyone can read. The channel list, units, scaling and
+        transforms come from the file itself, so no log format definition is needed.
+      </p>
+      <div class="toolbar">
+        <label class="inline">Log <input type="file" id="mlgFile" accept=".mlg,.MLG,application/octet-stream"></label>
+        <label class="inline">Stop after <input type="number" id="mlgMax" value="500000" min="100" step="1000" size="8"> records</label>
+        <button class="btn primary" id="mlgParse">Read the log</button>
+        <button class="btn" id="mlgDownload" disabled>Download CSV</button>
+        <button class="btn" id="mlgClear" disabled>Clear</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="mlgMeta"></span>
+      </div>
+      <div id="mlgOut"></div>
+      <p class="muted small">Only MLVLG v1 and v2 are parsed. A file that is not an MLVLG log is refused by its
+      magic, not guessed at. The per-record checksum byte is skipped: this tool reads a log, it does not
+      verify that the logging device wrote it correctly.</p>
+    </article>
+
+    <article class="panel" id="dbcPanel" data-tool-cat="telemetry" data-tool-brand="general">
+      <h2>CAN database (DBC) &amp; frame decoder</h2>
+      <p class="tip">
+        <b>What it does:</b> reads a Vector <code>.dbc</code> — messages, signals, byte order, scaling, units,
+        value names — and decodes a capture against it, so a hex log becomes rpm, temperature and gear.
+        It is the missing half of the offline CAN identifier discovery: that finds the pairs, this says what
+        the bytes mean.
+      </p>
+      <div class="toolbar">
+        <label class="inline grow">Database <input type="file" id="dbcFile" accept=".dbc,.DBC,text/plain"></label>
+        <button class="btn primary" id="dbcLoad">Load the .dbc</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="dbcMeta"></span>
+      </div>
+      <textarea id="dbcIn" class="mono-in" rows="4" spellcheck="false"
+        placeholder="VERSION &quot;&quot;&#10;BO_ 595 SoC_Percentage: 8 Vector__XXX&#10; SG_ SoC : 0|8@1+ (1,0) [0|100] &quot;%&quot; Vector__XXX"></textarea>
+      <div class="toolbar">
+        <button class="btn primary" id="dbcParse">Parse the database</button>
+        <span class="muted small">or paste one</span>
+      </div>
+      <div id="dbcOut"></div>
+      <h3>Decode a capture</h3>
+      <textarea id="dbcLog" class="mono-in" rows="5" spellcheck="false"
+        placeholder="can0 253#6400C80000000000&#10;can0 18FEF100 [8] 01 02 03 04 05 06 07 08"></textarea>
+      <div class="toolbar">
+        <button class="btn primary" id="dbcDecode">Decode frames</button>
+        <button class="btn" id="dbcDownload" disabled>Download CSV</button>
+      </div>
+      <div id="dbcDecodeOut"></div>
+    </article>
+
+    <article class="panel" id="obdExplorerPanel" data-tool-cat="telemetry" data-tool-brand="general">
+      <h2>OBD-II / EOBD explorer</h2>
+      <p class="tip">
+        <b>What it does:</b> decodes the OBD-II answers you already have: live PIDs, stored and pending
+        trouble codes, and the VIN. Paste an ELM327 transcript, a candump capture of the 0x7E8 response,
+        or a list of PIDs. Scalings are the SAE&nbsp;J1979 formulae, so they apply to any compliant
+        motorcycle — the profile only decides which channels are worth reading first.
+      </p>
+      <div class="toolbar">
+        <label class="inline">Profile
+          <select id="obdProfile">
+            <option value="generic">Generic OBD-II (SAE J1979)</option>
+            <option value="royal-enfield-650">Royal Enfield 650 · documented reading list</option>
+          </select>
+        </label>
+        <div class="spacer"></div>
+      </div>
+      <p class="muted small" id="obdProfileNote"></p>
+      <details class="advanced">
+        <summary>Channels this profile reads</summary>
+        <ul class="small" id="obdPidList"></ul>
+      </details>
+      <textarea id="obdIn" class="mono-in" rows="7" spellcheck="false"
+        placeholder="&gt;010C&#10;41 0C 1A F8&#10;41 0D 3C&#10;43 01 01 33 00 00 00 00&#10;can0 7E8#104902013147314A"></textarea>
+      <div class="toolbar">
+        <button class="btn primary" id="obdDecodeBtn">Decode</button>
+        <span class="muted small" id="obdMeta"></span>
+      </div>
+      <div id="obdOut"></div>
+      <h3>Gear estimate from RPM and road speed</h3>
+      <div class="toolbar">
+        <label class="inline">RPM <input type="number" id="obdGearRpm" step="10" size="6"></label>
+        <label class="inline">Speed <input type="number" id="obdGearSpeed" step="0.1" size="6"> km/h</label>
+        <label class="inline">Tyre circumference <input type="number" id="obdGearTyre" step="0.001" size="6" value="2.008"> m</label>
+      </div>
+      <div class="toolbar">
+        <label class="inline grow">Gearbox ratios, highest first <input type="text" id="obdRatios" size="34" placeholder="2.462, 1.647, 1.300, 1.083, 0.923"></label>
+        <label class="inline">Primary <input type="number" id="obdGearPrimary" step="0.01" size="5" value="1"></label>
+        <label class="inline">Final drive <input type="number" id="obdGearFinal" step="0.01" size="5" value="1"></label>
+        <button class="btn" id="obdGearBtn">Estimate</button>
+      </div>
+      <p class="muted small" id="obdGearOut"></p>
+      <p class="tip warn"><b>No fitment claim.</b> The Royal Enfield entry records what one owner's bike answered,
+      not which motorcycles speak OBD-II. An ECU that replies to a PID proves that PID exists, not that the
+      value is calibrated.</p>
+    </article>
+
+    <article class="panel" id="tuneDiffPanel" data-tool-cat="calibration" data-tool-brand="general">
+      <h2>Tune-file diff</h2>
+      <p class="tip">
+        <b>What it does:</b> compares two calibration files and says what actually moved: constants by name,
+        tables cell by cell with the row and column, or two logger CSVs column by column. It reads
+        TunerStudio/MegaSquirt/Speeduino <code>.msq</code>, TunerStudio-style <code>.ini</code> sections and
+        CSV exports — and never writes, applies or uploads a tune.
+      </p>
+      <div class="toolbar">
+        <label class="inline">First file <input type="file" id="tuneDiffA" accept=".msq,.ini,.csv,.txt,text/plain"></label>
+        <label class="inline">Second file <input type="file" id="tuneDiffB" accept=".msq,.ini,.csv,.txt,text/plain"></label>
+        <button class="btn primary" id="tuneDiffBtn">Compare</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="tuneDiffMeta"></span>
+      </div>
+      <div id="tuneDiffOut"></div>
+      <p class="muted small">A CSV is compared row by row with the first column as its axis, so use exports of the
+      same length and cadence. Constants are compared numerically within 1e-9; a text value is compared exactly.</p>
+    </article>
   </section>
 
   <!-- ==================================================== DISCOVERY -->
@@ -2373,6 +2493,10 @@
 <script src="xdf-finder.js"></script>
 <script src="wideband-lab.js"></script>
 <script src="frame-lab.js"></script>
+<script src="mlg-import.js"></script>
+<script src="dbc-lab.js"></script>
+<script src="obd-explorer.js"></script>
+<script src="tune-diff.js"></script>
 <script src="help-content.js"></script>
 <script src="help-module.js"></script>
 </body>

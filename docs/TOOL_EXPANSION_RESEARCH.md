@@ -193,7 +193,8 @@ library finder, wideband lab, J1939/ISO-TP lab. All five are pure file-in,
 answer-out, and all five make the existing tuning pipeline more useful.
 
 **Batch 2 — new external formats**: `.mlg` importer, DBC importer, OBD-II
-explorer with the Royal Enfield profile, tune-file diff. These bring other
+explorer with the Royal Enfield profile, tune-file diff. *(shipped — see
+[format tools](FORMAT_TOOLS.md))* These bring other
 people's data into the workstation and are the tools most likely to be used
 weekly.
 

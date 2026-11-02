@@ -13,8 +13,8 @@ fails if the checked-in copy differs.
 
 Usage::
 
-    python3 scripts/build_demo_data.py          # write web/demo-data.json
-    python3 scripts/build_demo_data.py --check  # exit 1 if it is out of date
+    python3 scripts/build_demo_data.py          # write web/demo-data.json + web/xdf-library.json
+    python3 scripts/build_demo_data.py --check  # exit 1 if either is out of date
 """
 from __future__ import annotations
 
@@ -32,12 +32,18 @@ from guzzionboard import rpmsignal                         # noqa: E402
 from guzzionboard import tools as tools_mod                # noqa: E402
 from guzzionboard.catalog import CATALOG_DIR, ECU_DIR, load_catalog  # noqa: E402
 from guzzionboard.derived import CHANNELS as DERIVED_CHANNELS        # noqa: E402
-from guzzionboard.maps import BUNDLED_XDF_DIR, load_bundled_xdfs     # noqa: E402
+from guzzionboard.maps import BUNDLED_XDF_DIR, library_payload, load_bundled_xdfs  # noqa: E402
 from guzzionboard.transports.simulator import FAULTS as SIM_FAULTS   # noqa: E402
 from guzzionboard.transports.simulator import SimulatedEcu           # noqa: E402
 from guzzionboard.workstation import Workstation                     # noqa: E402
 
 OUTPUT = ROOT / "web" / "demo-data.json"
+
+#: The XDF library index the tool bench searches. It lives beside the demo
+#: rather than inside it because only the finder needs it: demo-data.json is
+#: loaded at start-up, and 4,280 table rows would be paid for by every visitor
+#: who never opens the finder.
+LIBRARY_OUTPUT = ROOT / "web" / "xdf-library.json"
 
 #: Internal parameter fields the browser simulator needs in order to encode a
 #: raw value and decode it back the way the Python stack does.
@@ -193,29 +199,38 @@ def render(data: dict) -> str:
     return json.dumps(data, indent=1, sort_keys=False, ensure_ascii=False) + "\n"
 
 
+def render_library() -> str:
+    return json.dumps(library_payload(), indent=1, ensure_ascii=False) + "\n"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--check", action="store_true",
-        help="do not write; fail if web/demo-data.json is out of date",
+        help="do not write; fail if web/demo-data.json or web/xdf-library.json is out of date",
     )
     args = parser.parse_args()
 
     text = render(build())
+    library = render_library()
     if args.check:
-        current = OUTPUT.read_text(encoding="utf-8") if OUTPUT.exists() else ""
-        if current != text:
-            print(
-                "web/demo-data.json is out of date — "
-                "run python3 scripts/build_demo_data.py",
-                file=sys.stderr,
-            )
+        stale = []
+        for path, expected in ((OUTPUT, text), (LIBRARY_OUTPUT, library)):
+            current = path.read_text(encoding="utf-8") if path.exists() else ""
+            if current != expected:
+                stale.append(path.relative_to(ROOT))
+        if stale:
+            for name in stale:
+                print(f"{name} is out of date", file=sys.stderr)
+            print("run python3 scripts/build_demo_data.py", file=sys.stderr)
             return 1
-        print("web/demo-data.json is up to date")
+        print("web/demo-data.json and web/xdf-library.json are up to date")
         return 0
 
     OUTPUT.write_text(text, encoding="utf-8")
     print(f"wrote {OUTPUT.relative_to(ROOT)} ({len(text) / 1024:.0f} kB)")
+    LIBRARY_OUTPUT.write_text(library, encoding="utf-8")
+    print(f"wrote {LIBRARY_OUTPUT.relative_to(ROOT)} ({len(library) / 1024:.0f} kB)")
     return 0
 
 

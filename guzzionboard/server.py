@@ -57,6 +57,7 @@ from .maps import (
     available_xdfs,
     fitment,
     group_xdfs,
+    library_payload,
     read_xdf_bytes,
 )
 from .checksums import (
@@ -1064,6 +1065,15 @@ class Api:
         return 200, decision.as_dict()
 
     # -- maps (TunerPro XDF) -----------------------------------------------
+    def get_map_library(self, query: dict) -> tuple[int, dict]:
+        """Table-level index of the bundled definitions, for the library finder.
+
+        Reading this never parses an image and never selects a file, so it is
+        safe to call before a motorcycle is connected: it is the table of
+        contents of the XDF library, not a calibration.
+        """
+        return 200, library_payload()
+
     def get_maps(self, query: dict) -> tuple[int, dict]:
         xdfs = available_xdfs()
         described = [x.describe() for x in xdfs]
@@ -2657,6 +2667,7 @@ ROUTES_GET = {
     "/api/procedures": "get_procedures",
     "/api/report": "get_report",
     "/api/maps": "get_maps",
+    "/api/maps/library": "get_map_library",
     "/api/checksum-providers": "get_checksum_providers",
     "/api/recommendations": "get_recommendation_packages",
     "/api/physical-validation": "get_physical_validation",

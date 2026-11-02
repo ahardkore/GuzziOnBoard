@@ -186,7 +186,8 @@ DBC file itself before bundling it; several of these repos have no root licence.
 
 ## Suggested sequence
 
-**Batch 1 — offline, no hardware, highest payoff per line** (fits the hosted
+**Batch 1 — offline, no hardware, highest payoff per line** *(shipped — see
+[the offline toolkit](OFFLINE_TOOLKIT.md))* (fits the hosted
 demo and needs no new protocol risk): checksum workbench, ROM region map, XDF
 library finder, wideband lab, J1939/ISO-TP lab. All five are pure file-in,
 answer-out, and all five make the existing tuning pipeline more useful.

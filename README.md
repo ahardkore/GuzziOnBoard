@@ -53,6 +53,12 @@ Honda source-scoped research reads, automatic candidate XDF review and offline c
   Dynojet and rusEFI. A Brand dropdown narrows the bench, brand and category
   filters combine with the search box, and the same grouping drives the Help
   center's tool directory.
+- **Check a file before you trust it:** a checksum workbench finds and repairs a
+  stored checksum in a copy of an image, a ROM entropy map shows where the
+  tables are, an XDF library finder searches all 121 bundled definitions by
+  table, unit or address, a wideband lab converts logged volts to AFR and
+  lambda against the controller's own curve, and a J1939/ISO-TP frame lab
+  decodes captures and composes KWP2000 requests. All five work offline.
 - **Use the desktop or browser interface:** the installed desktop shell and
   local browser workstation share the same application. The static hosted
   demo is useful for exploring the interface without installation.
@@ -199,6 +205,7 @@ and the [source review](docs/USER_SOURCE_REVIEW.md).
 | Programming and recovery boundaries | [Programming](docs/PROGRAMMING.md) |
 | Workshop utilities and multi-brand sources | [Workshop tools](docs/WORKSHOP_REFERENCE_TOOLS.md) · [External research](docs/EXTERNAL_MOTORCYCLE_RESEARCH.md) · [Source review](docs/USER_SOURCE_REVIEW.md) |
 | Candidate tools, brand and general | [Tool expansion research](docs/TOOL_EXPANSION_RESEARCH.md) |
+| Offline analysis tools (checksums, ROM map, XDF finder, wideband, frames) | [Offline toolkit](docs/OFFLINE_TOOLKIT.md) |
 | In-app help, guides and global search | [Help module](docs/HELP_MODULE.md) |
 | Project design and contributions | [Architecture](docs/ARCHITECTURE.md) · [Prior art](docs/PRIOR_ART.md) |
 

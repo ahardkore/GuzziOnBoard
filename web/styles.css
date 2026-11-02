@@ -2940,3 +2940,72 @@ html[data-theme="light"] .help-spotlight-card { background: var(--panel); }
   letter-spacing: .03em;
   text-transform: uppercase;
 }
+
+/* 18 · Tool bench: frame lab, ROM map, XDF finder, checksum workbench -------- */
+
+#frameLabOut,
+#isotpOut,
+#isotpInOut,
+#kwpOut {
+  margin: 6px 0 0;
+}
+
+#frameLabPanel h3 {
+  margin: 16px 0 6px;
+  font-size: .86rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--muted);
+}
+
+.rom-strip {
+  display: block;
+  width: 100%;
+  height: 64px;
+  margin: 8px 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg);
+}
+
+.rom-blank { fill: #2a3140; }
+.rom-code { fill: #4f8cff; }
+.rom-data { fill: #35c48a; }
+.rom-sparse { fill: #b08a3c; }
+
+#xdfFindQuery {
+  min-width: 260px;
+}
+
+#widebandLab input[type="number"] {
+  width: 6.5em;
+}
+
+.xdf-find-group {
+  margin: 14px 0 0;
+}
+
+.xdf-find-group h3 {
+  margin: 0 0 6px;
+  font-size: .9rem;
+}
+
+#xdfFindOut .table-wrap {
+  max-height: 380px;
+  overflow: auto;
+}
+
+#cksOut .table-wrap,
+#cksDetail .table-wrap {
+  max-height: 360px;
+  overflow: auto;
+}
+
+#cksDetail .kv {
+  margin-top: 10px;
+}
+
+@media print {
+  .rom-strip { border-color: #999; }
+  #frameLabPanel, #romMapPanel, #xdfFinderPanel, #checksumWorkbench, #widebandLab { break-inside: avoid; }
+}

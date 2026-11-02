@@ -3585,6 +3585,22 @@
     }];
   });
 
+  var xdfLibraryPayload = null;
+
+  /* The table-level index behind the XDF library finder. It is one generated
+   * file rather than a slice of demo-data.json because only this tool needs
+   * it: every other visitor would otherwise download 4,280 table rows. */
+  D.register('GET', '/api/maps/library', function () {
+    if (xdfLibraryPayload) return [200, xdfLibraryPayload];
+    return fetch('xdf-library.json', { cache: 'force-cache' }).then(function (response) {
+      if (!response.ok) throw new Error('XDF library index: HTTP ' + response.status);
+      return response.json();
+    }).then(function (payload) {
+      xdfLibraryPayload = payload;
+      return [200, payload];
+    });
+  });
+
   D.register('POST', '/api/maps/render', function (body) {
     if (!body.xdf) throw bad("an 'xdf' (title or .xdf path) is required");
     var baseStatus = baseMapStatus(body.region || 'flash');

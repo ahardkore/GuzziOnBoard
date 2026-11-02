@@ -1,5 +1,6 @@
 """Exercise malformed requests through the real HTTP handler."""
 import http.client
+import json
 import threading
 from http.server import ThreadingHTTPServer
 
@@ -42,3 +43,20 @@ def test_invalid_request_is_rejected(server, body, headers, status):
         assert b"error" in response.read()
     finally:
         conn.close()
+
+
+def test_the_map_library_route_lists_the_bundled_definitions(server):
+    """GET /api/maps/library is read-only and needs no vehicle or adapter."""
+    conn = http.client.HTTPConnection(*server.server_address, timeout=30)
+    try:
+        conn.request("GET", "/api/maps/library")
+        response = conn.getresponse()
+        payload = json.loads(response.read())
+    finally:
+        conn.close()
+    assert response.status == 200
+    assert payload["definitions"] == len(payload["xdfs"]) >= 121
+    assert payload["tables"] >= 4000
+    first = payload["xdfs"][0]
+    assert first["brand"] and first["tables"]
+    assert {"title", "address", "rows", "cols"} <= set(first["tables"][0])

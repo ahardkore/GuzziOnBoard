@@ -1339,6 +1339,187 @@
       outputs you do not want live.</p>
     </article>
 
+
+    <article class="panel" id="checksumWorkbench" data-tool-cat="calibration" data-tool-brand="general">
+      <h2>Checksum workbench &amp; algorithm finder</h2>
+      <p class="tip">
+        <b>What it does:</b> takes a binary image you are about to load into an ECU and asks the
+        blunt question first &mdash; <em>does its checksum still add up?</em> It sweeps the common
+        algorithms (byte/word/dword sums, XOR, CRC-16 and CRC-32) and the usual stored-word
+        positions, then names every combination that agrees with the bytes in the file.
+        <b>Repair</b> writes the corrected word into a <em>copy</em>; the original is never touched.
+      </p>
+      <div class="toolbar">
+        <label class="inline">Image <input type="file" id="cksFile" accept=".bin,.ori,.hex,.img,.rom,*/*"></label>
+      </div>
+      <div class="toolbar">
+        <label class="inline">Data starts at <input type="text" id="cksStart" size="8" value="0" placeholder="0x0"></label>
+        <label class="inline">Checksum word at <input type="text" id="cksStored" size="9" placeholder="auto"></label>
+        <button class="btn primary" id="cksScanBtn">Find the checksum</button>
+        <button class="btn" id="cksClear" disabled>Clear</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="cksMeta"></span>
+      </div>
+      <p class="muted small">Leave the checksum position empty to sweep the head and tail of the file.
+      A profile list names the families this program already knows; a match here is arithmetic, not
+      flash approval, and a repaired copy still needs the normal backup and confirmation gates.</p>
+      <div id="cksOut"></div>
+      <div id="cksDetail"></div>
+    </article>
+
+    <article class="panel" id="romMapPanel" data-tool-cat="calibration" data-tool-brand="general">
+      <h2>ROM region &amp; entropy map</h2>
+      <p class="tip">
+        <b>What it does:</b> draws the shape of an unknown dump before you edit it. Code, padding,
+        tables and repeated axis rows each look different in a sliding-window entropy strip, and the
+        region table turns that into offsets you can compare with an XDF. Load a second file to see
+        exactly which regions changed between two calibrations.
+      </p>
+      <div class="toolbar">
+        <label class="inline">Image <input type="file" id="romFile" accept=".bin,.ori,.img,.rom,*/*"></label>
+        <label class="inline">Compare with <input type="file" id="romFileB" accept=".bin,.ori,.img,.rom,*/*"></label>
+      </div>
+      <div class="toolbar">
+        <label class="inline">Window
+          <select id="romWindow">
+            <option value="128">128 bytes</option>
+            <option value="256" selected>256 bytes</option>
+            <option value="512">512 bytes</option>
+            <option value="1024">1 KiB</option>
+          </select>
+        </label>
+        <button class="btn primary" id="romMapBtn">Map the image</button>
+        <button class="btn" id="romClear" disabled>Clear</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="romMeta"></span>
+      </div>
+      <div id="romStrip"></div>
+      <div id="romOut"></div>
+      <div id="romDiff"></div>
+    </article>
+
+    <article class="panel" id="xdfFinderPanel" data-tool-cat="reference" data-tool-brand="general">
+      <h2>XDF library table finder</h2>
+      <p class="tip">
+        <b>What it does:</b> searches every bundled calibration definition at once, by table name,
+        unit, category or address, so you can answer &ldquo;which Ducati definitions expose an
+        injection table above 0x8000?&rdquo; or &ldquo;who defines <em>Idle RPM</em>, and do they agree
+        on the address?&rdquo; without opening 121 files one at a time.
+      </p>
+      <div class="toolbar">
+        <label class="inline grow">Search <input type="search" id="xdfFindQuery" placeholder="table name, units, address, definition…" autocomplete="off"></label>
+        <label class="inline">Brand <select id="xdfFindBrand"><option value="">All brands</option></select></label>
+        <label class="inline">Field
+          <select id="xdfFindField">
+            <option value="all" selected>Any field</option>
+            <option value="title">Table name</option>
+            <option value="units">Units</option>
+            <option value="category">Category</option>
+            <option value="address">Address</option>
+            <option value="definition">Definition name</option>
+          </select>
+        </label>
+        <button class="btn primary" id="xdfFindBtn">Search</button>
+        <button class="btn" id="xdfFindClear" disabled>Clear</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="xdfFindMeta"></span>
+      </div>
+      <div id="xdfFindOut"></div>
+    </article>
+
+    <article class="panel" id="widebandLab" data-tool-cat="telemetry" data-tool-brand="general">
+      <h2>Wideband transfer-function lab</h2>
+      <p class="tip">
+        <b>What it does:</b> turns a logged wideband voltage into AFR and lambda using the controller's
+        own published curve &mdash; Innovate LC-2/MTX-L, Zeitronix ZT-2 or AEM X-series &mdash; and
+        converts between fuels so two logs can be compared without arguing about stoichiometry.
+        It also shows what a two-point calibration would change.
+      </p>
+      <div class="toolbar">
+        <label class="inline">Controller
+          <select id="wbPreset">
+            <option value="innovate_lc2">Innovate LC-2 / MTX-L (0 V = 7.35, 5 V = 22.39)</option>
+            <option value="zeitronix_zt2">Zeitronix ZT-2 (AFR = 2 × V + 9.6)</option>
+            <option value="aem_xseries">AEM X-series 30-0300 (0.5 V = 8.5, 4.5 V = 18.0)</option>
+            <option value="custom">Custom two-point…</option>
+          </select>
+        </label>
+        <label class="inline">Fuel
+          <select id="wbFuel">
+            <option value="14.7">Petrol / E0 — stoich 14.7</option>
+            <option value="14.1">E10 — stoich 14.1</option>
+            <option value="9.8">E85 — stoich 9.8</option>
+            <option value="6.5">Methanol — stoich 6.5</option>
+            <option value="14.5">Diesel — stoich 14.5</option>
+          </select>
+        </label>
+      </div>
+      <div class="toolbar hidden" id="wbCustom">
+        <label class="inline">0 V &rarr; <input type="number" id="wbAfrLow" value="9.0" step="0.01" size="6"> AFR</label>
+        <label class="inline">5 V &rarr; <input type="number" id="wbAfrHigh" value="20.0" step="0.01" size="6"> AFR</label>
+      </div>
+      <p class="muted small">Paste a CSV or a column of voltages (one per line). The first column may be
+      time; tick the box when it is. Values below 0.5&nbsp;V on an AEM unit are reported as
+      <em>sensor not ready</em> rather than silently converted.</p>
+      <div class="toolbar">
+        <label class="inline"><input type="checkbox" id="wbHasTime"> first column is time</label>
+        <button class="btn primary" id="wbConvertBtn">Convert</button>
+        <button class="btn" id="wbClear" disabled>Clear</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="wbMeta"></span>
+      </div>
+      <textarea id="wbIn" class="mono-in" rows="6" spellcheck="false"
+        placeholder="volts&#10;0.82&#10;0.86&#10;0.91"></textarea>
+      <div id="wbOut"></div>
+      <div class="toolbar">
+        <label class="inline">Two-point check: logged <input type="number" id="wbCalMeasured" step="0.01" size="6"> vs reference <input type="number" id="wbCalActual" step="0.01" size="6"></label>
+        <button class="btn" id="wbCalBtn">Compare</button>
+        <span class="muted small" id="wbCalOut"></span>
+      </div>
+    </article>
+
+    <article class="panel" id="frameLabPanel" data-tool-cat="telemetry" data-tool-brand="general">
+      <h2>J1939 &amp; ISO-TP frame lab</h2>
+      <p class="tip">
+        <b>What it does:</b> reads an extended CAN identifier the way a J1939 bus means it
+        (priority, PGN, source address), cuts a payload into ISO-TP frames and puts one back
+        together, and composes or checks a KWP2000 request with the same rules the diagnostics view
+        uses. Everything is arithmetic on text you paste &mdash; no adapter, no bus, no ECU.
+      </p>
+      <div class="toolbar"><span class="muted small">Paste candump lines &mdash; <code>can0 18FEF100 [8] 01 02 …</code> or <code>can0 18FEF100#0102…</code>:</span></div>
+      <textarea id="frameLabIn" class="mono-in" rows="5" spellcheck="false"
+        placeholder="can0 18FEF100 [8] 00 00 00 00 00 00 00 00&#10;can0 0CF00400 [8] 00 00 00 00 00 00 00 00"></textarea>
+      <div class="toolbar">
+        <button class="btn primary" id="frameLabDecode">Decode</button>
+        <span class="muted small" id="frameLabMeta"></span>
+      </div>
+      <pre class="mono-out" id="frameLabOut" aria-live="polite"></pre>
+
+      <h3>ISO-TP segments</h3>
+      <div class="toolbar">
+        <label class="inline grow">Payload <input type="text" id="isotpPayload" size="40" placeholder="62 F1 90 41 42 43 44 45 46 47 48 49 4A"></label>
+        <label class="inline">Padding <input type="text" id="isotpPad" size="3" value="CC" maxlength="2"></label>
+        <label class="inline"><input type="checkbox" id="isotpPadOn" checked> pad to 8 bytes</label>
+        <button class="btn" id="isotpBuild">Segment</button>
+      </div>
+      <pre class="mono-out" id="isotpOut" aria-live="polite"></pre>
+      <div class="toolbar">
+        <label class="inline grow">Reassemble <input type="text" id="isotpIn" size="40" placeholder="10 14 62 F1 90 41 42 43, 21 44 45 …"></label>
+        <button class="btn" id="isotpJoin">Join</button>
+      </div>
+      <pre class="mono-out" id="isotpInOut" aria-live="polite"></pre>
+
+      <h3>KWP2000 request</h3>
+      <div class="toolbar">
+        <label class="inline grow">Payload <input type="text" id="kwpPayload" size="30" value="21 01" placeholder="21 01"></label>
+        <label class="inline">Target <input type="text" id="kwpTarget" size="3" value="10" maxlength="2"></label>
+        <label class="inline">Source <input type="text" id="kwpSource" size="3" value="F1" maxlength="2"></label>
+        <label class="inline"><input type="checkbox" id="kwpAddressed" checked> addressed</label>
+        <label class="inline"><input type="checkbox" id="kwpLong"> long form</label>
+        <button class="btn" id="kwpBuild">Build</button>
+      </div>
+      <pre class="mono-out" id="kwpOut" aria-live="polite"></pre>
+    </article>
   </section>
 
   <!-- ==================================================== DISCOVERY -->
@@ -2187,6 +2368,11 @@
 <script src="harley-memory.js"></script>
 <script src="rusefi-ini.js"></script>
 <script src="rusefi-read.js"></script>
+<script src="checksum-workbench.js"></script>
+<script src="rom-map.js"></script>
+<script src="xdf-finder.js"></script>
+<script src="wideband-lab.js"></script>
+<script src="frame-lab.js"></script>
 <script src="help-content.js"></script>
 <script src="help-module.js"></script>
 </body>

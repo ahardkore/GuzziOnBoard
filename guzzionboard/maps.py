@@ -2751,6 +2751,84 @@ def load_bundled_xdfs() -> list[XdfFile]:
     return load_xdfs(BUNDLED_XDF_DIR, recursive=True)
 
 
+def library_index(xdfs: list[XdfFile] | None = None) -> list[dict]:
+    """Table-level index of a definition library, without any image.
+
+    The XDF & ROM view can only describe one definition at a time because a
+    table needs an image to show values. Finding the definition in the first
+    place needs none of that: title, category, units, address and shape are
+    all in the file. This gives the tool bench the same rows for every bundled
+    definition so a search can span the whole library.
+
+    The index is deliberately narrow. It carries no scaling equations beyond
+    the XDF's own ``math`` string and no cell values, so an index cannot be
+    mistaken for a parsed calibration.
+    """
+    rows: list[dict] = []
+    for xdf in (load_bundled_xdfs() if xdfs is None else xdfs):
+        meta = xdf.describe()
+        tables = []
+        for table in xdf.tables:
+            embedded = table.embedded
+            tables.append({
+                "title": table.title,
+                "category": table.category or "",
+                "units": table.units or "",
+                "address": embedded.address if embedded is not None else None,
+                "rows": table.y.count,
+                "cols": table.x.count,
+                "size_bits": embedded.size_bits if embedded is not None else 0,
+                "signed": bool(embedded.signed) if embedded is not None else False,
+                "is_float": bool(embedded.is_float) if embedded is not None else False,
+                "equation": table.math or "",
+            })
+        rows.append({
+            "path": _library_relative_path(meta["path"]),
+            "filename": Path(str(meta["path"])).name,
+            "title": meta["title"],
+            "version": meta["version"],
+            "brand": meta.get("brand", ""),
+            "brand_label": meta.get("brand_label", ""),
+            "family": meta.get("family", ""),
+            "label": meta.get("label", ""),
+            "region_size": meta["region_size"],
+            "research_only": bool(meta.get("research_only", False)),
+            "fits_brands": list(meta.get("fits_brands", [])),
+            "tables": tables,
+        })
+    rows.sort(key=lambda row: (row["brand_label"].lower(), row["label"].lower(),
+                               row["filename"].lower()))
+    return rows
+
+
+#: Repository root, for index paths that must survive a move of the tree.
+PROJECT_ROOT = BUNDLED_XDF_DIR.parent.parent
+
+
+def _library_relative_path(path: str) -> str:
+    """Repository-relative when possible, so the JSON index is portable."""
+    try:
+        return str(Path(path).resolve().relative_to(PROJECT_ROOT))
+    except (ValueError, OSError):
+        return str(path)
+
+
+def library_payload() -> dict:
+    """The index exactly as the server and the hosted demo publish it.
+
+    Both the API route and ``web/xdf-library.json`` are built from this one
+    call, and ``tests/test_demo_mode.py`` compares them, so the browser cannot
+    search a different library from the one the desktop build reads.
+    """
+    rows = library_index()
+    return {
+        "directory": str(BUNDLED_XDF_DIR.relative_to(PROJECT_ROOT)),
+        "definitions": len(rows),
+        "tables": sum(len(row["tables"]) for row in rows),
+        "xdfs": rows,
+    }
+
+
 def available_xdfs(user_directory: str | Path = XDF_DIR) -> list[XdfFile]:
     """The bundled library plus any user-supplied override directory.
 

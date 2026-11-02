@@ -336,7 +336,7 @@ def test_tools_bench_tags_every_panel_with_a_brand(index_html: str, content: str
     tools_section = index_html[index_html.index('id="tools"'):]
     tools_section = tools_section[:tools_section.index("</section>")]
     panels = re.findall(r"<article[^>]*data-tool-cat=\"[a-z-]+\"[^>]*>", tools_section)
-    assert len(panels) == 24, len(panels)
+    assert len(panels) == 29, len(panels)
     tagged = {}
     for panel in panels:
         pid = re.search(r'id="([^"]+)"', panel).group(1)
@@ -406,3 +406,18 @@ def test_brand_styles_exist():
     for selector in (".tools-brand-bar", "#toolsBrandSelect", ".tool-brand-badge.filtered",
                      ".tools-brand-heading", ".tools-brand-only", ".help-brand-chip"):
         assert selector in css, selector
+
+
+def test_every_tools_bench_panel_has_a_help_entry(index_html: str, content: str):
+    """The help center must explain every tool, including the ones added later."""
+    tools_section = index_html[index_html.index('id="tools"'):]
+    tools_section = tools_section[:tools_section.index("</section>")]
+    panels = re.findall(r"<article[^>]*>", tools_section)
+    described = []
+    for tag in panels:
+        if 'class="panel"' not in tag or "data-tool-cat" not in tag:
+            continue
+        pid = re.search(r'id="([^"]+)"', tag).group(1)
+        described.append(pid)
+        assert f"selector: '#{pid}'" in content, f"{pid} has no TOOLS entry in help-content.js"
+    assert len(described) >= 29, described

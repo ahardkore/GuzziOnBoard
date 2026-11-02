@@ -1092,3 +1092,48 @@ class TestUnlockedXdfCapabilities:
         assert all("cyclic THAT" in u["reason"] for u in cyclic_xdf.unsupported)
 
 
+
+
+# -- library index (the Tools bench table finder) ---------------------------
+
+def test_library_index_describes_every_bundled_definition():
+    from guzzionboard.maps import library_index, load_bundled_xdfs
+
+    bundled = load_bundled_xdfs()
+    rows = library_index()
+    assert len(rows) == len(bundled) >= 121
+    assert {row["filename"] for row in rows} == {Path(x.path).name for x in bundled}
+    for row in rows:
+        assert row["tables"], f"{row['filename']} exposes no tables"
+        assert row["brand"], row["filename"]
+        for table in row["tables"]:
+            assert isinstance(table["title"], str) and table["title"]
+            assert table["address"] is None or isinstance(table["address"], int)
+            assert table["rows"] >= 1 and table["cols"] >= 1
+            assert table["size_bits"] in (0, 1, 8, 16, 32, 64)
+
+
+def test_library_index_is_sorted_by_brand_and_carries_no_cell_values():
+    from guzzionboard.maps import library_index
+
+    rows = library_index()
+    order = [(row["brand_label"].lower(), row["label"].lower()) for row in rows]
+    assert order == sorted(order)
+    fields = set()
+    for row in rows:
+        for table in row["tables"]:
+            fields.update(table)
+    assert fields == {"title", "category", "units", "address", "rows", "cols",
+                      "size_bits", "signed", "is_float", "equation"}
+
+
+def test_library_payload_is_repository_relative_and_counted():
+    from guzzionboard.maps import library_payload
+
+    payload = library_payload()
+    assert payload["directory"] == "guzzionboard/xdfs"
+    assert payload["definitions"] == len(payload["xdfs"])
+    assert payload["tables"] == sum(len(row["tables"]) for row in payload["xdfs"])
+    for row in payload["xdfs"]:
+        assert not Path(row["path"]).is_absolute(), row["path"]
+        assert row["path"].startswith("guzzionboard/xdfs/")

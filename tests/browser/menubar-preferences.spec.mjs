@@ -109,15 +109,15 @@ test('Tools and ECU Memory organizers filter panels cleanly and programmatic sho
   await expect.poll(async () => page.locator('#gearPreset option').count()).toBeGreaterThan(1);
 
   // Filter Tools by category and search query
-  await expect(page.locator('#toolsCountBadge')).toHaveText('33 of 33 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('41 of 41 tools');
   await page.locator('[data-tool-filter="workshop"]').click();
   await expect(page.locator('#workshopManual')).toBeVisible();
   await expect(page.locator('#signalPanel')).toBeHidden();
 
   await page.locator('#toolsSearchInput').fill('gearing');
-  await expect(page.locator('#toolsCountBadge')).toHaveText('1 of 33 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('1 of 41 tools');
   await page.locator('#toolsSearchClear').click();
-  await expect(page.locator('#toolsCountBadge')).toHaveText('33 of 33 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('41 of 41 tools');
 
   // Filter ECU Memory workflow steps
   await page.locator('[data-view="firmware"]').click();

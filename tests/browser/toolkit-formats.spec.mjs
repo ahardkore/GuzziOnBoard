@@ -84,7 +84,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('the bench lists all four batch-2 tools in the general group', async ({ page }) => {
-  await expect(page.locator('#toolsCountBadge')).toHaveText('33 of 33 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('41 of 41 tools');
   await expect(page.locator('[data-brand-heading="general"] [data-brand-count]')).toContainText('20 tools');
   for (const id of ['mlgLogPanel', 'dbcPanel', 'obdExplorerPanel', 'tuneDiffPanel']) {
     await expect(page.locator(`#${id}`)).toBeAttached();

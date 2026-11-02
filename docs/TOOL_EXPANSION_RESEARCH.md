@@ -202,7 +202,11 @@ weekly.
 Triumph and Indian tools that surface the protocol modules already in the tree,
 plus BMW and Zero decoders. This is where the brand organisation pays off, but
 each one needs the same care the Harley tools got: source scope, synthetic
-tests, and no write claim.
+tests, and no write claim. *(shipped — see [brand tools](BRAND_TOOLS.md))* Six
+decoder panels (Kawasaki KDS, Suzuki SDS, Triumph ISO 9141, BMW 11-bit CAN,
+Ducati Panigale CAN, Indian J1939) and two IAW image-layout panels for Moto Guzzi
+and Aprilia. Zero's frames were left out on purpose: the source describes a
+single identifier and no channel, so a panel would have had nothing to decode.
 
 **Batch 4 — only with a hardware plan**: KTM/Husqvarna KMSK16, CFMoto MSE8/MG1
 checksums, Royal Enfield keyed checksums. Lowest evidence, highest risk.

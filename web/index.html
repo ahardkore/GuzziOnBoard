@@ -855,7 +855,7 @@
         </div>
         <div class="organizer-head-actions">
           <button type="button" class="btn small" id="toolsFocusModeBtn" title="Switch between 2-column grid bench and single-tool focus pane">2-Column Bench</button>
-          <span class="pill ghost" id="toolsCountBadge">23 of 23 tools</span>
+          <span class="pill ghost" id="toolsCountBadge">41 of 41 tools</span>
         </div>
       </div>
       <div class="organizer-bar" id="toolsOrganizer">
@@ -866,11 +866,19 @@
               <option value="all">All brands &amp; general</option>
               <option value="general">General &mdash; any motorcycle</option>
               <optgroup label="Motorcycle brands">
+                <option value="aprilia">Aprilia</option>
                 <option value="bajaj">Bajaj</option>
+                <option value="bmw">BMW Motorrad</option>
                 <option value="buell">Buell</option>
                 <option value="cfmoto">CFMoto</option>
+                <option value="ducati">Ducati</option>
                 <option value="harley">Harley-Davidson</option>
                 <option value="honda">Honda</option>
+                <option value="indian">Indian</option>
+                <option value="kawasaki">Kawasaki</option>
+                <option value="moto-guzzi">Moto Guzzi</option>
+                <option value="suzuki">Suzuki</option>
+                <option value="triumph">Triumph</option>
                 <option value="yamaha">Yamaha</option>
               </optgroup>
               <optgroup label="Aftermarket &amp; equipment">
@@ -1488,7 +1496,7 @@
       </p>
       <div class="toolbar"><span class="muted small">Paste candump lines &mdash; <code>can0 18FEF100 [8] 01 02 …</code> or <code>can0 18FEF100#0102…</code>:</span></div>
       <textarea id="frameLabIn" class="mono-in" rows="5" spellcheck="false"
-        placeholder="can0 18FEF100 [8] 00 00 00 00 00 00 00 00&#10;can0 0CF00400 [8] 00 00 00 00 00 00 00 00"></textarea>
+        placeholder="can0 18FEF10B [8] 00 00 40 00 00 00 00 00&#10;can0 0CF00400 [8] 00 00 00 00 00 00 00 00"></textarea>
       <div class="toolbar">
         <button class="btn primary" id="frameLabDecode">Decode</button>
         <span class="muted small" id="frameLabMeta"></span>
@@ -1639,6 +1647,216 @@
       <div id="tuneDiffOut"></div>
       <p class="muted small">A CSV is compared row by row with the first column as its axis, so use exports of the
       same length and cadence. Constants are compared numerically within 1e-9; a text value is compared exactly.</p>
+    </article>
+
+    <article class="panel" id="kawasakiKds" data-tool-cat="hardware-research" data-tool-brand="kawasaki">
+      <h2>Kawasaki KDS · K-Line capture decoder</h2>
+      <p class="tip">
+        <b>What it does:</b> takes a K-Line answer that a Kawasaki diagnostic session already produced and turns the local identifier into the channel it carries. The Kawasaki KDS identifiers are not SAE PIDs: each local ID has its own length and its own scaling, and this panel refuses a frame whose length does not match.
+      </p>
+      <p class="muted small">Paste the complete addressed response, checksum included — <code>80 F1 11 &lt;len&gt; 61 &lt;id&gt; &lt;data&gt; &lt;sum&gt;</code>. Source: iKawa, Copyright (c) 2026 Gabriele Randazzo, MIT — the same decoder the diagnostics view uses for the 2006 ER-6n. Nothing is transmitted, and a decoded value is a
+      candidate for the model in the source, not a fitment claim for any other bike.</p>
+      <label class="field"><span>Frames</span>
+        <textarea id="kawasakiFrames" class="mono-in" rows="6" spellcheck="false" placeholder="80 F1 11 04 61 0C 03 1A 10"></textarea>
+      </label>
+      <div class="toolbar">
+        <button class="btn primary" id="kawasakiDecode">Decode locally</button>
+        <button class="btn" id="kawasakiClear">Clear</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="kawasakiMeta"></span>
+      </div>
+      <pre id="kawasakiOut" class="small" aria-live="polite"></pre>
+      <details class="advanced"><summary>Identifiers and formulas this profile implements</summary>
+        <div id="kawasakiRef"></div>
+        <p class="muted small">Only these identifiers are interpreted. Anything else is rejected rather than
+        guessed at, so a wrong profile cannot quietly produce plausible-looking numbers.</p>
+      </details>
+    </article>
+
+    <article class="panel" id="suzukiSds" data-tool-cat="hardware-research" data-tool-brand="suzuki">
+      <h2>Suzuki SDS · K-Line capture decoder</h2>
+      <p class="tip">
+        <b>What it does:</b> decodes the Suzuki SDS all-sensors answer: engine speed, throttle, manifold pressure, the two temperatures, battery voltage and the gear/status byte, each labelled with the published formula and the byte it came from.
+      </p>
+      <p class="muted small">Paste the complete all-sensors answer (57 bytes) including its checksum. A partial frame is rejected, because a checksum byte read as data is exactly how a plausible wrong value appears. Source: SV650overlay, BananaJoh, GPL-3.0. Published SDS implementations disagree about several conversions — the RPM here uses one byte only, and the tool says so rather than hiding the choice. Nothing is transmitted, and a decoded value is a
+      candidate for the model in the source, not a fitment claim for any other bike.</p>
+      <label class="field"><span>Frames</span>
+        <textarea id="suzukiFrames" class="mono-in" rows="6" spellcheck="false" placeholder="80 F1 12 34 61 08 … (57 bytes)"></textarea>
+      </label>
+      <div class="toolbar">
+        <button class="btn primary" id="suzukiDecode">Decode locally</button>
+        <button class="btn" id="suzukiClear">Clear</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="suzukiMeta"></span>
+      </div>
+      <pre id="suzukiOut" class="small" aria-live="polite"></pre>
+      <details class="advanced"><summary>Identifiers and formulas this profile implements</summary>
+        <div id="suzukiRef"></div>
+        <p class="muted small">Only these identifiers are interpreted. Anything else is rejected rather than
+        guessed at, so a wrong profile cannot quietly produce plausible-looking numbers.</p>
+      </details>
+    </article>
+
+    <article class="panel" id="triumphIso" data-tool-cat="hardware-research" data-tool-brand="triumph">
+      <h2>Triumph · ISO 9141 / SAE mode 01 decoder</h2>
+      <p class="tip">
+        <b>What it does:</b> reads a completed ISO 9141 burst from a Triumph K-Line session as plain SAE mode 01 data: load, coolant, fuel trim, manifold pressure, engine speed, road speed, timing advance, intake air and throttle.
+      </p>
+      <p class="muted small">Paste one complete burst: <code>48 6B D1 41 &lt;pid&gt; &lt;data&gt; &lt;checksum&gt;</code>. The frame header and the summing checksum are verified before anything is decoded. Source: daytona-kline, Copyright (C) 2026 Andrew Wilke, GPL-3.0-or-later, tested by its author on one 2012 Daytona 675. Nothing is transmitted, and a decoded value is a
+      candidate for the model in the source, not a fitment claim for any other bike.</p>
+      <label class="field"><span>Frames</span>
+        <textarea id="triumphFrames" class="mono-in" rows="6" spellcheck="false" placeholder="48 6B D1 41 0C 1A F8 E3"></textarea>
+      </label>
+      <div class="toolbar">
+        <button class="btn primary" id="triumphDecode">Decode locally</button>
+        <button class="btn" id="triumphClear">Clear</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="triumphMeta"></span>
+      </div>
+      <pre id="triumphOut" class="small" aria-live="polite"></pre>
+      <details class="advanced"><summary>Identifiers and formulas this profile implements</summary>
+        <div id="triumphRef"></div>
+        <p class="muted small">Only these identifiers are interpreted. Anything else is rejected rather than
+        guessed at, so a wrong profile cannot quietly produce plausible-looking numbers.</p>
+      </details>
+    </article>
+
+    <article class="panel" id="bmwCan" data-tool-cat="telemetry" data-tool-brand="bmw">
+      <h2>BMW Motorrad · 11-bit CAN decoder</h2>
+      <p class="tip">
+        <b>What it does:</b> decodes the three BMW broadcast frames one public source describes: engine speed, the high-beam flash state and the switch-cluster bits (left, right, brake).
+      </p>
+      <p class="muted small">One 11-bit data frame per line: <code>10C#0011223344556677</code>. The source does not record frame direction, so these are candidates only — and reading a switch bit is not a diagnosis of a switch. Source: EasierCan, Copyright (c) 2026 HagayBT, MIT. The source names no model year beyond R1300GS. Nothing is transmitted, and a decoded value is a
+      candidate for the model in the source, not a fitment claim for any other bike.</p>
+      <label class="field"><span>Frames</span>
+        <textarea id="bmwFrames" class="mono-in" rows="6" spellcheck="false" placeholder="10C#00001A2B00000000"></textarea>
+      </label>
+      <div class="toolbar">
+        <button class="btn primary" id="bmwDecode">Decode locally</button>
+        <button class="btn" id="bmwClear">Clear</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="bmwMeta"></span>
+      </div>
+      <pre id="bmwOut" class="small" aria-live="polite"></pre>
+      <details class="advanced"><summary>Identifiers and formulas this profile implements</summary>
+        <div id="bmwRef"></div>
+        <p class="muted small">Only these identifiers are interpreted. Anything else is rejected rather than
+        guessed at, so a wrong profile cannot quietly produce plausible-looking numbers.</p>
+      </details>
+    </article>
+
+    <article class="panel" id="ducatiCan" data-tool-cat="telemetry" data-tool-brand="ducati">
+      <h2>Ducati Panigale · Mitsubishi CAN decoder</h2>
+      <p class="tip">
+        <b>What it does:</b> interprets the three 11-bit frames the Panigale Mitsubishi layout uses: rear wheel speed and the raw gear byte, throttle and engine speed, and the two temperatures with the battery voltage.
+      </p>
+      <p class="muted small">Paste candump lines — <code>can0 080#0011223344556677</code> or <code>can0 18 [8] …</code>. Extended identifiers are refused: this layout describes 11-bit frames only. Source: DucatiPanigaleCanBus, Copyright (c) 2021 Renato Bonomini, MIT — the same layout the CAN log decoder uses. Nothing is transmitted, and a decoded value is a
+      candidate for the model in the source, not a fitment claim for any other bike.</p>
+      <label class="field"><span>Frames</span>
+        <textarea id="ducatiFrames" class="mono-in" rows="6" spellcheck="false" placeholder="can0 080#00000000241A2B00"></textarea>
+      </label>
+      <div class="toolbar">
+        <button class="btn primary" id="ducatiDecode">Decode locally</button>
+        <button class="btn" id="ducatiClear">Clear</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="ducatiMeta"></span>
+      </div>
+      <pre id="ducatiOut" class="small" aria-live="polite"></pre>
+      <details class="advanced"><summary>Identifiers and formulas this profile implements</summary>
+        <div id="ducatiRef"></div>
+        <p class="muted small">Only these identifiers are interpreted. Anything else is rejected rather than
+        guessed at, so a wrong profile cannot quietly produce plausible-looking numbers.</p>
+      </details>
+    </article>
+
+    <article class="panel" id="indianJ1939" data-tool-cat="telemetry" data-tool-brand="indian">
+      <h2>Indian · J1939 broadcast decoder</h2>
+      <p class="tip">
+        <b>What it does:</b> reads the five J1939 PGNs one Indian Springfield source describes: engine speed and demand, cylinder-head temperature, rear and front wheel speed, and the dash fuel level. It also shows the PGN, its name and the source address, so an unidentified extended frame can at least be placed on the bus.
+      </p>
+      <p class="muted small">Paste candump lines with 29-bit identifiers and exactly 8 data bytes — <code>can0 18FEF100 [8] 01 02 …</code>. Source: indian-thunderstroke-canbus, Copyright (c) 2026 Nanna Agesen, MIT, one 2017 Springfield. The bike is air-cooled, so the temperature channel is cylinder head, not coolant. Nothing is transmitted, and a decoded value is a
+      candidate for the model in the source, not a fitment claim for any other bike.</p>
+      <label class="field"><span>Frames</span>
+        <textarea id="indianFrames" class="mono-in" rows="6" spellcheck="false" placeholder="can0 18FEF10B [8] 00 00 40 00 00 00 00 00"></textarea>
+      </label>
+      <div class="toolbar">
+        <button class="btn primary" id="indianDecode">Decode locally</button>
+        <button class="btn" id="indianClear">Clear</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="indianMeta"></span>
+      </div>
+      <pre id="indianOut" class="small" aria-live="polite"></pre>
+      <details class="advanced"><summary>Identifiers and formulas this profile implements</summary>
+        <div id="indianRef"></div>
+        <p class="muted small">Only these identifiers are interpreted. Anything else is rejected rather than
+        guessed at, so a wrong profile cannot quietly produce plausible-looking numbers.</p>
+      </details>
+    </article>
+
+    <article class="panel" id="iawGuzziPanel" data-tool-cat="calibration" data-tool-brand="moto-guzzi">
+      <h2>Moto Guzzi · IAW image layout &amp; definition fit</h2>
+      <p class="tip">
+        <b>What it does:</b> answers two questions before you trust a dump. <em>Where does this file sit inside the
+        image?</em> and <em>does the definition I want to use actually describe tables that are in this file?</em>
+        It compares the definition&rsquo;s own addresses and cell sizes against the bytes you have, and lists every
+        table that would fall outside.
+      </p>
+      <div class="toolbar">
+        <label class="inline">Geometry
+          <select id="iawGuzziPreset">
+            <option value="5am-flash">IAW 5AM flash region · 0x4000–0x50000</option>
+            <option value="5am-image">IAW 5AM full 320 KiB image</option>
+            <option value="full-image">Full image from address 0</option>
+            <option value="custom">Custom base…</option>
+          </select>
+        </label>
+        <label class="inline">Image <input type="file" id="iawGuzziFile" accept=".bin,.ori,.img,.rom,*/*"></label>
+        <label class="inline">or size <input type="text" id="iawGuzziSize" size="8" placeholder="0x4C000"></label>
+      </div>
+      <div class="toolbar">
+        <label class="inline">File starts at <input type="text" id="iawGuzziBase" size="8" value="0x4000"></label>
+        <label class="inline grow">Definition <select id="iawGuzziDefinition"><option value="">— reading the library… —</option></select></label>
+        <button class="btn primary" id="iawGuzziRun">Check the fit</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="iawGuzziMeta"></span>
+      </div>
+      <div id="iawGuzziOut"></div>
+      <p class="muted small">The only geometry stated as fact here is the 5AM flash region (0x4000–0x50000, 311,296
+      bytes inside a 320 KiB image) — the same constant the catalog, the help guides and the programming gate use.
+      Every other address comes from the definition itself. A file big enough for a definition is not proof that the
+      definition belongs to this ECU.</p>
+    </article>
+
+    <article class="panel" id="iawApriliaPanel" data-tool-cat="calibration" data-tool-brand="aprilia">
+      <h2>Aprilia · IAW / MIU G3 image layout &amp; definition fit</h2>
+      <p class="tip">
+        <b>What it does:</b> the same check for the Aprilia side of the library — 15P, 5AM, 7SM and MIU G3
+        definitions. Pick a definition, say where your file starts in the image, and see which of its tables the
+        bytes actually cover.
+      </p>
+      <div class="toolbar">
+        <label class="inline">Geometry
+          <select id="iawApriliaPreset">
+            <option value="5am-flash">Region from 0x4000 · 304 KiB</option>
+            <option value="5am-image">Full 320 KiB image</option>
+            <option value="full-image">Full image from address 0</option>
+            <option value="custom">Custom base…</option>
+          </select>
+        </label>
+        <label class="inline">Image <input type="file" id="iawApriliaFile" accept=".bin,.ori,.img,.rom,*/*"></label>
+        <label class="inline">or size <input type="text" id="iawApriliaSize" size="8" placeholder="0x4C000"></label>
+      </div>
+      <div class="toolbar">
+        <label class="inline">File starts at <input type="text" id="iawApriliaBase" size="8" value="0x4000"></label>
+        <label class="inline grow">Definition <select id="iawApriliaDefinition"><option value="">— reading the library… —</option></select></label>
+        <button class="btn primary" id="iawApriliaRun">Check the fit</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="iawApriliaMeta"></span>
+      </div>
+      <div id="iawApriliaOut"></div>
+      <p class="muted small">Aprilia 7SM and MIU G3 profiles in this program are identification-only: the catalog has
+      no verified region geometry for them, so this tool makes no claim about where their flash starts — you supply
+      the base and it tells you what falls inside. Reading a definition is not programming authorization.</p>
     </article>
   </section>
 
@@ -2147,11 +2365,19 @@
             <option value="all">All brands &amp; general</option>
             <option value="general">General &mdash; any motorcycle</option>
             <optgroup label="Motorcycle brands">
+              <option value="aprilia">Aprilia</option>
               <option value="bajaj">Bajaj</option>
+              <option value="bmw">BMW Motorrad</option>
               <option value="buell">Buell</option>
               <option value="cfmoto">CFMoto</option>
+              <option value="ducati">Ducati</option>
               <option value="harley">Harley-Davidson</option>
               <option value="honda">Honda</option>
+              <option value="indian">Indian</option>
+              <option value="kawasaki">Kawasaki</option>
+              <option value="moto-guzzi">Moto Guzzi</option>
+              <option value="suzuki">Suzuki</option>
+              <option value="triumph">Triumph</option>
               <option value="yamaha">Yamaha</option>
             </optgroup>
             <optgroup label="Aftermarket &amp; equipment">
@@ -2497,6 +2723,8 @@
 <script src="dbc-lab.js"></script>
 <script src="obd-explorer.js"></script>
 <script src="tune-diff.js"></script>
+<script src="brand-tools.js"></script>
+<script src="iaw-layout.js"></script>
 <script src="help-content.js"></script>
 <script src="help-module.js"></script>
 </body>

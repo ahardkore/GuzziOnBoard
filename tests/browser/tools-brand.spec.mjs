@@ -6,9 +6,16 @@ import { test, expect } from '@playwright/test';
  * grouping in its generated tool directory. */
 
 const BRANDS = [
-  'general', 'bajaj', 'buell', 'cfmoto', 'harley', 'honda', 'yamaha',
-  'britek', 'dynojet', 'rusefi',
+  'general', 'aprilia', 'bajaj', 'bmw', 'buell', 'cfmoto', 'ducati',
+  'harley', 'honda', 'indian', 'kawasaki', 'moto-guzzi', 'suzuki',
+  'triumph', 'yamaha', 'britek', 'dynojet', 'rusefi',
 ];
+// One bench module per brand, at least — Batch 3 added a decoder per brand.
+const MIN_PER_BRAND = {
+  general: 20, aprilia: 1, bajaj: 1, bmw: 1, buell: 1, cfmoto: 1, ducati: 1,
+  harley: 4, honda: 2, indian: 1, kawasaki: 1, 'moto-guzzi': 1, suzuki: 1,
+  triumph: 1, yamaha: 1, britek: 1, dynojet: 1, rusefi: 1,
+};
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/web/index.html');
@@ -18,7 +25,7 @@ test.beforeEach(async ({ page }) => {
 
 test('the bench is grouped into general tools first, then one group per brand', async ({ page }) => {
   await expect(page.locator('#toolsBrandSelect')).toBeVisible();
-  await expect(page.locator('#toolsCountBadge')).toHaveText('33 of 33 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('41 of 41 tools');
   await expect(page.locator('#toolsBrandBadge')).toHaveText('All brands');
 
   const headings = page.locator('#tools > [data-brand-heading]');
@@ -39,13 +46,28 @@ test('the bench is grouped into general tools first, then one group per brand', 
   await expect(page.locator('[data-brand-heading="harley"]')).toContainText('Harley-Davidson');
 });
 
+test('every manufacturer keeps at least the modules it documents', async ({ page }) => {
+  for (const [brand, minimum] of Object.entries(MIN_PER_BRAND)) {
+    await page.locator('#toolsBrandSelect').selectOption(brand);
+    const heading = page.locator(`[data-brand-heading="${brand}"]`);
+    await expect(heading).toBeVisible();
+    const members = page.locator('#tools > article.panel[data-tool-cat]:not(.hidden)');
+    const count = await members.count();
+    expect(count, brand).toBeGreaterThanOrEqual(minimum);
+    for (let index = 0; index < count; index += 1) {
+      await expect(members.nth(index)).toHaveAttribute('data-tool-brand', brand);
+    }
+  }
+  await page.locator('#toolsBrandSelect').selectOption('all');
+});
+
 test('the Brand dropdown narrows the bench to one manufacturer', async ({ page }) => {
   await page.locator('#toolsBrandSelect').selectOption('harley');
   const visible = page.locator('#tools > article.panel[data-tool-cat]:not(.hidden)');
   await expect(visible).toHaveCount(4);
   const ids = await visible.evaluateAll((panels) => panels.map((panel) => panel.id).sort());
   expect(ids).toEqual(['centurionResearch', 'harleyMemory', 'harleyRegion', 'pvvEditor']);
-  await expect(page.locator('#toolsCountBadge')).toHaveText('4 of 33 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('4 of 41 tools');
   await expect(page.locator('#toolsBrandBadge')).toHaveText('Harley-Davidson · 4 tools');
   await expect(page.locator('#tools > [data-brand-heading]:not(.hidden)')).toHaveCount(1);
   await expect(page.locator('[data-brand-heading="harley"]')).toBeVisible();
@@ -61,7 +83,7 @@ test('the Brand dropdown narrows the bench to one manufacturer', async ({ page }
   await expect(page.locator('#toolsBrandBadge')).toHaveText('General · 20 tools');
 
   await page.locator('#toolsBrandSelect').selectOption('all');
-  await expect(page.locator('#tools > article.panel[data-tool-cat]:not(.hidden)')).toHaveCount(33);
+  await expect(page.locator('#tools > article.panel[data-tool-cat]:not(.hidden)')).toHaveCount(41);
 });
 
 test('an "Only <brand>" heading button filters and clears the brand', async ({ page }) => {
@@ -73,7 +95,7 @@ test('an "Only <brand>" heading button filters and clears the brand', async ({ p
   // Pressing the same toggle again returns to every brand.
   await page.locator('[data-brand-heading="yamaha"] [data-brand-only="yamaha"]').click();
   await expect(page.locator('#toolsBrandSelect')).toHaveValue('all');
-  await expect(page.locator('#tools > article.panel[data-tool-cat]:not(.hidden)')).toHaveCount(33);
+  await expect(page.locator('#tools > article.panel[data-tool-cat]:not(.hidden)')).toHaveCount(41);
 });
 
 test('brand, category and search combine, and an empty combination says so', async ({ page }) => {
@@ -96,7 +118,7 @@ test('brand, category and search combine, and an empty combination says so', asy
   await page.locator('#toolsSearchClear').click();
   await expect(page.locator('#toolsBrandSelect')).toHaveValue('all');
   await expect(page.locator('#toolsSearchInput')).toHaveValue('');
-  await expect(page.locator('#toolsCountBadge')).toHaveText('33 of 33 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('41 of 41 tools');
 });
 
 test('a Tools menu command clears any active brand filter before jumping', async ({ page }) => {

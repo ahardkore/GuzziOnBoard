@@ -7018,16 +7018,25 @@ let updateRibbonTelemetry = null;
    * the order here is the order the groups appear on the page. */
   const TOOL_BRANDS = [
     { id: 'general', label: 'General', note: 'works on any motorcycle, or needs no bike at all' },
+    { id: 'aprilia', label: 'Aprilia', note: 'IAW 15P / 5AM / 7SM and MIU G3 definitions', oem: true },
     { id: 'bajaj', label: 'Bajaj', note: "RS200 Dell'Orto image checksum research", oem: true },
+    { id: 'bmw', label: 'BMW Motorrad', note: '11-bit CAN broadcast frames', oem: true },
     { id: 'buell', label: 'Buell', note: 'DDFI / DDFI-2 / DDFI-3 serial and EEPROM', oem: true },
     { id: 'cfmoto', label: 'CFMoto', note: 'Bosch MSE6 offline record research', oem: true },
+    { id: 'ducati', label: 'Ducati', note: 'Panigale Mitsubishi CAN layout', oem: true },
     { id: 'harley', label: 'Harley-Davidson', note: 'Delphi J1850 / CAN, Power Vision and Centurion files', oem: true },
     { id: 'honda', label: 'Honda', note: 'Keihin PGM-FI frames and source-ID checksums', oem: true },
+    { id: 'indian', label: 'Indian', note: 'J1939 broadcast PGNs', oem: true },
+    { id: 'kawasaki', label: 'Kawasaki', note: 'KDS K-Line identifiers and local IDs', oem: true },
+    { id: 'moto-guzzi', label: 'Moto Guzzi', note: 'IAW 5AM image geometry and definition fit', oem: true },
+    { id: 'suzuki', label: 'Suzuki', note: 'SDS K-Line all-sensors answer', oem: true },
+    { id: 'triumph', label: 'Triumph', note: 'K-Line ISO 9141 mode 01 frames', oem: true },
     { id: 'yamaha', label: 'Yamaha', note: 'MT image checksum and dashboard stream observation', oem: true },
     { id: 'britek', label: 'BRT Juken', note: 'aftermarket Juken 5 map blocks' },
     { id: 'dynojet', label: 'Dynojet / dyno', note: 'JetDrive telemetry, not an ECU connection' },
     { id: 'rusefi', label: 'rusEFI', note: 'aftermarket controller, .ini definitions and serial pages' },
   ];
+
   const toolBrandById = Object.fromEntries(TOOL_BRANDS.map((brand) => [brand.id, brand]));
 
   function toolBrandOf(panel) {

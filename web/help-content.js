@@ -36,16 +36,25 @@
    * compares them with the data-tool-brand attributes in web/index.html. */
   const BRANDS = [
     { id: 'general', label: 'General', note: 'works on any motorcycle, or needs no bike at all' },
+    { id: 'aprilia', label: 'Aprilia', note: 'IAW 15P / 5AM / 7SM and MIU G3 definitions', oem: true },
     { id: 'bajaj', label: 'Bajaj', note: "RS200 Dell'Orto image checksum research", oem: true },
+    { id: 'bmw', label: 'BMW Motorrad', note: '11-bit CAN broadcast frames', oem: true },
     { id: 'buell', label: 'Buell', note: 'DDFI / DDFI-2 / DDFI-3 serial and EEPROM', oem: true },
     { id: 'cfmoto', label: 'CFMoto', note: 'Bosch MSE6 offline record research', oem: true },
+    { id: 'ducati', label: 'Ducati', note: 'Panigale Mitsubishi CAN layout', oem: true },
     { id: 'harley', label: 'Harley-Davidson', note: 'Delphi J1850 / CAN, Power Vision and Centurion files', oem: true },
     { id: 'honda', label: 'Honda', note: 'Keihin PGM-FI frames and source-ID checksums', oem: true },
+    { id: 'indian', label: 'Indian', note: 'J1939 broadcast PGNs', oem: true },
+    { id: 'kawasaki', label: 'Kawasaki', note: 'KDS K-Line identifiers and local IDs', oem: true },
+    { id: 'moto-guzzi', label: 'Moto Guzzi', note: 'IAW 5AM image geometry and definition fit', oem: true },
+    { id: 'suzuki', label: 'Suzuki', note: 'SDS K-Line all-sensors answer', oem: true },
+    { id: 'triumph', label: 'Triumph', note: 'K-Line ISO 9141 mode 01 frames', oem: true },
     { id: 'yamaha', label: 'Yamaha', note: 'MT image checksum and dashboard stream observation', oem: true },
     { id: 'britek', label: 'BRT Juken', note: 'aftermarket Juken 5 map blocks' },
     { id: 'dynojet', label: 'Dynojet / dyno', note: 'JetDrive telemetry, not an ECU connection' },
     { id: 'rusefi', label: 'rusEFI', note: 'aftermarket controller, .ini definitions and serial pages' },
   ];
+
 
   /* ======================================================================
    * TOOLS — every view, panel, dialog and workshop utility.
@@ -802,6 +811,113 @@
       ],
       caution: 'A difference is a question, not an instruction: the same change can be a fix, a mistake, or a different firmware\u2019s addressing. This tool never writes, applies or uploads a tune.',
       tags: ['tune', 'diff', 'compare', 'msq', 'ini', 'csv', 'constant', 'table', 'calibration'],
+    },
+
+    /* ------------------------------------------- brand frame decoders */
+    {
+      id: 'kawasaki-kds-decoder', name: 'Kawasaki KDS · K-Line capture decoder', category: 'diagnostics', brand: 'kawasaki',
+      view: 'tools', selector: '#kawasakiKds',
+      summary: 'Turns a complete Kawasaki KDS K-Line answer into the channel its local identifier carries: throttle, coolant, intake air, engine speed, battery, road speed and the unverified gear byte.',
+      steps: [
+        'Capture the answer while connected, or paste one from an earlier session. The panel decodes; it never transmits.',
+        'Paste the whole addressed response — 80 F1 11 <len> 61 <local id> <data> <checksum>. A frame whose length byte and checksum disagree is rejected before anything is interpreted.',
+        'Read the channel beside the raw bytes. The identifier list under the panel shows every local ID this profile implements and the formula behind it.',
+        'Where a channel is marked unverified — the gear byte, engine hours — the value is shown raw. Do not turn it into a gear number by eye.',
+      ],
+      caution: 'Kawasaki defines its own local identifiers; they are not SAE PIDs, and the scalings come from one reverse-engineered source (iKawa) reading one 2006 ER-6n. A value from this panel is a lead for the model in the source, not a fitment claim for another Kawasaki.',
+      tags: ['kawasaki', 'kds', 'k-line', 'er-6n', 'er6', 'kwp', 'local identifier', 'throttle', 'coolant'],
+    },
+    {
+      id: 'suzuki-sds-decoder', name: 'Suzuki SDS · K-Line capture decoder', category: 'diagnostics', brand: 'suzuki',
+      view: 'tools', selector: '#suzukiSds',
+      summary: 'Decodes the Suzuki SDS all-sensors answer: engine speed, throttle, manifold pressure, coolant, intake air, battery voltage and the gear/status byte.',
+      steps: [
+        'Paste the complete 57-byte all-sensors answer, checksum included. A partial frame is refused: a checksum byte read as data is exactly how a plausible wrong value appears.',
+        'Decode. Each line names the byte it came from so the arithmetic can be repeated by hand.',
+        'Published SDS implementations disagree about several conversions. Where they do, the panel states which one it used rather than presenting a single number as fact.',
+      ],
+      caution: 'The RPM channel in this profile uses the high byte only, as its source does; other implementations compute it from two bytes and will disagree. None of these conversions is confirmed by a manufacturer document.',
+      tags: ['suzuki', 'sds', 'sv650', 'k-line', 'all sensors', 'rpm', 'throttle', 'manifold'],
+    },
+    {
+      id: 'triumph-kline-decoder', name: 'Triumph · ISO 9141 / mode 01 decoder', category: 'diagnostics', brand: 'triumph',
+      view: 'tools', selector: '#triumphIso',
+      summary: 'Reads a completed ISO 9141 burst from a Triumph K-Line session as SAE mode 01 data: load, coolant, fuel trim, manifold pressure, engine speed, road speed, advance, intake air and throttle.',
+      steps: [
+        'Paste one complete burst: 48 6B D1 41 <pid> <data> <checksum>.',
+        'The header and the summing checksum are verified first. A burst that fails either is rejected, not partially decoded.',
+        'Only positive 0x41 answers are interpreted. A negative answer (0x7F) is reported as a refusal and no value is invented from it.',
+        'Cross-check a decoded PID against a second, independent channel before you trust a single reading.',
+      ],
+      caution: 'The framing and the PID formulas come from daytona-kline, tested by its author on one 2012 Daytona 675. PIDs that a Triumph must answer are not listed anywhere here: an answer proves the PID exists on that ECU, nothing more.',
+      tags: ['triumph', 'daytona', '675', 'iso 9141', 'iso9141', 'k-line', 'mode 01', 'pid'],
+    },
+    {
+      id: 'bmw-can-decoder', name: 'BMW Motorrad · 11-bit CAN decoder', category: 'telemetry', brand: 'bmw',
+      view: 'tools', selector: '#bmwCan',
+      summary: 'Decodes the three BMW broadcast frames one public source describes: engine speed, high-beam flash state and the switch-cluster bits for left, right and brake.',
+      steps: [
+        'Paste one 11-bit data frame per line: 10C#0011223344556677.',
+        'Press Decode. Unknown identifiers and payloads shorter than the layout needs are rejected rather than guessed at.',
+        'Read the bits as candidates. A switch bit that reads 1 says a bus message carried that bit, not that the switch works.',
+      ],
+      caution: 'EasierCan records these frames on an R1300GS and does not state the direction of each message, so a bit could be an input, a status echo or another controller’s report. The source names no other model year.',
+      tags: ['bmw', 'motorrad', 'r1300gs', 'can', '11-bit', 'switch', 'high beam'],
+    },
+    {
+      id: 'ducati-can-decoder', name: 'Ducati Panigale · Mitsubishi CAN decoder', category: 'telemetry', brand: 'ducati',
+      view: 'tools', selector: '#ducatiCan',
+      summary: 'Interprets the three 11-bit frames of the Panigale Mitsubishi layout: rear wheel speed and the raw gear byte, throttle and engine speed, temperatures and battery voltage.',
+      steps: [
+        'Paste candump lines — can0 080#0011223344556677 or can0 18 [8] … — one frame per line.',
+        'Extended identifiers are refused: this layout describes 11-bit frames only, and a 29-bit ID at the same numeric value is a different message.',
+        'Read the temperatures as signed: the offset is −40 °C, so a cold engine reads below zero rather than wrapping.',
+        'The gear byte is printed raw. The source does not map it to a gear number, so do not infer one.',
+      ],
+      caution: 'The layout comes from DucatiPanigaleCanBus, one reverse-engineered Mitsubishi bus. Wheel speed, throttle and battery are candidates for that bike; nothing here identifies a Panigale model or year.',
+      tags: ['ducati', 'panigale', 'mitsubishi', 'can', '11-bit', 'gear', 'wheel speed'],
+    },
+    {
+      id: 'indian-j1939-decoder', name: 'Indian · J1939 broadcast decoder', category: 'telemetry', brand: 'indian',
+      view: 'tools', selector: '#indianJ1939',
+      summary: 'Reads five J1939 PGNs: EEC1 engine speed and demand, ET1 cylinder-head temperature, CCVS rear speed, the dash fuel level and the front wheel-speed PGN, printing the PGN, its name and the source address.',
+      steps: [
+        'Paste candump lines with 29-bit identifiers and exactly eight data bytes.',
+        'Decode. The header line names the PGN and the source address the profile expects, so a frame from a different controller is obvious rather than silently wrong.',
+        'A PGN the source describes but from another source address is reported with both addresses named: one bike, one address table.',
+        '0xFF and 0xFFFF mean “not available” and are printed as such, not as a value.',
+      ],
+      caution: 'One 2017 Springfield, integration-tested with synthetic frames only. The bike is air-cooled, so the temperature channel is cylinder head, not coolant — reading it as coolant misreports the engine.',
+      tags: ['indian', 'springfield', 'j1939', 'pgn', 'can', 'eec1', 'ccvs', 'fuel'],
+    },
+
+    /* ------------------------------------------- IAW image layout */
+    {
+      id: 'iaw-image-layout', name: 'Moto Guzzi · IAW image layout & definition fit', category: 'calibration', brand: 'moto-guzzi',
+      view: 'tools', selector: '#iawGuzziPanel',
+      summary: 'Answers two questions before you trust a dump: where the file sits inside the image, and whether the definition you picked actually describes tables that are inside those bytes.',
+      steps: [
+        'Pick the geometry, or type the base yourself. The 5AM flash region 0x4000–0x50000 (311,296 bytes of a 320 KiB image) is the same constant the catalog and the programming gate use.',
+        'Choose the image, or type its size if you only have a region.',
+        'Pick a definition from the library — the list is read from the bundled XDF index, so it is the same set the Maps view offers.',
+        'Press Check the fit. Tables inside the file are listed with their file offsets; tables outside are listed with the reason.',
+        'Read the verdict as a size check, not a fitment check. A file big enough for a definition is not proof that the definition belongs to this ECU: a definition from another family can describe plausible tables at the wrong addresses.',
+      ],
+      caution: 'Sizes are rows × columns × resolution: a table with a non-standard stride can be slightly larger in reality. The tool reports addresses from the definition and never reads a calibration value, so it cannot tell you what a byte means.',
+      tags: ['iaw', '5am', 'moto guzzi', 'image', 'layout', 'offset', 'xdf', 'fit', 'definition'],
+    },
+    {
+      id: 'aprilia-image-layout', name: 'Aprilia · IAW / MIU G3 image layout & definition fit', category: 'calibration', brand: 'aprilia',
+      view: 'tools', selector: '#iawApriliaPanel',
+      summary: 'The same definition-fit check for the Aprilia side of the library: 15P, 5AM, 7SM and MIU G3 definitions, matched against the bytes you actually have.',
+      steps: [
+        'Set the base offset. For a 5AM-family Aprilia the flash region starts at 0x4000, exactly as on the Guzzi side.',
+        'Choose the image or type its size, then pick the definition.',
+        'Press Check the fit and read the two lists: what falls inside the file, and what does not and why.',
+        'Compare the highest address the definition uses with the size of your read. If the definition needs more, you have a partial read.',
+      ],
+      caution: 'The Aprilia 7SM and MIU G3 catalog entries are identification-only: the program has no verified flash geometry for them, so this tool makes no claim about where their flash starts. Reading a definition is not programming authorization.',
+      tags: ['aprilia', 'iaw', '15p', '5am', '7sm', 'miu g3', 'image', 'layout', 'xdf'],
     },
     {
       id: 'canlog-analyzer', name: 'CAN identifier discovery (offline analyzer)', category: 'telemetry',

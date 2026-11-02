@@ -52,6 +52,7 @@ from __future__ import annotations
 
 from . import resources
 
+import hashlib
 import json
 import time
 from dataclasses import dataclass, field
@@ -178,14 +179,47 @@ class ProgrammingService:
         #: pacing waits that real silicon does. Hardware keeps the defaults.
         self.hardware_pacing = True
 
+    EXTERNAL_BACKUP_ACKNOWLEDGEMENT = (
+        "I confirm this file is a verified full backup from this exact ECU"
+    )
+
     # -- catalog plumbing -------------------------------------------------
     @property
     def spec(self) -> dict:
         return (self.profile.memory or {}).get("programming", {})
 
+    def has_implemented_writer(self, region_name: str = "flash") -> bool:
+        """True when a concrete protocol write sequence is implemented for ``region_name``."""
+        memory = self.profile.memory or {}
+        if self.profile.id == "honda_cb500f_dashble" or memory.get("research_read_only"):
+            return False
+        raw_regions = memory.get("regions") or {}
+        spec = raw_regions.get(region_name)
+        if not isinstance(spec, dict) or int(spec.get("size") or 0) <= 0:
+            return False
+        if memory.get("write_supported") and spec.get("writable"):
+            return True
+        write_spec = self.spec.get("write") or {}
+        return bool(
+            isinstance(write_spec, dict)
+            and any(k in write_spec for k in ("session", "erase", "request_download", "program", "records"))
+        )
+
+    def _writer_unlocked(self, region_name: str = "flash") -> bool:
+        return bool(
+            self.gate.allow_unverified_hardware_writes
+            and self.has_implemented_writer(region_name)
+        )
+
     def regions(self) -> dict[str, Region]:
         raw = (self.profile.memory or {}).get("regions", {})
-        return {name: Region.from_catalog(name, s) for name, s in raw.items()}
+        out: dict[str, Region] = {}
+        for name, s in raw.items():
+            spec_copy = dict(s)
+            if self._writer_unlocked(name):
+                spec_copy["writable"] = True
+            out[name] = Region.from_catalog(name, spec_copy)
+        return out
 
     def region(self, name: str) -> Region:
         try:
@@ -198,6 +232,11 @@ class ProgrammingService:
     def capabilities(self) -> dict:
         memory = self.profile.memory or {}
         regions = self.regions()
+        implemented_regions = [
+            name for name in regions if self.has_implemented_writer(name)
+        ]
+        unlocked_any = any(self._writer_unlocked(name) for name in regions)
+        effective_write = bool(memory.get("write_supported")) or unlocked_any
         return {
             "ecu": self.profile.id,
             "family": self.profile.family,
@@ -209,8 +248,18 @@ class ProgrammingService:
                 + str(memory.get("read_blocked_reason") or memory.get("write_blocked_reason") or "")
                 if not memory.get("read_supported") else ""
             ),
-            "write_supported": bool(memory.get("write_supported")),
-            "write_blocked_reason": memory.get("write_blocked_reason", ""),
+            "write_supported": effective_write,
+            "write_blocked_reason": (
+                "" if effective_write else memory.get("write_blocked_reason", "")
+            ),
+            "implemented_writer_available": bool(implemented_regions),
+            "implemented_writer_regions": implemented_regions,
+            "unverified_hardware_writes_enabled": bool(
+                self.gate.allow_unverified_hardware_writes
+            ),
+            "unverified_hardware_writer_unlocked": unlocked_any,
+            "unverified_writer_acknowledgement": self.gate.UNVERIFIED_WRITER_ACKNOWLEDGEMENT,
+            "external_backup_acknowledgement": self.EXTERNAL_BACKUP_ACKNOWLEDGEMENT,
             # These two are set only on simulated sessions — see
             # Workstation._simulated_capable_profile.  They let the UI say
             # "proved here means proved against the simulation" instead of
@@ -727,6 +776,8 @@ class ProgrammingService:
         self, region_name: str = "flash", *, progress: ProgressFn | None = None,
         verify: bool = True, allow_unverified_key: bool = False,
         save_base_map: bool = True,
+        attempt_5am_skipped_blocks: bool = False,
+        experimental_confirmation: bool = False,
     ) -> dict:
         """Read a region twice and only trust it if both reads agree.
 
@@ -735,11 +786,23 @@ class ProgrammingService:
         """
         if (self.profile.memory or {}).get("research_read_only"):
             raise ProgrammingError("Experimental Honda reads cannot create a verified backup or base map")
-        if self.profile.id == "5am" and self.diag.transport.is_physical:
+        full_physical_5am = (
+            self.profile.id == "5am"
+            and self.diag.transport.is_physical
+            and attempt_5am_skipped_blocks
+            and experimental_confirmation
+            and self.gate.allow_unverified_hardware_writes
+        )
+        if self.profile.id == "5am" and self.diag.transport.is_physical and not full_physical_5am:
             raise ProgrammingError("The physical 5AM source-derived read is partial and cannot create a verified backup or base map; use Read for an experimental image")
+        if full_physical_5am and not verify:
+            raise ProgrammingError("A full 19-block physical 5AM backup requires dual-read verification")
 
         first = self.read_region(
-            region_name, progress=progress, allow_unverified_key=allow_unverified_key
+            region_name, progress=progress,
+            allow_unverified_key=allow_unverified_key,
+            experimental_confirmation=experimental_confirmation if full_physical_5am else False,
+            attempt_5am_skipped_blocks=attempt_5am_skipped_blocks if full_physical_5am else False,
         )
         result = {"image": first, "verified": False, "attempts": 1}
 
@@ -747,6 +810,8 @@ class ProgrammingService:
             second = self.read_region(
                 region_name, progress=progress,
                 allow_unverified_key=allow_unverified_key,
+                experimental_confirmation=experimental_confirmation if full_physical_5am else False,
+                attempt_5am_skipped_blocks=attempt_5am_skipped_blocks if full_physical_5am else False,
             )
             result["attempts"] = 2
             if first.matches(second):
@@ -764,6 +829,20 @@ class ProgrammingService:
                     "check the adapter, the ground and the battery before "
                     "trusting any backup."
                 )
+
+        if full_physical_5am:
+            val_report = self.validate(first, region_name)
+            if not val_report["ok"]:
+                raise VerificationFailed(
+                    "19-block 5AM backup failed structural validation: "
+                    + "; ".join(f["detail"] for f in val_report["fatal"])
+                )
+            first.source = "backup"
+            first.meta["verified_backup"] = True
+            first.meta["note"] = (
+                "Dual-read verified 19-block 5AM flash backup created under "
+                "operator-unlocked hardware writer gate."
+            )
 
         stamp = time.strftime("%Y%m%d-%H%M%S")
         name = f"{self.profile.id}-{region_name}-{stamp}.bin"
@@ -885,6 +964,144 @@ class ProgrammingService:
             ],
         )
 
+    def attest_external_backup(
+        self,
+        path: str | Path,
+        region_name: str = "flash",
+        *,
+        acknowledgement: str,
+        save_base_map: bool = True,
+        note: str = "",
+    ) -> dict:
+        """Attest an externally captured verified stock dump for this identified ECU.
+
+        Supports both exact region-sized dumps (e.g. 311,296-byte 5AM flash
+        0x4000..0x50000) and full ECU memory dumps (e.g. 327,680-byte GuzziDiag /
+        IAW5xReader 0x00000..0x50000 images, sliced to ``region.start..end``).
+        """
+        if (self.profile.memory or {}).get("research_read_only"):
+            raise ProgrammingError(
+                "Experimental research profiles cannot attest verified backups"
+            )
+        if not self.diag.identity:
+            raise ProgrammingError(
+                "identify the ECU before attesting an external backup"
+            )
+        if acknowledgement.strip() != self.EXTERNAL_BACKUP_ACKNOWLEDGEMENT:
+            raise ProgrammingError(
+                "to attest an external backup, repeat exactly: "
+                f"{self.EXTERNAL_BACKUP_ACKNOWLEDGEMENT!r}"
+            )
+        region = self.region(region_name)
+        if region.size <= 0:
+            raise ProgrammingError(f"region {region_name!r} has no configured size")
+
+        source_file = Path(path).expanduser()
+        if not source_file.is_file():
+            raise ProgrammingError(f"backup file does not exist: {source_file}")
+        loaded = FirmwareImage.from_file(source_file)
+        if loaded.meta.get("synthetic_blocks"):
+            raise ProgrammingError(
+                "cannot attest a partial research read with synthetic 0xFF placeholder blocks"
+            )
+        raw_bytes = bytes(loaded.data)
+        full_size = int((self.profile.memory or {}).get("image_size") or 0)
+        sliced = False
+        if len(raw_bytes) == region.size:
+            region_bytes = raw_bytes
+        elif (
+            full_size > 0
+            and len(raw_bytes) == full_size
+            and region.start + region.size <= full_size
+        ):
+            region_bytes = raw_bytes[region.start : region.start + region.size]
+            sliced = True
+        else:
+            expected_desc = f"{region.size} bytes"
+            if full_size and full_size != region.size:
+                expected_desc += f" (or {full_size}-byte full dump)"
+            raise IncompatibleImage(
+                f"backup file is {len(raw_bytes)} bytes, expected {expected_desc}"
+            )
+
+        att_identity = dict(self.diag.identity.fields)
+        candidate = FirmwareImage(
+            data=region_bytes,
+            ecu_id=self.profile.id,
+            region=region_name,
+            source="external-backup",
+            identity=att_identity,
+            meta={
+                "attested_from": str(source_file),
+                "original_sha256": hashlib.sha256(raw_bytes).hexdigest(),
+                "original_bytes": len(raw_bytes),
+                "sliced_from_full_dump": sliced,
+                "verified_backup": True,
+                "note": note or "attested external verified backup",
+            },
+        )
+        validation = self.validate(candidate, region_name)
+        if not validation["ok"]:
+            raise IncompatibleImage(
+                "external backup failed validation against this ECU: "
+                + "; ".join(f["detail"] for f in validation["fatal"])
+            )
+        hw_check = self.gate._hardware_family_check(
+            str(att_identity.get("Hardware", "")),
+            extract_hardware_strings(candidate.data),
+        )
+        if not hw_check.passed:
+            raise IncompatibleImage(hw_check.detail)
+
+        self.image_dir.mkdir(parents=True, exist_ok=True)
+        stamp = time.strftime("%Y%m%d-%H%M%S")
+        saved = candidate.save(
+            self.image_dir / f"{self.profile.id}-{region_name}-attested-{stamp}.bin"
+        )
+        self.gate.state.verified_backup = True
+        self.gate.state.backup_path = str(saved)
+
+        base_map = None
+        if save_base_map:
+            base_map = self.vault.store(
+                ecu_id=self.profile.id,
+                hardware=self._ecu_hardware(),
+                region=region_name,
+                source_path=saved,
+                verified=True,
+                identity=att_identity,
+                note=note or "filed from attested external backup",
+            )
+            self.log.action(
+                "base_map_store",
+                {
+                    "key": base_map.get("key"),
+                    "path": base_map.get("path"),
+                    "is_base_map": base_map.get("is_base_map", False),
+                },
+            )
+        self._refresh_base_map_state(region_name)
+        self.log.action(
+            "external_backup_attested",
+            {
+                "region": region_name,
+                "source_path": str(source_file),
+                "saved_path": str(saved),
+                "sha256": candidate.sha256,
+                "sliced_from_full_dump": sliced,
+            },
+        )
+        return {
+            "path": str(saved),
+            "verified": True,
+            "bytes": candidate.size,
+            "sha256": candidate.sha256,
+            "sliced_from_full_dump": sliced,
+            "describe": candidate.describe(),
+            "validation": validation,
+            "base_map": base_map or self.base_map_status(region_name),
+        }
+
     # -- validation -------------------------------------------------------
     def validate(self, image: FirmwareImage, region_name: str = "flash") -> dict:
         identity = dict(self.diag.identity.fields) if self.diag.identity else None
@@ -903,6 +1120,8 @@ class ProgrammingService:
         cannot speak to compatibility and :meth:`write_region` re-evaluates
         with the image before anything is transmitted.
         """
+        from dataclasses import replace as dc_replace
+
         if self.diag.identity:
             # The live session is the authority on what is on the bench;
             # keep the gate's picture of it current.
@@ -920,14 +1139,22 @@ class ProgrammingService:
             image_embedded = extract_hardware_strings(image.data)
         memory = self.profile.memory or {}
         region = self.regions().get(region_name)
+        unlocked = self._writer_unlocked(region_name)
+        effective_write = bool(memory.get("write_supported")) or unlocked
+        eval_profile = self.profile
+        if unlocked and "memory_write" not in eval_profile.capabilities:
+            eval_profile = dc_replace(
+                eval_profile,
+                capabilities=tuple(eval_profile.capabilities) + ("memory_write",),
+            )
         decision = self.gate.evaluate(
             f"write:{region_name}", Risk.IRREVERSIBLE,
-            profile=self.profile, capability="memory_write",
+            profile=eval_profile, capability="memory_write",
             image_hardware=image_hardware,
             image_embedded_hardware=image_embedded,
             additional_checks=(
-                Check("write-supported", bool(memory.get("write_supported")),
-                      str(memory.get("write_blocked_reason") or "no ECU writer enabled for this profile")),
+                Check("write-supported", effective_write,
+                      "" if effective_write else str(memory.get("write_blocked_reason") or "no ECU writer enabled for this profile")),
                 Check("writable-region", bool(region and region.writable),
                       f"{region_name!r} is not a declared writable region"),
             ),
@@ -954,12 +1181,7 @@ class ProgrammingService:
         self, image: FirmwareImage, token: str, region_name: str, *,
         progress: ProgressFn | None, allow_unverified_key: bool,
     ) -> dict:
-        """Erase, transfer, program and verify. Every step can refuse.
-
-        This will not run in the shipped configuration: the safety gate's
-        ``programming-enabled`` check is false unless the build explicitly
-        enables it, and no catalog entry declares ``memory_write``.
-        """
+        """Erase, transfer, program and verify. Every step can refuse."""
         self._progress_fn = progress
         memory = self.profile.memory or {}
         if self.profile.id == "honda_cb500f_dashble":
@@ -967,7 +1189,8 @@ class ProgrammingService:
         region = self.region(region_name)
 
         # 1. policy
-        if not memory.get("write_supported"):
+        effective_write = bool(memory.get("write_supported")) or self._writer_unlocked(region_name)
+        if not effective_write:
             raise SafetyViolation(self.check_write(region_name))
         if not region.writable:
             raise ProgrammingError(f"the {region_name} region is not writable")
@@ -1081,8 +1304,32 @@ class ProgrammingService:
 
             # 4. verify by reading it back
             self._emit("verify", 0, region.size, "reading back")
-            readback = self.read_region(region_name, progress=progress)
-            if not readback.matches(image):
+            readback = self.read_region(
+                region_name,
+                progress=progress,
+                allow_unverified_key=self._unverified_key_accepted(allow_unverified_key),
+            )
+            synthetic_blocks = list(readback.meta.get("synthetic_blocks") or [])
+            if synthetic_blocks == [2, 3, 4, 5] and len(readback.data) == len(image.data) == 0x4C000:
+                # Physical 5AM source-derived read skips blocks 2..5
+                # (offsets 0x4000..0x14000 inside the 0x4C000 flash region).
+                # Verify every served block byte-for-byte against ``image``.
+                served_diffs = sum(
+                    a != b
+                    for idx, (a, b) in enumerate(zip(readback.data, image.data))
+                    if not (0x4000 <= idx < 0x14000)
+                )
+                if served_diffs:
+                    diff = {"changed_bytes": served_diffs, "unverified_blocks": synthetic_blocks}
+                    self._write_checkpoint(
+                        checkpoint, {"phase": "verify_failed", "diff": diff}
+                    )
+                    raise VerificationFailed(
+                        f"Write verification FAILED: {served_diffs} readable bytes "
+                        "differ from what was sent. DO NOT power the ECU down. "
+                        f"Retry the write, or restore {self.gate.state.backup_path}."
+                    )
+            elif not readback.matches(image):
                 diff = readback.diff(image)
                 self._write_checkpoint(
                     checkpoint, {"phase": "verify_failed", "diff": diff}
@@ -1096,11 +1343,17 @@ class ProgrammingService:
             self._write_checkpoint(checkpoint, {"phase": "complete"})
             self.log.action(
                 "write_complete",
-                {"region": region_name, "sha256": image.sha256, "verified": True},
+                {
+                    "region": region_name,
+                    "sha256": image.sha256,
+                    "verified": True,
+                    **({"partial_readback_unverified_blocks": synthetic_blocks} if synthetic_blocks else {}),
+                },
             )
             return {
                 "ok": True, "region": region_name, "verified": True,
                 "sha256": image.sha256, "bytes": image.size,
+                **({"partial_readback_unverified_blocks": synthetic_blocks} if synthetic_blocks else {}),
             }
 
         except VerificationFailed as exc:

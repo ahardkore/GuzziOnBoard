@@ -82,6 +82,7 @@ from .recommendations import (
     validate_package as validate_recommendation_package,
 )
 from .tuning import (
+    CUSTOM_RECOMMENDATION_MODES,
     TUNING_ACKNOWLEDGEMENT,
     TuningError,
     build_tune,
@@ -907,6 +908,9 @@ class Api:
             "acknowledgement": self.ws.gate.PROGRAMMING_ACKNOWLEDGEMENT,
             "programming_enabled": self.ws.gate.allow_programming,
             "unverified_keys_accepted": self.ws.gate.allow_unverified_keys,
+            "unverified_hardware_writes_enabled": self.ws.gate.allow_unverified_hardware_writes,
+            "unverified_writer_acknowledgement": self.ws.gate.UNVERIFIED_WRITER_ACKNOWLEDGEMENT,
+            "external_backup_acknowledgement": prog.EXTERNAL_BACKUP_ACKNOWLEDGEMENT,
         }
 
     def get_memory_progress(self, query: dict) -> tuple[int, dict]:
@@ -915,11 +919,38 @@ class Api:
     def post_memory_backup(self, body: dict) -> tuple[int, dict]:
         prog = self._programming()
         region = body.get("region", "flash")
+        allow_key = bool(body.get("allow_unverified_key"))
+        attempt_skipped = bool(body.get("attempt_5am_skipped_blocks"))
+        exp_confirm = bool(body.get("experimental_confirmation"))
 
         def run(report):
-            return prog.backup(region, progress=report)
+            return prog.backup(
+                region,
+                progress=report,
+                allow_unverified_key=allow_key,
+                attempt_5am_skipped_blocks=attempt_skipped,
+                experimental_confirmation=exp_confirm,
+            )
 
         return 202, self.jobs.start(f"backup:{region}", run)
+
+    def post_memory_attest_backup(self, body: dict) -> tuple[int, dict]:
+        prog = self._programming()
+        region = body.get("region", "flash")
+        path = body.get("path")
+        if not path:
+            return 400, {"error": "a 'path' to a verified full backup file is required"}
+        try:
+            result = prog.attest_external_backup(
+                path,
+                region,
+                acknowledgement=str(body.get("acknowledgement") or ""),
+                save_base_map=bool(body.get("save_base_map", True)),
+                note=str(body.get("note") or ""),
+            )
+        except (ProgrammingError, FirmwareError, BaseMapError, OSError) as exc:
+            return 400, {"error": str(exc)}
+        return 200, result
 
     # -- base maps (the guaranteed restore image) -------------------------
     def get_basemap(self, query: dict) -> tuple[int, dict]:
@@ -1007,9 +1038,12 @@ class Api:
         if not path or not token:
             return 400, {"error": "'path' and 'token' are both required"}
         image = FirmwareImage.from_file(path)
+        allow_key = bool(body.get("allow_unverified_key"))
 
         def run(report):
-            return prog.write_region(image, token, region, progress=report)
+            return prog.write_region(
+                image, token, region, progress=report, allow_unverified_key=allow_key
+            )
 
         return 202, self.jobs.start(f"write:{region}", run)
 
@@ -1061,9 +1095,12 @@ class Api:
                 "available": True,
                 "acknowledgement": TUNING_ACKNOWLEDGEMENT,
                 "requires_recommendation_evidence": True,
+                "custom_modes": list(CUSTOM_RECOMMENDATION_MODES),
                 "note": (
-                    "Map builds are new files made from a hashed source. No "
-                    "tuning values ship without a traceable recommendation."
+                    "Map builds are new files made from a hashed source. External "
+                    "recommendations require an HTTP(S) URL; custom operator, dyno "
+                    "and wideband AFR-log builds record local rationale and optional "
+                    "SHA-256 provenance."
                 ),
             },
         }
@@ -1323,12 +1360,30 @@ class Api:
                 raise LogAnalysisError(
                     f"no unique rendered table matches {table_ref!r}"
                 )
+            target_table_arg = body.get("target_afr_table")
+            resolved_target_table = None
+            if target_table_arg not in (None, ""):
+                if isinstance(target_table_arg, dict):
+                    resolved_target_table = target_table_arg
+                else:
+                    t_ref = str(target_table_arg)
+                    matches = [
+                        t for t in render["tables"]
+                        if t.get("id") == t_ref or t.get("title") == t_ref
+                    ]
+                    if len(matches) != 1:
+                        raise LogAnalysisError(
+                            f"no unique rendered target AFR table matches {t_ref!r}"
+                        )
+                    resolved_target_table = matches[0]
             report = analyze_fuel_log(
                 tables[0], body.get("rows"),
                 x_channel=str(body.get("x_channel") or ""),
                 y_channel=str(body.get("y_channel") or ""),
                 measured_afr_channel=str(body.get("measured_afr_channel") or ""),
                 target_afr_channel=str(body.get("target_afr_channel") or ""),
+                target_afr_constant=body.get("target_afr_constant"),
+                target_afr_table=resolved_target_table,
                 min_samples=body.get("min_samples", 3),
                 max_correction_percent=body.get("max_correction_percent", 10),
                 max_afr_stddev=body.get("max_afr_stddev", 0.5),
@@ -1426,7 +1481,7 @@ class Api:
             return kind, item_id, int(change.get("row")), int(change.get("col"))
         if kind == "axis":
             return kind, item_id, str(change.get("axis") or "").lower(), int(change.get("index"))
-        if kind == "constant":
+        if kind in ("constant", "flag", "patch"):
             return kind, item_id
         raise TuningError(f"recommendation package contains unknown change kind {kind!r}")
 
@@ -1535,24 +1590,53 @@ class Api:
                 raise TuningError(
                     f"recommendation package change {identity!r} is missing"
                 )
-            try:
+            exp_kind = expected["kind"]
+            if exp_kind == "patch":
+                actual_hex = actual.get("expected_hex")
+                if (not isinstance(actual_hex, list)
+                        or [str(h).strip().lower() for h in actual_hex] != expected["expected_hex"]
+                        or not isinstance(actual.get("value"), bool)
+                        or actual.get("value") is not expected["value"]):
+                    raise TuningError(
+                        f"recommendation package change {identity!r} no longer "
+                        "matches its source lock and target value"
+                    )
+            elif exp_kind == "flag":
                 raw_value = actual.get("expected_raw")
-                actual_raw = int(raw_value)
-                actual_value = float(actual.get("value"))
-            except (TypeError, ValueError) as exc:
-                raise TuningError(
-                    f"recommendation package change {identity!r} is malformed"
-                ) from exc
-            if (isinstance(raw_value, bool) or actual_raw != float(raw_value)
-                    or actual_raw != expected["expected_raw"]
-                    or not math.isfinite(actual_value)
-                    or not math.isclose(
-                        actual_value, expected["value"], rel_tol=1e-12, abs_tol=1e-12
-                    )):
-                raise TuningError(
-                    f"recommendation package change {identity!r} no longer "
-                    "matches its source lock and target value"
-                )
+                try:
+                    actual_raw = int(raw_value)
+                except (TypeError, ValueError) as exc:
+                    raise TuningError(
+                        f"recommendation package change {identity!r} is malformed"
+                    ) from exc
+                if (isinstance(raw_value, bool) or actual_raw != float(raw_value)
+                        or actual_raw != expected["expected_raw"]
+                        or not isinstance(actual.get("value"), bool)
+                        or actual.get("value") is not expected["value"]):
+                    raise TuningError(
+                        f"recommendation package change {identity!r} no longer "
+                        "matches its source lock and target value"
+                    )
+            else:
+                try:
+                    raw_value = actual.get("expected_raw")
+                    if isinstance(raw_value, bool) or isinstance(actual.get("value"), bool):
+                        raise ValueError
+                    actual_raw = float(raw_value)
+                    actual_value = float(actual.get("value"))
+                except (TypeError, ValueError) as exc:
+                    raise TuningError(
+                        f"recommendation package change {identity!r} is malformed"
+                    ) from exc
+                if (not math.isfinite(actual_raw) or not math.isfinite(actual_value)
+                        or not math.isclose(actual_raw, float(expected["expected_raw"]), rel_tol=1e-12, abs_tol=1e-12)
+                        or not math.isclose(
+                            actual_value, expected["value"], rel_tol=1e-12, abs_tol=1e-12
+                        )):
+                    raise TuningError(
+                        f"recommendation package change {identity!r} no longer "
+                        "matches its source lock and target value"
+                    )
         evidence = body.get("recommendation") or {}
         if not any(
             str(evidence.get("title") or "").strip() == source["title"]
@@ -1804,14 +1888,39 @@ class Api:
         self.ws.gate.enable_programming(body.get("acknowledgement", ""))
         if body.get("allow_unverified_keys"):
             self.ws.gate.accept_unverified_key_risk(True)
+        if body.get("allow_unverified_hardware_writes"):
+            self.ws.gate.enable_unverified_hardware_writes(
+                str(body.get("unverified_writer_acknowledgement") or "")
+            )
         return 200, {
             "programming_enabled": True,
             "unverified_keys_accepted": self.ws.gate.allow_unverified_keys,
+            "unverified_hardware_writes_enabled": self.ws.gate.allow_unverified_hardware_writes,
         }
 
     def post_programming_disable(self, body: dict) -> tuple[int, dict]:
         self.ws.gate.disable_programming()
-        return 200, {"programming_enabled": False}
+        return 200, {
+            "programming_enabled": False,
+            "unverified_hardware_writes_enabled": self.ws.gate.allow_unverified_hardware_writes,
+        }
+
+    def post_programming_unlock_writer(self, body: dict) -> tuple[int, dict]:
+        self.ws.gate.enable_unverified_hardware_writes(
+            str(body.get("acknowledgement") or "")
+        )
+        if body.get("allow_unverified_keys"):
+            self.ws.gate.accept_unverified_key_risk(True)
+        return 200, {
+            "unverified_hardware_writes_enabled": True,
+            "unverified_keys_accepted": self.ws.gate.allow_unverified_keys,
+        }
+
+    def post_programming_lock_writer(self, body: dict) -> tuple[int, dict]:
+        self.ws.gate.disable_unverified_hardware_writes()
+        return 200, {
+            "unverified_hardware_writes_enabled": False,
+        }
 
     def get_security(self, query: dict) -> tuple[int, dict]:
         load_plugins()
@@ -2577,6 +2686,7 @@ ROUTES_POST = {
     "/api/routines/run": "post_routine_run",
     "/api/discover": "post_discover",
     "/api/memory/backup": "post_memory_backup",
+    "/api/memory/attest-backup": "post_memory_attest_backup",
     "/api/memory/basemap": "post_basemap_save",
     "/api/memory/basemap/restore": "post_basemap_restore",
     "/api/memory/read": "post_memory_read",
@@ -2604,6 +2714,8 @@ ROUTES_POST = {
     "/api/confirmations/validate": "post_confirmations_validate",
     "/api/programming/enable": "post_programming_enable",
     "/api/programming/disable": "post_programming_disable",
+    "/api/programming/unlock-writer": "post_programming_unlock_writer",
+    "/api/programming/lock-writer": "post_programming_lock_writer",
     "/api/security/unverified": "post_security_unverified",
     "/api/adapter/latency": "post_adapter_latency",
     "/api/tools/canlog": "post_tools_canlog",

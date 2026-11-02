@@ -48,6 +48,24 @@ def _nearest(values: list[float], sample: float) -> int | None:
     return min(range(len(values)), key=lambda index: abs(values[index] - sample))
 
 
+def _interp_1d(axis: list[float], sample: float) -> tuple[int, int, float] | None:
+    """Return ``(lo_idx, hi_idx, t)`` along a monotonic or arbitrary numeric axis."""
+    low, high = min(axis), max(axis)
+    if sample < low or sample > high:
+        return None
+    pairs = sorted((val, idx) for idx, val in enumerate(axis))
+    pos = bisect_left([p[0] for p in pairs], sample)
+    if pos == 0:
+        return pairs[0][1], pairs[0][1], 0.0
+    if pos >= len(pairs):
+        return pairs[-1][1], pairs[-1][1], 0.0
+    v0, i0 = pairs[pos - 1]
+    v1, i1 = pairs[pos]
+    if math.isclose(v0, v1, abs_tol=1e-12):
+        return i0, i0, 0.0
+    return i0, i1, (sample - v0) / (v1 - v0)
+
+
 def analyze_fuel_log(
     table: dict,
     rows: list[dict],
@@ -55,7 +73,9 @@ def analyze_fuel_log(
     x_channel: str,
     y_channel: str,
     measured_afr_channel: str,
-    target_afr_channel: str,
+    target_afr_channel: str = "",
+    target_afr_constant: float | None = None,
+    target_afr_table: dict | None = None,
     min_samples: int = 3,
     max_correction_percent: float = 10.0,
     max_afr_stddev: float = 0.5,
@@ -84,13 +104,63 @@ def analyze_fuel_log(
         "x_channel": x_channel,
         "y_channel": y_channel,
         "measured_afr_channel": measured_afr_channel,
-        "target_afr_channel": target_afr_channel,
     }
     for label, value in required.items():
         if not isinstance(value, str) or not value.strip():
             raise LogAnalysisError(f"{label} is required")
-    if measured_afr_channel == target_afr_channel:
-        raise LogAnalysisError("measured and target AFR must use different columns")
+
+    target_channel_str = str(target_afr_channel or "").strip()
+    has_const_target = target_afr_constant not in (None, "")
+    has_table_target = target_afr_table is not None
+    target_sources = int(bool(target_channel_str)) + int(has_const_target) + int(has_table_target)
+    if target_sources == 0:
+        raise LogAnalysisError(
+            "target_afr_channel is required (or supply target_afr_constant or target_afr_table)"
+        )
+    if target_sources > 1:
+        raise LogAnalysisError(
+            "provide only one of target_afr_channel, target_afr_constant, or target_afr_table"
+        )
+
+    const_target_value: float | None = None
+    target_table_x: list[float] = []
+    target_table_y: list[float] = []
+    target_table_grid: list[list[float]] = []
+    if target_channel_str:
+        target_mode = "channel"
+        if measured_afr_channel == target_channel_str:
+            raise LogAnalysisError("measured and target AFR must use different columns")
+    elif has_const_target:
+        target_mode = "constant"
+        if isinstance(target_afr_constant, bool):
+            raise LogAnalysisError("target_afr_constant must be numeric")
+        const_target_value = _number(target_afr_constant, "target_afr_constant")
+        if not 9.0 <= const_target_value <= 22.0:
+            raise LogAnalysisError("target_afr_constant must be from 9.0 to 22.0 AFR")
+    else:
+        target_mode = "table"
+        if not isinstance(target_afr_table, dict):
+            raise LogAnalysisError("target_afr_table must be a rendered table object")
+        target_table_x = _numeric_axis(target_afr_table, "x")
+        target_table_y = _numeric_axis(target_afr_table, "y")
+        raw_grid = target_afr_table.get("values")
+        if not isinstance(raw_grid, list) or len(raw_grid) != len(target_table_y):
+            raise LogAnalysisError("target_afr_table values do not match its y axis")
+        for r_vals in raw_grid:
+            if not isinstance(r_vals, list) or len(r_vals) != len(target_table_x):
+                raise LogAnalysisError("target_afr_table values do not match its x axis")
+            target_table_grid.append([_number(v, "target_afr_table cell") for v in r_vals])
+
+    def lookup_table_target(xv: float, yv: float) -> float | None:
+        ix = _interp_1d(target_table_x, xv)
+        iy = _interp_1d(target_table_y, yv)
+        if ix is None or iy is None:
+            return None
+        c0, c1, tx = ix
+        r0, r1, ty = iy
+        top = target_table_grid[r0][c0] * (1.0 - tx) + target_table_grid[r0][c1] * tx
+        bot = target_table_grid[r1][c0] * (1.0 - tx) + target_table_grid[r1][c1] * tx
+        return top * (1.0 - ty) + bot * ty
     if not isinstance(min_samples, int) or not 1 <= min_samples <= 1000:
         raise LogAnalysisError("min_samples must be an integer from 1 to 1000")
     limit = _number(max_correction_percent, "max_correction_percent")
@@ -159,12 +229,17 @@ def analyze_fuel_log(
                 skipped["invalid_timestamp"] += 1
                 continue
             try:
+                xv = _number(source.get(x_channel), x_channel)
+                yv = _number(source.get(y_channel), y_channel)
+                tv = (
+                    _number(source.get(target_channel_str), target_channel_str)
+                    if target_mode == "channel"
+                    else (const_target_value if target_mode == "constant" else 0.0)
+                )
                 state: dict[str, float | None] = {
-                    "x": _number(source.get(x_channel), x_channel),
-                    "y": _number(source.get(y_channel), y_channel),
-                    "target": _number(
-                        source.get(target_afr_channel), target_afr_channel
-                    ),
+                    "x": xv,
+                    "y": yv,
+                    "target": tv,
                     "time": at,
                 }
             except LogAnalysisError:
@@ -185,15 +260,22 @@ def analyze_fuel_log(
             parsed.append({**state, "measured": measured})
         else:
             try:
+                xv = _number(source.get(x_channel), x_channel)
+                yv = _number(source.get(y_channel), y_channel)
+                measured = _number(
+                    source.get(measured_afr_channel), measured_afr_channel
+                )
+                if target_mode == "channel":
+                    tv = _number(source.get(target_channel_str), target_channel_str)
+                elif target_mode == "constant":
+                    tv = const_target_value
+                else:
+                    tv = 0.0
                 parsed.append({
-                    "x": _number(source.get(x_channel), x_channel),
-                    "y": _number(source.get(y_channel), y_channel),
-                    "measured": _number(
-                        source.get(measured_afr_channel), measured_afr_channel
-                    ),
-                    "target": _number(
-                        source.get(target_afr_channel), target_afr_channel
-                    ),
+                    "x": xv,
+                    "y": yv,
+                    "measured": measured,
+                    "target": tv,
                     "time": None,
                 })
             except LogAnalysisError:
@@ -277,6 +359,14 @@ def analyze_fuel_log(
             state = aligned
             x_rate, y_rate = aligned["x_rate"], aligned["y_rate"]
         x_sample, y_sample, target = state["x"], state["y"], state["target"]
+        if target_mode == "constant":
+            target = const_target_value
+        elif target_mode == "table":
+            looked_up = lookup_table_target(x_sample, y_sample)
+            if looked_up is None:
+                skipped["outside_axes"] += 1
+                continue
+            target = looked_up
         if not (6 <= measured <= 30 and 6 <= target <= 30):
             skipped["afr_out_of_range"] += 1
             continue
@@ -382,6 +472,12 @@ def analyze_fuel_log(
         "rows_received": len(rows),
         "rows_used": sum(len(samples) for samples in buckets.values()),
         "skipped": skipped,
+        "target_afr_mode": target_mode,
+        "target_afr_constant": const_target_value,
+        "target_afr_table": (
+            {"id": target_afr_table.get("id", ""), "title": target_afr_table.get("title", "")}
+            if target_mode == "table" and isinstance(target_afr_table, dict) else None
+        ),
         "min_samples": min_samples,
         "max_correction_percent": limit,
         "max_afr_stddev": deviation_limit,

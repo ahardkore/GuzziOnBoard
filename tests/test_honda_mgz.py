@@ -28,15 +28,17 @@ def test_additional_original_xdfs_are_catalogued_and_research_only(tmp_path):
         assert xdf.tables
         with pytest.raises(TuningError, match='research-only'):
             api._check_build_fitment(xdf, FirmwareImage(data=bytes(0x40000)))
-    assert len([x for x in XdfFile.from_file(XDFS / '38770-K26-C31.xdf').unsupported if x['kind'] == 'table']) == 2
-    assert len([x for x in XdfFile.from_file(XDFS / '38770-MJW.xdf').unsupported if x['kind'] == 'flag']) == 56
+    c31 = XdfFile.from_file(XDFS / '38770-K26-C31.xdf')
+    assert c31.unsupported == []
+    mjw = XdfFile.from_file(XDFS / '38770-MJW.xdf')
+    assert len(mjw.flags) == 56 and mjw.unsupported == []
 
 
 def test_adapted_xdf_checksum_provider_and_observed_axis():
     xdf = XdfFile.from_file(XDFS / mgz.XDF_NAME)
     assert xdf.file_sha256 == mgz.XDF_SHA256
     assert not xdf.little_endian and xdf.checksums == [mgz.CHECKSUM_NAME]
-    assert len(xdf.tables) == 17 and [x['kind'] for x in xdf.unsupported] == ['flag']
+    assert len(xdf.tables) == 17 and len(xdf.flags) == 1 and xdf.unsupported == []
     # Synthetic bytes copied from the source's observed RPM axis, not a ROM.
     data = bytearray(mgz.IMAGE_SIZE)
     data[0x2876c:0x28772] = bytes.fromhex('03 20 03 e8 04 4c')

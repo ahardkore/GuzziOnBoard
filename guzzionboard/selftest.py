@@ -152,7 +152,8 @@ def _run_checks(result: Result, exports: Path, host: str) -> None:
     except resources.BundleIncomplete as exc:
         result.record(False, "UI directory", str(exc))
     if web is not None:
-        for name in ("index.html", "app.js", "styles.css", "demo-api.js"):
+        for name in ("index.html", "app.js", "styles.css", "demo-api.js",
+                     "help-content.js", "help-module.js"):
             result.record((web / name).is_file(), f"UI file {name}")
         bridge = web / "desktop-bridge.js"
         result.record(bridge.is_file(), "desktop bridge script",

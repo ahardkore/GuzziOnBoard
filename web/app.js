@@ -175,14 +175,39 @@ const VIEW_META = {
   firmware: ['ECU memory', 'Back up, inspect and safely review calibration maps.'],
   tools: ['Tools', 'Offline utilities and capture analysis.'],
   report: ['Report', 'A shareable snapshot of this session.'],
+  help: ['Help & guides', 'Complete how-to guides, tool manual, ECU catalog, wire protocols, and checksum reference.'],
+};
+
+const VIEW_KICKER = {
+  garage: '01 · VEHICLE & LINK',
+  overview: '01 · VEHICLE & LINK',
+  equipment: '01 · VEHICLE & LINK',
+  live: '02 · DASH & LOGS',
+  sessions: '02 · DASH & LOGS',
+  simulator: '02 · DASH & LOGS',
+  firmware: '03 · CALIBRATION & ROM',
+  faults: '04 · DIAGNOSTICS & I/O',
+  procedures: '04 · DIAGNOSTICS & I/O',
+  service: '04 · DIAGNOSTICS & I/O',
+  tools: '05 · BENCH & REPORTS',
+  discovery: '05 · BENCH & REPORTS',
+  report: '05 · BENCH & REPORTS',
+  help: '06 · HELP & REFERENCE',
 };
 
 function show(view) {
   $$('.view').forEach((v) => v.classList.toggle('hidden', v.id !== view));
   $$('.nav').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+  $$('#perspectiveBar .persp-tab').forEach((tab) => {
+    const views = (tab.dataset.perspViews || '').split(',');
+    tab.classList.toggle('active', views.includes(view));
+  });
   const [title, sub] = VIEW_META[view] || ['', ''];
   $('#pageTitle').textContent = title;
   $('#pageSub').textContent = sub;
+  if ($('#workspaceKicker')) $('#workspaceKicker').textContent = VIEW_KICKER[view] || 'GUZZIONBOARD';
+  const mainEl = $('#workbenchMain');
+  if (mainEl) mainEl.scrollTop = 0;
   if (view === 'live') renderLivePlot();
   if (view === 'sessions') loadSessions();
   if (view === 'service') loadServiceActions();
@@ -190,6 +215,7 @@ function show(view) {
   if (view === 'simulator') loadSim();
   if (view === 'procedures') loadProcedures();
   if (view === 'tools') loadTools();
+  if (view === 'help' && typeof window.renderHelpCenter === 'function') window.renderHelpCenter();
 }
 
 $$('.nav').forEach((b) => (b.onclick = () => show(b.dataset.view)));
@@ -1136,6 +1162,7 @@ async function refreshStatus() {
   if (state.selection?.notices) renderNotices(state.selection.notices);
   updateConnectEnabled();
   renderOverview();
+  if (typeof updateIdeChrome === 'function') updateIdeChrome();
 }
 
 /* ------------------------------------------------------------- overview */
@@ -1511,6 +1538,7 @@ function updateMapLiveTrace(samples = state.lastSamples || []) {
 function renderLive(samples) {
   state.lastSamples = samples;
   updateMapLiveTrace(samples);
+  if (typeof updateRibbonTelemetry === 'function') updateRibbonTelemetry(samples);
   const byKey = new Map(state.parameters.map((p) => [p.key, p]));
 
   $('#liveGrid').innerHTML = samples.map((s) => {
@@ -1618,6 +1646,10 @@ function startPolling() {
   const run = state.plotRun;
   $('#pollBtn').textContent = 'Stop polling';
   $('#pollBtn').classList.add('danger');
+  if ($('#ribbonPollBtn')) {
+    if ($('#ribbonPollLabel')) $('#ribbonPollLabel').textContent = 'Stop';
+    $('#ribbonPollBtn').classList.add('polling');
+  }
   const loop = async () => {
     if (!state.polling || state.plotRun !== run) return;
     await pollOnce();
@@ -1632,6 +1664,10 @@ function stopPolling() {
   clearTimeout(state.pollTimer);
   $('#pollBtn').textContent = 'Start polling';
   $('#pollBtn').classList.remove('danger');
+  if ($('#ribbonPollBtn')) {
+    if ($('#ribbonPollLabel')) $('#ribbonPollLabel').textContent = 'Poll';
+    $('#ribbonPollBtn').classList.remove('polling');
+  }
   $('#pollRate').textContent = 'idle';
 }
 
@@ -2569,12 +2605,50 @@ function renderMemoryCapabilities(data) {
   }).join('');
 
   const canRead = c.read_supported;
-  $('#backupBtn').disabled = !canRead || c.research_read_only || !!c.partial_read_note;
+  const writerUnlocked = Boolean(c.unverified_hardware_writer_unlocked);
+  $('#backupBtn').disabled = !canRead || c.research_read_only || (!!c.partial_read_note && !writerUnlocked);
   $('#readBtn').disabled = !canRead;
   const showExtra5am = c.ecu === '5am' && !c.simulated && !!c.partial_read_note;
   $('#extra5amReadOption').classList.toggle('hidden', !showExtra5am);
   if (!showExtra5am) $('#extra5amRead').checked = false;
   $('#validateBtn').disabled = false;
+
+  // Implemented hardware writer unlock gate & external verified backup attestation
+  fw.writerAck = c.unverified_writer_acknowledgement
+    || 'I have an external recovery plan and accept unverified ECU write risk';
+  fw.externalBackupAck = c.external_backup_acknowledgement
+    || 'I confirm this file is a verified full backup from this exact ECU';
+  if ($('#writerAckText')) $('#writerAckText').textContent = fw.writerAck;
+  if ($('#externalBackupAckText')) $('#externalBackupAckText').textContent = fw.externalBackupAck;
+  if ($('#externalBackupAttestBtn')) {
+    $('#externalBackupAttestBtn').disabled = Boolean(c.research_read_only);
+  }
+  const writerDetails = $('#writerUnlockDetails');
+  if (writerDetails) {
+    const badge = $('#writerUnlockBadge');
+    const unlockBtn = $('#unlockWriterBtn');
+    const lockBtn = $('#lockWriterBtn');
+    const statusOut = $('#writerUnlockOut');
+    const isUnlocked = Boolean(c.unverified_hardware_writes_enabled);
+    if (badge) {
+      badge.textContent = c.simulated
+        ? (isUnlocked ? 'Unlocked (sim)' : 'Simulated ECU')
+        : (isUnlocked ? 'Unlocked' : (c.implemented_writer_available ? 'Locked · available' : 'N/A'));
+      badge.className = `pill ${isUnlocked ? 'warn' : 'ghost'}`;
+    }
+    if (unlockBtn) unlockBtn.disabled = isUnlocked;
+    if (lockBtn) lockBtn.disabled = !isUnlocked;
+    if (!c.write_supported && c.implemented_writer_available) {
+      writerDetails.open = true;
+    }
+    if (statusOut) {
+      statusOut.textContent = isUnlocked
+        ? `Implemented hardware writer unlocked for regions: ${(c.implemented_writer_regions || []).join(', ') || 'flash'}. Verified backup and safety token still required.`
+        : (c.implemented_writer_available
+          ? `Implemented protocol writer available for regions: ${(c.implemented_writer_regions || []).join(', ')}. Currently gated behind explicit operator unlock.`
+          : 'No unverified physical writer protocol applies to the connected ECU.');
+    }
+  }
 
   // An interrupted write is the single most important thing to surface.
   const pending = Object.entries(data.checkpoints || {})
@@ -2587,7 +2661,7 @@ function renderMemoryCapabilities(data) {
   $('#checkpointOut').innerHTML = pending.join('');
 
   fw.acknowledgement = data.acknowledgement || '';
-  renderBaseMap(data.base_map, canRead && !c.research_read_only && !c.partial_read_note);
+  renderBaseMap(data.base_map, canRead && !c.research_read_only && (!c.partial_read_note || writerUnlocked));
   renderWriteGate();
 }
 
@@ -2824,8 +2898,8 @@ async function loadMemory() {
     $('#extra5amRead').checked = false;
     $('#memCaps').textContent = 'Connect to an ECU to see available memory operations.';
     $('#memCapsNote').textContent = '';
-    for (const id of ['backupBtn', 'readBtn', 'validateBtn', 'baseMapSaveBtn', 'baseMapFileBtn', 'baseMapRestoreBtn', 'writeBtn']) {
-      $(`#${id}`).disabled = true;
+    for (const id of ['backupBtn', 'readBtn', 'validateBtn', 'baseMapSaveBtn', 'baseMapFileBtn', 'baseMapRestoreBtn', 'writeBtn', 'externalBackupAttestBtn', 'lockWriterBtn']) {
+      if ($(`#${id}`)) $(`#${id}`).disabled = true;
     }
     $('#baseMapOut').textContent = 'Connect to an ECU first.';
   }
@@ -2959,9 +3033,20 @@ $('#backupBtn').onclick = async () => {
     { tone: 'primary' },
   );
   if (!ready) return;
+  const caps = fw.caps?.capabilities || {};
+  const physical5amFull = caps.ecu === '5am' && !caps.simulated && Boolean(caps.unverified_hardware_writer_unlocked);
   $('#memResult').innerHTML = '';
   try {
-    await api('/api/memory/backup', { method: 'POST', body: { region } });
+    await api('/api/memory/backup', {
+      method: 'POST',
+      body: {
+        region,
+        ...(physical5amFull ? {
+          attempt_5am_skipped_blocks: true,
+          confirm_experimental_backup: true,
+        } : {}),
+      },
+    });
     startMemoryPoll();
   } catch (err) { toast(err.message, 'bad'); }
 };
@@ -3071,12 +3156,82 @@ $('#enableProgBtn').onclick = async () => {
       body: {
         acknowledgement: fw.acknowledgement,
         allow_unverified_keys: !!(keyChk && keyChk.checked),
+        allow_unverified_hardware_writes: Boolean(fw.caps?.capabilities?.unverified_hardware_writes_enabled),
       },
     });
     toast('Programming enabled for this session.', 'warn');
   } catch (err) { toast(err.message, 'bad'); }
   loadMemory();
 };
+
+if ($('#unlockWriterBtn')) {
+  $('#unlockWriterBtn').onclick = async () => {
+    if (!$('#writerAckCheck')?.checked) {
+      return toast('Check the external recovery plan acknowledgement before unlocking the hardware writer.', 'bad');
+    }
+    try {
+      const keyChk = $('#unverifiedKeysChk');
+      await api('/api/programming/unlock-writer', {
+        method: 'POST',
+        body: {
+          acknowledgement: fw.writerAck || 'I have an external recovery plan and accept unverified ECU write risk',
+          allow_unverified_keys: Boolean(keyChk?.checked),
+        },
+      });
+      toast('Implemented hardware writer unlocked for this session (audited).', 'warn');
+      await loadMemory();
+    } catch (err) { toast(err.message, 'bad'); }
+  };
+}
+
+if ($('#lockWriterBtn')) {
+  $('#lockWriterBtn').onclick = async () => {
+    try {
+      await api('/api/programming/lock-writer', { method: 'POST', body: {} });
+      if ($('#writerAckCheck')) $('#writerAckCheck').checked = false;
+      toast('Implemented hardware writer locked.', 'ok');
+      await loadMemory();
+    } catch (err) { toast(err.message, 'bad'); }
+  };
+}
+
+if ($('#externalBackupAttestBtn')) {
+  $('#externalBackupAttestBtn').onclick = async () => {
+    const path = $('#externalBackupPath')?.value.trim() || '';
+    if (!path) return toast('Enter the path to your verified external full backup file.', 'bad');
+    if (!$('#externalBackupAckCheck')?.checked) {
+      return toast('Confirm that this file is a verified full backup from this exact ECU.', 'bad');
+    }
+    const region = $('#memRegion')?.value || 'flash';
+    const note = $('#externalBackupNote')?.value.trim() || '';
+    try {
+      const res = await api('/api/memory/attest-backup', {
+        method: 'POST',
+        body: {
+          path,
+          region,
+          save_base_map: true,
+          note,
+          acknowledgement: fw.externalBackupAck || 'I confirm this file is a verified full backup from this exact ECU',
+        },
+      });
+      if ($('#externalBackupOut')) {
+        $('#externalBackupOut').innerHTML = `<div class="gate-card ok">
+          <h4>External backup attested &amp; verified</h4>
+          <p class="small">Saved to <code>${esc(res.path || '')}</code> (${Number(res.bytes || 0).toLocaleString()} bytes${res.sliced_from_full_dump ? ' · 304 KiB flash extracted from 320 KiB full dump' : ''})</p>
+          <p class="small">SHA-256: <code>${esc(String(res.sha256 || '').slice(0, 32))}…</code></p>
+        </div>`;
+      }
+      toast('External backup attested and filed as verified backup + base map.', 'ok');
+      await loadMemory();
+    } catch (err) {
+      if ($('#externalBackupOut')) {
+        $('#externalBackupOut').innerHTML = `<div class="gate-card bad"><h4>Backup attestation refused</h4><p class="small">${esc(err.message)}</p></div>`;
+      }
+      toast(err.message, 'bad');
+    }
+  };
+}
 
 $('#disableProgBtn').onclick = async () => {
   await api('/api/programming/disable', { method: 'POST', body: {} });
@@ -3157,11 +3312,18 @@ const maps = {
   traceMappings: new Map(),
 };
 
-const fmtValue = (v) => (Number.isInteger(v) ? String(v) : String(+v.toPrecision(4)));
+const fmtValue = (v) => {
+  if (typeof v === 'boolean') return v ? 'ON' : 'OFF';
+  const num = Number(v);
+  if (!Number.isFinite(num)) return String(v ?? '');
+  return Number.isInteger(num) ? String(num) : String(+num.toPrecision(4));
+};
 const mapChangeLocation = (change) => change.kind === 'table'
   ? `${esc(change.y)} × ${esc(change.x)}`
   : change.kind === 'axis' ? `${esc(String(change.axis || '').toUpperCase())} axis ${esc(change.index)}`
-    : 'constant';
+    : change.kind === 'flag' ? `flag ${esc(change.mask || '')}`
+      : change.kind === 'patch' ? 'binary patch'
+        : 'constant';
 
 /* The ECU family the bike on the bench actually has. A definition is only
  * "for this bike" if its family matches: an XDF is a map of where the
@@ -3702,8 +3864,10 @@ function mutateMapChanges(mutator) {
 
 function mapItem(kind, id, axis = '') {
   if (!maps.render) return null;
-  if (kind === 'constant') return maps.render.constants.find((item) => item.id === id);
-  const table = maps.render.tables.find((item) => item.id === id);
+  if (kind === 'constant') return (maps.render.constants || []).find((item) => item.id === id);
+  if (kind === 'flag') return (maps.render.flags || []).find((item) => item.id === id);
+  if (kind === 'patch') return (maps.render.patches || []).find((item) => item.id === id);
+  const table = (maps.render.tables || []).find((item) => item.id === id);
   if (kind === 'axis' && table) return table.axes?.[axis] || null;
   return table;
 }
@@ -3785,6 +3949,28 @@ function syncMapEditorButtons() {
     button.classList.toggle('modified', !!staged);
     button.classList.toggle('selected', maps.selection.has(key));
     button.setAttribute('aria-selected', maps.selection.has(key) ? 'true' : 'false');
+  });
+  $$('[data-flag-id]').forEach((button) => {
+    const id = button.dataset.flagId;
+    const key = mapChangeKey('flag', id, 0, 0);
+    const staged = maps.changes.get(key);
+    const original = button.dataset.flagOriginal === 'true';
+    const shown = staged ? Boolean(staged.value) : original;
+    button.textContent = shown ? 'ON (1)' : 'OFF (0)';
+    button.classList.toggle('modified', !!staged);
+    button.setAttribute('aria-pressed', shown ? 'true' : 'false');
+  });
+  $$('[data-patch-card]').forEach((card) => {
+    const id = card.dataset.patchCard;
+    const key = mapChangeKey('patch', id, 0, 0);
+    const staged = maps.changes.get(key);
+    card.classList.toggle('modified', !!staged);
+    const statusEl = $('[data-patch-staged]', card);
+    if (statusEl) {
+      statusEl.textContent = staged
+        ? (staged.value ? ' · staged: APPLY' : ' · staged: REVERT')
+        : '';
+    }
   });
   refreshMapVisualizations();
   updateMapLiveTrace();
@@ -4114,10 +4300,39 @@ function importMapProject(project) {
   const imported = new Map();
   project.changes.forEach((change) => {
     const kind = String(change.kind || '');
+    const id = String(change.id || '');
+    if (kind === 'flag' || kind === 'patch') {
+      if (typeof change.value !== 'boolean') {
+        throw new Error('A project flag or patch change must have a boolean value.');
+      }
+      const item = mapItem(kind, id);
+      if (!item) throw new Error(`Project item ${id || '(missing)'} is not in this XDF.`);
+      const key = mapChangeKey(kind, id, 0, 0);
+      if (imported.has(key)) throw new Error('Project contains duplicate changes to the same location.');
+      if (kind === 'flag') {
+        if (Number(change.expected_raw) !== Number(item.raw)) {
+          throw new Error(`${item.title}: expected raw value no longer matches the loaded source.`);
+        }
+        imported.set(key, {
+          ...change, key, id, kind: 'flag', title: item.title, units: '',
+          mask: item.mask || '', before: Boolean(item.value), expected_raw: item.raw,
+        });
+      } else {
+        const currentHex = (item.entries || []).map((e) => String(e.current_hex || '').toLowerCase());
+        const expectedHex = Array.isArray(change.expected_hex) ? change.expected_hex.map((h) => String(h).toLowerCase()) : [];
+        if (expectedHex.length !== currentHex.length || expectedHex.some((h, i) => h !== currentHex[i])) {
+          throw new Error(`${item.title}: expected patch bytes no longer match the loaded source.`);
+        }
+        imported.set(key, {
+          ...change, key, id, kind: 'patch', title: item.title, units: '',
+          before: Boolean(item.applied), expected_hex: currentHex,
+        });
+      }
+      return;
+    }
     if (!['table', 'constant', 'axis'].includes(kind) || !Number.isFinite(Number(change.value))) {
       throw new Error('A project change has an invalid kind or value.');
     }
-    const id = String(change.id || '');
     const axis = kind === 'axis' ? String(change.axis || '') : '';
     const item = mapItem(kind, id, axis);
     const owner = kind === 'axis' ? mapItem('table', id) : item;
@@ -4174,6 +4389,11 @@ function importMapProject(project) {
     $('#mapPackageSelect').value = '';
   }
   const evidence = project.recommendation || {};
+  if ($('#mapEvidenceMode')) {
+    const modeVal = ['external', 'operator', 'dyno', 'afr-log'].includes(evidence.mode) ? evidence.mode : 'external';
+    $('#mapEvidenceMode').value = modeVal;
+    $('#mapEvidenceMode').dispatchEvent(new Event('change'));
+  }
   $('#mapEvidenceTitle').value = evidence.title || '';
   $('#mapEvidenceUrl').value = evidence.url || '';
   $('#mapEvidenceRationale').value = evidence.rationale || '';
@@ -4190,6 +4410,7 @@ function importMapProject(project) {
 }
 
 function renderMapBuildState() {
+  if (typeof updateIdeChrome === 'function') updateIdeChrome();
   const source = maps.render?.source;
   const sourceBox = $('#mapBuildSource');
   if (!source) {
@@ -4384,8 +4605,8 @@ function parseMapLogCsv(text) {
   if (row.some((value) => value)) records.push(row);
   if (quoted) throw new Error('CSV has an unterminated quoted field.');
   const headers = records.shift()?.map((value) => value.trim()) || [];
-  if (headers.length < 4 || new Set(headers).size !== headers.length || headers.some((value) => !value)) {
-    throw new Error('CSV needs at least four unique, non-empty column headings.');
+  if (headers.length < 3 || new Set(headers).size !== headers.length || headers.some((value) => !value)) {
+    throw new Error('CSV needs at least three unique, non-empty column headings.');
   }
   const rows = records.filter((values) => values.some((value) => value !== '')).map((values) =>
     Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ''])));
@@ -4398,9 +4619,32 @@ function renderMapLogControls() {
   const tableSelect = $('#mapLogTable');
   if (!tableSelect) return;
   const chosen = tableSelect.value;
-  tableSelect.innerHTML = (maps.render?.tables || []).map((table) =>
+  const tableOptionsHtml = (maps.render?.tables || []).map((table) =>
     `<option value="${esc(table.id)}">${esc(table.title)} · ${esc(table.y_units)} × ${esc(table.x_units)}</option>`).join('');
+  tableSelect.innerHTML = tableOptionsHtml;
   if ([...tableSelect.options].some((option) => option.value === chosen)) tableSelect.value = chosen;
+  const targetTableSelect = $('#mapLogTargetTable');
+  if (targetTableSelect) {
+    const prevTargetTable = targetTableSelect.value;
+    const afrCandidate = (maps.render?.tables || []).find((t) =>
+      /afr|target.*fuel|air.*fuel/i.test(`${t.title} ${t.units || ''}`));
+    targetTableSelect.innerHTML = '<option value="">— choose a 2D target AFR table —</option>' + tableOptionsHtml;
+    if (prevTargetTable && [...targetTableSelect.options].some((o) => o.value === prevTargetTable)) {
+      targetTableSelect.value = prevTargetTable;
+    } else if (afrCandidate) {
+      targetTableSelect.value = afrCandidate.id;
+    }
+  }
+  const syncTargetModeFields = () => {
+    const mode = $('#mapLogTargetMode')?.value || 'channel';
+    $('#mapLogTargetColField')?.classList.toggle('hidden', mode !== 'channel');
+    $('#mapLogTargetConstField')?.classList.toggle('hidden', mode !== 'constant');
+    $('#mapLogTargetTableField')?.classList.toggle('hidden', mode !== 'table');
+  };
+  if ($('#mapLogTargetMode')) {
+    $('#mapLogTargetMode').onchange = syncTargetModeFields;
+    syncTargetModeFields();
+  }
   const options = maps.logHeaders.map((header) => `<option value="${esc(header)}">${esc(header)}</option>`).join('');
   const previous = Object.fromEntries(['mapLogX', 'mapLogY', 'mapLogMeasured', 'mapLogTarget', 'mapLogTime']
     .map((id) => [id, $(`#${id}`).value]));
@@ -4490,7 +4734,7 @@ function renderMapsResult(render) {
         + '</tbody></table>' : '')),
   };
   const constants = render.constants?.length ? `
-    <details><summary>Constants (${render.constants.length})</summary>
+    <details class="xdf-section-constants"><summary>Constants (${render.constants.length})</summary>
       <div class="table-wrap"><table class="data">
         <thead><tr><th>Constant</th><th>Category</th><th>Value</th><th>Address</th></tr></thead>
         <tbody>${render.constants.map((c) => `
@@ -4503,11 +4747,42 @@ function renderMapsResult(render) {
                 ${esc(c.units)}</td>
               <td><code>${esc(c.address)}</code></td></tr>`).join('')}
         </tbody></table></div></details>` : '';
+  const flagsHtml = render.flags?.length ? `
+    <details class="xdf-section-flags"><summary>Flags &amp; Switches (${render.flags.length})</summary>
+      <div class="table-wrap"><table class="data">
+        <thead><tr><th>Flag / Switch</th><th>Category</th><th>State</th><th>Mask · Address</th></tr></thead>
+        <tbody>${render.flags.map((f) => `
+          <tr><td>${esc(f.title)}${f.description ? `<div class="muted small">${esc(f.description)}</div>` : ''}</td>
+              <td>${esc(f.category)}</td>
+              <td><button class="map-value flag-toggle-btn" type="button"
+                data-flag-id="${esc(f.id)}" data-flag-original="${f.value ? 'true' : 'false'}"
+                aria-pressed="${f.value ? 'true' : 'false'}"
+                title="Toggle ${esc(f.title)}">${f.value ? 'ON (1)' : 'OFF (0)'}</button></td>
+              <td><code>${esc(f.mask)}</code> @ <code>${esc(f.address)}</code></td></tr>`).join('')}
+        </tbody></table></div></details>` : '';
+  const patchesHtml = render.patches?.length ? `
+    <details class="xdf-section-patches"><summary>Binary Patches (${render.patches.length})</summary>
+      <div class="table-wrap"><table class="data">
+        <thead><tr><th>Patch</th><th>Category</th><th>Current State</th><th>Actions</th><th>Address · Entries</th></tr></thead>
+        <tbody>${render.patches.map((p) => `
+          <tr data-patch-card="${esc(p.id)}">
+            <td><b>${esc(p.title)}</b>${p.description ? `<div class="muted small">${esc(p.description)}</div>` : ''}</td>
+            <td>${esc(p.category)}</td>
+            <td><span class="pill ${p.applied ? 'ok' : p.state === 'mismatch' ? 'warn' : 'ghost'}">${esc(p.state)}</span><span class="small" data-patch-staged></span></td>
+            <td><div class="toolbar">
+              <button type="button" class="btn small" data-patch-id="${esc(p.id)}" data-patch-action="apply" ${(!p.can_apply && p.state !== 'mismatch') ? 'disabled' : ''}>Stage Apply</button>
+              <button type="button" class="btn small" data-patch-id="${esc(p.id)}" data-patch-action="revert" ${!p.can_revert ? 'disabled' : ''}>Stage Revert</button>
+            </div></td>
+            <td><code>${esc(p.address)}</code> · ${p.entry_count} span(s)</td>
+          </tr>`).join('')}
+        </tbody></table></div></details>` : '';
+  const flagCountSummary = render.flags?.length ? ` · ${render.flags.length} flag(s)` : '';
+  const patchCountSummary = render.patches?.length ? ` · ${render.patches.length} patch(es)` : '';
   $('#mapsOut').innerHTML = mapsResultToolbar() + `
     <div class="gate-card ok">
       <h4>${esc(meta.title || 'Definitions')}</h4>
       <p class="small">${esc(meta.description || '')}</p>
-      <p class="muted small">${render.tables.length} table(s) · ${render.constants.length} constant(s)
+      <p class="muted small">${render.tables.length} table(s) · ${render.constants.length} constant(s)${flagCountSummary}${patchCountSummary}
         · image ${(render.image_size / 1024).toFixed(0)} KiB</p>
     </div>`
     + mapsNotices(render)
@@ -4519,7 +4794,59 @@ function renderMapsResult(render) {
         <summary>${esc(t.title)}
           <span class="muted small"> — ${esc(t.category)} · ${esc(t.units)} · ${t.rows}×${t.cols} · <code>${esc(t.address)}</code></span>
         </summary>${mapsTableHtml(t)}</details>`).join('')
-    + constants;
+    + constants
+    + flagsHtml
+    + patchesHtml;
+  $$('[data-flag-id]').forEach((btn) => {
+    btn.onclick = () => {
+      const flag = mapItem('flag', btn.dataset.flagId);
+      if (!flag) return;
+      const key = mapChangeKey('flag', flag.id, 0, 0);
+      const current = maps.changes.has(key) ? Boolean(maps.changes.get(key).value) : Boolean(flag.value);
+      const next = !current;
+      mutateMapChanges(() => {
+        if (next === Boolean(flag.value)) maps.changes.delete(key);
+        else {
+          maps.changes.set(key, {
+            key, kind: 'flag', id: flag.id, expected_raw: flag.raw,
+            before: Boolean(flag.value), value: next,
+            title: flag.title, units: '', mask: flag.mask || '',
+          });
+        }
+      });
+    };
+  });
+  $$('[data-patch-action]').forEach((btn) => {
+    btn.onclick = async () => {
+      const patch = mapItem('patch', btn.dataset.patchId);
+      if (!patch) return;
+      const wantApply = btn.dataset.patchAction === 'apply';
+      let allowBaseMismatch = false;
+      if (wantApply && patch.state === 'mismatch') {
+        const ok = await confirmDialog(
+          `Apply ${patch.title} despite base mismatch?`,
+          `<p>The bytes currently in this image do not match the XDF patch's declared stock basedata or patchdata. Applying will overwrite ${patch.entry_count} span(s).</p>`,
+          'Stage patch with mismatch override', { tone: 'danger' },
+        );
+        if (!ok) return;
+        allowBaseMismatch = true;
+      }
+      const key = mapChangeKey('patch', patch.id, 0, 0);
+      const expectedHex = (patch.entries || []).map((e) => String(e.current_hex || '').toLowerCase());
+      mutateMapChanges(() => {
+        if (wantApply === Boolean(patch.applied) && patch.state !== 'mismatch') {
+          maps.changes.delete(key);
+        } else {
+          maps.changes.set(key, {
+            key, kind: 'patch', id: patch.id, expected_hex: expectedHex,
+            before: Boolean(patch.applied), value: wantApply,
+            allow_base_mismatch: allowBaseMismatch,
+            title: patch.title, units: '',
+          });
+        }
+      });
+    };
+  });
   $('#mapTableSearch').oninput = (event) => {
     const query = event.target.value.trim().toLowerCase();
     let visible = 0;
@@ -4756,6 +5083,26 @@ $('#mapResearchPreviewBtn').onclick = async () => {
   }
 };
 
+if ($('#mapEvidenceMode')) {
+  const syncEvidenceModeUi = () => {
+    const mode = $('#mapEvidenceMode').value || 'external';
+    const urlLabel = $('#mapEvidenceUrlLabel');
+    const urlInput = $('#mapEvidenceUrl');
+    if (urlLabel) {
+      urlLabel.textContent = mode === 'external'
+        ? 'Source URL'
+        : 'Source URL (optional for custom/dyno/log builds)';
+    }
+    if (urlInput) {
+      urlInput.placeholder = mode === 'external'
+        ? 'https://…'
+        : 'https://… (optional — leave blank for local dyno/log/operator notes)';
+    }
+  };
+  $('#mapEvidenceMode').addEventListener('change', syncEvidenceModeUi);
+  syncEvidenceModeUi();
+}
+
 $('#mapBuildBtn').onclick = async () => {
   const source = maps.render?.source;
   const changes = [...maps.changes.values()];
@@ -4766,11 +5113,19 @@ $('#mapBuildBtn').onclick = async () => {
   if (!source.is_base_map && !$('#mapNonBaseAccept').checked) {
     return toast('A non-base source needs the additional source acknowledgement.', 'bad');
   }
+  const evidenceMode = $('#mapEvidenceMode')?.value || 'external';
   const evidenceUrl = $('#mapEvidenceUrl').value.trim();
+  const urlRequired = evidenceMode === 'external';
+  const urlValid = evidenceUrl ? /^https?:\/\/[^/]+/i.test(evidenceUrl) : !urlRequired;
   if ($('#mapEvidenceTitle').value.trim().length < 3
       || $('#mapEvidenceRationale').value.trim().length < 10
-      || !/^https?:\/\/[^/]+/i.test(evidenceUrl)) {
-    return toast('Add a source title, inspectable HTTP(S) URL, and applicability rationale.', 'bad');
+      || !urlValid) {
+    return toast(
+      urlRequired
+        ? 'Add a source title, inspectable HTTP(S) URL, and applicability rationale.'
+        : 'Add a build title (≥3 chars), local applicability rationale (≥10 chars), and either leave URL blank or enter a valid HTTP(S) URL.',
+      'bad',
+    );
   }
   const activePackage = maps.activePackage && maps.recommendationPackages.find((pkg) =>
     pkg.id === maps.activePackage.id && pkg.version === maps.activePackage.version
@@ -4790,6 +5145,7 @@ $('#mapBuildBtn').onclick = async () => {
     accept_non_base_source: $('#mapNonBaseAccept').checked,
     acknowledgement: maps.build?.acknowledgement || '',
     recommendation: {
+      mode: evidenceMode,
       title: $('#mapEvidenceTitle').value,
       url: $('#mapEvidenceUrl').value,
       rationale: $('#mapEvidenceRationale').value,
@@ -4861,6 +5217,12 @@ $('#mapBuildBtn').onclick = async () => {
         ${esc(result.manifest.checksum_provider.changed_bytes)} changed byte(s) ·
         <code>${esc(result.manifest.checksum_provider.plugin_sha256)}</code></p>` : ''}
       <p class="small">The build is now in the Validate/Write image field. Building did not enable programming.</p>
+      <div class="toolbar">
+        <button type="button" class="btn small" data-stage-built="ecu">Stage in ECU Write Gate</button>
+        <button type="button" class="btn small" data-stage-built="harley">Stage for Harley Delphi Write</button>
+        <button type="button" class="btn small" data-stage-built="buell">Stage for Buell EEPROM Write</button>
+        <button type="button" class="btn small" data-stage-built="rusefi">Stage for rusEFI Write</button>
+      </div>
     </div>
     <details open><summary>Review exact build changes</summary>
       <div class="table-wrap"><table class="data"><thead><tr>
@@ -4871,8 +5233,37 @@ $('#mapBuildBtn').onclick = async () => {
         <td><b>${esc(fmtValue(c.after))}</b> ${esc(c.units)}</td>
         <td><code>${esc(c.before_raw)} → ${esc(c.after_raw)}</code></td>
       </tr>`).join('')}</tbody></table></div>
-      <p class="muted small">Named diff: ${(result.diff?.tables || []).length} table(s), ${(result.diff?.constants || []).length} constant(s). Source and output paths are prefilled in the Diff controls above.</p>
+      <p class="muted small">Named diff: ${(result.diff?.tables || []).length} table(s), ${(result.diff?.constants || []).length} constant(s)${(result.diff?.flags || []).length ? `, ${result.diff.flags.length} flag(s)` : ''}${(result.diff?.patches || []).length ? `, ${result.diff.patches.length} patch(es)` : ''}. Source and output paths are prefilled in the Diff controls above.</p>
     </details>`;
+    $$('#mapBuildOut [data-stage-built]').forEach((stageBtn) => {
+      stageBtn.onclick = () => {
+        const dest = stageBtn.dataset.stageBuilt;
+        if (dest === 'ecu') {
+          $('#imagePath').value = result.path;
+          renderWriteGate();
+          $('#writePanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          toast('Built map staged in ECU Validate & Write Gate.', 'ok');
+          return;
+        }
+        const mapDest = {
+          harley: { input: '#hdMemEdited', details: '#hdMemWritePanel', panel: '#harleyMemory' },
+          buell: { input: '#buellWriteEdited', details: '#buellWriteDetails', panel: '#buellPanel' },
+          rusefi: { input: '#rusefiTuneEdited', details: '#rusefiWriteDetails', panel: '#rusefiReadPanel' },
+        }[dest];
+        if (!mapDest) return;
+        $('.nav[data-view="tools"]')?.click();
+        const inputEl = $(mapDest.input);
+        if (inputEl) {
+          inputEl.value = result.path;
+          inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+          inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        const detailsEl = $(mapDest.details);
+        if (detailsEl && detailsEl.tagName === 'DETAILS') detailsEl.open = true;
+        $(mapDest.panel)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        toast(`Built map staged in ${stageBtn.textContent.replace(/^Stage for /, '')}.`, 'ok');
+      };
+    });
     maps.changes.clear();
     renderMapsResult(maps.render);
     renderWriteGate();
@@ -5011,7 +5402,11 @@ const MAP_LOG_SETTINGS = ['mapLogTable', 'mapLogX', 'mapLogY', 'mapLogMeasured',
   'mapLogTime', 'mapLogTimeUnit', 'mapLogDelay', 'mapLogSettle', 'mapLogDuration',
   'mapLogGap', 'mapLogXRate', 'mapLogYRate', 'mapLogMinSamples', 'mapLogCap', 'mapLogStddev'];
 function mapLogSettings() {
-  return Object.fromEntries(MAP_LOG_SETTINGS.map((id) => [id, $(`#${id}`).value]));
+  const base = Object.fromEntries(MAP_LOG_SETTINGS.map((id) => [id, $(`#${id}`).value]));
+  if ($('#mapLogTargetMode')) base.mapLogTargetMode = $('#mapLogTargetMode').value;
+  if ($('#mapLogTargetConst')) base.mapLogTargetConst = $('#mapLogTargetConst').value;
+  if ($('#mapLogTargetTable')) base.mapLogTargetTable = $('#mapLogTargetTable').value;
+  return base;
 }
 function restoreProjectLogSettings() {
   const pending = maps.pendingLogProject;
@@ -5032,9 +5427,48 @@ function restoreProjectLogSettings() {
     return;
   }
   MAP_LOG_SETTINGS.forEach((id) => { $(`#${id}`).value = settings[id]; });
+  if (typeof settings.mapLogTargetMode === 'string' && $('#mapLogTargetMode')) {
+    $('#mapLogTargetMode').value = settings.mapLogTargetMode;
+    $('#mapLogTargetMode').dispatchEvent(new Event('change'));
+  }
+  if (typeof settings.mapLogTargetConst === 'string' && $('#mapLogTargetConst')) {
+    $('#mapLogTargetConst').value = settings.mapLogTargetConst;
+  }
+  if (typeof settings.mapLogTargetTable === 'string' && $('#mapLogTargetTable')
+      && [...$('#mapLogTargetTable').options].some((o) => o.value === settings.mapLogTargetTable)) {
+    $('#mapLogTargetTable').value = settings.mapLogTargetTable;
+  }
   maps.pendingLogProject = null;
   $('#mapLogSummary').textContent = `${maps.logMeta.name} · ${maps.logRows.length} row(s) · project settings restored (SHA-256 matched)`;
 }
+
+window.guzziLoadJetDriveOverlay = ({ headers, rows, sampleCount = 0 } = {}) => {
+  if (!Array.isArray(headers) || headers.length < 2 || !Array.isArray(rows) || !rows.length) {
+    toast('JetDrive capture needs at least one complete multi-channel frame to populate the AFR overlay.', 'bad');
+    return;
+  }
+  maps.logHeaders = headers;
+  maps.logRows = rows;
+  maps.logMeta = null;
+  maps.logAnalysis = null;
+  $('.nav[data-view="firmware"]')?.click();
+  const logDetails = $('details.map-log-tools');
+  if (logDetails) logDetails.open = true;
+  if ($('#mapLogTimeUnit')) $('#mapLogTimeUnit').value = 'milliseconds';
+  $('#mapLogSummary').textContent = `JetDrive capture · ${rows.length} aligned frame(s) from ${sampleCount} sample(s) · ${headers.length} columns`;
+  $('#mapLogOut').innerHTML = '';
+  renderMapLogControls();
+  if ($('#mapLogTime') && headers.includes('timestamp_ms')) {
+    $('#mapLogTime').value = 'timestamp_ms';
+    $('#mapLogTime').dispatchEvent(new Event('change'));
+  }
+  if (!$('#mapLogTarget').value && $('#mapLogTargetMode')) {
+    $('#mapLogTargetMode').value = ($('#mapLogTargetTable')?.value) ? 'table' : 'constant';
+    $('#mapLogTargetMode').dispatchEvent(new Event('change'));
+  }
+  logDetails?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  toast('JetDrive capture pivoted into Map AFR Overlay. Confirm axes and target AFR before analyzing.', 'ok');
+};
 
 $('#mapLogFile').onchange = async () => {
   const file = $('#mapLogFile').files?.[0];
@@ -5065,13 +5499,30 @@ $('#mapLogFile').onchange = async () => {
 $('#mapLogAnalyzeBtn').onclick = async () => {
   if (!maps.render?.source || !maps.logRows.length) return toast('Render a source map and load a CSV first.', 'bad');
   const measured = $('#mapLogMeasured').value;
+  const targetMode = $('#mapLogTargetMode')?.value || 'channel';
   const target = $('#mapLogTarget').value;
+  const targetConst = Number($('#mapLogTargetConst')?.value);
+  const targetTable = $('#mapLogTargetTable')?.value || '';
   if (!$('#mapLogX').value || !$('#mapLogY').value) {
     return toast('Choose the X and Y log columns to match the selected table axes.', 'bad');
   }
-  if (!measured || !target || measured === target) {
+  if (!measured) {
+    return toast('Choose an explicit Measured AFR log column.', 'bad');
+  }
+  if (targetMode === 'channel' && (!target || measured === target)) {
     return toast('Measured AFR and target AFR must be separate, explicit log columns.', 'bad');
   }
+  if (targetMode === 'constant' && (!Number.isFinite(targetConst) || targetConst < 9 || targetConst > 22)) {
+    return toast('Target AFR constant must be between 9.0 and 22.0.', 'bad');
+  }
+  if (targetMode === 'table' && !targetTable) {
+    return toast('Choose a 2D target AFR table from the loaded XDF.', 'bad');
+  }
+  const targetPayload = targetMode === 'constant'
+    ? { target_afr_constant: targetConst }
+    : targetMode === 'table'
+      ? { target_afr_table: targetTable }
+      : { target_afr_channel: target };
   $('#mapLogOut').innerHTML = '<p class="muted small">Binning in-range log samples…</p>';
   try {
     const report = await api('/api/maps/analyze-log', {
@@ -5085,7 +5536,7 @@ $('#mapLogAnalyzeBtn').onclick = async () => {
         x_channel: $('#mapLogX').value,
         y_channel: $('#mapLogY').value,
         measured_afr_channel: measured,
-        target_afr_channel: target,
+        ...targetPayload,
         min_samples: Number($('#mapLogMinSamples').value),
         max_correction_percent: Number($('#mapLogCap').value),
         max_afr_stddev: Number($('#mapLogStddev').value),
@@ -5230,6 +5681,8 @@ $('#mapsDiffBtn').onclick = async () => {
         + '<p class="small">Every table and constant in these definitions is identical between the two images.</p></div>';
       return;
     }
+    const diffFlags = d.flags || [];
+    const diffPatches = d.patches || [];
     maps.lastDoc = {
       title: `${(d.xdf || {}).title || 'Maps'} — diff`,
       html: mapsDoc(`${(d.xdf || {}).title || 'Maps'} — differences`,
@@ -5240,11 +5693,18 @@ $('#mapsDiffBtn').onclick = async () => {
         + '</tbody></table>').join('')
         + (d.constants.length ? `<h2>Constants</h2><table><thead><tr><th>Constant</th><th>Before</th><th>After</th></tr></thead><tbody>`
           + d.constants.map((c) => `<tr><td>${esc(c.title)}</td><td>${esc(fmtValue(c.before))}</td><td>${esc(fmtValue(c.after))}</td></tr>`).join('')
+          + '</tbody></table>' : '')
+        + (diffFlags.length ? `<h2>Flags</h2><table><thead><tr><th>Flag</th><th>Before</th><th>After</th></tr></thead><tbody>`
+          + diffFlags.map((f) => `<tr><td>${esc(f.title)}</td><td>${esc(fmtValue(f.before))}</td><td>${esc(fmtValue(f.after))}</td></tr>`).join('')
+          + '</tbody></table>' : '')
+        + (diffPatches.length ? `<h2>Patches</h2><table><thead><tr><th>Patch</th><th>Before</th><th>After</th></tr></thead><tbody>`
+          + diffPatches.map((p) => `<tr><td>${esc(p.title)}</td><td>${esc(p.before)}</td><td>${esc(p.after)}</td></tr>`).join('')
           + '</tbody></table>' : '')),
     };
+    const extraDiffSummary = `${diffFlags.length ? `, ${diffFlags.length} flag(s)` : ''}${diffPatches.length ? `, ${diffPatches.length} patch(es)` : ''}`;
     $('#mapsOut').innerHTML = mapsResultToolbar() + `
       <div class="gate-card warn"><h4>Images differ</h4>
-        <p class="small">${d.tables.length} table(s) and ${d.constants.length} constant(s) changed.</p></div>`
+        <p class="small">${d.tables.length} table(s) and ${d.constants.length} constant(s)${extraDiffSummary} changed.</p></div>`
       + d.tables.map((t) => `
         <details open><summary>${esc(t.title)}
           <span class="muted small"> — ${t.changed_cells} cell(s) changed</span></summary>
@@ -5266,6 +5726,24 @@ $('#mapsDiffBtn').onclick = async () => {
             <tr><td>${esc(c.title)}</td>
                 <td><b class="bad">${esc(fmtValue(c.before))}</b> ${esc(c.units)}</td>
                 <td><b class="ok">${esc(fmtValue(c.after))}</b></td></tr>`).join('')}
+          </tbody></table></div></details>` : '')
+      + (diffFlags.length ? `
+        <details open><summary>Flags &amp; Switches</summary>
+        <div class="table-wrap"><table class="data">
+          <thead><tr><th>Flag</th><th>Mask</th><th>Before</th><th>After</th></tr></thead>
+          <tbody>${diffFlags.map((f) => `
+            <tr><td>${esc(f.title)}</td><td><code>${esc(f.mask || '')}</code></td>
+                <td><b class="bad">${esc(fmtValue(f.before))}</b></td>
+                <td><b class="ok">${esc(fmtValue(f.after))}</b></td></tr>`).join('')}
+          </tbody></table></div></details>` : '')
+      + (diffPatches.length ? `
+        <details open><summary>Binary Patches</summary>
+        <div class="table-wrap"><table class="data">
+          <thead><tr><th>Patch</th><th>Before</th><th>After</th></tr></thead>
+          <tbody>${diffPatches.map((p) => `
+            <tr><td>${esc(p.title)}</td>
+                <td><b class="bad">${esc(p.before)}</b></td>
+                <td><b class="ok">${esc(p.after)}</b></td></tr>`).join('')}
           </tbody></table></div></details>` : '');
     wireMapsToolbar();
   } catch (err) {
@@ -5717,9 +6195,11 @@ $('#sigBatchBtn').onclick = async () => {
 };
 
 /* =====================================================================
- * Top Application Menu (File + Quick Settings), Theme & Preferences,
- * Save/Load Location Presets, and Section Organizers
+ * Top Application Menu (File + View + Tuning + Tools + Quick Settings),
+ * Telemetry Ribbon, XDF Explorer Tree, Status Bar & Section Organizers
  * ===================================================================== */
+let updateIdeChrome = null;
+let updateRibbonTelemetry = null;
 {
   const FALLBACK_PREFS = () => ({
     schema: 'guzzionboard.preferences/v1',
@@ -5805,6 +6285,7 @@ $('#sigBatchBtn').onclick = async () => {
     if (persistLocal) Prefs.set('pollIntervalMs', String(val));
     if ($('#qsPollInterval')) $('#qsPollInterval').value = String(val);
     if ($('#prefPollIntervalSelect')) $('#prefPollIntervalSelect').value = String(val);
+    if ($('#statusBarPoll')) $('#statusBarPoll').textContent = `${val} ms`;
   }
 
   function activeSavePresetObj() {
@@ -5828,11 +6309,11 @@ $('#sigBatchBtn').onclick = async () => {
         .map((p) => `<option value="${esc(p.id)}">${esc(p.name)} (${esc(p.path)})</option>`).join('');
       if (loadP) $('#qsLoadPreset').value = loadP.id;
     }
+    const summaryText = `Save: ${saveP ? saveP.name : 'Exports'} · Load: ${loadP ? loadP.name : 'Images'}`;
     if ($('#fileSavePresetHint') && saveP) $('#fileSavePresetHint').textContent = saveP.name;
     if ($('#fileLoadPresetHint') && loadP) $('#fileLoadPresetHint').textContent = loadP.name;
-    if ($('#menubarPresetText')) {
-      $('#menubarPresetText').textContent = `Save: ${saveP ? saveP.name : 'Exports'} · Load: ${loadP ? loadP.name : 'Images'}`;
-    }
+    if ($('#menubarPresetText')) $('#menubarPresetText').textContent = summaryText;
+    if ($('#statusBarPresets')) $('#statusBarPresets').textContent = summaryText;
     if (saveP && window.gobDesktop?.available) {
       window.gobDesktop.exports = saveP.path;
       const code = $('#deskExportPathCode');
@@ -5891,18 +6372,26 @@ $('#sigBatchBtn').onclick = async () => {
   }
 
   /* --------------------------------------------------- dropdown menus */
-  const fileBtn = $('#fileMenuBtn'), fileMenu = $('#fileMenu');
-  const qsBtn = $('#quickSettingsBtn'), qsMenu = $('#quickSettingsMenu');
+  const menuPairs = [
+    [$('#fileMenuBtn'), $('#fileMenu')],
+    [$('#viewMenuBtn'), $('#viewMenu')],
+    [$('#tuningMenuBtn'), $('#tuningMenu')],
+    [$('#toolsMenuBtn'), $('#toolsMenu')],
+    [$('#quickSettingsBtn'), $('#quickSettingsMenu')],
+    [$('#helpMenuBtn'), $('#helpMenu')],
+  ].filter(([b, m]) => b && m);
+
+  function anyMenuOpen() {
+    return menuPairs.some(([, m]) => !m.hidden);
+  }
 
   function closeMenus() {
-    if (fileMenu && !fileMenu.hidden) {
-      fileMenu.hidden = true;
-      fileBtn?.setAttribute('aria-expanded', 'false');
-    }
-    if (qsMenu && !qsMenu.hidden) {
-      qsMenu.hidden = true;
-      qsBtn?.setAttribute('aria-expanded', 'false');
-    }
+    menuPairs.forEach(([b, m]) => {
+      if (!m.hidden) {
+        m.hidden = true;
+        b.setAttribute('aria-expanded', 'false');
+      }
+    });
   }
 
   function toggleMenu(btn, menu) {
@@ -5915,17 +6404,119 @@ $('#sigBatchBtn').onclick = async () => {
     }
   }
 
-  fileBtn?.addEventListener('click', (ev) => {
-    ev.stopPropagation();
-    toggleMenu(fileBtn, fileMenu);
-  });
-  qsBtn?.addEventListener('click', (ev) => {
-    ev.stopPropagation();
-    toggleMenu(qsBtn, qsMenu);
+  menuPairs.forEach(([btn, menu]) => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      toggleMenu(btn, menu);
+    });
+    btn.addEventListener('mouseenter', () => {
+      if (anyMenuOpen() && menu.hidden) toggleMenu(btn, menu);
+    });
   });
 
   document.addEventListener('click', (ev) => {
     if (!$('#appMenubar')?.contains(ev.target)) closeMenus();
+  });
+
+  function toggleExplorerDock() {
+    document.body.classList.toggle('explorer-collapsed');
+  }
+
+  function toggleCompactNotes(force) {
+    const next = typeof force === 'boolean' ? force : !document.body.classList.contains('compact-notes');
+    document.body.classList.toggle('compact-notes', next);
+    Prefs.set('compactNotes', next ? '1' : '0');
+    if ($('#compactNotesState')) $('#compactNotesState').textContent = next ? 'On' : 'Off';
+  }
+  if (Prefs.get('compactNotes') === '1') toggleCompactNotes(true);
+
+  $('#toggleExplorerBtn')?.addEventListener('click', toggleExplorerDock);
+  $('#viewToggleExplorer')?.addEventListener('click', () => {
+    closeMenus();
+    toggleExplorerDock();
+  });
+  $('#viewToggleCompactNotes')?.addEventListener('click', () => {
+    closeMenus();
+    toggleCompactNotes();
+  });
+
+  $$('[data-menu-view]').forEach((item) => {
+    item.addEventListener('click', () => {
+      closeMenus();
+      navigateToView(item.dataset.menuView);
+    });
+  });
+
+  $$('[data-menu-tool]').forEach((item) => {
+    item.addEventListener('click', () => {
+      closeMenus();
+      navigateToView('tools');
+      setToolsFilter('all', '');
+      const el = $(item.dataset.menuTool);
+      if (el) {
+        if (el.tagName === 'DETAILS') el.open = true;
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  $('#tuningOpenMaps')?.addEventListener('click', () => {
+    closeMenus();
+    navigateToView('firmware');
+    setFirmwareFilter('maps');
+  });
+  $('#tuningLoadBaseMap')?.addEventListener('click', () => {
+    closeMenus();
+    navigateToView('firmware');
+    setFirmwareFilter('all');
+    if ($('#mapsBaseBtn') && !$('#mapsBaseBtn').disabled) {
+      $('#mapsBaseBtn').click();
+    } else {
+      toast('Select or connect an ECU with a protected base map first.', 'warn');
+    }
+  });
+  $('#tuningOpenBuilder')?.addEventListener('click', () => {
+    closeMenus();
+    navigateToView('firmware');
+    setFirmwareFilter('all');
+    $('#mapBuilder')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  $('#tuningOpenAfrOverlay')?.addEventListener('click', () => {
+    closeMenus();
+    navigateToView('firmware');
+    setFirmwareFilter('all');
+    const details = document.querySelector('.map-log-tools');
+    if (details) details.open = true;
+    details?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  $('#tuningReadBackup')?.addEventListener('click', () => {
+    closeMenus();
+    navigateToView('firmware');
+    setFirmwareFilter('backup');
+  });
+  $('#tuningCompareImages')?.addEventListener('click', () => {
+    closeMenus();
+    navigateToView('firmware');
+    setFirmwareFilter('all');
+    $('#memoryComparePanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  $('#tuningValidateWrite')?.addEventListener('click', () => {
+    closeMenus();
+    navigateToView('firmware');
+    setFirmwareFilter('write');
+  });
+
+  $$('#perspectiveBar [data-goto-view]').forEach((tab) => {
+    tab.addEventListener('click', () => navigateToView(tab.dataset.gotoView));
+  });
+
+  $('#ribbonPollBtn')?.addEventListener('click', () => {
+    if (!state.connected) {
+      show('garage');
+      return;
+    }
+    show('live');
+    void prepareAndStartPolling();
   });
 
   document.addEventListener('keydown', (ev) => {
@@ -5943,6 +6534,13 @@ $('#sigBatchBtn').onclick = async () => {
       ev.preventDefault();
       closeMenus();
       openPreferencesModal();
+    }
+    if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'b' || ev.key === 'B')) {
+      const tag = document.activeElement?.tagName;
+      if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+        ev.preventDefault();
+        toggleExplorerDock();
+      }
     }
     if (ev.altKey && (ev.key === 'q' || ev.key === 'Q')) {
       ev.preventDefault();
@@ -6035,9 +6633,36 @@ $('#sigBatchBtn').onclick = async () => {
     openPresetBrowser();
   });
 
+  function navigateToView(view) {
+    const navBtn = document.querySelector(`.nav[data-view="${view}"]`);
+    if (navBtn) navBtn.click();
+    else show(view);
+  }
+
+  window.guzziCloseMenus = closeMenus;
+  window.guzziOpenWorkspaceTarget = ({ view, selector, openDetails } = {}) => {
+    closeMenus();
+    if (view) navigateToView(view);
+    if (view === 'tools') setToolsFilter('all', '');
+    if (view === 'firmware') setFirmwareFilter('all');
+    if (openDetails) {
+      const det = document.querySelector(openDetails);
+      if (det && det.tagName === 'DETAILS') det.open = true;
+    }
+    if (selector) {
+      const target = document.querySelector(selector);
+      if (target) {
+        if (target.tagName === 'DETAILS') target.open = true;
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        target.classList.add('help-focus-ring');
+        setTimeout(() => target.classList.remove('help-focus-ring'), 2200);
+      }
+    }
+  };
+
   $('#fileApplyLoadPreset')?.addEventListener('click', () => {
     closeMenus();
-    show('firmware');
+    navigateToView('firmware');
     setFirmwareFilter('all');
     const p = activeLoadPresetObj();
     if (p) insertPresetPathIntoInput('#mapsImagePath', p.path);
@@ -6047,7 +6672,7 @@ $('#sigBatchBtn').onclick = async () => {
 
   $('#fileLoadProject')?.addEventListener('click', () => {
     closeMenus();
-    show('firmware');
+    navigateToView('firmware');
     setFirmwareFilter('all');
     $('#mapBuilder')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     $('#mapProjectFile')?.click();
@@ -6055,7 +6680,7 @@ $('#sigBatchBtn').onclick = async () => {
 
   $('#fileLoadCsvLog')?.addEventListener('click', () => {
     closeMenus();
-    show('firmware');
+    navigateToView('firmware');
     setFirmwareFilter('all');
     const details = document.querySelector('.map-log-tools');
     if (details) details.open = true;
@@ -6205,8 +6830,218 @@ $('#sigBatchBtn').onclick = async () => {
     toast('Workstation session resumed.', 'ok');
   });
 
+  /* ------------------------------------------- IDE Chrome, Telemetry Strip & XDF Tree */
+  function syncXdfTreeDock() {
+    const dock = $('#xdfTreeDock');
+    const list = $('#xdfTreeList');
+    const titleEl = $('#xdfTreeTitle');
+    const countEl = $('#xdfTreeCount');
+    if (!dock || !list) return;
+    const rendered = maps.render;
+    const hasAnyXdfItems = rendered && (
+      rendered.tables?.length || rendered.constants?.length
+      || rendered.flags?.length || rendered.patches?.length
+    );
+    if (!hasAnyXdfItems) {
+      dock.classList.add('hidden');
+      list.innerHTML = '';
+      if (countEl) countEl.textContent = '0';
+      if (titleEl) titleEl.textContent = 'No definition loaded';
+      return;
+    }
+    dock.classList.remove('hidden');
+    const tables = rendered.tables || [];
+    const constants = rendered.constants || [];
+    const flags = rendered.flags || [];
+    const patches = rendered.patches || [];
+    const extraGroups = (constants.length ? 1 : 0) + (flags.length ? 1 : 0) + (patches.length ? 1 : 0);
+    if (countEl) countEl.textContent = String(tables.length + extraGroups);
+    if (titleEl) titleEl.textContent = rendered.xdf?.title || $('#xdfSelect')?.value || 'Loaded XDF';
+
+    const filterQ = ($('#explorerSearchInput')?.value || '').trim().toLowerCase();
+    const groupItems = [];
+    if (constants.length) {
+      groupItems.push({
+        idx: -1,
+        kind: 'constants',
+        label: 'Scalars & Constants',
+        dim: String(constants.length),
+        search: 'scalars constants parameters',
+      });
+    }
+    if (flags.length) {
+      groupItems.push({
+        idx: -2,
+        kind: 'flags',
+        label: 'Flags & Switches',
+        dim: String(flags.length),
+        search: 'flags switches boolean lambda',
+      });
+    }
+    if (patches.length) {
+      groupItems.push({
+        idx: -3,
+        kind: 'patches',
+        label: 'Binary Patches',
+        dim: String(patches.length),
+        search: 'patches binary code',
+      });
+    }
+    const tableItems = tables.map((t, idx) => ({
+      idx,
+      kind: 'table',
+      label: t.title || `Table ${idx + 1}`,
+      dim: `${t.rows}×${t.cols}`,
+      search: `${t.title || ''} ${t.category || ''}`.toLowerCase(),
+    }));
+    const items = [...groupItems, ...tableItems];
+    const filtered = filterQ ? items.filter((it) => it.search.includes(filterQ)) : items;
+    list.innerHTML = filtered.slice(0, 60).map((it) => `
+      <button type="button" class="xdf-tree-item" data-xdf-kind="${esc(it.kind)}" data-xdf-idx="${it.idx}">
+        <span>${esc(it.label)}</span>
+        <em>${esc(it.dim)}</em>
+      </button>`).join('');
+
+    $$('#xdfTreeList .xdf-tree-item').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        show('firmware');
+        setFirmwareFilter('all');
+        const idx = Number(btn.dataset.xdfIdx);
+        const kind = btn.dataset.xdfKind;
+        if (kind === 'table') {
+          const entries = $$('#mapsOut .map-table-entry');
+          const entry = entries[idx];
+          if (entry) {
+            entry.hidden = false;
+            entry.open = true;
+            entry.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        } else {
+          const selectorMap = {
+            constants: '#mapsOut > details.xdf-section-constants',
+            flags: '#mapsOut > details.xdf-section-flags',
+            patches: '#mapsOut > details.xdf-section-patches',
+          };
+          const targetDet = $(selectorMap[kind] || '#mapsOut > details:not(.map-table-entry)');
+          if (targetDet) {
+            targetDet.open = true;
+            targetDet.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      });
+    });
+  }
+
+  updateRibbonTelemetry = (samples = []) => {
+    const strip = $('#topTelemetryStrip');
+    if (!strip) return;
+    if (!state.connected || !samples.length) {
+      strip.classList.add('offline');
+      if ($('#teleRpm')) $('#teleRpm').textContent = '----';
+      if ($('#teleTemp')) $('#teleTemp').textContent = '--.-';
+      if ($('#teleTps')) $('#teleTps').textContent = '--.-%';
+      if ($('#teleVbat')) $('#teleVbat').textContent = '--.-V';
+      return;
+    }
+    strip.classList.remove('offline');
+    const findSample = (re) => samples.find((s) => !s.error && s.value !== null && (re.test(s.key) || re.test(s.name || '')));
+    const rpmS = findSample(/\brpm\b|engine_speed/i);
+    const tempS = findSample(/engine_temp|coolant|clt|head_temp|oil_temp/i);
+    const tpsS = findSample(/\btps\b|throttle/i);
+    const vbatS = findSample(/batt|volt|vbat/i);
+    if ($('#teleRpm')) $('#teleRpm').textContent = rpmS ? String(Math.round(Number(rpmS.value))) : '----';
+    if ($('#teleTemp')) $('#teleTemp').textContent = tempS ? Temp.text(tempS.value, tempS.unit) : '--.-';
+    if ($('#teleTps')) $('#teleTps').textContent = tpsS ? `${Number(tpsS.value).toFixed(1)}${tpsS.unit || '%'}` : '--.-%';
+    if ($('#teleVbat')) $('#teleVbat').textContent = vbatS ? `${Number(vbatS.value).toFixed(1)}V` : '--.-V';
+  };
+
+  updateIdeChrome = () => {
+    const connected = Boolean(state.connected);
+    const ecu = state.selection?.ecu;
+    const capabilities = new Set(ecu?.effective_capabilities || []);
+    const canLive = connected && capabilities.has('live');
+    if ($('#ribbonPollBtn')) {
+      $('#ribbonPollBtn').disabled = !canLive;
+      if (!connected) updateRibbonTelemetry([]);
+    }
+    if ($('#statusBarLed')) $('#statusBarLed').classList.toggle('on', connected);
+    if ($('#statusBarLink')) {
+      const simulated = ['simulator', 'cansim'].includes(state.selection?.transport);
+      $('#statusBarLink').textContent = connected
+        ? (simulated ? 'ONLINE · SIMULATOR' : `ONLINE · ${(state.selection?.transport || 'HW').toUpperCase()}`)
+        : 'OFFLINE';
+    }
+    if ($('#statusBarEcu')) {
+      $('#statusBarEcu').textContent = ecu ? `${ecu.display_name}` : 'none selected';
+    }
+    if ($('#statusBarXdf')) {
+      const rendered = maps.render;
+      $('#statusBarXdf').textContent = rendered
+        ? `${rendered.xdf?.title || $('#xdfSelect')?.value || 'XDF'} (${rendered.tables?.length || 0} tables)`
+        : 'no definition rendered';
+    }
+    if ($('#statusBarStaged')) {
+      const count = maps.changes?.size || 0;
+      $('#statusBarStaged').textContent = `${count} cell${count === 1 ? '' : 's'}`;
+    }
+    syncXdfTreeDock();
+  };
+
+  const mapsOutEl = $('#mapsOut');
+  if (mapsOutEl && typeof MutationObserver !== 'undefined') {
+    new MutationObserver(() => updateIdeChrome()).observe(mapsOutEl, { childList: true });
+  }
+
+  $('#explorerSearchInput')?.addEventListener('input', (ev) => {
+    const q = ev.target.value.trim().toLowerCase();
+    $$('#explorerNav .nav-group').forEach((grp) => {
+      let groupVisible = 0;
+      $$('.nav', grp).forEach((btn) => {
+        const match = !q || btn.textContent.toLowerCase().includes(q) || (btn.dataset.view || '').includes(q);
+        btn.classList.toggle('hidden', !match);
+        if (match) groupVisible += 1;
+      });
+      grp.classList.toggle('hidden', groupVisible === 0);
+    });
+    syncXdfTreeDock();
+  });
+
   /* ------------------------------------------- Section Organizers */
   let activeToolCat = 'all';
+  let toolsFocusMode = false;
+  let focusedToolId = '';
+
+  function renderToolsQuickJump(matchingPanels) {
+    const box = $('#toolsQuickJump');
+    if (!box) return;
+    if (!matchingPanels.length) {
+      box.innerHTML = '';
+      box.classList.add('hidden');
+      return;
+    }
+    box.classList.remove('hidden');
+    box.innerHTML = matchingPanels.map((panel) => {
+      const title = panel.querySelector('h2, summary')?.textContent?.trim() || panel.id;
+      const active = toolsFocusMode && panel.id === focusedToolId ? 'active' : '';
+      return `<button type="button" class="tool-jump-chip ${active}" data-jump-tool="${esc(panel.id)}">${esc(title)}</button>`;
+    }).join('');
+    $$('#toolsQuickJump [data-jump-tool]').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const id = chip.dataset.jumpTool;
+        if (toolsFocusMode) {
+          focusedToolId = id;
+          setToolsFilter(activeToolCat, $('#toolsSearchInput')?.value || '');
+        } else {
+          const target = document.getElementById(id);
+          if (target) {
+            if (target.tagName === 'DETAILS') target.open = true;
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      });
+    });
+  }
+
   function setToolsFilter(category = activeToolCat, query = $('#toolsSearchInput')?.value || '') {
     activeToolCat = category;
     const needle = query.trim().toLowerCase();
@@ -6218,17 +7053,34 @@ $('#sigBatchBtn').onclick = async () => {
       btn.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     const panels = $$('#tools > article.panel[data-tool-cat]');
-    let shown = 0;
-    panels.forEach((panel) => {
+    const matching = panels.filter((panel) => {
       const catMatch = category === 'all' || panel.dataset.toolCat === category;
       const textMatch = !needle || panel.textContent.toLowerCase().includes(needle);
-      const visible = catMatch && textMatch;
-      panel.classList.toggle('hidden', !visible);
-      if (visible) shown += 1;
+      return catMatch && textMatch;
     });
+    if (toolsFocusMode && matching.length && !matching.some((p) => p.id === focusedToolId)) {
+      focusedToolId = matching[0].id;
+    }
+    panels.forEach((panel) => {
+      const isMatch = matching.includes(panel);
+      const visible = isMatch && (!toolsFocusMode || panel.id === focusedToolId);
+      panel.classList.toggle('hidden', !visible);
+    });
+    const shown = matching.length;
     if ($('#toolsCountBadge')) $('#toolsCountBadge').textContent = `${shown} of ${panels.length} tools`;
     $('#toolsEmptyNote')?.classList.toggle('hidden', shown > 0);
+    renderToolsQuickJump(matching);
   }
+
+  $('#toolsFocusModeBtn')?.addEventListener('click', () => {
+    toolsFocusMode = !toolsFocusMode;
+    $('#tools')?.classList.toggle('tools-focus-mode', toolsFocusMode);
+    if ($('#toolsFocusModeBtn')) {
+      $('#toolsFocusModeBtn').textContent = toolsFocusMode ? 'Single-Tool Focus' : '2-Column Bench';
+      $('#toolsFocusModeBtn').classList.toggle('primary', toolsFocusMode);
+    }
+    setToolsFilter(activeToolCat, $('#toolsSearchInput')?.value || '');
+  });
 
   $$('#toolsOrganizer [data-tool-filter]').forEach((btn) => {
     btn.addEventListener('click', () => setToolsFilter(btn.dataset.toolFilter));
@@ -6236,6 +7088,7 @@ $('#sigBatchBtn').onclick = async () => {
   $('#toolsSearchInput')?.addEventListener('input', (ev) => setToolsFilter(activeToolCat, ev.target.value));
   $('#toolsSearchClear')?.addEventListener('click', () => setToolsFilter('all', ''));
   setToolsFilter('all', '');
+  updateIdeChrome();
 
   function setFirmwareFilter(category = 'all') {
     $$('#firmwareOrganizer [data-fw-filter]').forEach((btn) => {

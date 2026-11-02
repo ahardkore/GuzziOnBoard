@@ -30,6 +30,9 @@ TUNING_ACKNOWLEDGEMENT = (
     "I understand modified maps can damage the engine and accept responsibility"
 )
 
+CUSTOM_RECOMMENDATION_MODES = ("operator", "dyno", "afr-log")
+RECOMMENDATION_MODES = ("external", *CUSTOM_RECOMMENDATION_MODES)
+
 DEFAULT_TUNING_DIR = Path.home() / ".guzzionboard" / "images"
 
 
@@ -40,22 +43,28 @@ class TuningError(ValueError):
 def validate_recommendation(value: dict | None) -> dict:
     """Validate and normalise the evidence attached to a set of changes.
 
-    A URL is not an endorsement.  It makes the recommendation inspectable;
-    the build sidecar also keeps the title, rationale and optional content hash
-    so another operator can decide whether it applies to this motorcycle.
+    External recommendations require an inspectable HTTP(S) URL.  Custom
+    operator, dyno, and wideband AFR-log builds record local provenance,
+    rationale, and optional log/run SHA-256 without requiring a third-party URL.
     """
     if not isinstance(value, dict):
         raise TuningError("recommendation evidence is required")
+    mode = str(value.get("mode") or "external").strip().lower()
+    if mode not in RECOMMENDATION_MODES:
+        raise TuningError(
+            f"recommendation mode must be one of {', '.join(RECOMMENDATION_MODES)}"
+        )
     title = str(value.get("title") or value.get("source_title") or "").strip()
     url = str(value.get("url") or value.get("source_url") or "").strip()
     rationale = str(value.get("rationale") or "").strip()
     if len(title) < 3:
         raise TuningError("recommendation evidence needs a source title")
-    parsed = urlparse(url)
-    if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        raise TuningError(
-            "recommendation evidence needs an inspectable http(s) source URL"
-        )
+    if mode == "external" or url:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise TuningError(
+                "recommendation evidence needs an inspectable http(s) source URL"
+            )
     if len(rationale) < 10:
         raise TuningError(
             "explain why this recommendation applies to this motorcycle "
@@ -64,7 +73,13 @@ def validate_recommendation(value: dict | None) -> dict:
     digest = str(value.get("sha256") or value.get("source_sha256") or "").strip().lower()
     if digest and not re.fullmatch(r"[0-9a-f]{64}", digest):
         raise TuningError("recommendation source SHA-256 must be 64 hex characters")
+    status = (
+        "traceable-not-endorsed"
+        if mode == "external"
+        else f"{mode}-authored-not-endorsed"
+    )
     return {
+        "mode": mode,
         "title": title,
         "url": url,
         "publisher": str(value.get("publisher") or "").strip(),
@@ -73,7 +88,7 @@ def validate_recommendation(value: dict | None) -> dict:
         "sha256": digest,
         "rationale": rationale,
         "quote": str(value.get("quote") or "").strip(),
-        "status": "traceable-not-endorsed",
+        "status": status,
     }
 
 
@@ -90,6 +105,8 @@ def _xdf_sha256(xdf: XdfFile) -> str:
             [xdf.title, xdf.version]
             + [f"table:{x.item_id}:{x.math}" for x in xdf.tables]
             + [f"constant:{x.item_id}:{x.math}" for x in xdf.constants]
+            + [f"flag:{x.item_id}:0x{x.mask:X}" for x in xdf.flags]
+            + [f"patch:{x.item_id}:{len(x.entries)}" for x in xdf.patches]
         ).encode("utf-8")
         return hashlib.sha256(body).hexdigest()
 

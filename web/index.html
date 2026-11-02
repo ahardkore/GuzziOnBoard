@@ -9,45 +9,372 @@
 </head>
 <body>
 
-<aside class="sidebar">
+<header class="app-menubar no-print" id="appMenubar" role="menubar" aria-label="Application menu">
+  <div class="menubar-left">
+    <div class="menubar-brand" title="GuzziOnBoard — Motorcycle ECU &amp; Workshop Suite">
+      <span class="brand-mark">GO</span>
+      <span class="menubar-app-name">Guzzi<b>OnBoard</b></span>
+    </div>
+
+    <div class="menu-dropdown" id="fileMenuWrap">
+      <button type="button" class="menubar-btn" id="fileMenuBtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" aria-controls="fileMenu">
+        File <span class="menu-caret" aria-hidden="true">▾</span>
+      </button>
+      <div class="dropdown-panel" id="fileMenu" role="menu" aria-label="File menu" hidden>
+        <div class="menu-section-title">Load &amp; Open</div>
+        <button type="button" class="menu-item" id="fileBrowseLoadPreset" role="menuitem">
+          <span>Browse Load Preset Folder&hellip;</span><kbd id="fileLoadPresetHint">images</kbd>
+        </button>
+        <button type="button" class="menu-item" id="fileApplyLoadPreset" role="menuitem">
+          <span>Use Load Preset Path in Maps</span>
+        </button>
+        <button type="button" class="menu-item" id="fileLoadProject" role="menuitem">
+          <span>Load Map Project (.json)&hellip;</span>
+        </button>
+        <button type="button" class="menu-item" id="fileLoadCsvLog" role="menuitem">
+          <span>Load Telemetry / AFR Log (.csv)&hellip;</span>
+        </button>
+        <button type="button" class="menu-item" id="fileLoadManual" role="menuitem">
+          <span>Load Owner Manual (.txt)&hellip;</span>
+        </button>
+        <button type="button" class="menu-item" id="fileLoadDtcRef" role="menuitem">
+          <span>Load Harley DTC Reference (.json)&hellip;</span>
+        </button>
+        <div class="menu-sep" role="separator"></div>
+        <div class="menu-section-title">Save &amp; Export</div>
+        <button type="button" class="menu-item" id="fileSaveToPreset" role="menuitem">
+          <span>Save Report to Active Save Preset</span><kbd id="fileSavePresetHint">exports</kbd>
+        </button>
+        <button type="button" class="menu-item" id="fileSaveProject" role="menuitem">
+          <span>Save Map Project (.json)</span>
+        </button>
+        <button type="button" class="menu-item" id="fileExportLiveCsv" role="menuitem">
+          <span>Export Live Telemetry (.csv)</span>
+        </button>
+        <button type="button" class="menu-item" id="fileSaveReportTxt" role="menuitem">
+          <span>Save Service Report (.txt)</span>
+        </button>
+        <button type="button" class="menu-item" id="fileSaveReportJson" role="menuitem">
+          <span>Save Service Report (.json)</span>
+        </button>
+        <button type="button" class="menu-item" id="filePrintView" role="menuitem">
+          <span>Print / Save View as PDF&hellip;</span><kbd>Ctrl+P</kbd>
+        </button>
+        <button type="button" class="menu-item hidden" id="fileOpenExports" role="menuitem">
+          <span>Open Active Exports Folder</span>
+        </button>
+        <button type="button" class="menu-item hidden" id="fileOpenData" role="menuitem">
+          <span>Open Workstation Data Folder</span>
+        </button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="menu-item" id="fileOpenPrefs" role="menuitem">
+          <span>Preferences&hellip;</span><kbd>Ctrl+,</kbd>
+        </button>
+        <button type="button" class="menu-item danger" id="fileExitApp" role="menuitem">
+          <span>Exit Application</span><kbd>Alt+Q</kbd>
+        </button>
+      </div>
+    </div>
+
+    <div class="menu-dropdown" id="viewMenuWrap">
+      <button type="button" class="menubar-btn" id="viewMenuBtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" aria-controls="viewMenu">
+        View <span class="menu-caret" aria-hidden="true">▾</span>
+      </button>
+      <div class="dropdown-panel" id="viewMenu" role="menu" aria-label="View menu" hidden>
+        <div class="menu-section-title">Workspaces</div>
+        <button type="button" class="menu-item" data-menu-view="garage" role="menuitem"><span>Garage &amp; ECU Link</span><kbd>1</kbd></button>
+        <button type="button" class="menu-item" data-menu-view="live" role="menuitem"><span>Gauge Dash &amp; Live Log</span><kbd>2</kbd></button>
+        <button type="button" class="menu-item" data-menu-view="firmware" role="menuitem"><span>XDF Calibration &amp; ROM</span><kbd>3</kbd></button>
+        <button type="button" class="menu-item" data-menu-view="faults" role="menuitem"><span>Diagnostic Trouble Codes</span><kbd>4</kbd></button>
+        <button type="button" class="menu-item" data-menu-view="tools" role="menuitem"><span>Workshop Utilities Bench</span><kbd>5</kbd></button>
+        <button type="button" class="menu-item" data-menu-view="sessions" role="menuitem"><span>Session Log Viewer</span></button>
+        <button type="button" class="menu-item" data-menu-view="report" role="menuitem"><span>Service Report</span></button>
+        <div class="menu-sep" role="separator"></div>
+        <div class="menu-section-title">Window &amp; Panels</div>
+        <button type="button" class="menu-item" id="viewToggleExplorer" role="menuitem">
+          <span>Toggle Explorer Dock</span><kbd>Ctrl+B</kbd>
+        </button>
+        <button type="button" class="menu-item" id="viewToggleCompactNotes" role="menuitem">
+          <span>Compact Guidance Notes</span><kbd id="compactNotesState">Off</kbd>
+        </button>
+      </div>
+    </div>
+
+    <div class="menu-dropdown" id="tuningMenuWrap">
+      <button type="button" class="menubar-btn" id="tuningMenuBtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" aria-controls="tuningMenu">
+        Tuning <span class="menu-caret" aria-hidden="true">▾</span>
+      </button>
+      <div class="dropdown-panel" id="tuningMenu" role="menu" aria-label="Tuning menu" hidden>
+        <div class="menu-section-title">XDF Calibration &amp; Tables</div>
+        <button type="button" class="menu-item" id="tuningOpenMaps" role="menuitem"><span>Open XDF Table Editor</span></button>
+        <button type="button" class="menu-item" id="tuningLoadBaseMap" role="menuitem"><span>Load Protected Base Map</span></button>
+        <button type="button" class="menu-item" id="tuningOpenBuilder" role="menuitem"><span>Evidence-Backed Map Builder</span></button>
+        <button type="button" class="menu-item" id="tuningOpenAfrOverlay" role="menuitem"><span>Offline AFR Log Overlay</span></button>
+        <div class="menu-sep" role="separator"></div>
+        <div class="menu-section-title">ROM &amp; Flash Gates</div>
+        <button type="button" class="menu-item" id="tuningReadBackup" role="menuitem"><span>Adapter Check &amp; ROM Backup</span></button>
+        <button type="button" class="menu-item" id="tuningCompareImages" role="menuitem"><span>Compare Two Binary Images</span></button>
+        <button type="button" class="menu-item" id="tuningValidateWrite" role="menuitem"><span>Validate &amp; Write Preconditions</span></button>
+      </div>
+    </div>
+
+    <div class="menu-dropdown" id="toolsMenuWrap">
+      <button type="button" class="menubar-btn" id="toolsMenuBtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" aria-controls="toolsMenu">
+        Tools <span class="menu-caret" aria-hidden="true">▾</span>
+      </button>
+      <div class="dropdown-panel" id="toolsMenu" role="menu" aria-label="Tools menu" hidden>
+        <div class="menu-section-title">Diagnostics &amp; Procedures</div>
+        <button type="button" class="menu-item" data-menu-view="procedures" role="menuitem"><span>Guided Diagnostic Procedures</span></button>
+        <button type="button" class="menu-item" data-menu-view="service" role="menuitem"><span>Actuator &amp; Reset Service Actions</span></button>
+        <button type="button" class="menu-item" data-menu-view="discovery" role="menuitem"><span>RLI / Identifier Bus Sweep</span></button>
+        <button type="button" class="menu-item" data-menu-view="simulator" role="menuitem"><span>Simulated Engine Bench</span></button>
+        <div class="menu-sep" role="separator"></div>
+        <div class="menu-section-title">Calculators &amp; Research</div>
+        <button type="button" class="menu-item" data-menu-tool="#ecuLookup" role="menuitem"><span>ECU Part &amp; Label Lookup</span></button>
+        <button type="button" class="menu-item" data-menu-tool="#workshopGearing" role="menuitem"><span>Gearing &amp; Speed Calculator</span></button>
+        <button type="button" class="menu-item" data-menu-tool="#workshopValveShims" role="menuitem"><span>Valve Clearance &amp; Shim Sheet</span></button>
+        <button type="button" class="menu-item" data-menu-tool="#rusefiTunePanel" role="menuitem"><span>rusEFI / TunerStudio .ini Viewer</span></button>
+        <button type="button" class="menu-item" data-menu-view="equipment" role="menuitem"><span>Adapter &amp; Cable Guide</span></button>
+      </div>
+    </div>
+
+    <div class="menu-dropdown" id="quickSettingsWrap">
+      <button type="button" class="menubar-btn" id="quickSettingsBtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" aria-controls="quickSettingsMenu">
+        Quick Settings <span class="menu-caret" aria-hidden="true">▾</span>
+      </button>
+      <div class="dropdown-panel quick-settings-panel" id="quickSettingsMenu" role="menu" aria-label="Quick settings menu" hidden>
+        <div class="menu-section-title">Appearance &amp; Units</div>
+        <div class="qs-row">
+          <span class="qs-label">Theme</span>
+          <div class="qs-seg" role="group" aria-label="Color theme">
+            <button type="button" class="qs-seg-btn" id="qsThemeDark" data-qs-theme="dark">Dark</button>
+            <button type="button" class="qs-seg-btn" id="qsThemeLight" data-qs-theme="light">Light</button>
+            <button type="button" class="qs-seg-btn" id="qsThemeSystem" data-qs-theme="system">Auto</button>
+          </div>
+        </div>
+        <div class="qs-row">
+          <span class="qs-label">Density</span>
+          <div class="qs-seg" role="group" aria-label="Layout density">
+            <button type="button" class="qs-seg-btn" id="qsDensityComfortable" data-qs-density="comfortable">Comfortable</button>
+            <button type="button" class="qs-seg-btn" id="qsDensityCompact" data-qs-density="compact">Compact</button>
+          </div>
+        </div>
+        <div class="qs-row">
+          <span class="qs-label">Temperature</span>
+          <div class="qs-seg" role="group" aria-label="Temperature unit">
+            <button type="button" class="qs-seg-btn" id="qsTempC" data-qs-temp="C">&deg;C</button>
+            <button type="button" class="qs-seg-btn" id="qsTempF" data-qs-temp="F">&deg;F</button>
+          </div>
+        </div>
+        <div class="qs-row">
+          <label class="qs-label" for="qsPollInterval">Live Poll</label>
+          <select id="qsPollInterval" class="qs-select">
+            <option value="150">150 ms (Fast)</option>
+            <option value="250" selected>250 ms (Standard)</option>
+            <option value="500">500 ms (Balanced)</option>
+            <option value="1000">1000 ms (Slow)</option>
+          </select>
+        </div>
+        <div class="menu-sep" role="separator"></div>
+        <div class="menu-section-title">Active Location Presets</div>
+        <label class="qs-stack">
+          <span>Save Location Preset</span>
+          <select id="qsSavePreset" class="qs-select"></select>
+        </label>
+        <label class="qs-stack">
+          <span>Load Location Preset</span>
+          <select id="qsLoadPreset" class="qs-select"></select>
+        </label>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="menu-item primary" id="openPreferencesBtn" role="menuitem">
+          <span>&#9881; Preferences&hellip;</span><kbd>Ctrl+,</kbd>
+        </button>
+      </div>
+    </div>
+
+    <div class="menu-dropdown" id="helpMenuWrap">
+      <button type="button" class="menubar-btn" id="helpMenuBtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" aria-controls="helpMenu">
+        Help <span class="menu-caret" aria-hidden="true">▾</span>
+      </button>
+      <div class="dropdown-panel" id="helpMenu" role="menu" aria-label="Help menu" hidden>
+        <div class="menu-section-title">Search &amp; Reference</div>
+        <button type="button" class="menu-item primary" id="helpMenuSpotlight" role="menuitem">
+          <span>Search Everything in Program&hellip;</span><kbd>Ctrl+K</kbd>
+        </button>
+        <button type="button" class="menu-item" data-help-topic="getting-started" role="menuitem">
+          <span>Help &amp; Reference Center</span><kbd>F1</kbd>
+        </button>
+        <div class="menu-sep" role="separator"></div>
+        <div class="menu-section-title">Step-by-Step How-To Guides</div>
+        <button type="button" class="menu-item" data-help-topic="howto-first-connection" role="menuitem">
+          <span>1. Connect, Identify &amp; Log Live Data</span>
+        </button>
+        <button type="button" class="menu-item" data-help-topic="howto-backup-basemap" role="menuitem">
+          <span>2. Verified Backup, Attestation &amp; Base Map</span>
+        </button>
+        <button type="button" class="menu-item" data-help-topic="howto-xdf-editing" role="menuitem">
+          <span>3. XDF Tables, Floats, Flags &amp; Patches</span>
+        </button>
+        <button type="button" class="menu-item" data-help-topic="howto-afr-jetdrive-tuning" role="menuitem">
+          <span>4. Wideband AFR &amp; JetDrive Dyno Overlay</span>
+        </button>
+        <button type="button" class="menu-item" data-help-topic="howto-custom-build-and-flash" role="menuitem">
+          <span>5. Custom / Dyno Build &amp; Gated ECU Write</span>
+        </button>
+        <button type="button" class="menu-item" data-help-topic="howto-brand-workflows" role="menuitem">
+          <span>6. Harley, Buell, Honda &amp; rusEFI Workflows</span>
+        </button>
+        <div class="menu-sep" role="separator"></div>
+        <div class="menu-section-title">Technical Reference</div>
+        <button type="button" class="menu-item" data-help-topic="tools-directory" role="menuitem">
+          <span>Every Tool &amp; Workspace Explained</span>
+        </button>
+        <button type="button" class="menu-item" data-help-topic="protocols-overview" role="menuitem">
+          <span>Wire Protocols &amp; Bus Transports</span>
+        </button>
+        <button type="button" class="menu-item" data-help-topic="ecus-overview" role="menuitem">
+          <span>ECU Families &amp; Live Catalog Explorer</span>
+        </button>
+        <button type="button" class="menu-item" data-help-topic="checksums-overview" role="menuitem">
+          <span>Checksums, Plugins &amp; XDF Math</span>
+        </button>
+        <button type="button" class="menu-item" data-help-topic="safety-gates" role="menuitem">
+          <span>Safety Gates &amp; Brick Prevention</span>
+        </button>
+        <button type="button" class="menu-item" data-help-topic="glossary" role="menuitem">
+          <span>Tuning &amp; ECU Glossary (A&ndash;Z)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="menubar-right">
+    <button type="button" class="menubar-chip" id="menubarHelpSearchBtn" title="Search every tool, ECU, protocol, checksum &amp; guide (Ctrl+K)">
+      <span>&#128269; Search &amp; Help <kbd class="menubar-kbd">Ctrl+K</kbd></span>
+    </button>
+    <button type="button" class="menubar-chip" id="menubarPresetSummary" title="Open Save &amp; Load Location Presets in Preferences">
+      <span id="menubarPresetText">Save: Default Exports &middot; Load: ECU Images</span>
+    </button>
+    <button type="button" class="menubar-chip" id="menubarThemeToggle" title="Toggle Light / Dark mode">
+      <span id="menubarThemeLabel">Dark mode</span>
+    </button>
+    <a class="menubar-link" href="sim.html" target="_blank" rel="noopener">Sim Demo</a>
+    <a class="menubar-link" href="tour.html" target="_blank" rel="noopener">Tour &amp; Setup</a>
+  </div>
+</header>
+
+<div class="command-ribbon no-print" id="commandRibbon" role="toolbar" aria-label="ECU link and telemetry toolbar">
+  <div class="ribbon-perspectives" id="perspectiveBar" role="tablist" aria-label="Tuning suite perspectives">
+    <button type="button" class="persp-tab active" data-goto-view="garage" data-persp-views="garage,overview,equipment">
+      <span class="persp-num">01</span> Setup &amp; Link
+    </button>
+    <button type="button" class="persp-tab" data-goto-view="live" data-persp-views="live,sessions,simulator">
+      <span class="persp-num">02</span> Gauge Dash
+    </button>
+    <button type="button" class="persp-tab" data-goto-view="firmware" data-persp-views="firmware">
+      <span class="persp-num">03</span> XDF &amp; ROM
+    </button>
+    <button type="button" class="persp-tab" data-goto-view="faults" data-persp-views="faults,procedures,service">
+      <span class="persp-num">04</span> DTC &amp; I/O
+    </button>
+    <button type="button" class="persp-tab" data-goto-view="tools" data-persp-views="tools,discovery,report">
+      <span class="persp-num">05</span> Bench &amp; Logs
+    </button>
+  </div>
+
+  <div class="ribbon-telemetry" id="topTelemetryStrip" aria-label="Live telemetry summary">
+    <div class="tele-cell" title="Engine speed">
+      <span class="tele-lbl">RPM</span>
+      <strong class="tele-val" id="teleRpm">----</strong>
+    </div>
+    <div class="tele-cell" title="Engine / coolant temperature">
+      <span class="tele-lbl">TEMP</span>
+      <strong class="tele-val" id="teleTemp">--.-</strong>
+    </div>
+    <div class="tele-cell" title="Throttle position">
+      <span class="tele-lbl">TPS</span>
+      <strong class="tele-val" id="teleTps">--.-%</strong>
+    </div>
+    <div class="tele-cell" title="Battery voltage">
+      <span class="tele-lbl">VBAT</span>
+      <strong class="tele-val" id="teleVbat">--.-V</strong>
+    </div>
+  </div>
+
+  <div class="ribbon-controls">
+    <button type="button" class="btn small ribbon-poll-btn" id="ribbonPollBtn" disabled title="Start or stop live ECU telemetry polling"><span class="poll-glyph" aria-hidden="true"></span><span id="ribbonPollLabel">Poll</span></button>
+    <label class="unit-pick" title="Celsius is what the ECU sends; Fahrenheit is converted for display only">
+      <span>Temp</span>
+      <select id="tempUnit">
+        <option value="C">&deg;C</option>
+        <option value="F">&deg;F</option>
+      </select>
+    </label>
+    <label class="unit-pick" title="Adjust interface spacing; no diagnostic settings are changed">
+      <span>Layout</span><select id="layoutDensity"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select>
+    </label>
+    <button class="btn small" id="printBtn" title="Print this view or save it as PDF">Print / PDF</button>
+  </div>
+</div>
+
+<aside class="sidebar" id="explorerSidebar">
   <div class="brand">
     <div class="brand-mark">GO</div>
-    <div>
+    <div class="brand-copy">
       <strong>Guzzi<span>OnBoard</span></strong>
       <small id="appVersion">motorcycle workstation</small>
     </div>
   </div>
 
-  <nav aria-label="Workstation sections">
+  <div class="explorer-filter no-print">
+    <input type="search" id="explorerSearchInput" placeholder="Filter explorer &amp; tables&hellip;" aria-label="Filter navigation and loaded XDF items" autocomplete="off">
+  </div>
+
+  <div class="xdf-tree-dock hidden no-print" id="xdfTreeDock" aria-label="Active XDF calibration tree">
+    <div class="xdf-tree-head">
+      <span class="nav-label">Active XDF Tree</span>
+      <span class="xdf-tree-count" id="xdfTreeCount">0</span>
+    </div>
+    <div class="xdf-tree-title" id="xdfTreeTitle">No definition loaded</div>
+    <div class="xdf-tree-list" id="xdfTreeList"></div>
+  </div>
+
+  <nav aria-label="Workstation sections" id="explorerNav">
     <div class="nav-group">
-      <span class="nav-label">Start here</span>
+      <span class="nav-label">01 &middot; Vehicle &amp; Link</span>
       <button class="nav active" data-view="garage"><i>▣</i> Garage</button>
-      <button class="nav" data-view="equipment"><i>⌁</i> Equipment guide</button>
       <button class="nav" data-view="overview"><i>◉</i> Overview</button>
+      <button class="nav" data-view="equipment"><i>⌁</i> Equipment guide</button>
     </div>
     <div class="nav-group">
-      <span class="nav-label">Observe &amp; diagnose</span>
+      <span class="nav-label">02 &middot; Dash &amp; Logs</span>
       <button class="nav" data-view="live"><i>∿</i> Live data</button>
+      <button class="nav" data-view="sessions"><i>▤</i> Sessions</button>
+      <button class="nav" data-view="simulator"><i>🧪</i> Simulated bike</button>
+    </div>
+    <div class="nav-group">
+      <span class="nav-label">03 &middot; Calibration &amp; ROM</span>
+      <button class="nav" data-view="firmware"><i>▥</i> ECU memory</button>
+    </div>
+    <div class="nav-group">
+      <span class="nav-label">04 &middot; Diagnostics &amp; I/O</span>
       <button class="nav" data-view="faults"><i>⚠</i> Fault codes <b id="faultBadge" class="badge hidden">0</b></button>
       <button class="nav" data-view="procedures"><i>✓</i> Guided tests</button>
       <button class="nav" data-view="service"><i>⚙</i> Service actions</button>
     </div>
     <div class="nav-group">
-      <span class="nav-label">Advanced</span>
-      <button class="nav" data-view="firmware"><i>▥</i> ECU memory</button>
+      <span class="nav-label">05 &middot; Bench &amp; Reports</span>
       <button class="nav" data-view="tools"><i>🧰</i> Tools</button>
       <button class="nav" data-view="discovery"><i>🔍</i> Discovery</button>
+      <button class="nav" data-view="report"><i>⎙</i> Report</button>
     </div>
     <div class="nav-group">
-      <span class="nav-label">Review</span>
-      <button class="nav" data-view="sessions"><i>▤</i> Sessions</button>
-      <button class="nav" data-view="report"><i>⎙</i> Report</button>
-      <button class="nav" data-view="simulator"><i>🧪</i> Simulated bike</button>
+      <span class="nav-label">06 &middot; Help &amp; Reference</span>
+      <button class="nav" data-view="help"><i>?</i> Help &amp; guides</button>
     </div>
   </nav>
 
   <div class="sidebar-foot">
-    <p class="muted small"><a href="https://github.com/ahardkore/GuzziOnBoard" target="_blank" rel="noopener noreferrer">Project source &amp; license</a></p>
     <div class="conn-card" id="connCard">
       <div class="conn-dot" id="connDot"></div>
       <div>
@@ -55,161 +382,29 @@
         <small id="connSub">Pick a motorcycle in the Garage</small>
       </div>
     </div>
-    <button class="btn block" id="disconnectBtn" disabled>Disconnect</button>
-    <p class="disclaimer">Not affiliated with Piaggio or the GuzziDiag author. ECU writes run on the simulator; against hardware they stay refused here &mdash; no bench-confirmed write path.</p>
+    <button class="btn block small" id="disconnectBtn" disabled>Disconnect</button>
+    <p class="disclaimer">Not affiliated with Piaggio or the GuzziDiag author. ECU writes run on the simulator; against hardware they stay refused here &mdash; no bench-confirmed write path. <a href="https://github.com/ahardkore/GuzziOnBoard" target="_blank" rel="noopener noreferrer">Source &amp; license</a></p>
   </div>
 </aside>
 
-<main>
-  <div class="app-menubar no-print" id="appMenubar" role="menubar" aria-label="Application menu">
-    <div class="menubar-left">
-      <div class="menu-dropdown" id="fileMenuWrap">
-        <button type="button" class="menubar-btn" id="fileMenuBtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" aria-controls="fileMenu">
-          File <span class="menu-caret" aria-hidden="true">▾</span>
-        </button>
-        <div class="dropdown-panel" id="fileMenu" role="menu" aria-label="File menu" hidden>
-          <div class="menu-section-title">Load &amp; Open</div>
-          <button type="button" class="menu-item" id="fileBrowseLoadPreset" role="menuitem">
-            <span>Browse Load Preset Folder&hellip;</span><kbd id="fileLoadPresetHint">images</kbd>
-          </button>
-          <button type="button" class="menu-item" id="fileApplyLoadPreset" role="menuitem">
-            <span>Use Load Preset Path in Maps</span>
-          </button>
-          <button type="button" class="menu-item" id="fileLoadProject" role="menuitem">
-            <span>Load Map Project (.json)&hellip;</span>
-          </button>
-          <button type="button" class="menu-item" id="fileLoadCsvLog" role="menuitem">
-            <span>Load Telemetry / AFR Log (.csv)&hellip;</span>
-          </button>
-          <button type="button" class="menu-item" id="fileLoadManual" role="menuitem">
-            <span>Load Owner Manual (.txt)&hellip;</span>
-          </button>
-          <button type="button" class="menu-item" id="fileLoadDtcRef" role="menuitem">
-            <span>Load Harley DTC Reference (.json)&hellip;</span>
-          </button>
-          <div class="menu-sep" role="separator"></div>
-          <div class="menu-section-title">Save &amp; Export</div>
-          <button type="button" class="menu-item" id="fileSaveToPreset" role="menuitem">
-            <span>Save Report to Active Save Preset</span><kbd id="fileSavePresetHint">exports</kbd>
-          </button>
-          <button type="button" class="menu-item" id="fileSaveProject" role="menuitem">
-            <span>Save Map Project (.json)</span>
-          </button>
-          <button type="button" class="menu-item" id="fileExportLiveCsv" role="menuitem">
-            <span>Export Live Telemetry (.csv)</span>
-          </button>
-          <button type="button" class="menu-item" id="fileSaveReportTxt" role="menuitem">
-            <span>Save Service Report (.txt)</span>
-          </button>
-          <button type="button" class="menu-item" id="fileSaveReportJson" role="menuitem">
-            <span>Save Service Report (.json)</span>
-          </button>
-          <button type="button" class="menu-item" id="filePrintView" role="menuitem">
-            <span>Print / Save View as PDF&hellip;</span><kbd>Ctrl+P</kbd>
-          </button>
-          <button type="button" class="menu-item hidden" id="fileOpenExports" role="menuitem">
-            <span>Open Active Exports Folder</span>
-          </button>
-          <button type="button" class="menu-item hidden" id="fileOpenData" role="menuitem">
-            <span>Open Workstation Data Folder</span>
-          </button>
-          <div class="menu-sep" role="separator"></div>
-          <button type="button" class="menu-item" id="fileOpenPrefs" role="menuitem">
-            <span>Preferences&hellip;</span><kbd>Ctrl+,</kbd>
-          </button>
-          <button type="button" class="menu-item danger" id="fileExitApp" role="menuitem">
-            <span>Exit Application</span><kbd>Alt+Q</kbd>
-          </button>
-        </div>
-      </div>
-
-      <div class="menu-dropdown" id="quickSettingsWrap">
-        <button type="button" class="menubar-btn" id="quickSettingsBtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" aria-controls="quickSettingsMenu">
-          Quick Settings <span class="menu-caret" aria-hidden="true">▾</span>
-        </button>
-        <div class="dropdown-panel quick-settings-panel" id="quickSettingsMenu" role="menu" aria-label="Quick settings menu" hidden>
-          <div class="menu-section-title">Appearance &amp; Units</div>
-          <div class="qs-row">
-            <span class="qs-label">Theme</span>
-            <div class="qs-seg" role="group" aria-label="Color theme">
-              <button type="button" class="qs-seg-btn" id="qsThemeDark" data-qs-theme="dark">Dark</button>
-              <button type="button" class="qs-seg-btn" id="qsThemeLight" data-qs-theme="light">Light</button>
-              <button type="button" class="qs-seg-btn" id="qsThemeSystem" data-qs-theme="system">Auto</button>
-            </div>
-          </div>
-          <div class="qs-row">
-            <span class="qs-label">Density</span>
-            <div class="qs-seg" role="group" aria-label="Layout density">
-              <button type="button" class="qs-seg-btn" id="qsDensityComfortable" data-qs-density="comfortable">Comfortable</button>
-              <button type="button" class="qs-seg-btn" id="qsDensityCompact" data-qs-density="compact">Compact</button>
-            </div>
-          </div>
-          <div class="qs-row">
-            <span class="qs-label">Temperature</span>
-            <div class="qs-seg" role="group" aria-label="Temperature unit">
-              <button type="button" class="qs-seg-btn" id="qsTempC" data-qs-temp="C">&deg;C</button>
-              <button type="button" class="qs-seg-btn" id="qsTempF" data-qs-temp="F">&deg;F</button>
-            </div>
-          </div>
-          <div class="qs-row">
-            <label class="qs-label" for="qsPollInterval">Live Poll</label>
-            <select id="qsPollInterval" class="qs-select">
-              <option value="150">150 ms (Fast)</option>
-              <option value="250" selected>250 ms (Standard)</option>
-              <option value="500">500 ms (Balanced)</option>
-              <option value="1000">1000 ms (Slow)</option>
-            </select>
-          </div>
-          <div class="menu-sep" role="separator"></div>
-          <div class="menu-section-title">Active Location Presets</div>
-          <label class="qs-stack">
-            <span>Save Location Preset</span>
-            <select id="qsSavePreset" class="qs-select"></select>
-          </label>
-          <label class="qs-stack">
-            <span>Load Location Preset</span>
-            <select id="qsLoadPreset" class="qs-select"></select>
-          </label>
-          <div class="menu-sep" role="separator"></div>
-          <button type="button" class="menu-item primary" id="openPreferencesBtn" role="menuitem">
-            <span>&#9881; Preferences&hellip;</span><kbd>Ctrl+,</kbd>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="menubar-right">
-      <button type="button" class="menubar-chip" id="menubarPresetSummary" title="Open Save &amp; Load Location Presets in Preferences">
-        <span id="menubarPresetText">Save: Default Exports &middot; Load: ECU Images</span>
-      </button>
-      <button type="button" class="menubar-chip" id="menubarThemeToggle" title="Toggle Light / Dark mode">
-        <span id="menubarThemeLabel">Dark mode</span>
-      </button>
-    </div>
-  </div>
-
+<main id="workbenchMain">
   <header class="topbar">
-    <div>
-      <div class="workspace-eyebrow"><span class="workspace-dot"></span> GUZZIONBOARD / WORKSPACE</div>
-      <h1 id="pageTitle">Garage</h1>
-      <p id="pageSub">Choose the motorcycle and the way you are talking to it.</p>
+    <div class="topbar-left">
+      <button type="button" class="btn small icon-btn no-print" id="toggleExplorerBtn" title="Show or hide Explorer dock (Ctrl+B)" aria-label="Toggle Explorer dock">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M1.5 3h11M1.5 7h11M1.5 11h11"/></svg>
+      </button>
+      <div class="topbar-titles">
+        <div class="workspace-eyebrow"><span class="workspace-dot"></span> <span id="workspaceKicker">01 &middot; VEHICLE &amp; LINK</span></div>
+        <div class="topbar-heading-row">
+          <h1 id="pageTitle">Garage</h1>
+          <span class="topbar-sep" aria-hidden="true">&mdash;</span>
+          <p id="pageSub">Choose the motorcycle and the way you are talking to it.</p>
+        </div>
+      </div>
     </div>
     <div class="topbar-right">
       <span class="pill" id="modePill">simulator</span>
       <span class="pill ghost" id="ecuPill">no ECU</span>
-      <label class="unit-pick no-print" title="Celsius is what the ECU sends; Fahrenheit is converted for display only">
-        <span>Temp</span>
-        <select id="tempUnit">
-          <option value="C">°C</option>
-          <option value="F">°F</option>
-        </select>
-      </label>
-      <label class="unit-pick no-print" title="Adjust interface spacing; no diagnostic settings are changed">
-        <span>Layout</span><select id="layoutDensity"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select>
-      </label>
-      <button class="btn small no-print" id="printBtn" title="Print this view or save it as PDF">Print / PDF</button>
-      <a class="btn small no-print" href="sim.html" target="_blank" rel="noopener">Simulator demo</a>
-      <a class="btn small no-print" href="tour.html" target="_blank" rel="noopener">Tour &amp; setup</a>
     </div>
   </header>
 
@@ -382,59 +577,59 @@
       </article>
     </div>
 
-    <div class="flow-divider"><span class="flow-step">02 · Verify</span><span>Review what the catalog knows before you use the workstation.</span></div>
-    <article class="panel">
-      <h2>Coverage</h2>
-      <p class="muted" id="coverageLine">Loading the capability catalog…</p>
-      <div class="table-wrap"><table class="data" id="ecuTable">
-        <thead><tr><th>ECU family</th><th>Years</th><th>Transport</th><th>Confidence</th><th>Capabilities</th></tr></thead>
-        <tbody></tbody>
-      </table></div>
-      <p class="muted small">Confidence drives what the workstation will let you do. <b>verified-capture</b> means the bytes came off a real bus; <b>documented</b> means a primary manual or mature open implementation; <b>inferred</b> never enables controls, and families without a validated physical protocol are blocked before the adapter opens.</p>
-    </article>
+    <div class="garage-lower-grid">
+      <article class="panel garage-coverage-panel">
+        <h2>02 &middot; Coverage Matrix</h2>
+        <p class="muted" id="coverageLine">Loading the capability catalog…</p>
+        <div class="table-wrap table-scroll"><table class="data" id="ecuTable">
+          <thead><tr><th>ECU family</th><th>Years</th><th>Transport</th><th>Confidence</th><th>Capabilities</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <p class="muted small">Confidence drives what the workstation will let you do. <b>verified-capture</b> means the bytes came off a real bus; <b>documented</b> means a primary manual or mature open implementation; <b>inferred</b> never enables controls, and families without a validated physical protocol are blocked before the adapter opens.</p>
+      </article>
 
-    <div class="flow-divider"><span class="flow-step">03 · Contribute</span><span>Optional: review evidence and confirm a real-world protocol update.</span></div>
-    <article class="panel secondary-panel" id="protocolPanel">
-      <h2>Protocol evidence — field confirmations &amp; updates</h2>
-      <p class="muted">One qualifying hardware confirmation can be used to build a read-level update. The desktop checks for published signed packs at startup and periodically, verifies the trusted key and catalog revision, then applies valid packs for future connections. With explicit consent and a configured hosted relay, one qualifying completed read can be reported and published automatically; the default relay URL and its public key are bundled in updated builds. A submission token must be provisioned separately. Automatic reports are self-reported, region-specific provenance, not independently verified hardware or family-wide proof. Without a trusted release key and published pack no update can be applied. Writing is never enabled by these updates.</p>
-      <div id="protocolOut">Loading…</div>
-      <div class="toolbar">
-        <input type="text" id="protocolUrl" class="grow"
-               placeholder="Pack URL or local path — leave blank for the configured relay"
-               aria-label="Protocol update pack URL">
-        <button class="btn" id="protocolCheckBtn">Check for a signed update…</button>
-        <button class="btn" id="protocolRefreshBtn">Refresh</button>
-        <div class="spacer"></div>
-        <button class="btn" id="protocolRevertBtn" disabled>Revert to the shipped catalog</button>
-      </div>
-      <details class="channel-picker" id="protocolKeysDetails">
-        <summary>Trusted keys</summary>
-        <p class="muted small">A pack is only worth anything against a key you chose in
-        advance. Paste a public key that reached you out of band (the repository, a
-        workshop's own release notes, the maintainer signing it in front of you) — never
-        one taken from the pack you are about to install, which would be trusting the
-        thing being checked. Keys pinned here live in
-        <code>~/.guzzionboard/protocol/keys.json</code> and are not overwritten by
-        application updates. Forgetting a bundled key disables it locally until you deliberately pin it again.</p>
-        <div id="protocolKeysOut" class="muted small">Loading…</div>
+      <article class="panel secondary-panel" id="protocolPanel">
+        <h2>03 &middot; Protocol Evidence &amp; Updates</h2>
+        <p class="muted">One qualifying hardware confirmation can be used to build a read-level update. The desktop checks for published signed packs at startup and periodically, verifies the trusted key and catalog revision, then applies valid packs for future connections. With explicit consent and a configured hosted relay, one qualifying completed read can be reported and published automatically; the default relay URL and its public key are bundled in updated builds. A submission token must be provisioned separately. Automatic reports are self-reported, region-specific provenance, not independently verified hardware or family-wide proof. Without a trusted release key and published pack no update can be applied. Writing is never enabled by these updates.</p>
+        <div id="protocolOut">Loading…</div>
         <div class="toolbar">
-          <input type="text" id="protocolKeyId" placeholder="key name (e.g. release)"
-                 aria-label="Name for the trusted key">
-          <input type="text" id="protocolKeyHex" class="grow"
-                 placeholder="public key — 64 hex characters"
-                 aria-label="Trusted public key, 64 hex characters">
-          <button class="btn" id="protocolPinBtn">Pin key</button>
+          <input type="text" id="protocolUrl" class="grow"
+                 placeholder="Pack URL or local path — leave blank for the configured relay"
+                 aria-label="Protocol update pack URL">
+          <button class="btn" id="protocolCheckBtn">Check for a signed update…</button>
+          <button class="btn" id="protocolRefreshBtn">Refresh</button>
+          <div class="spacer"></div>
+          <button class="btn" id="protocolRevertBtn" disabled>Revert to the shipped catalog</button>
         </div>
-      </details>
-      <div class="toolbar">
-        <button class="btn primary" id="confirmationBuildBtn" disabled>Freeze this session as a confirmation</button>
-        <label class="inline">
-          <input type="checkbox" id="confirmationNoteChk"> include the model/year I selected
-        </label>
-      </div>
-      <p class="muted small">A manual confirmation stays on this machine as two files: the bundle and its frozen JSONL capture. The button opens a pre-filled issue and <em>you</em> attach them. If automated read sharing is explicitly configured, a separate minimized read report is uploaded. Reviewers recompute every claim digest from that capture, so an edited bundle buys nothing. A simulated session cannot confirm anything about hardware, and writing is never claimable.</p>
-      <div id="protocolActionOut"></div>
-    </article>
+        <details class="channel-picker" id="protocolKeysDetails">
+          <summary>Trusted keys</summary>
+          <p class="muted small">A pack is only worth anything against a key you chose in
+          advance. Paste a public key that reached you out of band (the repository, a
+          workshop's own release notes, the maintainer signing it in front of you) — never
+          one taken from the pack you are about to install, which would be trusting the
+          thing being checked. Keys pinned here live in
+          <code>~/.guzzionboard/protocol/keys.json</code> and are not overwritten by
+          application updates. Forgetting a bundled key disables it locally until you deliberately pin it again.</p>
+          <div id="protocolKeysOut" class="muted small">Loading…</div>
+          <div class="toolbar">
+            <input type="text" id="protocolKeyId" placeholder="key name (e.g. release)"
+                   aria-label="Name for the trusted key">
+            <input type="text" id="protocolKeyHex" class="grow"
+                   placeholder="public key — 64 hex characters"
+                   aria-label="Trusted public key, 64 hex characters">
+            <button class="btn" id="protocolPinBtn">Pin key</button>
+          </div>
+        </details>
+        <div class="toolbar">
+          <button class="btn primary" id="confirmationBuildBtn" disabled>Freeze this session as a confirmation</button>
+          <label class="inline">
+            <input type="checkbox" id="confirmationNoteChk"> include the model/year I selected
+          </label>
+        </div>
+        <p class="muted small">A manual confirmation stays on this machine as two files: the bundle and its frozen JSONL capture. The button opens a pre-filled issue and <em>you</em> attach them. If automated read sharing is explicitly configured, a separate minimized read report is uploaded. Reviewers recompute every claim digest from that capture, so an edited bundle buys nothing. A simulated session cannot confirm anything about hardware, and writing is never claimable.</p>
+        <div id="protocolActionOut"></div>
+      </article>
+    </div>
   </section>
 
   <!-- ===================================================== OVERVIEW -->
@@ -471,9 +666,13 @@
         </details>
       </div>
     </article>
+
+    <div class="metrics-heading"><span class="section-kicker">INSTRUMENT GAUGE CLUSTER</span><span class="muted small">Decoded channels &amp; raw provenance</span></div>
+    <div id="liveGrid" class="metrics"></div>
+
     <article class="panel plot-panel" id="livePlotPanel">
       <div class="plot-heading">
-        <div><span class="section-kicker">SESSION TELEMETRY</span><h2>Live timeline</h2>
+        <div><span class="section-kicker">STRIP-CHART RECORDER</span><h2>Live timeline</h2>
           <p class="muted small">Recent samples from this connection only. Each channel has its own scale; gaps indicate missing or invalid readings.</p></div>
         <span class="plot-live-label"><span class="workspace-dot"></span> READ ONLY</span>
       </div>
@@ -485,30 +684,30 @@
         </div>
       </div>
     </article>
-    <div class="metrics-heading"><span class="section-kicker">CURRENT READINGS</span><span class="muted small">Decoded channels &amp; raw provenance</span></div>
-    <div id="liveGrid" class="metrics"></div>
 
-    <article class="panel">
-      <h2>Derived by the workstation</h2>
-      <p class="muted small">These are not ECU readings. They are arithmetic on
-      the channels above, labelled with what they were computed from, and they
-      inherit the worst confidence of their inputs.</p>
-      <div id="derivedGrid" class="metrics"></div>
-      <div id="derivedMissing"></div>
-    </article>
+    <div class="grid-2">
+      <article class="panel">
+        <h2>Derived by the workstation</h2>
+        <p class="muted small">These are not ECU readings. They are arithmetic on
+        the channels above, labelled with what they were computed from, and they
+        inherit the worst confidence of their inputs.</p>
+        <div id="derivedGrid" class="metrics"></div>
+        <div id="derivedMissing"></div>
+      </article>
 
-    <article class="panel">
-      <h2>Plausibility checks</h2>
-      <p class="muted small">Opinions, not measurements. Each one names the
-      numbers it is reacting to and the usual suspects behind them — it is a
-      place to start looking, never a diagnosis.</p>
-      <div id="findingList"><p class="muted">Start polling to run the checks.</p></div>
-    </article>
+      <article class="panel">
+        <h2>Plausibility checks</h2>
+        <p class="muted small">Opinions, not measurements. Each one names the
+        numbers it is reacting to and the usual suspects behind them — it is a
+        place to start looking, never a diagnosis.</p>
+        <div id="findingList"><p class="muted">Start polling to run the checks.</p></div>
+      </article>
+    </div>
 
     <article class="panel">
       <h2>Raw provenance</h2>
       <p class="muted small">Every decoded value keeps the bytes it came from. If a scaling is wrong, this is what you send with the bug report.</p>
-      <div class="table-wrap"><table class="data" id="rawTable">
+      <div class="table-wrap table-scroll"><table class="data" id="rawTable">
         <thead><tr><th>Channel</th><th>RLI</th><th>Raw</th><th>Decoded</th><th>Confidence</th></tr></thead>
         <tbody></tbody>
       </table></div>
@@ -652,9 +851,12 @@
       <div class="organizer-head">
         <div>
           <h2>Workshop utilities</h2>
-          <p class="muted">Standalone helpers that need no ECU connection. Filter by category or search by bike, ECU family, or task.</p>
+          <p class="muted">Standalone helpers that need no ECU connection. Filter by category, jump to a module, or search by bike, ECU family, or task.</p>
         </div>
-        <span class="pill ghost" id="toolsCountBadge">23 of 23 tools</span>
+        <div class="organizer-head-actions">
+          <button type="button" class="btn small" id="toolsFocusModeBtn" title="Switch between 2-column grid bench and single-tool focus pane">2-Column Bench</button>
+          <span class="pill ghost" id="toolsCountBadge">23 of 23 tools</span>
+        </div>
       </div>
       <div class="organizer-bar" id="toolsOrganizer">
         <div class="filter-pills" role="tablist" aria-label="Workshop tool categories">
@@ -670,6 +872,7 @@
           <button type="button" class="btn small hidden" id="toolsSearchClear">Clear</button>
         </div>
       </div>
+      <div class="tools-quick-jump" id="toolsQuickJump" aria-label="Quick jump to tool"></div>
       <p class="muted small hidden" id="toolsEmptyNote">No tools match your current filter. Click <b>Clear</b> or choose <b>All</b> to show every utility.</p>
     </article>
 
@@ -820,7 +1023,7 @@
       <label class="field"><span>Local IPv4 interface (0.0.0.0 = system default)</span><input id="jetdriveInterface" value="0.0.0.0" maxlength="15"></label>
       <label class="check"><input type="checkbox" id="jetdriveRequest"> Send one multicast channel-metadata request (otherwise receive only)</label>
       <label class="check"><input type="checkbox" id="jetdriveConfirm"> I verified the dyno network and understand telemetry can be spoofed or mislabelled</label>
-      <div class="toolbar"><button class="btn" id="jetdriveCapture">Capture live window</button><button class="btn" id="jetdriveExport" disabled>Export current samples CSV</button></div>
+      <div class="toolbar"><button class="btn" id="jetdriveCapture">Capture live window</button><button class="btn" id="jetdriveExport" disabled>Export current samples CSV</button><button class="btn" id="jetdriveToOverlay" disabled title="Pivot the captured JetDrive channel samples into the Maps AFR log overlay analyzer">Send capture to Map AFR Overlay</button></div>
       <pre class="small" id="jetdriveOut" aria-live="polite">No current capture.</pre>
       <p class="muted small">CSV contains only the current bounded window, in long format, with source IP and provider/channel identifiers. No stale sample fill, unit conversion or automatic tuning is performed; network identifiers may be sensitive. <a href="https://github.com/rob9206/DynoAI_3/tree/cc22636aafa40a0b4ce4c27b5e0cc50795012b87" target="_blank" rel="noopener noreferrer">DynoAI source</a>.</p>
     </article>
@@ -1300,6 +1503,20 @@
         <button type="button" class="btn small preset-fill-btn" data-preset-target="#baseMapPath" title="Insert active Load Location Preset path">Use Load Preset</button>
         <button class="btn" id="baseMapFileBtn" disabled>File it as the base map</button>
       </div>
+      <details class="advanced" id="externalBackupDetails">
+        <summary><b>Attest external verified full backup</b> <span class="muted small">(GuzziDiag / IAW5xReader / bench reader)</span></summary>
+        <p class="muted small">Register an external full dump (e.g. a 304 KiB flash slice or 320 KiB GuzziDiag/IAW5xReader full dump) as both a verified region backup and the protected base map for the connected ECU.</p>
+        <div class="toolbar">
+          <label class="inline">External backup path <input type="text" id="externalBackupPath" placeholder="~/.guzzionboard/images/....bin" size="38"></label>
+          <button type="button" class="btn small preset-fill-btn" data-preset-target="#externalBackupPath" title="Insert active Load Location Preset path">Use Load Preset</button>
+          <label class="inline">Note <input type="text" id="externalBackupNote" placeholder="e.g. GuzziDiag 320 KB cold read" size="24"></label>
+        </div>
+        <div class="toolbar">
+          <label class="check"><input type="checkbox" id="externalBackupAckCheck"> <span id="externalBackupAckText">I confirm this file is a verified full backup from this exact ECU</span></label>
+          <button type="button" class="btn" id="externalBackupAttestBtn" disabled>Attest verified backup</button>
+        </div>
+        <div id="externalBackupOut" aria-live="polite"></div>
+      </details>
       <div id="baseMapRestoreOut"></div>
     </article>
 
@@ -1351,6 +1568,36 @@
         <button class="btn" id="mapsBaseBtn" disabled>Load protected base map</button>
       </div>
 
+      <div id="hondaVfrHandoff" aria-live="polite"></div>
+      <div id="iaw5amHandoff" aria-live="polite"></div>
+
+      <div class="map-editor-tools" id="mapEditorTools">
+        <div class="toolbar">
+          <b id="mapSelectionCount">0 cells selected</b>
+          <span class="muted small">Click to select · Shift-click for a rectangle · double-click or Enter to edit</span>
+          <div class="spacer"></div>
+          <label class="inline">Interpolation spacing <select id="mapInterpSpacing"><option value="index">Cells (uniform)</option><option value="axis">Axis values</option></select></label>
+          <label class="inline">Method <select id="mapInterpMethod"><option value="linear">Linear</option><option value="nearest">Nearest endpoint</option></select></label>
+        </div>
+        <div class="toolbar map-math-strip">
+          <button class="btn small" id="mapSetBtn" disabled>Set…</button>
+          <button class="btn small" id="mapAddBtn" disabled>Add…</button>
+          <button class="btn small" id="mapPercentBtn" disabled>Percent…</button>
+          <button class="btn small" id="mapInterpolateRowsBtn" disabled>Interpolate rows →</button>
+          <button class="btn small" id="mapInterpolateColsBtn" disabled>Interpolate columns ↓</button>
+          <button class="btn small" id="mapSmoothBtn" disabled>Smooth</button>
+          <button class="btn small" id="mapBlendBtn" disabled>Bilinear blend</button>
+          <button class="btn small" id="mapCopyBtn" disabled>Copy TSV</button>
+          <button class="btn small" id="mapPasteBtn" disabled>Paste TSV…</button>
+          <button class="btn small" id="mapUndoBtn" disabled>Undo</button>
+          <button class="btn small" id="mapRedoBtn" disabled>Redo</button>
+        </div>
+        <p class="muted small">Axis-aware interpolation uses the selected table's numeric axis values (including staged axis edits), not uniform cell spacing. Invalid or non-monotonic axes are refused. These are review-only edits, not recommended tuning values.</p>
+        <p class="muted small" id="mapLiveTraceStatus">Live tracing is read-only and starts only after both table axes are mapped explicitly to validated channels.</p>
+      </div>
+
+      <div id="mapsOut"></div>
+
       <div class="map-builder danger-zone" id="mapBuilder">
         <div class="gate-card warn"><h4>Review earlier XDF work</h4><p class="small">Earlier versions could interpret item-specific signedness, byte order or column order incorrectly. Return to the original backup and recreate and review affected edits, previews and built files. Schema 1 and 2 projects cannot be silently imported.</p></div>
         <h3>Advanced &middot; Evidence-backed map builder</h3>
@@ -1358,29 +1605,6 @@
         <div id="mapBuildSource" class="gate-card warn">
           <h4>No source loaded</h4>
           <p>Use <b>Load protected base map</b> whenever possible. A normal rendered image can also be edited, but needs an extra non-base acknowledgement.</p>
-        </div>
-        <div class="map-editor-tools" id="mapEditorTools">
-          <div class="toolbar">
-            <b id="mapSelectionCount">0 cells selected</b>
-            <span class="muted small">Click to select · Shift-click for a rectangle · double-click or Enter to edit</span>
-          </div>
-          <p class="muted small">Axis-aware interpolation uses the selected table's numeric axis values (including staged axis edits), not uniform cell spacing. Invalid or non-monotonic axes are refused. These are review-only edits, not recommended tuning values.</p>
-          <p class="muted small" id="mapLiveTraceStatus">Live tracing is read-only and starts only after both table axes are mapped explicitly to validated channels.</p>
-          <div class="toolbar">
-            <button class="btn small" id="mapSetBtn" disabled>Set…</button>
-            <button class="btn small" id="mapAddBtn" disabled>Add…</button>
-            <button class="btn small" id="mapPercentBtn" disabled>Percent…</button>
-            <label class="inline">Interpolation spacing <select id="mapInterpSpacing"><option value="index">Cells (uniform)</option><option value="axis">Axis values</option></select></label>
-            <label class="inline">Method <select id="mapInterpMethod"><option value="linear">Linear</option><option value="nearest">Nearest endpoint</option></select></label>
-            <button class="btn small" id="mapInterpolateRowsBtn" disabled>Interpolate rows →</button>
-            <button class="btn small" id="mapInterpolateColsBtn" disabled>Interpolate columns ↓</button>
-            <button class="btn small" id="mapSmoothBtn" disabled>Smooth</button>
-            <button class="btn small" id="mapBlendBtn" disabled>Bilinear blend</button>
-            <button class="btn small" id="mapCopyBtn" disabled>Copy TSV</button>
-            <button class="btn small" id="mapPasteBtn" disabled>Paste TSV…</button>
-            <button class="btn small" id="mapUndoBtn" disabled>Undo</button>
-            <button class="btn small" id="mapRedoBtn" disabled>Redo</button>
-          </div>
         </div>
         <div id="mapBuildChanges"><p class="muted small">No staged changes. Render a map and select table values or constants.</p></div>
         <details class="map-log-tools">
@@ -1395,7 +1619,10 @@
             <label>X-axis column<select id="mapLogX"></select></label>
             <label>Y-axis column<select id="mapLogY"></select></label>
             <label>Measured AFR column<select id="mapLogMeasured"></select></label>
-            <label>Target AFR column<select id="mapLogTarget"></select></label>
+            <label>Target AFR source<select id="mapLogTargetMode"><option value="channel">Log CSV column</option><option value="constant">Constant target AFR</option><option value="table">XDF 2D target AFR table</option></select></label>
+            <label id="mapLogTargetColField">Target AFR column<select id="mapLogTarget"></select></label>
+            <label id="mapLogTargetConstField" class="hidden">Target AFR constant (9&ndash;22)<input type="number" id="mapLogTargetConst" min="9" max="22" step="0.1" value="13.2"></label>
+            <label id="mapLogTargetTableField" class="hidden">Target AFR XDF table<select id="mapLogTargetTable"></select></label>
             <label>Time column (recommended)<select id="mapLogTime"><option value="">— no time alignment —</option></select></label>
             <label>Timestamp unit<select id="mapLogTimeUnit"><option value="seconds">seconds</option><option value="milliseconds">milliseconds</option></select></label>
             <label>Wideband delay (ms)<input type="number" id="mapLogDelay" min="0" max="5000" step="1" value="0"></label>
@@ -1435,10 +1662,18 @@
         </details>
         <fieldset class="builder-evidence">
           <legend>Recommendation evidence &middot; required</legend>
-          <label class="field"><span>Source title</span><input type="text" id="mapEvidenceTitle" placeholder="publication, bulletin, or named test report"></label>
-          <label class="field"><span>Source URL</span><input type="url" id="mapEvidenceUrl" placeholder="https://…"></label>
+          <label class="field"><span>Provenance / build mode</span>
+            <select id="mapEvidenceMode">
+              <option value="external">External published source (HTTP/S URL required)</option>
+              <option value="operator">Operator-authored custom calibration (local rationale)</option>
+              <option value="dyno">Chassis / engine dyno session (local rationale)</option>
+              <option value="afr-log">Wideband AFR log correction pass (local rationale)</option>
+            </select>
+          </label>
+          <label class="field"><span>Source title</span><input type="text" id="mapEvidenceTitle" placeholder="publication, bulletin, dyno run ID, or named test report"></label>
+          <label class="field"><span id="mapEvidenceUrlLabel">Source URL</span><input type="url" id="mapEvidenceUrl" placeholder="https://…"></label>
           <label class="field"><span>Why it applies here</span><textarea id="mapEvidenceRationale" rows="3" placeholder="motorcycle, hardware, exhaust/intake configuration, fuel, and the recommendation being followed"></textarea></label>
-          <label class="field"><span>Exact excerpt (optional)</span><textarea id="mapEvidenceQuote" rows="2" placeholder="quote the recommendation so the build can be reviewed later"></textarea></label>
+          <label class="field"><span>Exact excerpt / session notes (optional)</span><textarea id="mapEvidenceQuote" rows="2" placeholder="quote the recommendation or record dyno/log conditions so the build can be reviewed later"></textarea></label>
         </fieldset>
         <label class="field"><span>Calibration checksum provider</span>
           <select id="mapChecksumProvider"><option value="">None — available only if the XDF declares no checksum; correctness unknown</option></select>
@@ -1452,14 +1687,21 @@
         </div>
         <div id="mapBuildOut"></div>
       </div>
-      <div id="hondaVfrHandoff" aria-live="polite"></div>
-      <div id="iaw5amHandoff" aria-live="polite"></div>
-      <div id="mapsOut"></div>
     </article>
 
     <article class="panel danger-zone" id="writePanel" data-fw-cat="write">
       <h2>4 &middot; Write</h2>
       <p class="muted small">Writing is an opt-in, not a hidden feature. It stays refused until every precondition below is green &mdash; including the hardware-family check on the named image: an HW1xx file never goes into an HW3xx ECU.</p>
+      <details class="advanced" id="writerUnlockDetails">
+        <summary><b>Implemented hardware writer gate</b> <span class="pill ghost" id="writerUnlockBadge">Locked</span></summary>
+        <p class="muted small">For ECUs whose KWP2000/CAN write sequence is implemented in code (e.g. Marelli IAW 5AM 19-block KWP2000 writer) without full bench flash sign-off, unlock the physical writer explicitly after verifying an external bench recovery path and backup.</p>
+        <div class="toolbar acknowledgement-toolbar">
+          <label class="check"><input type="checkbox" id="writerAckCheck"> <span id="writerAckText">I have an external recovery plan and accept unverified ECU write risk</span></label>
+          <button type="button" class="btn danger" id="unlockWriterBtn">Unlock hardware writer</button>
+          <button type="button" class="btn" id="lockWriterBtn" disabled>Lock writer</button>
+        </div>
+        <div id="writerUnlockOut" class="small muted" aria-live="polite"></div>
+      </details>
       <div class="toolbar acknowledgement-toolbar">
         <label class="check"><input type="checkbox" id="ackCheck"> I have a verified backup and accept the programming risk.</label>
         <button class="btn" id="enableProgBtn">Enable programming</button>
@@ -1545,7 +1787,84 @@
       <pre id="reportText" class="report">Build a report to capture identification, fault codes, live values and every safety decision made this session.</pre>
     </article>
   </section>
+
+  <!-- =============================================== HELP & GUIDES -->
+  <section class="view hidden" id="help" aria-labelledby="helpCenterHeading">
+    <article class="panel organizer-panel" id="helpIntroPanel">
+      <div class="organizer-head">
+        <div>
+          <h2 id="helpCenterHeading">Help, How-To Guides &amp; Technical Reference</h2>
+          <p class="muted small">Search anything in GuzziOnBoard &mdash; every workspace, workshop tool, wire protocol, ECU family, calibration checksum, XDF element, and step-by-step workflow. Every article has a shareable <code>#help/&lt;topic&gt;</code> permalink and one-click jump buttons into the live workstation.</p>
+        </div>
+        <div class="organizer-controls">
+          <button type="button" class="btn small primary" id="helpOpenSpotlightBtn" title="Open instant global program search (Ctrl+K)">Global Search (Ctrl+K)</button>
+          <span class="pill ghost" id="helpArticleCountBadge">Loading guides&hellip;</span>
+        </div>
+      </div>
+
+      <div class="organizer-bar" id="helpOrganizerBar">
+        <div class="filter-pills" id="helpCategoryPills" role="tablist" aria-label="Help categories">
+          <button type="button" class="filter-pill active" data-help-cat="all" role="tab" aria-selected="true">All Topics</button>
+          <button type="button" class="filter-pill" data-help-cat="howto" role="tab" aria-selected="false">How-To Guides</button>
+          <button type="button" class="filter-pill" data-help-cat="tools" role="tab" aria-selected="false">Every Tool &amp; View</button>
+          <button type="button" class="filter-pill" data-help-cat="protocols" role="tab" aria-selected="false">Protocols &amp; Buses</button>
+          <button type="button" class="filter-pill" data-help-cat="ecus" role="tab" aria-selected="false">ECUs &amp; Catalog</button>
+          <button type="button" class="filter-pill" data-help-cat="checksums" role="tab" aria-selected="false">Checksums &amp; XDF</button>
+          <button type="button" class="filter-pill" data-help-cat="safety" role="tab" aria-selected="false">Safety &amp; Troubleshooting</button>
+          <button type="button" class="filter-pill" data-help-cat="glossary" role="tab" aria-selected="false">Glossary</button>
+        </div>
+        <div class="organizer-search">
+          <input type="search" id="helpSearchInput" placeholder="Search guides, tools, ECUs, protocols, checksums, XDFs&hellip;" aria-label="Search help articles and program features" autocomplete="off">
+          <button type="button" class="btn small hidden" id="helpSearchClear">Clear</button>
+        </div>
+      </div>
+      <div class="help-search-status small muted hidden" id="helpSearchStats" aria-live="polite"></div>
+    </article>
+
+    <div class="help-search-results hidden" id="helpSearchResultsPanel" aria-live="polite"></div>
+
+    <div class="help-layout" id="helpMainLayout">
+      <aside class="panel help-sidebar-panel" aria-label="Help topics directory">
+        <div class="help-sidebar-head">
+          <span class="section-kicker">KNOWLEDGE BASE</span>
+          <strong id="helpSidebarGroupLabel">All Topics</strong>
+        </div>
+        <nav class="help-topic-tree" id="helpTopicTree" aria-label="Help articles"></nav>
+      </aside>
+
+      <article class="panel help-article-panel" id="helpArticlePane" aria-live="polite">
+        <p class="muted">Select a guide or search above.</p>
+      </article>
+    </div>
+  </section>
 </main>
+
+<footer class="status-bar no-print" id="workstationStatusBar" role="status" aria-live="off">
+  <div class="status-seg">
+    <span class="status-led" id="statusBarLed"></span>
+    <span id="statusBarLink">OFFLINE</span>
+  </div>
+  <div class="status-seg">
+    <span class="status-key">ECU:</span>
+    <span id="statusBarEcu">none selected</span>
+  </div>
+  <div class="status-seg">
+    <span class="status-key">XDF:</span>
+    <span id="statusBarXdf">no definition rendered</span>
+  </div>
+  <div class="status-seg">
+    <span class="status-key">STAGED:</span>
+    <span id="statusBarStaged">0 cells</span>
+  </div>
+  <div class="status-spacer"></div>
+  <div class="status-seg status-hide-narrow">
+    <span class="status-key">POLL:</span>
+    <span id="statusBarPoll">250 ms</span>
+  </div>
+  <div class="status-seg status-hide-narrow">
+    <span id="statusBarPresets">Save: Default Exports &middot; Load: ECU Images</span>
+  </div>
+</footer>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
@@ -1769,6 +2088,30 @@
   </div>
 </div>
 
+<!-- Global Program Search & Help Spotlight Modal (Ctrl+K) -->
+<div class="modal hidden no-print" id="helpSpotlightModal" role="dialog" aria-modal="true" aria-labelledby="helpSpotlightTitle">
+  <div class="modal-card help-spotlight-card">
+    <div class="help-spotlight-header">
+      <span class="help-spotlight-icon" aria-hidden="true">&#128269;</span>
+      <input type="search" id="helpSpotlightInput" placeholder="Search anything: tools, how-to guides, ECUs (5AM, MGZ, Delphi), protocols (KWP2000, CAN, J1850), checksums, XDFs&hellip;" aria-label="Search anything in GuzziOnBoard" autocomplete="off">
+      <button type="button" class="btn small" id="helpSpotlightCloseBtn" aria-label="Close global search">Esc</button>
+    </div>
+    <h3 class="sr-only" id="helpSpotlightTitle">Search GuzziOnBoard</h3>
+    <div class="help-spotlight-filters" id="helpSpotlightFilters" role="tablist" aria-label="Filter search scope">
+      <button type="button" class="filter-pill active" data-spot-scope="all">Everything</button>
+      <button type="button" class="filter-pill" data-spot-scope="guide">Guides &amp; Reference</button>
+      <button type="button" class="filter-pill" data-spot-scope="tool">Tools &amp; Views</button>
+      <button type="button" class="filter-pill" data-spot-scope="ecu">ECUs &amp; XDFs</button>
+    </div>
+    <div class="help-spotlight-results" id="helpSpotlightResults" role="listbox" aria-label="Search results"></div>
+    <div class="help-spotlight-footer muted small">
+      <span><kbd>&uarr;</kbd> <kbd>&darr;</kbd> navigate &middot; <kbd>Enter</kbd> open &middot; <kbd>Esc</kbd> close</span>
+      <div class="spacer"></div>
+      <button type="button" class="btn small" id="helpSpotlightBrowseAllBtn">Open Full Help Center &rarr;</button>
+    </div>
+  </div>
+</div>
+
 <!-- Hosted-demo backend. It does nothing when the Python workstation is
      serving this page: run_server.py marks the body with data-backend="live",
      and demo-api.js returns immediately when it sees that. On a static host
@@ -1801,5 +2144,7 @@
 <script src="harley-memory.js"></script>
 <script src="rusefi-ini.js"></script>
 <script src="rusefi-read.js"></script>
+<script src="help-content.js"></script>
+<script src="help-module.js"></script>
 </body>
 </html>

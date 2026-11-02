@@ -50,6 +50,10 @@ Honda source-scoped research reads, automatic candidate XDF review and offline c
 - **Use the desktop or browser interface:** the installed desktop shell and
   local browser workstation share the same application. The static hosted
   demo is useful for exploring the interface without installation.
+- **Look anything up in the program:** the Help & guides workspace documents
+  every tool, wire protocol, ECU family, checksum concept and workshop
+  workflow. `Ctrl`/`Cmd`+`K` searches all of it plus every panel, menu command,
+  catalog ECU and bundled XDF, and every article has a `#help/...` permalink.
 
 ## Coverage: what is and isn't enabled
 
@@ -188,6 +192,7 @@ and the [source review](docs/USER_SOURCE_REVIEW.md).
 | Harley diagnostics and Delphi research | [Harley tuning](docs/HARLEY_TUNING.md) |
 | Programming and recovery boundaries | [Programming](docs/PROGRAMMING.md) |
 | Workshop utilities and multi-brand sources | [Workshop tools](docs/WORKSHOP_REFERENCE_TOOLS.md) · [External research](docs/EXTERNAL_MOTORCYCLE_RESEARCH.md) · [Source review](docs/USER_SOURCE_REVIEW.md) |
+| In-app help, guides and global search | [Help module](docs/HELP_MODULE.md) |
 | Project design and contributions | [Architecture](docs/ARCHITECTURE.md) · [Prior art](docs/PRIOR_ART.md) |
 
 ## License and acknowledgements

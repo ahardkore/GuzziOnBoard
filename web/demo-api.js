@@ -435,6 +435,7 @@
     this.min_battery_v = 11.5;
     this.allow_programming = false;
     this.allow_unverified_keys = false;
+    this.allow_unverified_writers = false;
     this.state = {
       identified: false, ecu_confidence: 'unknown', ecu_hardware: '',
       engine_running: null,
@@ -485,10 +486,13 @@
     });
 
     if (profile && opts.capability) {
+      var capPassed = profile.capabilities.indexOf(opts.capability) !== -1
+        || !!(opts.capability === 'memory_write' && opts.writer_unlocked && this.allow_unverified_writers);
       checks.push({
         name: 'capability',
-        passed: profile.capabilities.indexOf(opts.capability) !== -1,
-        detail: profile.family + " does not declare '" + opts.capability + "'",
+        passed: capPassed,
+        detail: capPassed ? 'implemented writer unlocked by operator'
+          : (profile.family + " does not declare '" + opts.capability + "'"),
       });
       checks.push({
         name: 'definition-confidence',

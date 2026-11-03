@@ -48,9 +48,10 @@ Honda source-scoped research reads, automatic candidate XDF review and offline c
   reports. Workshop tools include service-interval arithmetic, manual-text
   search, gearing, log conversion and a bench signal generator.
 - **Find a tool by brand:** the Tools bench groups modules by manufacturer —
-  General tools that suit any motorcycle, then Bajaj, Buell, CFMoto,
-  Harley-Davidson, Honda and Yamaha, plus aftermarket entries for BRT Juken,
-  Dynojet and rusEFI. A Brand dropdown narrows the bench, brand and category
+  General tools that suit any motorcycle, then Aprilia, Bajaj, BMW, Buell,
+  CFMoto, Ducati, Harley-Davidson, Honda, Husqvarna, Indian, Kawasaki, KTM,
+  Moto Guzzi, Suzuki, Triumph and Yamaha, plus aftermarket entries for BRT
+  Juken, Dynojet and rusEFI. A Brand dropdown narrows the bench, brand and category
   filters combine with the search box, and the same grouping drives the Help
   center's tool directory.
 - **Check a file before you trust it:** a checksum workbench finds and repairs a
@@ -213,6 +214,7 @@ and the [source review](docs/USER_SOURCE_REVIEW.md).
 | Offline analysis tools (checksums, ROM map, XDF finder, wideband, frames) | [Offline toolkit](docs/OFFLINE_TOOLKIT.md) |
 | Log, database, OBD-II and tune-file formats | [Format tools](docs/FORMAT_TOOLS.md) |
 | Brand frame decoders (Kawasaki, Suzuki, Triumph, BMW, Ducati, Indian) and IAW image layout | [Brand tools](docs/BRAND_TOOLS.md) |
+| KTM / Husqvarna Keihin KMSK16 K-Line decoder, and what its source actually says | [KMSK16 on K-Line](docs/KMSK16_KLINE.md) |
 | Injector sizing, dyno correction, fuel blend and lambda | [Bench calculators](docs/BENCH_CALCULATORS.md) |
 | In-app help, guides and global search | [Help module](docs/HELP_MODULE.md) |
 | Project design and contributions | [Architecture](docs/ARCHITECTURE.md) · [Prior art](docs/PRIOR_ART.md) |

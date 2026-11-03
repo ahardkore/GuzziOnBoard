@@ -1,8 +1,9 @@
 # Brand tools — one decoder per manufacturer
 
-Batch 3 of the [tool expansion](TOOL_EXPANSION_RESEARCH.md). Six brand decoder
-panels and two image-layout panels, all of them offline: nothing here talks to a
-motorcycle, and none of them can transmit, clear a fault or write a byte.
+Batch 3 of the [tool expansion](TOOL_EXPANSION_RESEARCH.md), extended by
+Batch 5. Six brand decoder panels, two image-layout panels and the two KMSK16
+panels (KTM and Husqvarna, one decoder), all of them offline: nothing here talks
+to a motorcycle, and none of them can transmit, clear a fault or write a byte.
 
 Two rules run through every panel.
 
@@ -33,6 +34,8 @@ heading, and the Help center has one article per panel (search the brand name).
 | `#indianJ1939` | Indian | five J1939 PGNs, with source address |
 | `#iawGuzziPanel` | Moto Guzzi | IAW image geometry and definition fit |
 | `#iawApriliaPanel` | Aprilia | the same check for the Aprilia library |
+| `#ktmKmsk16` | KTM | Keihin KMSK16 KWP2000 identifiers (Batch 5) |
+| `#husqvarnaKmsk16` | Husqvarna | the same ECU and the same decoder, filed under Husqvarna |
 
 ## How to use any decoder panel
 

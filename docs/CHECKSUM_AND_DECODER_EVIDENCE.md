@@ -19,7 +19,7 @@ number has told you the arithmetic, not the truth about the motorcycle.
 | Source read | Pin | Licence |
 | --- | --- | --- |
 | `NetworkDir/moto-ecu-checksum` | `43ccc5f3663e` (2026-10-24) | README declares MIT, **no LICENSE file** — facts reimplemented, code not copied |
-| `gobftald/CCM450-diag` | `43104d2cfca9` (2026-08-06) | see repo `LICENSE`; KMSK16 job tables and KWP framing |
+| `gobftald/CCM450-diag` | `43104d2cfca9` (2026-08-06) | **no licence file** (GitHub reports none); KMSK16 job tables and KWP framing, used as facts, reimplemented — see [KMSK16 on K-Line](KMSK16_KLINE.md) |
 | `fpoussin/MotoLink` | `7879a8567dd4` | GPL-3.0 |
 | This repository | `HEAD` | AGPL-3.0-only |
 
@@ -263,6 +263,18 @@ side is not, and the read path may need security access. A KMSK16 panel is a
 realistic Batch-5 candidate **as a K-Line capture decoder only**, using the same
 "paste a frame, get a candidate" shape as the Kawasaki and Triumph panels.
 
+**Shipped** as `#ktmKmsk16` and `#husqvarnaKmsk16`, with the full table worked up
+from the job description itself: 51 identifiers, four places where that source
+contradicts itself, and no derived number where it does. The detail lives in
+[KMSK16 on K-Line](KMSK16_KLINE.md); two corrections to the summary above:
+
+- `0x0140`–`0x0149` are **not** "lambda heater references". `0x0140` is the
+  throttle flap angle reference (THREF); only `0x0142`, `0x0143` and `0x0149` are
+  lambda adaptions.
+- the table is 51 entries, not 20, and the over-rev counters run `0x0502`–`0x0509`
+  and then jump to `0x0510` — a computed range would have invented six
+  identifiers that do not exist.
+
 ### 4.2 Decoders already shipped, and the evidence behind them
 
 | Decoder | Evidence | Status |
@@ -274,6 +286,7 @@ realistic Batch-5 candidate **as a K-Line capture decoder only**, using the same
 | Ducati Panigale CAN | `DucatiPanigaleCanBus` (MIT) | shipped |
 | Indian J1939 | `indian-thunderstroke-canbus` (MIT) | shipped; PGN + source address keyed |
 | Honda PGM-FI / CBR600RR | pinned forks + `HONDA_RESEARCH_*` tables | shipped, research-only |
+| KTM / Husqvarna KMSK16 | `gobftald/CCM450-diag` @ `43104d2` (no licence; facts reimplemented) | shipped, capture-only, [KMSK16 on K-Line](KMSK16_KLINE.md) |
 | Harley J1850 / Delphi CAN | `HarleyDroid`, `vpw-sniffer` | shipped |
 
 ### 4.3 Gaps, with what is missing for each
@@ -296,9 +309,11 @@ realistic Batch-5 candidate **as a K-Line capture decoder only**, using the same
    family recognises it* and *which records disagree*. Repair stays behind the
    existing backup-attestation flow, and the panel says what MSE6.0 taught us —
    a factory file can fail.
-2. **KMSK16 capture decoder** — a brand panel in the Batch-3 shape, K-Line
-   frames in, named data ids out, with the "candidate" language the other brand
-   panels use.
+2. **KMSK16 capture decoder** — *shipped, see
+   [KMSK16 on K-Line](KMSK16_KLINE.md)*. A brand panel in the Batch-3 shape:
+   K-Line frames in, named data ids out, with the "candidate" language the other
+   brand panels use, plus an explicit stated/inferred split and the source's own
+   contradictions kept visible.
 3. **Structure finder** for unknown images (the MSE6 record-scan idea
    generalised: complement pairs, `[start][end]` pairs, repeated rows).
 

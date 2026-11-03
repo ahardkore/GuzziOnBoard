@@ -16,10 +16,11 @@ local; tools that describe an ECU say so in the panel.
 ## Where the bench stands
 
 The bench stood at 24 tools in 10 brand groups when this pass was written. It
-now carries **44 tools in 18 brand groups**: 23 general, plus Aprilia, Bajaj,
-BMW, Buell, CFMoto, Ducati, Harley-Davidson (4), Honda (2), Indian, Kawasaki,
-Moto Guzzi, Suzuki, Triumph, Yamaha, BRT Juken, Dynojet and rusEFI. The analysis
-below is kept as written so the reasoning can be checked against what shipped.
+now carries **46 tools in 20 brand groups**: 23 general, plus Aprilia, Bajaj,
+BMW, Buell, CFMoto, Ducati, Harley-Davidson (4), Honda (2), Husqvarna, Indian,
+Kawasaki, KTM, Moto Guzzi, Suzuki, Triumph, Yamaha, BRT Juken, Dynojet and
+rusEFI. The analysis below is kept as written so the reasoning can be checked
+against what shipped.
 
 Two obvious gaps show up when you count what the repository already ships:
 
@@ -54,7 +55,7 @@ run it with no adapter and no bike.
 | 10 | Moto Guzzi / Aprilia IAW layout tool | moto-guzzi, aprilia | 5AM/7SM/MIUG3 image layout, region map and checksum check for 42 bundled definitions | yes | L | our `protocol/legacy_iaw.py` + `xdfs/` |
 | 11 | Royal Enfield OBD-II | royal-enfield | 650-class PID profile, gear-from-RPM/speed, Hunter 350 keyed-checksum research stub | yes (decode) | S–M | `moca-owner-dev/RoyalEnfieldObd` (MIT), `moto-ecu-checksum` (unsupported case) |
 | 12 | BMW Motorrad CAN decoder | bmw | Decode engine temperature, brake lever, wonder-wheel nibbles from a capture | yes | S | `diogocardoso28/BmwMotorradCanbusDecoder` @ `a128889` |
-| 13 | KTM / Husqvarna KMSK16 KWP explorer | ktm, husqvarna | Closed KWP job set for a read-only identify/DTC session | no | L | `gobftald/CCM450-diag` @ `43104d2`, `Junix330/AD-KTM-ECU` @ `d61be53` |
+| 13 | KTM / Husqvarna KMSK16 KWP explorer | ktm, husqvarna | Closed KWP job set for a read-only identify/DTC session | **yes (capture decoder, Batch 5)** | L | `gobftald/CCM450-diag` @ `43104d2`, `Junix330/AD-KTM-ECU` @ `d61be53` |
 | 14 | Zero / Energica EV decoder | zero, energica | Decode pack SoC and charge time from EV broadcast frames | yes | S | `Slevinoo/ZeroMotorcycles_SRS_CANbus` @ `28de213` |
 | 15 | Tune-file diff | general | Compare two `.msq` / `.ini`-described tunes or two `.mtl` maps cell by cell | yes | M | `rusefi/rusefi`, `speeduino/speeduino`, our `rusefi_tune.py` |
 | 16 | J1939 + ISO-TP frame lab | general | PGN/PF/PS/SA resolver, 15765-2 segmenter, KWP frame checksum | yes | S | our `isotp.py`, `kwp2000.py`, `indian_springfield_can.py` |
@@ -234,9 +235,12 @@ rather than as new panels, in Batch 4b:
   three permanent tables are written, so that is what was implemented.
   *(shipped — see [format tools](FORMAT_TOOLS.md))*
 
-**Batch 5 — only with a hardware plan**: KTM/Husqvarna KMSK16, CFMoto MSE8/MG1
-checksums, Royal Enfield keyed checksums, the Zero/Energica EV decoder. Lowest
-evidence, highest risk, and the closest thing here to a write path.
+**Batch 5 — KMSK16 shipped, the rest still gated**: the KTM/Husqvarna KMSK16
+capture decoder landed (see [KMSK16 on K-Line](KMSK16_KLINE.md)); it is a
+capture-only decoder, and the security-access key and every programming service
+stay out of the tree. Still gated on a hardware plan and better evidence: CFMoto
+MSE8/MG1 checksums, Royal Enfield keyed checksums, the Zero/Energica EV decoder.
+Lowest evidence, highest risk, and the closest thing here to a write path.
 
 ## Evidence behind the checksum and decoder proposals
 

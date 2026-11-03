@@ -130,13 +130,23 @@ pattern means, and what has been ruled out:
 
 | Observation | Evidence |
 | --- | --- |
-| Fails on **every** commit of a branch, including ones that touch nothing deployable | PR #38's commits, and all nine commits of PR #39, fail identically |
-| Passes on `main` | commit `3f6318e`, the last production build |
-| Fails within the same second it starts | both check runs report identical `started_at` and `completed_at` |
+| Fails on **every** commit of a branch, including ones that touch nothing deployable | PR #38's commits, and all twelve commits of PR #39, fail identically |
+| Passes on `main` with the **same tree** that failed on the branch | PR #39 merged as `00a6a70`; its tree is the branch tip `116632a`, whose checks failed, and `00a6a70`'s checks — both Workers included — pass |
 | Not a bundle problem | `npx wrangler deploy --dry-run --config cloudflare/wrangler.build.toml` uploads 12.92 KiB / 4.58 KiB gzip, one D1 binding, exit 0 |
 | Not a repository-size problem | 703 tracked files, 4.1 MB of `web/`, 4.7 MB of `vendor/`; the Worker imports only the 151-byte `cloudflare/catalog.json` |
 
-A build that fails instantly, only off the production branch, most often means
+The same-tree row is the one that matters: identical content, opposite results,
+so the only variable left is *which ref Cloudflare is building*. That is a
+property of the Worker's build settings, not of the commit.
+
+**Do not read build duration from the check run.** Cloudflare reports
+`started_at` and `completed_at` inside the same second for successful builds
+too — build `c0086ccb` on `main` "took" 0 s — so the timestamps carry no
+information about how long a build ran. An earlier draft of this document used
+that invented "instant failure" as a symptom; it was wrong, and no conclusion
+here rests on it.
+
+A build that fails only off the production branch most often means
 the configured **deploy command is a production deploy**. Workers Builds runs
 one command for every branch it builds; a non-production branch may not publish
 over the production Worker, so the build stops at that step. The validation
@@ -159,15 +169,18 @@ Worker's existing static deploy has the same shape.
    that setting stays false, so "fixing" this by enabling preview URLs would
    fail the suite and put a second entry point in front of the production D1.
 
-Each failing check run also finishes in the **same second it starts**, which is
-faster than any install, bundle or test step: whatever runs is being refused
-before it builds anything. Two refusals look like that and both live in the
-account, not the repository — a build token that may not deploy over the
-production Worker, and Workers Builds requiring a **preview deployment** for a
-branch build. The relay deliberately sets `preview_urls = false`, so the second
-one must be answered by switch 3 above (branch builds off for that Worker), not
-by enabling preview deployments: a preview URL would put a second public entry
-point in front of the production D1.
+If the checks stay red after that change, the remaining causes are account-side
+and only the Cloudflare build log can name them: a build token that may not
+deploy the Worker or use its D1 binding, exhausted build minutes, an expired
+GitHub connection, or Workers Builds requiring a **preview deployment** for a
+branch build. The last one must be answered by switch 3 above (branch builds
+off for that Worker), not by enabling preview deployments: the relay
+deliberately sets `preview_urls = false`, and a preview URL would put a second
+public entry point in front of the production D1.
+
+Verifying the branch half needs one branch push — the production half alone
+proves nothing, which is how the same-tree row above came about: `main` builds
+went green while every branch build stayed red.
 
 Note which side is which: **`guzzionboard-validation`** is the Worker this
 repository defines (`cloudflare/wrangler.build.toml`), and it is the only Worker

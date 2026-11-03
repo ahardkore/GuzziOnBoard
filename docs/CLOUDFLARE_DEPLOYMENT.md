@@ -159,6 +159,23 @@ Worker's existing static deploy has the same shape.
    that setting stays false, so "fixing" this by enabling preview URLs would
    fail the suite and put a second entry point in front of the production D1.
 
+Each failing check run also finishes in the **same second it starts**, which is
+faster than any install, bundle or test step: whatever runs is being refused
+before it builds anything. Two refusals look like that and both live in the
+account, not the repository — a build token that may not deploy over the
+production Worker, and Workers Builds requiring a **preview deployment** for a
+branch build. The relay deliberately sets `preview_urls = false`, so the second
+one must be answered by switch 3 above (branch builds off for that Worker), not
+by enabling preview deployments: a preview URL would put a second public entry
+point in front of the production D1.
+
+Note which side is which: **`guzzionboard-validation`** is the Worker this
+repository defines (`cloudflare/wrangler.build.toml`), and it is the only Worker
+whose deploy command these files control. The **`guzzionboard`** website Worker
+has no configuration in this repository at all — not in `cloudflare/`, not at
+the root — so its build command and its auto-detected static deployment exist
+only in the dashboard and can only be read from its own build log.
+
 `scripts/deploy_worker.sh` picks the command from `WORKERS_CI_BRANCH` (falling
 back to `GITHUB_REF_NAME`), deploys only on the production branch (`main` by
 default, overridable with `WORKERS_CI_PRODUCTION_BRANCH`), uploads a version

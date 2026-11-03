@@ -216,6 +216,14 @@ An absent check is success here, so read the check list rather than expecting
 green ticks: the relay's job is to stay off branch URLs and out of production
 until `main` deploys it.
 
+Observed on 2026-11-03, after preview builds were switched off for the relay: a
+branch push produced **no** `Workers Builds: guzzionboard-validation` check at
+all, while `Workers Builds: guzzionboard` still failed on the same commit. That
+is the table above read from real data — the relay is configured as intended,
+and the website Worker's preview builds are still on. Reports of one check
+should not be read as reports about the other; they are separate Workers with
+separate settings.
+
 The checks this repository owns — the Python suite, the desktop-shell UI run,
 the platform builds and the `relay` job below — are what actually cover a
 change. GitHub reports a pull request in this situation as `MERGEABLE` /

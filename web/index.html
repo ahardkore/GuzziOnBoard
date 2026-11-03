@@ -855,7 +855,7 @@
         </div>
         <div class="organizer-head-actions">
           <button type="button" class="btn small" id="toolsFocusModeBtn" title="Switch between 2-column grid bench and single-tool focus pane">2-Column Bench</button>
-          <span class="pill ghost" id="toolsCountBadge">41 of 41 tools</span>
+          <span class="pill ghost" id="toolsCountBadge">44 of 44 tools</span>
         </div>
       </div>
       <div class="organizer-bar" id="toolsOrganizer">
@@ -1858,6 +1858,113 @@
       no verified region geometry for them, so this tool makes no claim about where their flash starts — you supply
       the base and it tells you what falls inside. Reading a definition is not programming authorization.</p>
     </article>
+
+    <article class="panel" id="injectorPanel" data-tool-cat="calibration" data-tool-brand="general">
+      <h2>Injector &amp; fuel-flow calculator</h2>
+      <p class="tip">
+        <b>What it does:</b> turns a target power into the fuel volume and injector size that would deliver it, and
+        the other way round: give it the injectors you already have and it prints the duty cycle. Flow scales with
+        the square root of pressure, so a rating quoted at 3&nbsp;bar is converted back to that pressure before it is
+        compared with your target.
+      </p>
+      <div class="toolbar">
+        <label class="inline">Target power <input type="number" id="injPower" value="100" step="1" size="6"> hp</label>
+        <label class="inline">BSFC <input type="number" id="injBsfc" value="0.50" step="0.01" size="5"> lb/(hp&middot;h)</label>
+        <label class="inline">Injectors / cylinders <input type="number" id="injCylinders" value="4" step="1" min="1" size="4"></label>
+        <label class="inline">Max duty <input type="number" id="injDuty" value="80" step="1" min="1" max="100" size="4"> %</label>
+      </div>
+      <div class="toolbar">
+        <label class="inline">Fuel
+          <select id="injFuel">
+            <option value="petrol">Petrol / E0</option>
+            <option value="e10">E10</option>
+            <option value="e85">E85</option>
+            <option value="methanol">Methanol</option>
+            <option value="diesel">Diesel</option>
+          </select>
+        </label>
+        <label class="inline">Fuel pressure <input type="number" id="injPressure" value="3.0" step="0.1" size="5"> bar</label>
+        <label class="inline">Rated at <input type="number" id="injRated" value="3.0" step="0.1" size="5"> bar</label>
+        <label class="inline">Your injector <input type="number" id="injFlow" step="1" size="6" placeholder="cc/min"> cc/min</label>
+        <label class="inline">rpm <input type="number" id="injRpm" value="9000" step="100" size="6"></label>
+      </div>
+      <div class="toolbar">
+        <button class="btn primary" id="injRun">Calculate</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="injMeta"></span>
+      </div>
+      <div id="injOut"></div>
+      <p class="tip warn"><b>An estimate, not a specification.</b> BSFC is the assumption the whole result hangs on,
+      and vendor flow figures are quoted at a stated pressure with a test fluid. Confirm the duty cycle on the bike
+      before buying injectors, and remember that fuel pressure changes what the same injector delivers.</p>
+    </article>
+
+    <article class="panel" id="dynoCorrectionPanel" data-tool-cat="telemetry" data-tool-brand="general">
+      <h2>Dyno correction &amp; air density</h2>
+      <p class="tip">
+        <b>What it does:</b> corrects a measured power figure to a standard's reference air, and shows the same run
+        under every standard side by side, so two dyno sheets can be compared honestly. Air density, dry pressure and
+        vapour pressure are computed from the conditions you supply.
+      </p>
+      <div class="toolbar">
+        <label class="inline">Measured <input type="number" id="dynoMeasured" value="100" step="0.1" size="7"></label>
+        <label class="inline">Unit
+          <select id="dynoUnit"><option value="hp">hp</option><option value="kW">kW</option><option value="Nm">Nm</option></select>
+        </label>
+        <label class="inline">Standard
+          <select id="dynoStandard">
+            <option value="sae_j1349">SAE J1349</option>
+            <option value="din_70020">DIN 70020</option>
+            <option value="sae_j607">SAE J607 (STD)</option>
+            <option value="iso_1585">ISO 1585 / EEC 80/1269</option>
+            <option value="uncorrected">Uncorrected</option>
+          </select>
+        </label>
+        <label class="inline"><input type="checkbox" id="dynoBoosted"> boosted engine</label>
+      </div>
+      <div class="toolbar">
+        <label class="inline">Air temp <input type="number" id="dynoTemp" value="25" step="0.5" size="5"> &deg;C</label>
+        <label class="inline">Pressure <input type="number" id="dynoPressure" value="1013" step="1" size="6" placeholder="hPa"> hPa</label>
+        <label class="inline">or altitude <input type="number" id="dynoAltitude" step="10" size="6" placeholder="m"> m</label>
+        <label class="inline">Humidity <input type="number" id="dynoHumidity" value="0" step="5" min="0" max="100" size="4"> %</label>
+      </div>
+      <p class="muted small">Clear the pressure field to estimate it from the altitude instead &mdash; when both are
+      given, the measured pressure wins and the altitude is ignored.</p>
+      <div class="toolbar">
+        <button class="btn primary" id="dynoRun">Correct</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="dynoMeta"></span>
+      </div>
+      <div id="dynoOut"></div>
+      <p class="tip warn"><b>Quote the standard with the number.</b> SAE J1349, DIN 70020 and SAE J607 disagree by
+      several percent on the same run, and none of them can correct a heat-soaked intake or an inconsistent throttle
+      ramp. J1349 is defined for naturally aspirated engines; a boosted figure is flagged, not silently standardised.</p>
+    </article>
+
+    <article class="panel" id="fuelBlendPanel" data-tool-cat="calibration" data-tool-brand="general">
+      <h2>Fuel blend, &lambda; &amp; stoichiometry</h2>
+      <p class="tip">
+        <b>What it does:</b> converts between lambda and AFR for any ethanol blend, shows what a blend does to
+        stoichiometry, density, energy per litre and the fuel volume the same lambda needs, and turns a measured
+        petrol duty cycle into the duty the same injectors would see on E85.
+      </p>
+      <div class="toolbar">
+        <label class="inline">Ethanol <input type="number" id="blendEthanol" value="85" step="1" min="0" max="100" size="4"> %</label>
+        <label class="inline">Input is
+          <select id="blendMode"><option value="lambda">&lambda;</option><option value="afr">AFR</option></select>
+        </label>
+        <label class="inline">Value <input type="number" id="blendValue" value="0.85" step="0.01" size="6"></label>
+        <label class="inline">Measured petrol duty <input type="number" id="blendPetrolDuty" step="1" size="5" placeholder="%"> %</label>
+        <button class="btn primary" id="blendRun">Convert</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="blendMeta"></span>
+      </div>
+      <div id="blendOut"></div>
+      <p class="tip warn"><b>The blend is a model, not a measurement.</b> Pump E10 can be E5&ndash;E15 and winter E85
+      is nearer E50&ndash;E70, so the ethanol percentage is an assumption however carefully it is typed. The blend is
+      interpolated linearly between petrol and ethanol, which puts E85 at 9.86:1 where handbooks quote 9.8:1 &mdash;
+      a difference stated rather than hidden, because lambda, not AFR, is what the engine responds to.</p>
+    </article>
   </section>
 
   <!-- ==================================================== DISCOVERY -->
@@ -2725,6 +2832,7 @@
 <script src="tune-diff.js"></script>
 <script src="brand-tools.js"></script>
 <script src="iaw-layout.js"></script>
+<script src="bench-calculators.js"></script>
 <script src="help-content.js"></script>
 <script src="help-module.js"></script>
 </body>

@@ -1,9 +1,12 @@
 # Tools we could add next: brand-specific and general
 
-Research pass, 2026-11-02. This is a proposal, not a commitment: nothing here is
-implemented yet. Every entry says where the protocol or format knowledge comes
-from, what the repo's licence is, and whether the tool needs a motorcycle
-plugged in. Sources are pinned to the commit that was read.
+Research pass, 2026-11-02. Most of this has since shipped: Batches 1–4 are marked
+below and documented in [the offline toolkit](OFFLINE_TOOLKIT.md),
+[format tools](FORMAT_TOOLS.md), [brand tools](BRAND_TOOLS.md) and
+[bench calculators](BENCH_CALCULATORS.md). What remains is listed at the end.
+Every entry says where the protocol or format knowledge comes from, what the
+repo's licence is, and whether the tool needs a motorcycle plugged in. Sources
+are pinned to the commit that was read.
 
 The rule the existing code already follows applies to all of it: a decoded byte
 is a research lead, not vehicle identification, not a verified backup and never
@@ -12,8 +15,11 @@ local; tools that describe an ECU say so in the panel.
 
 ## Where the bench stands
 
-24 tools in 10 brand groups (11 general, Harley 4, Honda 2, and one each for
-Bajaj, Buell, CFMoto, Yamaha, BRT Juken, Dynojet, rusEFI).
+The bench stood at 24 tools in 10 brand groups when this pass was written. It
+now carries **44 tools in 18 brand groups**: 23 general, plus Aprilia, Bajaj,
+BMW, Buell, CFMoto, Ducati, Harley-Davidson (4), Honda (2), Indian, Kawasaki,
+Moto Guzzi, Suzuki, Triumph, Yamaha, BRT Juken, Dynojet and rusEFI. The analysis
+below is kept as written so the reasoning can be checked against what shipped.
 
 Two obvious gaps show up when you count what the repository already ships:
 
@@ -208,8 +214,16 @@ Ducati Panigale CAN, Indian J1939) and two IAW image-layout panels for Moto Guzz
 and Aprilia. Zero's frames were left out on purpose: the source describes a
 single identifier and no channel, so a panel would have had nothing to decode.
 
-**Batch 4 — only with a hardware plan**: KTM/Husqvarna KMSK16, CFMoto MSE8/MG1
-checksums, Royal Enfield keyed checksums. Lowest evidence, highest risk.
+**Batch 4 — bench arithmetic**: injector and fuel-flow sizing (#18), dyno
+correction factors and air density (#20), and the fuel-blend / lambda part of
+the wideband work (#17). *(shipped — see [bench calculators](BENCH_CALCULATORS.md))*
+Three tools that are pure arithmetic on typed input: no adapter, no file, and
+nothing to reverse engineer, which is why they could be built to the full
+standard in one pass.
+
+**Batch 5 — only with a hardware plan**: KTM/Husqvarna KMSK16, CFMoto MSE8/MG1
+checksums, Royal Enfield keyed checksums, the Zero/Energica EV decoder. Lowest
+evidence, highest risk, and the closest thing here to a write path.
 
 ## Sources read for this pass
 

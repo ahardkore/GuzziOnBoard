@@ -38,8 +38,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('the bench carries the five new general tools and counts them', async ({ page }) => {
-  await expect(page.locator('#toolsCountBadge')).toHaveText('41 of 41 tools');
-  await expect(page.locator('[data-brand-heading="general"] [data-brand-count]')).toContainText('20 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('44 of 44 tools');
+  await expect(page.locator('[data-brand-heading="general"] [data-brand-count]')).toContainText('23 tools');
   for (const id of ['checksumWorkbench', 'romMapPanel', 'xdfFinderPanel', 'widebandLab', 'frameLabPanel']) {
     await expect(page.locator(`#${id}`)).toBeAttached();
     await expect(page.locator(`#${id}`)).toHaveAttribute('data-tool-brand', 'general');

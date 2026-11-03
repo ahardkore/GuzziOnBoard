@@ -336,7 +336,7 @@ def test_tools_bench_tags_every_panel_with_a_brand(index_html: str, content: str
     tools_section = index_html[index_html.index('id="tools"'):]
     tools_section = tools_section[:tools_section.index("</section>")]
     panels = re.findall(r"<article[^>]*data-tool-cat=\"[a-z-]+\"[^>]*>", tools_section)
-    assert len(panels) == 41, len(panels)
+    assert len(panels) == 44, len(panels)
     tagged = {}
     for panel in panels:
         pid = re.search(r'id="([^"]+)"', panel).group(1)
@@ -362,6 +362,10 @@ def test_tools_bench_tags_every_panel_with_a_brand(index_html: str, content: str
     assert tagged["indianJ1939"] == "indian"
     assert tagged["iawGuzziPanel"] == "moto-guzzi"
     assert tagged["iawApriliaPanel"] == "aprilia"
+    # Batch 4: general bench arithmetic, filed under General.
+    assert tagged["injectorPanel"] == "general"
+    assert tagged["dynoCorrectionPanel"] == "general"
+    assert tagged["fuelBlendPanel"] == "general"
 
 
 def test_both_brand_dropdowns_offer_exactly_the_documented_brands(index_html: str, content: str):
@@ -432,4 +436,4 @@ def test_every_tools_bench_panel_has_a_help_entry(index_html: str, content: str)
         pid = re.search(r'id="([^"]+)"', tag).group(1)
         described.append(pid)
         assert f"selector: '#{pid}'" in content, f"{pid} has no TOOLS entry in help-content.js"
-    assert len(described) >= 41, described
+    assert len(described) >= 44, described

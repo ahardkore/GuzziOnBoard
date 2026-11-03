@@ -11,7 +11,8 @@ manufacturer-specific; the definitions and captures they read can be.
 The four tools that read *other formats* — MLVLG logs, DBC databases, OBD-II
 transcripts and tune files — are documented in [format tools](FORMAT_TOOLS.md).
 The per-brand frame decoders and the IAW image-layout check are documented in
-[brand tools](BRAND_TOOLS.md).
+[brand tools](BRAND_TOOLS.md), and the fuel, air and lambda arithmetic in
+[bench calculators](BENCH_CALCULATORS.md).
 
 
 | Tool | Panel id | Works on |

@@ -27,13 +27,13 @@ const BRAND_PANELS = [
 ];
 
 test('the bench lists the brand decoders under their own manufacturers', async ({ page }) => {
-  await expect(page.locator('#toolsCountBadge')).toHaveText('41 of 41 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('44 of 44 tools');
   for (const [id, brand] of BRAND_PANELS) {
     await expect(page.locator(`#${id}`)).toHaveAttribute('data-tool-brand', brand);
     await expect(page.locator(`[data-brand-heading="${brand}"]`)).toBeAttached();
   }
   // The general group is unchanged by Batch 3.
-  await expect(page.locator('[data-brand-heading="general"] [data-brand-count]')).toContainText('20 tools');
+  await expect(page.locator('[data-brand-heading="general"] [data-brand-count]')).toContainText('23 tools');
 
   await page.locator('#toolsBrandSelect').selectOption('ducati');
   const visible = page.locator('#tools > article.panel[data-tool-cat]:not(.hidden)');

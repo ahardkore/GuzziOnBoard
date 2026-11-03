@@ -919,6 +919,48 @@
       caution: 'The Aprilia 7SM and MIU G3 catalog entries are identification-only: the program has no verified flash geometry for them, so this tool makes no claim about where their flash starts. Reading a definition is not programming authorization.',
       tags: ['aprilia', 'iaw', '15p', '5am', '7sm', 'miu g3', 'image', 'layout', 'xdf'],
     },
+
+    /* ------------------------------------------- bench calculators */
+    {
+      id: 'injector-panel', name: 'Injector & fuel-flow calculator', category: 'calibration',
+      view: 'tools', selector: '#injectorPanel',
+      summary: 'Turns a target power into the fuel volume and injector size that would deliver it — or the injectors you already have into a duty cycle — with pressure, fuel and injection-window arithmetic shown.',
+      steps: [
+        'Enter the target crank power, the BSFC assumption, the injector count and the maximum duty you are willing to run.',
+        'Pick the fuel. Compared with petrol, E85 needs about 1.4 times the volume for the same lambda, and the calculator applies that through the stoichiometric ratio and density rather than a fudge factor.',
+        'Set the fuel pressure you will run and the pressure the injector was rated at. Flow scales with the square root of the pressure difference, so the two are not interchangeable.',
+        'If you already have injectors, type their rated flow: the panel prints the duty cycle at the same target and warns when it cannot reach it.',
+        'The rpm field turns the cycle time into an injection window and shows the pulse width at your duty limit.',
+      ],
+      caution: 'BSFC decides the answer, and 0.50 lb/(hp·h) is an assumption for a naturally aspirated four-stroke at peak power — an air-cooled two-valve twin can be worse. Vendor flow figures are quoted at a stated pressure with a test fluid. Measure duty cycle on the bike before buying anything.',
+      tags: ['injector', 'sizing', 'bsfc', 'duty cycle', 'fuel flow', 'e85', 'pressure', 'pulse width'],
+    },
+    {
+      id: 'dyno-correction', name: 'Dyno correction & air density', category: 'telemetry',
+      view: 'tools', selector: '#dynoCorrectionPanel',
+      summary: 'Corrects a measured power figure to a standard reference air and shows the same run under SAE J1349, DIN 70020, SAE J607, ISO 1585 and uncorrected, with dry pressure, vapour pressure and density shown.',
+      steps: [
+        'Enter the measured figure and its unit. The corrected number comes back in the same unit — nothing is converted behind your back.',
+        'Give the conditions: air temperature, barometric pressure and relative humidity. Clear the pressure field to have it estimated from an altitude instead; when both are present the measured pressure wins.',
+        'Read the factor for the chosen standard and the table beside it, which shows every standard for the same run. A different standard on the same data routinely moves the number by several percent.',
+        'Watch the density ratio: it is the physical reason the correction exists, and it is what to quote when you do not want to claim a standard.',
+      ],
+      caution: 'SAE J1349 is defined for naturally aspirated engines. A boosted engine is flagged rather than corrected silently. Correction cannot fix a heat-soaked intake, wheelspin on the drum or an inconsistent throttle ramp — quote the standard with the figure.',
+      tags: ['dyno', 'correction factor', 'sae j1349', 'din 70020', 'sae j607', 'iso 1585', 'air density', 'altitude', 'humidity'],
+    },
+    {
+      id: 'fuel-blend', name: 'Fuel blend, λ & stoichiometry', category: 'calibration',
+      view: 'tools', selector: '#fuelBlendPanel',
+      summary: 'Converts between lambda and AFR for any ethanol blend and shows what the blend does to stoichiometry, density, energy per litre and the fuel volume the same lambda needs.',
+      steps: [
+        'Set the ethanol percentage, then choose whether the number you have is lambda or AFR.',
+        'Read the blend: stoichiometric ratio, density, energy per litre, and the AFR that lambda corresponds to on this blend and on petrol.',
+        'Tick through the comparison table for E0, E10, E85 and E100: the volume column is how much more fuel the same lambda needs, which is what breaks injector sizing when a bike changes fuel.',
+        'If you know the petrol duty cycle you run now, type it: the panel prints the duty the same injectors would see on this blend and warns past the linear range.',
+      ],
+      caution: 'The blend is a model, not a measurement: pump E10 can be E5–E15 and winter E85 is nearer E50–E70. Lambda is what the engine responds to; AFR figures from two logs are only comparable when the assumed stoichiometric ratio is the same. This is not a mixture recommendation.',
+      tags: ['lambda', 'afr', 'e85', 'e10', 'stoich', 'ethanol', 'methanol', 'fuel volume', 'injector duty'],
+    },
     {
       id: 'canlog-analyzer', name: 'CAN identifier discovery (offline analyzer)', category: 'telemetry',
       view: 'discovery', selector: '#canlogText',

@@ -1,0 +1,58 @@
+# What the static site Worker "guzzionboard" must never publish.
+#
+# Read by wrangler when it uploads assets (see wrangler.jsonc, which pins the
+# asset directory to the repository root). Two jobs:
+#
+#   1. keep build output, caches and local tooling out of the public site - the
+#      build container runs `pip install .` before deploying, so build/,
+#      *.egg-info/ and caches exist there even though git ignores them;
+#   2. keep the research binaries out of the CDN. The repository root carries
+#      OEM calibration archives and flash dumps (7SM_*, MIUG3_*, 5AM_*,
+#      Hayabusa gen 3 stock.bin and others) plus byte-identical copies under
+#      docs/. None of them is linked from any page, none is licensed by this
+#      project, and a branded calibration file is not covered by the repository
+#      licence - see docs/DYNOAI_AND_UPLOADS.md. They stay in git and on
+#      GitHub; they are simply not served from this site.
+#
+# A single file of 25 MiB or more in an unignored directory fails the whole
+# deploy ("Asset too large"), which is why node_modules/ is listed explicitly:
+# it contains a 137 MiB workerd binary.
+
+# Version control and the build configuration itself.
+.git
+.github
+.gitignore
+.assetsignore
+
+# Local environments and dependencies.
+node_modules
+.venv
+venv
+.wrangler
+.wrangler-dryrun
+.dev.vars*
+
+# Build output and caches.
+build
+dist
+*.egg-info
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+htmlcov
+coverage
+captures
+test-results
+playwright-report
+blob-report
+.desktop-test-data
+packaging/windows_version_info.txt
+packaging/resources/*.exe
+
+# Research binaries: third-party calibration archives, never served.
+*.bin
+*.zip
+*.jsonl

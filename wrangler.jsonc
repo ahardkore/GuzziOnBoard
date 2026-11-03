@@ -1,0 +1,28 @@
+// Static site Worker "guzzionboard" (https://guzzionboard.aaron-hard11.workers.dev).
+//
+// This file exists so that the published file set is decided here, in git,
+// instead of by wrangler's automatic project configuration at build time. With
+// no config at the repository root, every Workers Builds run detected a static
+// project, prompted (non-interactively: "using fallback value"), wrote a
+// throwaway wrangler.jsonc, appended to .gitignore and created its own
+// .assetsignore in the build container - so nothing in this repository said
+// which files were on the public site.
+//
+// The relay is NOT this Worker and is not affected by this file: it is
+// guzzionboard-validation, deployed with an explicit
+// --config cloudflare/wrangler.build.toml (see scripts/deploy_worker.sh).
+//
+// Reverting "preview_urls": false re-enables per-version preview URLs for the
+// website. It is off here on purpose: the site is served from the same account
+// as the relay, and preview URLs are the default way a branch deployment gets
+// published without anyone deciding to.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "guzzionboard",
+  "compatibility_date": "2026-10-23",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "."
+  }
+}

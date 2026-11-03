@@ -1,11 +1,12 @@
 #!/bin/sh
 # Deploy entry point for Cloudflare Workers Builds.
 #
-# Workers Builds runs the same configured command for every branch it builds.
-# If that command is a plain `wrangler deploy`, a build of a non-production
-# branch either tries to publish over the production Worker or is refused — and
-# either way the build shows up as a failure on the pull request while `main`
-# stays green. This script picks the right command for the branch instead:
+# Workers Builds runs the deploy command only for the production branch; every
+# other branch runs its separate Preview command, which defaults to
+# `npx wrangler preview`. A Preview needs its own bindings (a second D1 here),
+# so that default fails on this Worker and every branch build shows red while
+# `main` stays green. This script is safe in either slot — as the deploy command
+# or as the Preview command — because it decides by branch:
 #
 #   production branch (default: main) -> wrangler deploy
 #   any other branch                  -> wrangler versions upload

@@ -13,6 +13,13 @@ preview_urls = false
 # Cloudflare preserves encrypted secrets separately.
 keep_vars = true
 
+# Match the Worker's dashboard setting. Workers Builds offers to "update your
+# Wrangler configuration to keep deployments in sync"; when the dashboard has
+# observability off, saying so here stops the deploy from re-applying it, and
+# keeps the built configuration identical to what the dashboard shows.
+[observability]
+enabled = false
+
 [[d1_databases]]
 binding = "DB"
 database_name = "guzzionboard"

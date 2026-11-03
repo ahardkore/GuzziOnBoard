@@ -60,13 +60,29 @@ not an instruction to create or alter any database automatically.
    **deploy command** to:
 
    ```sh
-   npx wrangler deploy --config cloudflare/wrangler.build.toml
+   sh scripts/deploy_worker.sh
    ```
+
+   The manual equivalent of the production path is
+   `npx wrangler deploy --config cloudflare/wrangler.build.toml`; use the script
+   so builds of non-production branches do not attempt a production deploy.
 
    This exact config flag is essential: plain `npx wrangler deploy` at the repo
    root can auto-detect a static project and publish repository files instead of
    the relay. Leave the website Worker's build settings unchanged unless you
    independently review what files its existing static deployment publishes.
+
+   Better: set the deploy command to the branch-aware entry point instead, so a
+   build of a pull-request branch does not try to deploy over production:
+
+   ```sh
+   sh scripts/deploy_worker.sh
+   ```
+
+   It runs `wrangler deploy --config cloudflare/wrangler.build.toml` on the
+   production branch and `wrangler versions upload --config …` on every other
+   branch, printing the command it chose. See
+   [why branch builds fail](#why-the-workers-builds-check-fails-on-a-branch).
    Check the deploy log: it must name `guzzionboard-validation`, include a D1
    `DB` binding, and not upload the repository as static assets. A build token
    must have whatever permissions Cloudflare requires to deploy the Worker and
@@ -105,6 +121,71 @@ Do not reuse the same production D1 for untrusted previews. The configuration
 explicitly disables preview URLs; a separate isolated environment is needed for
 safe preview tests. Cloudflare access, production secrets, database contents,
 and a public Worker URL were not available to verify from this workspace.
+
+## Why the Workers Builds check fails on a branch
+
+A pull request shows two red checks, `Workers Builds: guzzionboard` and
+`Workers Builds: guzzionboard-validation`, while `main` stays green. What that
+pattern means, and what has been ruled out:
+
+| Observation | Evidence |
+| --- | --- |
+| Fails on **every** commit of a branch, including ones that touch nothing deployable | PR #38's commits, and all nine commits of PR #39, fail identically |
+| Passes on `main` | commit `3f6318e`, the last production build |
+| Fails within the same second it starts | both check runs report identical `started_at` and `completed_at` |
+| Not a bundle problem | `npx wrangler deploy --dry-run --config cloudflare/wrangler.build.toml` uploads 12.92 KiB / 4.58 KiB gzip, one D1 binding, exit 0 |
+| Not a repository-size problem | 703 tracked files, 4.1 MB of `web/`, 4.7 MB of `vendor/`; the Worker imports only the 151-byte `cloudflare/catalog.json` |
+
+A build that fails instantly, only off the production branch, most often means
+the configured **deploy command is a production deploy**. Workers Builds runs
+one command for every branch it builds; a non-production branch may not publish
+over the production Worker, so the build stops at that step. The validation
+Worker's documented command, `npx wrangler deploy --config
+cloudflare/wrangler.build.toml`, is exactly such a command, and the website
+Worker's existing static deploy has the same shape.
+
+**Fix, in the Cloudflare dashboard** (no repository change can do it):
+
+1. Workers & Pages → **guzzionboard-validation** → Settings → Build → set the
+   deploy command to `sh scripts/deploy_worker.sh`, and keep the build command
+   empty with the repository root as the root directory.
+2. Optionally repeat for the website Worker **only** after reviewing what its
+   static deployment publishes; that Worker is separate and was not meant to be
+   changed here.
+3. Alternatively, turn off **Builds for non-production branches** for both
+   Workers. The relay must not be previewable anyway: preview deployments share
+   the production Worker's bindings, and `preview_urls = false` exists precisely
+   to keep the relay off a branch URL. `tests/test_cloudflare_worker.py` asserts
+   that setting stays false, so "fixing" this by enabling preview URLs would
+   fail the suite and put a second entry point in front of the production D1.
+
+`scripts/deploy_worker.sh` picks the command from `WORKERS_CI_BRANCH` (falling
+back to `GITHUB_REF_NAME`), deploys only on the production branch (`main` by
+default, overridable with `WORKERS_CI_PRODUCTION_BRANCH`), uploads a version
+everywhere else, and **refuses to guess** when the branch is unknown rather than
+defaulting to production. `WRANGLER_DRY_RUN=1` forwards `--dry-run`, which is how
+CI exercises both paths without credentials.
+
+Reproducing the whole thing locally, with no Cloudflare access:
+
+```sh
+npm ci
+WORKERS_CI_BRANCH=main WRANGLER_DRY_RUN=1 sh scripts/deploy_worker.sh
+WORKERS_CI_BRANCH=feature WRANGLER_DRY_RUN=1 sh scripts/deploy_worker.sh
+pytest tests/test_deploy_worker_script.py -q
+```
+
+`.github/workflows/worker-build.yml` runs both of those on every push and pull
+request, so a bundle or branch-rule regression fails a check this repository
+owns. It does not and cannot replace the Cloudflare build: if the checks stay
+red after the change above, the remaining causes are account-side — an expired
+Workers Builds GitHub connection, a build token without permission to deploy the
+Worker or use its D1 binding, or exhausted build minutes. Those appear only in
+the Cloudflare build log, which requires an account login; the check summary
+posted to GitHub carries no error text.
+
+While the two checks are red for this reason, note that they do not gate
+merging: the required work is covered by the GitHub Actions jobs, which pass.
 
 ## Prepare on an authorized administrator's machine
 

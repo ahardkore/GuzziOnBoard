@@ -238,6 +238,15 @@ rather than as new panels, in Batch 4b:
 checksums, Royal Enfield keyed checksums, the Zero/Energica EV decoder. Lowest
 evidence, highest risk, and the closest thing here to a write path.
 
+## Evidence behind the checksum and decoder proposals
+
+The parameters, pins and confirmation status for every checksum family named in
+§1 of the short list — and for the KMSK16 decoder — are collected in
+[checksum & decoder evidence](CHECKSUM_AND_DECODER_EVIDENCE.md). That document
+also records what has **no** public evidence (IAW 7SM / MIU G3 calibration
+checksums, the Royal Enfield Hunter 350 keyed signature, the MG1 signature
+block) so a future pass does not re-litigate it.
+
 ## Sources read for this pass
 
 | Source | Pin | Licence | Taken |

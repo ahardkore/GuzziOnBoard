@@ -209,6 +209,7 @@ and the [source review](docs/USER_SOURCE_REVIEW.md).
 | Programming and recovery boundaries | [Programming](docs/PROGRAMMING.md) |
 | Workshop utilities and multi-brand sources | [Workshop tools](docs/WORKSHOP_REFERENCE_TOOLS.md) · [External research](docs/EXTERNAL_MOTORCYCLE_RESEARCH.md) · [Source review](docs/USER_SOURCE_REVIEW.md) |
 | Candidate tools, brand and general | [Tool expansion research](docs/TOOL_EXPANSION_RESEARCH.md) |
+| Checksum and decoder evidence, with sources and pins | [Checksum & decoder evidence](docs/CHECKSUM_AND_DECODER_EVIDENCE.md) |
 | Offline analysis tools (checksums, ROM map, XDF finder, wideband, frames) | [Offline toolkit](docs/OFFLINE_TOOLKIT.md) |
 | Log, database, OBD-II and tune-file formats | [Format tools](docs/FORMAT_TOOLS.md) |
 | Brand frame decoders (Kawasaki, Suzuki, Triumph, BMW, Ducati, Indian) and IAW image layout | [Brand tools](docs/BRAND_TOOLS.md) |

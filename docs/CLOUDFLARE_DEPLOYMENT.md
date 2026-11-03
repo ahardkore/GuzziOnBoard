@@ -124,101 +124,88 @@ and a public Worker URL were not available to verify from this workspace.
 
 ## Why the Workers Builds check fails on a branch
 
-A pull request shows two red checks, `Workers Builds: guzzionboard` and
-`Workers Builds: guzzionboard-validation`, while `main` stays green. What that
-pattern means, and what has been ruled out:
+A pull request shows red checks named `Workers Builds: guzzionboard` and
+`Workers Builds: guzzionboard-validation`, while every build of `main` passes.
+That is not a defect in this repository, and the reason is a setting most people
+never look at.
+
+Workers Builds runs up to three commands, and **which one runs depends on the
+branch**:
+
+| Command | When it runs | Default |
+| --- | --- | --- |
+| Build command | every build | empty |
+| Deploy command | the **production** branch only | `npx wrangler deploy` |
+| **Preview command** | every branch that is **not** the production branch | `npx wrangler preview` |
+
+So a branch build never runs the deploy command at all — it runs the preview
+command, which defaults to `npx wrangler preview`. That command creates a
+[Worker Preview](https://developers.cloudflare.com/workers/previews/), and a
+Preview needs its **own** bindings and variables, configured separately from
+production. This Worker has none: a Preview of the relay would need a second D1
+database, and `preview_urls = false` deliberately keeps the relay off any branch
+URL. Without preview settings, `npx wrangler preview` fails, so every branch
+build fails, on both Workers — and `main` stays green because the preview
+command never runs there. The command announces itself as
+*"an open beta command"* and reads a "Preview base config" from the dashboard,
+which is the settings the relay does not have and must not acquire. See
+[Configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/#preview-command)
+and [Build branches](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/#configure-preview-builds).
+
+What was ruled out, and how:
 
 | Observation | Evidence |
 | --- | --- |
-| Fails on **every** commit of a branch, including ones that touch nothing deployable | PR #38's commits, and all twelve commits of PR #39, fail identically |
+| Fails on **every** commit of a branch, including ones that touch nothing deployable | PR #38's commits, all twelve commits of PR #39, and a fresh branch pushed 2026-11-03 fail identically |
 | Passes on `main` with the **same tree** that failed on the branch | PR #39 merged as `00a6a70`; its tree is the branch tip `116632a`, whose checks failed, and `00a6a70`'s checks — both Workers included — pass |
+| Both Workers fail together | `guzzionboard` (a static site with no configuration in this repository) fails exactly like the relay, so the cause is shared and account-level, not a relay bug |
 | Not a bundle problem | `npx wrangler deploy --dry-run --config cloudflare/wrangler.build.toml` uploads 12.92 KiB / 4.58 KiB gzip, one D1 binding, exit 0 |
 | Not a repository-size problem | 703 tracked files, 4.1 MB of `web/`, 4.7 MB of `vendor/`; the Worker imports only the 151-byte `cloudflare/catalog.json` |
 
-The same-tree row is the one that matters: identical content, opposite results,
-so the only variable left is *which ref Cloudflare is building*. That is a
-property of the Worker's build settings, not of the commit.
-
-**Do not read build duration from the check run.** Cloudflare reports
+**Do not read build duration from the check run.** Cloudflare stamps
 `started_at` and `completed_at` inside the same second for successful builds
 too — build `c0086ccb` on `main` "took" 0 s — so the timestamps carry no
-information about how long a build ran. An earlier draft of this document used
-that invented "instant failure" as a symptom; it was wrong, and no conclusion
-here rests on it.
+information about how long a build ran. An earlier revision of this document
+used an invented "instant failure" as a symptom, and blamed the deploy command;
+both were wrong, and no conclusion here rests on them.
 
-A build that fails only off the production branch most often means
-the configured **deploy command is a production deploy**. Workers Builds runs
-one command for every branch it builds; a non-production branch may not publish
-over the production Worker, so the build stops at that step. The validation
-Worker's documented command, `npx wrangler deploy --config
-cloudflare/wrangler.build.toml`, is exactly such a command, and the website
-Worker's existing static deploy has the same shape.
+**Fix, in the Cloudflare dashboard — a repository change cannot do it:**
 
-**Fix, in the Cloudflare dashboard** (no repository change can do it):
+1. Workers & Pages → **guzzionboard-validation** → Settings → Build → **Branch
+   control**. Either:
+   - **uncheck Enable Preview Builds.** Preferred here: the relay has nothing
+     worth previewing, branch builds stop running, and no red check appears on a
+     pull request at all; or
+   - keep preview builds and set the **Preview command** to
+     `sh scripts/deploy_worker.sh` (equivalently
+     `npx wrangler versions upload --config cloudflare/wrangler.build.toml`).
+     Cloudflare documents that swapping `wrangler preview` for
+     `wrangler versions upload` makes a branch build store a version instead of
+     a Preview. The script is safe in that slot: it sees a non-production
+     branch, uploads a version, and never deploys.
+2. Repeat for the **guzzionboard** website Worker if its branch checks are also
+   noise. That Worker has no configuration in this repository — not in
+   `cloudflare/`, not at the root — so its settings exist only in its dashboard
+   and its build log is the only place to read them.
+3. Keep the **Deploy command** on the relay as `sh scripts/deploy_worker.sh`.
+   It only ever runs for `main`, where the script deploys; the branch rule in it
+   is a second line of defence, not the mechanism.
 
-1. Workers & Pages → **guzzionboard-validation** → Settings → Build → set the
-   deploy command to `sh scripts/deploy_worker.sh`, and keep the build command
-   empty with the repository root as the root directory.
-2. Optionally repeat for the website Worker **only** after reviewing what its
-   static deployment publishes; that Worker is separate and was not meant to be
-   changed here.
-3. Alternatively, turn off **Builds for non-production branches** for both
-   Workers. The relay must not be previewable anyway: preview deployments share
-   the production Worker's bindings, and `preview_urls = false` exists precisely
-   to keep the relay off a branch URL. `tests/test_cloudflare_worker.py` asserts
-   that setting stays false, so "fixing" this by enabling preview URLs would
-   fail the suite and put a second entry point in front of the production D1.
+Do **not** enable Worker Previews for the relay to make the check pass. A
+Preview does not inherit production bindings, so the only way to make one work
+is a second D1 database and a second public entry point — and
+`tests/test_cloudflare_worker.py` asserts `preview_urls` stays false precisely
+so a branch URL can never reach the production database.
 
-If the checks stay red after that change, the remaining causes are account-side
-and only the Cloudflare build log can name them: a build token that may not
-deploy the Worker or use its D1 binding, exhausted build minutes, an expired
-GitHub connection, or Workers Builds requiring a **preview deployment** for a
-branch build. The last one must be answered by switch 3 above (branch builds
-off for that Worker), not by enabling preview deployments: the relay
-deliberately sets `preview_urls = false`, and a preview URL would put a second
-public entry point in front of the production D1.
+Verifying needs one branch push: the production half proves nothing on its own,
+which is how the same-tree row above came about — `main` went green while every
+branch build stayed red.
 
-Verifying the branch half needs one branch push — the production half alone
-proves nothing, which is how the same-tree row above came about: `main` builds
-went green while every branch build stayed red.
+The checks this repository owns — the Python suite, the desktop-shell UI run,
+the platform builds and the `relay` job below — are what actually cover a
+change. GitHub reports a pull request in this situation as `MERGEABLE` /
+`UNSTABLE` (failing non-required checks) rather than `BLOCKED`.
 
-Note which side is which: **`guzzionboard-validation`** is the Worker this
-repository defines (`cloudflare/wrangler.build.toml`), and it is the only Worker
-whose deploy command these files control. The **`guzzionboard`** website Worker
-has no configuration in this repository at all — not in `cloudflare/`, not at
-the root — so its build command and its auto-detected static deployment exist
-only in the dashboard and can only be read from its own build log.
-
-`scripts/deploy_worker.sh` picks the command from `WORKERS_CI_BRANCH` (falling
-back to `GITHUB_REF_NAME`), deploys only on the production branch (`main` by
-default, overridable with `WORKERS_CI_PRODUCTION_BRANCH`), uploads a version
-everywhere else, and **refuses to guess** when the branch is unknown rather than
-defaulting to production. `WRANGLER_DRY_RUN=1` forwards `--dry-run`, which is how
-CI exercises both paths without credentials.
-
-Reproducing the whole thing locally, with no Cloudflare access:
-
-```sh
-npm ci
-WORKERS_CI_BRANCH=main WRANGLER_DRY_RUN=1 sh scripts/deploy_worker.sh
-WORKERS_CI_BRANCH=feature WRANGLER_DRY_RUN=1 sh scripts/deploy_worker.sh
-pytest tests/test_deploy_worker_script.py -q
-```
-
-`.github/workflows/worker-build.yml` runs both of those on every push and pull
-request, so a bundle or branch-rule regression fails a check this repository
-owns. It does not and cannot replace the Cloudflare build: if the checks stay
-red after the change above, the remaining causes are account-side — an expired
-Workers Builds GitHub connection, a build token without permission to deploy the
-Worker or use its D1 binding, or exhausted build minutes. Those appear only in
-the Cloudflare build log, which requires an account login; the check summary
-posted to GitHub carries no error text.
-
-While the two checks are red for this reason, they are not what enforces the
-quality gates here: GitHub reports the pull request as `MERGEABLE` / `UNSTABLE`
-(failing non-required checks) rather than `BLOCKED`, and the checks this
-repository owns — the Python suite, the desktop-shell UI run, the platform
-builds and the `relay` job below — are what actually cover the change.
 
 ## Prepare on an authorized administrator's machine
 

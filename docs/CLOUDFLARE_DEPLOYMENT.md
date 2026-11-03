@@ -201,8 +201,11 @@ Worker or use its D1 binding, or exhausted build minutes. Those appear only in
 the Cloudflare build log, which requires an account login; the check summary
 posted to GitHub carries no error text.
 
-While the two checks are red for this reason, note that they do not gate
-merging: the required work is covered by the GitHub Actions jobs, which pass.
+While the two checks are red for this reason, they are not what enforces the
+quality gates here: GitHub reports the pull request as `MERGEABLE` / `UNSTABLE`
+(failing non-required checks) rather than `BLOCKED`, and the checks this
+repository owns — the Python suite, the desktop-shell UI run, the platform
+builds and the `relay` job below — are what actually cover the change.
 
 ## Prepare on an authorized administrator's machine
 

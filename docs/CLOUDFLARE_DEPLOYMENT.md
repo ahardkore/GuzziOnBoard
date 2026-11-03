@@ -204,7 +204,25 @@ so a branch URL can never reach the production database.
 
 Verifying needs one branch push: the production half proves nothing on its own,
 which is how the same-tree row above came about — `main` went green while every
-branch build stayed red.
+branch build stayed red. What each choice looks like on a pull request:
+
+| Setting | What a branch push produces | Production |
+| --- | --- | --- |
+| Preview builds **off** (option 1) | **no** `Workers Builds` check at all — not green, absent, because nothing runs for that branch | untouched |
+| Preview builds on, command `wrangler versions upload` (option 2) | a **green** check; the build stores a version | untouched |
+| Preview builds on, default `npx wrangler preview` | a **red** check, on every commit | untouched, but the signal is useless |
+
+An absent check is success here, so read the check list rather than expecting
+green ticks: the relay's job is to stay off branch URLs and out of production
+until `main` deploys it.
+
+Observed on 2026-11-03, after preview builds were switched off for the relay: a
+branch push produced **no** `Workers Builds: guzzionboard-validation` check at
+all, while `Workers Builds: guzzionboard` still failed on the same commit. That
+is the table above read from real data — the relay is configured as intended,
+and the website Worker's preview builds are still on. Reports of one check
+should not be read as reports about the other; they are separate Workers with
+separate settings.
 
 The checks this repository owns — the Python suite, the desktop-shell UI run,
 the platform builds and the `relay` job below — are what actually cover a

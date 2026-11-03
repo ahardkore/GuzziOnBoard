@@ -107,6 +107,11 @@ not an instruction to create or alter any database automatically.
    Build settings variables are not the same as runtime variables; these must be
    on the Worker. `keep_vars = true` protects dashboard variables on later Git
    deployments, while Cloudflare preserves encrypted secrets separately.
+   The config also pins `[observability] enabled = false` to match the Worker's
+   dashboard setting: Cloudflare offers to "update your Wrangler configuration
+   to keep deployments in sync", and recording the setting in the file stops a
+   deploy from re-applying it behind the dashboard's back. Change both together
+   if you ever enable Workers Logs for the relay.
 4. Verify the validation Worker's own HTTPS address, distinct from the website.
    A `GET /protocol-update.json` returning JSON `no update yet` with HTTP 404 is
    expected before the first accepted report. Missing schema produces a 503;

@@ -56,6 +56,7 @@ def test_workers_build_configuration_deploys_relay_not_website():
     assert config['main'] == 'worker.mjs'
     assert config['keep_vars'] is True
     assert config['preview_urls'] is False
+    assert config['observability'] == {'enabled': False}
     assert 'assets' not in config
     assert config['d1_databases'] == [{
         'binding': 'DB', 'database_name': 'guzzionboard',

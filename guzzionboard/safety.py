@@ -159,6 +159,12 @@ class SafetyGate:
     #: :meth:`accept_unverified_key_risk`. Memory read/write paths consult
     #: this when the caller passes no explicit flag.
     allow_unverified_keys: bool = False
+    #: Whether the operator explicitly unlocks implemented-but-bench-unverified
+    #: hardware write sequences (such as the documented IAW 5AM KWP2000 writer)
+    #: for this session. Off by default; gated behind an explicit acknowledgement,
+    #: a verified backup/base map, programming mode, and single-use write tokens.
+    allow_unverified_hardware_writes: bool = False
+    unverified_writer_acknowledgement: str = ""
     #: The mode a session was in before programming was enabled, so
     #: :meth:`disable_programming` can put it back.  Enabling programming is
     #: precisely the act that puts the session into programming mode.
@@ -459,6 +465,11 @@ class SafetyGate:
 
     #: What the operator has to type back, verbatim, to arm programming.
     PROGRAMMING_ACKNOWLEDGEMENT = "I have a verified backup and accept the risk"
+    #: What the operator has to type back, verbatim, to unlock implemented
+    #: hardware write sequences that are not yet bench-verified.
+    UNVERIFIED_WRITER_ACKNOWLEDGEMENT = (
+        "I have an external recovery plan and accept unverified ECU write risk"
+    )
 
     def enable_programming(self, acknowledgement: str) -> None:
         """Arm ECU memory writing for this session.
@@ -529,6 +540,46 @@ class SafetyGate:
                     else "unverified_keys_declined"
                 ),
             }
+        )
+
+    def enable_unverified_hardware_writes(self, acknowledgement: str) -> None:
+        """Unlock implemented protocol write paths on physical hardware for this session."""
+        if acknowledgement.strip() != self.UNVERIFIED_WRITER_ACKNOWLEDGEMENT:
+            self._audit.append(
+                {
+                    "at": time.time(),
+                    "event": "unverified_writer_enable_refused",
+                    "reason": "acknowledgement did not match",
+                }
+            )
+            raise SafetyViolation(
+                Decision(
+                    allowed=False,
+                    operation="enable-unverified-writer",
+                    risk=Risk.IRREVERSIBLE,
+                    checks=(
+                        Check(
+                            "acknowledgement",
+                            False,
+                            "to unlock implemented hardware writers, repeat exactly: "
+                            f"{self.UNVERIFIED_WRITER_ACKNOWLEDGEMENT!r}",
+                        ),
+                    ),
+                )
+            )
+        self.allow_unverified_hardware_writes = True
+        self.unverified_writer_acknowledgement = acknowledgement.strip()
+        self.invalidate_confirmations()
+        self._audit.append(
+            {"at": time.time(), "event": "unverified_writer_enabled"}
+        )
+
+    def disable_unverified_hardware_writes(self) -> None:
+        self.allow_unverified_hardware_writes = False
+        self.unverified_writer_acknowledgement = ""
+        self.invalidate_confirmations()
+        self._audit.append(
+            {"at": time.time(), "event": "unverified_writer_disabled"}
         )
 
     def session_guard(self, armed_for: set[int] | None = None, *,

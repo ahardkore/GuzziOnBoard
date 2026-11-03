@@ -16,15 +16,16 @@ from guzzionboard.workstation import Workstation
 XDF = Path('guzzionboard/xdfs/honda/CBR1000RR_2012_US.xdf')
 
 
-def test_vendored_honda_definition_is_exact_and_exposes_unsupported_item():
+def test_vendored_honda_definition_is_exact_and_supports_all_items():
     xdf = XdfFile.from_file(XDF)
     assert xdf.file_sha256 == honda.XDF_SHA256
     assert xdf.title == 'CBR1000RR 2012 US'
     assert xdf.checksums == ['Honda Checksum']
-    assert len(xdf.tables) == 38
-    assert [item['title'] for item in xdf.unsupported if item['kind'] == 'table'] == ['Top Speed Limit']
-    assert [item['kind'] for item in xdf.unsupported].count('patch') == 5
-    assert [item['kind'] for item in xdf.unsupported].count('flag') == 1
+    assert len(xdf.tables) == 39
+    assert any(table.title == 'Top Speed Limit' for table in xdf.tables)
+    assert len(xdf.patches) == 5
+    assert len(xdf.flags) == 1
+    assert xdf.unsupported == []
 
 
 def test_checksum_scope_and_byte_changes(monkeypatch):

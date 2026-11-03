@@ -451,18 +451,67 @@
     return isNaN(value) ? (fallback || 0) : value;
   }
 
-  var MATH_ALLOWED = /^[Xx0-9+\-*/(). ]+$/;
+  var MATH_ALLOWED = /^[0-9A-Fa-fXx+\-*/().<> ]+$/;
+  var THAT_CALL_RE = /\bTHAT\s*\(\s*([^;()]+)\s*;\s*ROW\s*\(\s*\)\s*;\s*COL\s*\(\s*\)\s*;\s*(TRUE|FALSE|0|1)\s*\)/gi;
+
+  function shiftrMath(a, b) {
+    var n = Math.round(Number(a)), s = Math.round(Number(b));
+    if (!isFinite(n) || !isFinite(s) || s < 0 || s > 64) throw new Error('invalid shift');
+    return Math.floor(n / Math.pow(2, s));
+  }
+
+  function shiftlMath(a, b) {
+    var n = Math.round(Number(a)), s = Math.round(Number(b));
+    if (!isFinite(n) || !isFinite(s) || s < 0 || s > 64) throw new Error('invalid shift');
+    return n * Math.pow(2, s);
+  }
 
   function compileMath(equation) {
     var text = String(equation || 'X').trim() || 'X';
-    if (text === 'X' || text === 'x') return function (x) { return x; };
+    if (text === 'X' || text === 'x') return function (x) { return Number(x); };
     if (text.length > 256 || !MATH_ALLOWED.test(text) || text.indexOf('**') >= 0 || text.indexOf('//') >= 0) {
       throw new Error('unsupported equation ' + JSON.stringify(text));
     }
-    var body = text.replace(/[Xx]/g, '(X)');
-    /* The whitelist above admits digits, X and arithmetic only: no names,
-     * no calls, no property access. */
-    var fn = new Function('X', 'return (' + body + ');');  // eslint-disable-line no-new-func
+    // Reject bare '<' or '>' (only '<<' and '>>' are allowed).
+    for (var idx = 0; idx < text.length; idx++) {
+      var ch = text.charAt(idx);
+      if (ch === '<' || ch === '>') {
+        if (text.charAt(idx + 1) === ch && text.charAt(idx + 2) !== ch) {
+          idx += 1;
+        } else {
+          throw new Error('unsupported equation ' + JSON.stringify(text));
+        }
+      }
+    }
+    // Convert valid 0x... hex literals to decimal and reject invalid identifiers.
+    var prepared = text.replace(/\b0[xX]([0-9A-Fa-f]*)\b/g, function (all, digits) {
+      if (!digits) throw new Error('unsupported equation ' + JSON.stringify(text));
+      return String(parseInt(digits, 16));
+    });
+    var idents = prepared.match(/[A-Za-z_][A-Za-z0-9_]*/g) || [];
+    for (var j = 0; j < idents.length; j++) {
+      if (idents[j] !== 'X' && idents[j] !== 'x') {
+        throw new Error('unsupported equation ' + JSON.stringify(text));
+      }
+    }
+    var body = prepared.replace(/\b[Xx]\b/g, '(X)');
+    // Rewrite top-level / parenthesized << and >> into shiftlMath / shiftrMath
+    // when shifts are used so values > 31 bits match Python integer semantics.
+    if (body.indexOf('<<') >= 0 || body.indexOf('>>') >= 0) {
+      return function (x) {
+        var val = evalMathShiftAware(body, Number(x), text);
+        if (typeof val !== 'number' || !isFinite(val)) {
+          throw new Error('equation ' + text + ' failed on ' + x);
+        }
+        return val;
+      };
+    }
+    var fn;
+    try {
+      fn = new Function('X', 'return (' + body + ');');  // eslint-disable-line no-new-func
+    } catch (_) {
+      throw new Error('unsupported equation ' + JSON.stringify(text));
+    }
     return function (x) {
       var value = fn(Number(x));
       if (typeof value !== 'number' || !isFinite(value)) {
@@ -470,6 +519,74 @@
       }
       return value;
     };
+  }
+
+  function evalMathShiftAware(expr, xVal, origText) {
+    // Recursive-descent arithmetic evaluator matching Python operator precedence:
+    // shift (<<, >>) < add/sub (+, -) < mul/div (*, /) < unary (+, -).
+    var tokens = [];
+    var i = 0;
+    while (i < expr.length) {
+      var c = expr.charAt(i);
+      if (c === ' ') { i++; continue; }
+      if (c === '(' || c === ')' || c === '+' || c === '-' || c === '*' || c === '/') {
+        tokens.push(c); i++; continue;
+      }
+      if ((c === '<' || c === '>') && expr.charAt(i + 1) === c) {
+        tokens.push(c + c); i += 2; continue;
+      }
+      if (c === 'X') { tokens.push({ num: xVal }); i++; continue; }
+      var m = /^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)/.exec(expr.slice(i));
+      if (!m) throw new Error('unsupported equation ' + JSON.stringify(origText));
+      tokens.push({ num: Number(m[0]) });
+      i += m[0].length;
+    }
+    var pos = 0;
+    function parseShift() {
+      var left = parseAdd();
+      while (pos < tokens.length && (tokens[pos] === '<<' || tokens[pos] === '>>')) {
+        var op = tokens[pos++];
+        var right = parseAdd();
+        left = op === '<<' ? shiftlMath(left, right) : shiftrMath(left, right);
+      }
+      return left;
+    }
+    function parseAdd() {
+      var left = parseMul();
+      while (pos < tokens.length && (tokens[pos] === '+' || tokens[pos] === '-')) {
+        var op = tokens[pos++];
+        var right = parseMul();
+        left = op === '+' ? left + right : left - right;
+      }
+      return left;
+    }
+    function parseMul() {
+      var left = parseUnary();
+      while (pos < tokens.length && (tokens[pos] === '*' || tokens[pos] === '/')) {
+        var op = tokens[pos++];
+        var right = parseUnary();
+        if (op === '/' && right === 0) throw new Error('division by zero');
+        left = op === '*' ? left * right : left / right;
+      }
+      return left;
+    }
+    function parseUnary() {
+      if (tokens[pos] === '+') { pos++; return +parseUnary(); }
+      if (tokens[pos] === '-') { pos++; return -parseUnary(); }
+      if (tokens[pos] === '(') {
+        pos++;
+        var inner = parseShift();
+        if (tokens[pos] !== ')') throw new Error('unbalanced parens');
+        pos++;
+        return inner;
+      }
+      var tok = tokens[pos++];
+      if (!tok || typeof tok.num !== 'number') throw new Error('unexpected token');
+      return tok.num;
+    }
+    var out = parseShift();
+    if (pos !== tokens.length) throw new Error('trailing tokens');
+    return out;
   }
 
   /* Python's "%g": six significant digits, half-to-even, and an exponent
@@ -502,16 +619,18 @@
 
   function parseEmbedded(node, signedDefault, floatDefault) {
     var sizeBits = intOf(node.attrs.mmedelementsizebits, 8);
-    if (sizeBits !== 8 && sizeBits !== 16 && sizeBits !== 32) {
-      throw new Error('unsupported element size ' + sizeBits + ' bits');
-    }
     var hasFlags = node.attrs.mmedtypeflags !== undefined;
     var flags = hasFlags ? intOf(node.attrs.mmedtypeflags, 0) : null;
-    if (flags !== null && (!Number.isSafeInteger(flags) || flags < 0 || flags > 7)) {
+    if (flags !== null && (!Number.isSafeInteger(flags) || flags < 0 || (flags & ~0x10007) !== 0)) {
       throw new Error('unsupported embedded data flags (float/unknown encoding)');
     }
-    if (flags === null && floatDefault) {
-      throw new Error('floating-point embedded data is not supported');
+    var isFloat = hasFlags ? !!(flags & 0x10000) : !!floatDefault;
+    if (isFloat) {
+      if (sizeBits !== 32 && sizeBits !== 64) {
+        throw new Error('unsupported float element size ' + sizeBits + ' bits');
+      }
+    } else if (sizeBits !== 8 && sizeBits !== 16 && sizeBits !== 32) {
+      throw new Error('unsupported element size ' + sizeBits + ' bits');
     }
     return {
       address: intOf(node.attrs.mmedaddress, 0),
@@ -520,9 +639,10 @@
       cols: Math.max(1, intOf(node.attrs.mmedcolcount, 1)),
       major_stride_bits: intOf(node.attrs.mmedmajorstridebits, 0),
       minor_stride_bits: intOf(node.attrs.mmedminorstridebits, 0),
-      signed: hasFlags ? !!(flags & 0x1) : !!signedDefault,
+      signed: isFloat ? true : (hasFlags ? !!(flags & 0x1) : !!signedDefault),
       little_endian: hasFlags ? !!(flags & 0x2) : null,
       column_major: hasFlags && !!(flags & 0x4),
+      is_float: isFloat,
     };
   }
 
@@ -538,14 +658,16 @@
         throw new Error('negative or non-byte-aligned embedded stride is not supported');
       }
     });
-    if (embedded.column_major && (embedded.major_stride_bits || embedded.minor_stride_bits)) {
+    if (embedded.column_major && embedded.cols > 1 && (embedded.major_stride_bits || embedded.minor_stride_bits)) {
       throw new Error('column-major embedded data with explicit strides is not supported');
     }
   }
 
   function spanBits(embedded) {
     validateEmbeddedLayout(embedded);
-    if (embedded.column_major) return embedded.rows * embedded.cols * embedded.size_bits;
+    if (embedded.column_major && embedded.cols > 1) {
+      return embedded.rows * embedded.cols * embedded.size_bits;
+    }
     var minor = embedded.minor_stride_bits || embedded.size_bits;
     var major = embedded.major_stride_bits || (minor * embedded.cols);
     return (embedded.rows - 1) * major + (embedded.cols - 1) * minor
@@ -555,13 +677,14 @@
   function embeddedPositions(embedded, offset) {
     validateEmbeddedLayout(embedded);
     var size = embedded.size_bits / 8;
+    var colMajor = embedded.column_major && embedded.cols > 1;
     var minor = (embedded.minor_stride_bits || embedded.size_bits) / 8;
     var major = embedded.major_stride_bits
       ? embedded.major_stride_bits / 8 : minor * embedded.cols;
     var out = [];
     for (var r = 0; r < embedded.rows; r++) {
       for (var c = 0; c < embedded.cols; c++) {
-        out.push({ pos: offset + (embedded.column_major
+        out.push({ pos: offset + (colMajor
           ? (c * embedded.rows + r) * size : r * major + c * minor), size: size });
       }
     }
@@ -574,6 +697,17 @@
       if (slot.pos < 0 || slot.pos + slot.size > bytes.length) {
         throw new Error('data at 0x' + embedded.address.toString(16).toUpperCase()
           + ' falls outside the image');
+      }
+      if (embedded.is_float) {
+        var buf = new ArrayBuffer(slot.size);
+        var u8 = new Uint8Array(buf);
+        for (var k = 0; k < slot.size; k++) u8[k] = bytes[slot.pos + k];
+        var dv = new DataView(buf);
+        var fval = slot.size === 4 ? dv.getFloat32(0, !!littleEndian) : dv.getFloat64(0, !!littleEndian);
+        if (!isFinite(fval)) {
+          throw new Error('non-finite IEEE-754 float at 0x' + embedded.address.toString(16).toUpperCase());
+        }
+        return fval;
       }
       var value = 0;
       for (var n = 0; n < slot.size; n++) {
@@ -592,6 +726,17 @@
     if (embedded.little_endian !== null) littleEndian = embedded.little_endian;
     embeddedPositions(embedded, offset).forEach(function (slot, index) {
       if (slot.pos < 0 || slot.pos + slot.size > bytes.length) throw new Error('embedded data falls outside the image');
+      if (embedded.is_float) {
+        var fval = Number(raws[index]);
+        if (!isFinite(fval)) throw new Error('float value cannot be encoded');
+        var buf = new ArrayBuffer(slot.size);
+        var dv = new DataView(buf);
+        if (slot.size === 4) dv.setFloat32(0, fval, !!littleEndian);
+        else dv.setFloat64(0, fval, !!littleEndian);
+        var u8 = new Uint8Array(buf);
+        for (var k = 0; k < slot.size; k++) bytes[slot.pos + k] = u8[k];
+        return;
+      }
       var limit = Math.pow(2, slot.size * 8);
       var value = Math.round(raws[index]);
       if (embedded.signed && value < 0) value += limit;
@@ -655,7 +800,26 @@
     return "'" + body.replace(/'/g, "\\'") + "'";
   }
 
-  function checkMath(node, what) {
+  function extractThatRefs(equation) {
+    var refs = [];
+    THAT_CALL_RE.lastIndex = 0;
+    var m;
+    while ((m = THAT_CALL_RE.exec(equation)) !== null) {
+      var objRaw = m[1].trim();
+      var num = intOf(objRaw, NaN);
+      if (!Number.isInteger(num) || num < 0) {
+        throw new Error('unsupported THAT() target ' + JSON.stringify(objRaw));
+      }
+      var flagTok = m[2].trim().toUpperCase();
+      refs.push({
+        ref_id: '0x' + num.toString(16),
+        want_raw: flagTok === 'TRUE' || flagTok === '1',
+      });
+    }
+    return refs;
+  }
+
+  function checkMath(node, what, allowThat) {
     var maths = kids(node, 'MATH');
     var equation = mathOf(node);
     var linked = maths.some(function (m) {
@@ -664,8 +828,20 @@
     if (maths.length > 1 || linked) {
       throw new Error(what + ': per-cell or address-linked equations are not supported');
     }
+    var probeEq = equation;
+    if (allowThat && /\bTHAT\s*\(/i.test(equation)) {
+      probeEq = equation.replace(THAT_CALL_RE, '(0)');
+      if (/\b(?:THAT|ROW|COL)\b/i.test(probeEq)) {
+        throw new Error(what + ': unsupported equation ' + pyRepr(equation));
+      }
+      try {
+        extractThatRefs(equation);
+      } catch (_) {
+        throw new Error(what + ': unsupported equation ' + pyRepr(equation));
+      }
+    }
     try {
-      compileMath(equation);    // throws on anything outside the whitelist
+      compileMath(probeEq);    // throws on anything outside the whitelist
     } catch (exc) {
       throw new Error(what + ': unsupported equation ' + pyRepr(equation));
     }
@@ -684,13 +860,16 @@
     return out;
   }
 
-  /* An object reference as a compare-able key: "0x7FDD" == "0x07fdd". */
+  /* An object reference as a compare-able key: "0x7FDD" == "0x07fdd" == "32733". */
   function normaliseId(value) {
     var text = String(value === null || value === undefined ? '' : value)
       .trim().toLowerCase();
     var digits = text.indexOf('0x') === 0 ? text.slice(2) : '';
     if (digits && /^[0-9a-f]+$/.test(digits)) {
       return '0x' + (digits.replace(/^0+/, '') || '0');
+    }
+    if (/^[0-9]+$/.test(text)) {
+      return '0x' + parseInt(text, 10).toString(16);
     }
     return text;
   }
@@ -702,10 +881,126 @@
       var key = normaliseId(table.uniqueid);
       if (!(key in byId)) byId[key] = table;
     });
+
+    // Validate THAT(...) cross-table references and quarantine missing/cyclic
+    // references into xdf.unsupported just like guzzionboard/maps.py.
+    var removed = true;
+    while (removed) {
+      removed = false;
+      var nextValid = [];
+      xdf.tables.forEach(function (table) {
+        if (!table.that_refs || !table.that_refs.length) {
+          nextValid.push(table);
+          return;
+        }
+        var badReason = '';
+        for (var i = 0; i < table.that_refs.length; i++) {
+          var refId = table.that_refs[i].ref_id;
+          var target = byId[normaliseId(refId)];
+          if (!target || !target.embedded) {
+            badReason = table.title + ': THAT(' + refId + ') target table was not found';
+            break;
+          }
+          if (!table.embedded || target.embedded.rows !== table.embedded.rows
+              || target.embedded.cols !== table.embedded.cols) {
+            badReason = table.title + ': THAT(' + refId + ') target dimensions do not match';
+            break;
+          }
+        }
+        if (badReason) {
+          xdf.unsupported.push({ title: table.title, kind: 'table', reason: badReason });
+          if (table.uniqueid) delete byId[normaliseId(table.uniqueid)];
+          removed = true;
+        } else {
+          nextValid.push(table);
+        }
+      });
+      xdf.tables = nextValid;
+    }
+
+    var state = {}; // key -> 1 visiting, 2 done, 3 cyclic
+    function dfs(table) {
+      var k = normaliseId(table.uniqueid) || ('title:' + table.title);
+      if (state[k] === 2) return false;
+      if (state[k] === 1 || state[k] === 3) { state[k] = 3; return true; }
+      state[k] = 1;
+      for (var i = 0; i < (table.that_refs || []).length; i++) {
+        var t = byId[normaliseId(table.that_refs[i].ref_id)];
+        if (!t || dfs(t)) { state[k] = 3; return true; }
+      }
+      state[k] = 2;
+      return false;
+    }
+    var acyclic = [];
+    xdf.tables.forEach(function (table) {
+      if ((table.that_refs || []).length && dfs(table)) {
+        xdf.unsupported.push({
+          title: table.title, kind: 'table',
+          reason: table.title + ': cyclic THAT(...) reference',
+        });
+        if (table.uniqueid) delete byId[normaliseId(table.uniqueid)];
+      } else {
+        acyclic.push(table);
+      }
+    });
+    xdf.tables = acyclic;
+
     xdf.tables.forEach(function (table) {
       [table.x, table.y].forEach(function (axis) {
         if (axis.link_id) axis.target = byId[normaliseId(axis.link_id)] || null;
       });
+    });
+  }
+
+  function tableDepth(xdf, table, seen) {
+    if (!table.that_refs || !table.that_refs.length) return 0;
+    seen = seen || {};
+    var byId = {};
+    xdf.tables.forEach(function (t) {
+      if (t.uniqueid) {
+        var k = normaliseId(t.uniqueid);
+        if (!(k in byId)) byId[k] = t;
+      }
+    });
+    var key = normaliseId(table.uniqueid) || table.title;
+    if (seen[key]) return 0;
+    var nextSeen = Object.assign({}, seen);
+    nextSeen[key] = true;
+    var maxD = 0;
+    table.that_refs.forEach(function (ref) {
+      var target = byId[normaliseId(ref.ref_id)];
+      if (target) maxD = Math.max(maxD, 1 + tableDepth(xdf, target, nextSeen));
+    });
+    return maxD;
+  }
+
+  function cellEquation(xdf, table, bytes, row, col, addressBase) {
+    if (!table.that_refs || !table.that_refs.length) return table.math;
+    var byId = {};
+    xdf.tables.forEach(function (t) {
+      if (t.uniqueid) {
+        var k = normaliseId(t.uniqueid);
+        if (!(k in byId)) byId[k] = t;
+      }
+    });
+    return table.math.replace(THAT_CALL_RE, function (all, objRaw, flagRaw) {
+      var refId = '0x' + intOf(objRaw.trim(), 0).toString(16);
+      var wantRaw = ['TRUE', '1'].indexOf(flagRaw.trim().toUpperCase()) >= 0;
+      var target = byId[normaliseId(refId)];
+      if (!target || !target.embedded) {
+        throw new Error(table.title + ': THAT(' + refId + ') target unavailable');
+      }
+      var tOffset = fileOffset(xdf, target.embedded.address) - addressBase;
+      var raws = readEmbedded(target.embedded, bytes, tOffset, xdf.little_endian);
+      var rawVal = raws[row * target.embedded.cols + col];
+      var val;
+      if (wantRaw) {
+        val = Number(rawVal);
+      } else {
+        var tEq = cellEquation(xdf, target, bytes, row, col, addressBase);
+        val = compileMath(tEq)(rawVal);
+      }
+      return '(' + String(val) + ')';
     });
   }
 
@@ -757,7 +1052,7 @@
   }
 
   function axisDict(axis, bytes, offset, littleEndian, resolved) {
-    return {
+    var out = {
       id: axis.ident,
       units: axis.units,
       values: resolved ? resolved.labels
@@ -771,6 +1066,101 @@
       signed: axis.embedded ? axis.embedded.signed : false,
       editable: !!axis.embedded,
       legend: resolved ? resolved.legend : null,
+    };
+    if (axis.embedded && axis.embedded.is_float) out.is_float = true;
+    return out;
+  }
+
+  function decodePatchHex(text, expectedSize, what) {
+    var cleaned = String(text || '').replace(/\s+/g, '');
+    if (!cleaned || !/^[0-9A-Fa-f]+$/.test(cleaned)) {
+      throw new Error(what + ': invalid hex bytes');
+    }
+    if (expectedSize !== null && expectedSize > 0 && cleaned.length < expectedSize * 2) {
+      while (cleaned.length < expectedSize * 2) cleaned = '0' + cleaned;
+    }
+    if (cleaned.length % 2) cleaned = '0' + cleaned;
+    var raw = new Uint8Array(cleaned.length / 2);
+    for (var i = 0; i < raw.length; i++) {
+      raw[i] = parseInt(cleaned.substr(i * 2, 2), 16);
+    }
+    if (expectedSize !== null && raw.length !== expectedSize) {
+      throw new Error(what + ': datasize ' + expectedSize + ' does not match ' + raw.length + '-byte payload');
+    }
+    if (raw.length < 1 || raw.length > 4096) {
+      throw new Error(what + ': patch entry size ' + raw.length + ' outside 1..4096 bytes');
+    }
+    return raw;
+  }
+
+  function bytesToHexUpper(u8) {
+    var s = '';
+    for (var i = 0; i < u8.length; i++) {
+      var h = u8[i].toString(16).toUpperCase();
+      s += h.length < 2 ? '0' + h : h;
+    }
+    return s;
+  }
+
+  function bytesEqual(a, b) {
+    if (!a || !b || a.length !== b.length) return false;
+    for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  }
+
+  function inspectPatch(xdf, patch, bytes, addressBase) {
+    if (!patch.entries.length) throw new Error(patch.title + ': patch has no entries');
+    var entryDicts = [];
+    var allPatch = true;
+    var hasBase = patch.entries.every(function (e) { return e.base_bytes !== null; });
+    var anyDiffBase = patch.entries.some(function (e) {
+      return e.base_bytes !== null && !bytesEqual(e.base_bytes, e.patch_bytes);
+    });
+    var allBase = hasBase;
+    patch.entries.forEach(function (entry) {
+      var pos = fileOffset(xdf, entry.address) - addressBase;
+      if (pos < 0 || pos + entry.size > bytes.length) {
+        throw new Error('patch entry ' + pyRepr(entry.name) + ' at 0x'
+          + entry.address.toString(16).toUpperCase() + ' falls outside the image');
+      }
+      var chunk = bytes.slice(pos, pos + entry.size);
+      if (!bytesEqual(chunk, entry.patch_bytes)) allPatch = false;
+      if (entry.base_bytes === null || !bytesEqual(chunk, entry.base_bytes)) allBase = false;
+      entryDicts.push({
+        name: entry.name,
+        address: '0x' + entry.address.toString(16).toUpperCase(),
+        image_offset: '0x' + pos.toString(16).toUpperCase(),
+        size: entry.size,
+        current_hex: bytesToHexUpper(chunk),
+        patch_hex: bytesToHexUpper(entry.patch_bytes),
+        base_hex: entry.base_bytes !== null ? bytesToHexUpper(entry.base_bytes) : '',
+      });
+    });
+    var state, applied;
+    if (allPatch && (!hasBase || anyDiffBase)) {
+      state = 'applied'; applied = true;
+    } else if (allPatch && allBase) {
+      state = 'stock'; applied = true;
+    } else if (allBase || !hasBase) {
+      state = 'unapplied'; applied = false;
+    } else {
+      state = 'mismatch'; applied = false;
+    }
+    var itemId = patch.uniqueid || ('patch:0x' + patch.entries[0].address.toString(16).toUpperCase());
+    return {
+      id: itemId,
+      title: patch.title,
+      description: patch.description,
+      category: patch.category,
+      address: '0x' + patch.entries[0].address.toString(16).toUpperCase(),
+      state: state,
+      applied: applied,
+      has_basedata: hasBase,
+      can_apply: (!allPatch) && (!hasBase || allBase),
+      can_revert: !!(hasBase && anyDiffBase && allPatch),
+      entry_count: patch.entries.length,
+      entries: entryDicts,
+      editable: true,
     };
   }
 
@@ -794,6 +1184,8 @@
       categories: {},
       tables: [],
       constants: [],
+      flags: [],
+      patches: [],
       checksums: [],
       unsupported: [],
     };
@@ -846,6 +1238,7 @@
         }
         validateEmbeddedLayout(z.embedded);
         var decimals = kidText(zNode, 'decimalpl');
+        var mathStr = checkMath(zNode, title, true);
         var table = {
           title: title,
           description: (kidText(node, 'description') || '').trim(),
@@ -860,14 +1253,15 @@
             math: 'X', link_id: '', target: null,
           },
           embedded: z.embedded,
-          math: checkMath(zNode, title),
+          math: mathStr,
+          that_refs: /\bTHAT\s*\(/i.test(mathStr) ? extractThatRefs(mathStr) : [],
           decimalpl: decimals ? (intOf(decimals, 0) || null) : null,
           uniqueid: node.attrs.uniqueid || '',
         };
         kids(node, 'XDFAXIS').forEach(function (axisNode) {
           var ident = axisNode.attrs.id;
           if (ident === 'x' || ident === 'y') {
-            table[ident].math = checkMath(axisNode, title + ' (' + ident + ')');
+            table[ident].math = checkMath(axisNode, title + ' (' + ident + ')', false);
           }
         });
         xdf.tables.push(table);
@@ -875,8 +1269,6 @@
         xdf.unsupported.push({ title: title, kind: 'table', reason: String(exc.message || exc) });
       }
     });
-    // The reference is an id and the target may be declared after its user.
-    resolveAxisLinks(xdf);
 
     kids(root, 'XDFCONSTANT').forEach(function (node) {
       var title = (kidText(node, 'title') || '').trim() || '(untitled constant)';
@@ -892,7 +1284,7 @@
           category: categoryOf(node),
           units: (kidText(node, 'units') || '').trim(),
           embedded: parseEmbedded(dataNode, xdf.signed_default, xdf.float_default),
-          math: checkMath(node, title),
+          math: checkMath(node, title, false),
           decimalpl: decimals ? (intOf(decimals, 0) || null) : null,
           uniqueid: node.attrs.uniqueid || '',
         });
@@ -901,18 +1293,91 @@
       }
     });
 
-    [['XDFFLAG', 'flag'], ['XDFPATCH', 'patch']].forEach(function (spec) {
-      kids(root, spec[0]).forEach(function (node) {
-        xdf.unsupported.push({ title: (kidText(node, 'title') || '').trim() || '(untitled ' + spec[1] + ')',
-          kind: spec[1], reason: 'XDF ' + spec[1] + ' items are not supported and are not applied' });
-      });
+    kids(root, 'XDFFLAG').forEach(function (node) {
+      var title = (kidText(node, 'title') || '').trim() || '(untitled flag)';
+      try {
+        var dataNode = kid(node, 'EMBEDDEDDATA');
+        if (!dataNode || dataNode.attrs.mmedaddress === undefined) {
+          throw new Error(title + ': no embedded data');
+        }
+        var emb = parseEmbedded(dataNode, false, false);
+        if (emb.is_float) throw new Error(title + ': flag items cannot use floating-point data');
+        emb.signed = false;
+        emb.rows = 1;
+        emb.cols = 1;
+        validateEmbeddedLayout(emb);
+        var mask = intOf(kidText(node, 'mask'), 0);
+        var maxMask = Math.pow(2, emb.size_bits);
+        if (!Number.isFinite(mask) || mask <= 0 || mask >= maxMask) {
+          throw new Error(title + ': invalid ' + emb.size_bits + '-bit flag mask 0x' + Math.max(0, mask).toString(16).toUpperCase());
+        }
+        xdf.flags.push({
+          title: title,
+          description: (kidText(node, 'description') || '').trim(),
+          category: categoryOf(node),
+          embedded: emb,
+          mask: mask,
+          uniqueid: node.attrs.uniqueid || '',
+        });
+      } catch (exc) {
+        xdf.unsupported.push({ title: title, kind: 'flag', reason: String(exc.message || exc) });
+      }
     });
+
+    kids(root, 'XDFPATCH').forEach(function (node) {
+      var title = (kidText(node, 'title') || '').trim() || '(untitled patch)';
+      try {
+        var entryNodes = kids(node, 'XDFPATCHENTRY');
+        if (!entryNodes.length) throw new Error(title + ': patch defines no XDFPATCHENTRY');
+        if (entryNodes.length > 512) throw new Error(title + ': patch exceeds 512 entries');
+        var entries = [], seenRanges = [];
+        entryNodes.forEach(function (eNode, idx) {
+          if (eNode.attrs.address === undefined) {
+            throw new Error(title + ': patch entry #' + (idx + 1) + ' has no address');
+          }
+          var addr = intOf(eNode.attrs.address, 0);
+          var hasSize = eNode.attrs.datasize !== undefined;
+          var expSize = hasSize ? intOf(eNode.attrs.datasize, 0) : null;
+          if (expSize !== null && expSize <= 0) {
+            throw new Error(title + ': patch entry #' + (idx + 1) + ' has non-positive datasize');
+          }
+          var name = (eNode.attrs.name || ('entry_' + (idx + 1))).trim() || ('entry_' + (idx + 1));
+          var patchBytes = decodePatchHex(eNode.attrs.patchdata, expSize, title + ' (' + name + ')');
+          var baseRaw = (eNode.attrs.basedata || '').trim();
+          var baseBytes = baseRaw ? decodePatchHex(baseRaw, patchBytes.length, title + ' (' + name + ' basedata)') : null;
+          var start = addr, end = addr + patchBytes.length;
+          seenRanges.forEach(function (rng) {
+            if (!(end <= rng[0] || start >= rng[1])) {
+              throw new Error(title + ': overlapping patch entries inside ' + name);
+            }
+          });
+          seenRanges.push([start, end]);
+          entries.push({
+            name: name, address: addr, size: patchBytes.length,
+            patch_bytes: patchBytes, base_bytes: baseBytes,
+          });
+        });
+        xdf.patches.push({
+          title: title,
+          description: (kidText(node, 'description') || '').trim(),
+          category: categoryOf(node),
+          entries: entries,
+          uniqueid: node.attrs.uniqueid || '',
+        });
+      } catch (exc) {
+        xdf.unsupported.push({ title: title, kind: 'patch', reason: String(exc.message || exc) });
+      }
+    });
+
     kids(root, 'XDFCHECKSUM').forEach(function (node, index) {
       var title = (kidText(node, 'title') || '').trim();
       xdf.checksums.push(title || '(unnamed checksum #' + (index + 1) + ')');
     });
 
-    if (!xdf.tables.length && !xdf.constants.length) {
+    // Resolve links after all items are parsed so unsupported order matches maps.py!
+    resolveAxisLinks(xdf);
+
+    if (!xdf.tables.length && !xdf.constants.length && !xdf.flags.length && !xdf.patches.length) {
       throw new Error('no readable tables or constants in ' + (path || 'this XDF'));
     }
     return xdf;
@@ -949,15 +1414,17 @@
     return 0;
   }
 
-  function tableValues(table, bytes, offset, littleEndian) {
-    var fn = compileMath(table.math);
+  function tableValues(xdf, table, bytes, offset, littleEndian, addressBase) {
+    var hasThat = table.that_refs && table.that_refs.length;
+    var baseFn = hasThat ? null : compileMath(table.math);
     var raw = readEmbedded(table.embedded, bytes, offset, littleEndian);
     var rows = [];
     for (var r = 0; r < table.embedded.rows; r++) {
       var row = [];
       for (var c = 0; c < table.embedded.cols; c++) {
+        var fn = hasThat ? compileMath(cellEquation(xdf, table, bytes, r, c, addressBase || 0)) : baseFn;
         var value = fn(raw[r * table.embedded.cols + c]);
-        row.push(table.decimalpl ? round(value, table.decimalpl) : value);
+        row.push(table.decimalpl !== null ? round(value, table.decimalpl) : value);
       }
       rows.push(row);
     }
@@ -1014,11 +1481,12 @@
             y: axisDict(table.y, bytes, axisOffset(table.y, offset),
               xdf.little_endian, yLabels),
           },
-          values: tableValues(table, bytes, offset, xdf.little_endian),
+          values: tableValues(xdf, table, bytes, offset, xdf.little_endian, addressBase),
           raw_values: rawRows,
           equation: table.math,
           size_bits: table.embedded.size_bits,
           signed: table.embedded.signed,
+          is_float: !!table.embedded.is_float,
           editable: true,
         });
       } catch (exc) {
@@ -1048,12 +1516,52 @@
           equation: constant.math,
           size_bits: constant.embedded.size_bits,
           signed: constant.embedded.signed,
+          is_float: !!constant.embedded.is_float,
           editable: true,
         });
       } catch (exc) {
         errors.push({
           title: constant.title, kind: 'constant',
           reason: constant.title + ': ' + (exc.message || exc) + ' ' + hint(),
+        });
+      }
+    });
+
+    var flags = [];
+    (xdf.flags || []).forEach(function (flag) {
+      var offset = fileOffset(xdf, flag.embedded.address) - addressBase;
+      try {
+        var rawWord = readEmbedded(flag.embedded, bytes, offset, xdf.little_endian)[0];
+        flags.push({
+          id: flag.uniqueid || ('flag:0x'
+            + flag.embedded.address.toString(16).toUpperCase() + ':0x' + flag.mask.toString(16).toUpperCase()),
+          title: flag.title,
+          description: flag.description,
+          category: flag.category,
+          address: '0x' + flag.embedded.address.toString(16).toUpperCase(),
+          mask: '0x' + flag.mask.toString(16).toUpperCase(),
+          mask_int: flag.mask,
+          raw: rawWord,
+          value: flagWordMatchesMask(rawWord, flag.mask),
+          size_bits: flag.embedded.size_bits,
+          editable: true,
+        });
+      } catch (exc) {
+        errors.push({
+          title: flag.title, kind: 'flag',
+          reason: flag.title + ': ' + (exc.message || exc) + ' ' + hint(),
+        });
+      }
+    });
+
+    var patches = [];
+    (xdf.patches || []).forEach(function (patch) {
+      try {
+        patches.push(inspectPatch(xdf, patch, bytes, addressBase));
+      } catch (exc) {
+        errors.push({
+          title: patch.title, kind: 'patch',
+          reason: patch.title + ': ' + (exc.message || exc) + ' ' + hint(),
         });
       }
     });
@@ -1070,13 +1578,80 @@
       address_base: addressBase,
       tables: tables,
       constants: constants,
+      flags: flags,
+      patches: patches,
       unsupported: xdf.unsupported,
       errors: errors,
       checksums: xdf.checksums,
     };
   }
 
-  function inverseMath(equation, wanted, embedded, decimalpl) {
+  function quantizeFloat(rawFloat, sizeBits, littleEndian) {
+    var buf = new ArrayBuffer(sizeBits / 8);
+    var dv = new DataView(buf);
+    if (sizeBits === 32) {
+      dv.setFloat32(0, rawFloat, !!littleEndian);
+      return dv.getFloat32(0, !!littleEndian);
+    }
+    dv.setFloat64(0, rawFloat, !!littleEndian);
+    return dv.getFloat64(0, !!littleEndian);
+  }
+
+  function inverseFloatMath(equation, wanted, embedded, littleEndian, decimalpl) {
+    wanted = Number(wanted);
+    if (!isFinite(wanted)) throw new Error('value must be finite');
+    var fn = compileMath(equation);
+    var effLe = embedded.little_endian === null ? !!littleEndian : !!embedded.little_endian;
+    var candidates = [wanted, 0, 1, -1];
+    try {
+      var y0 = fn(0), y1 = fn(1), y2 = fn(2);
+      var s1 = y1 - y0, s2 = y2 - y1;
+      if (s1 && Math.abs(s1 - s2) <= Math.max(1e-11, Math.abs(s1) * 1e-11)) {
+        candidates.push((wanted - y0) / s1);
+      }
+    } catch (_) { /* non-affine */ }
+    var limit = embedded.size_bits === 32 ? 3.4e38 : 1e300;
+    [[-limit, -1e-30], [1e-30, limit]].forEach(function (dom) {
+      var lo = dom[0], hi = dom[1];
+      var flo, fhi;
+      try { flo = fn(lo); fhi = fn(hi); } catch (_) { return; }
+      var asc = fhi >= flo;
+      if ((asc && wanted >= flo && wanted <= fhi) || (!asc && wanted >= fhi && wanted <= flo)) {
+        for (var step = 0; step < 96; step++) {
+          var mid = Math.abs(hi - lo) > 1e12 && lo * hi > 0
+            ? (lo < 0 ? -Math.sqrt(Math.abs(lo) * Math.abs(hi)) : Math.sqrt(lo * hi))
+            : (lo + hi) * 0.5;
+          var fm;
+          try { fm = fn(mid); } catch (_) { break; }
+          candidates.push(mid);
+          if ((fm < wanted) === asc) lo = mid; else hi = mid;
+        }
+        candidates.push((lo + hi) * 0.5);
+      }
+    });
+    var shown = function (v) { return decimalpl !== null ? round(v, decimalpl) : v; };
+    var best = null;
+    candidates.forEach(function (cand) {
+      if (!isFinite(cand)) return;
+      try {
+        var qRaw = quantizeFloat(cand, embedded.size_bits, effLe);
+        if (!isFinite(qRaw)) return;
+        var eng = shown(fn(qRaw));
+        var err = Math.abs(eng - wanted);
+        if (!best || err < best.err) best = { raw: qRaw, value: eng, err: err };
+      } catch (_) { /* ignore */ }
+    });
+    if (!best) throw new Error('equation has no usable float values');
+    var tol = Math.max(decimalpl !== null ? Math.pow(10, -decimalpl) * 0.5 : 0,
+      Math.max(1, Math.abs(wanted)) * (embedded.size_bits === 32 ? 1e-5 : 1e-11));
+    if (best.err > tol) throw new Error(String(wanted) + ' cannot be represented');
+    return { raw: best.raw, value: best.value };
+  }
+
+  function inverseMath(equation, wanted, embedded, decimalpl, priorRaw, littleEndian) {
+    if (embedded.is_float) {
+      return inverseFloatMath(equation, wanted, embedded, littleEndian, decimalpl);
+    }
     wanted = Number(wanted);
     if (!isFinite(wanted)) throw new Error('value must be finite');
     var fn = compileMath(equation);
@@ -1090,6 +1665,21 @@
       if (raw >= low && raw <= high) candidates[raw] = true;
     };
     [low, high, -2, -1, 0, 1, 2, 3].forEach(add);
+    if (priorRaw !== undefined && priorRaw !== null && Number.isFinite(Number(priorRaw))) {
+      add(Number(priorRaw));
+    }
+    var shiftMatch = /^\s*[Xx]\s*>>\s*([0-9]+)\s*$/.exec(equation);
+    if (shiftMatch) {
+      var shift = parseInt(shiftMatch[1], 10);
+      if (shift >= 0 && shift < bits) {
+        var baseShifted = Math.round(wanted) * Math.pow(2, shift);
+        add(baseShifted);
+        if (priorRaw !== undefined && priorRaw !== null && Number.isFinite(Number(priorRaw))) {
+          var lowMask = Math.pow(2, shift) - 1;
+          add(baseShifted + (Math.round(Number(priorRaw)) & lowMask));
+        }
+      }
+    }
     try {
       var f1 = fn(1), f2 = fn(2), f3 = fn(3);
       var slope = f2 - f1;
@@ -1117,10 +1707,18 @@
       for (var raw = Math.max(domain[0], hi - 2);
         raw <= Math.min(domain[1], lo + 2); raw++) add(raw);
     });
+    var hasPrior = priorRaw !== undefined && priorRaw !== null && Number.isFinite(Number(priorRaw));
     var evaluated = Object.keys(candidates).map(Number).map(function (raw) {
       try { return { raw: raw, value: shown(fn(raw)) }; } catch (_) { return null; }
     }).filter(Boolean).sort(function (a, b) {
-      return Math.abs(a.value - wanted) - Math.abs(b.value - wanted);
+      var da = Math.abs(a.value - wanted), db = Math.abs(b.value - wanted);
+      if (da !== db) return da - db;
+      if (hasPrior) {
+        var pa = Math.abs(a.raw - Number(priorRaw)), pb = Math.abs(b.raw - Number(priorRaw));
+        if (pa !== pb) return pa - pb;
+      }
+      var aa = Math.abs(a.raw), ab = Math.abs(b.raw);
+      return aa !== ab ? aa - ab : a.raw - b.raw;
     });
     if (!evaluated.length) throw new Error('equation has no usable raw values');
     var best = evaluated[0], quanta = [];
@@ -1141,6 +1739,11 @@
     return best;
   }
 
+  function flagWordMatchesMask(rawWord, maskInt) {
+    // 32-bit unsigned bitwise safe helper (JS & is signed 32-bit, so >>> 0 makes unsigned).
+    return (((rawWord >>> 0) & (maskInt >>> 0)) >>> 0) === (maskInt >>> 0);
+  }
+
   function applyXdfChanges(xdf, image, changes, addressBase) {
     if (!Array.isArray(changes) || !changes.length) {
       throw new Error('at least one map change is required');
@@ -1149,10 +1752,137 @@
     if (addressBase === null || addressBase === undefined) {
       addressBase = suggestAddressBase(xdf, image.bytes.length);
     }
-    var bytes = new Uint8Array(image.bytes), applied = [], touched = {}, touchedBytes = {};
-    changes.forEach(function (change) {
+
+    var indexed = changes.map(function (ch, idx) {
+      var k = String((ch && ch.kind) || '').toLowerCase();
+      var r = String((ch && (ch.id || ch.item_id || ch.title)) || '');
+      var d = 0;
+      if (k === 'table' && r) {
+        var m = xdf.tables.filter(function (cand) {
+          var cid = cand.uniqueid || ('address:0x' + cand.embedded.address.toString(16).toUpperCase());
+          return cid === r || cand.uniqueid === r || cand.title === r;
+        });
+        if (m.length === 1) d = tableDepth(xdf, m[0]);
+      }
+      return { depth: d, idx: idx, change: ch };
+    }).sort(function (a, b) { return a.depth !== b.depth ? a.depth - b.depth : a.idx - b.idx; });
+
+    var bytes = new Uint8Array(image.bytes), appliedByIdx = {}, touched = {}, touchedBytes = {}, touchedFlagBits = {};
+    indexed.forEach(function (entry) {
+      var change = entry.change || {};
       var kind = String(change.kind || '').toLowerCase();
       var ref = String(change.id || change.item_id || change.title || '');
+
+      if (kind === 'flag') {
+        var fMatches = (xdf.flags || []).filter(function (cand) {
+          var cid = cand.uniqueid || ('flag:0x'
+            + cand.embedded.address.toString(16).toUpperCase() + ':0x' + cand.mask.toString(16).toUpperCase());
+          return cid === ref || cand.uniqueid === ref || cand.title === ref;
+        });
+        if (fMatches.length !== 1) throw new Error('no unique flag ' + JSON.stringify(ref));
+        var flag = fMatches[0];
+        var fid = flag.uniqueid || ('flag:0x'
+          + flag.embedded.address.toString(16).toUpperCase() + ':0x' + flag.mask.toString(16).toUpperCase());
+        var fKey = 'flag:' + fid;
+        if (touched[fKey]) throw new Error(flag.title + ': flag is changed more than once');
+        touched[fKey] = true;
+        var fOffset = fileOffset(xdf, flag.embedded.address) - addressBase;
+        var beforeWord = readEmbedded(flag.embedded, image.bytes, fOffset, xdf.little_endian)[0];
+        if (change.expected_raw === undefined || Number(change.expected_raw) !== beforeWord) {
+          throw new Error(flag.title + ': source changed; render the source again');
+        }
+        var wantedBool = typeof change.value === 'boolean' ? change.value : Boolean(Number(change.value));
+        var beforeBool = flagWordMatchesMask(beforeWord, flag.mask);
+        if (wantedBool === beforeBool) throw new Error(flag.title + ': requested value leaves flag unchanged');
+        var fSlot = embeddedPositions(flag.embedded, fOffset)[0];
+        var effLe = flag.embedded.little_endian === null ? xdf.little_endian : flag.embedded.little_endian;
+        for (var bi = 0; bi < fSlot.size; bi++) {
+          var shiftB = effLe ? bi * 8 : (fSlot.size - 1 - bi) * 8;
+          var bmask = Math.floor(flag.mask / Math.pow(2, shiftB)) & 0xFF;
+          if (!bmask) continue;
+          var bpos = fSlot.pos + bi;
+          if (touchedBytes[bpos] || ((touchedFlagBits[bpos] || 0) & bmask)) {
+            throw new Error(flag.title + ': overlapping byte/bit writes in this change set');
+          }
+        }
+        for (var bj = 0; bj < fSlot.size; bj++) {
+          var shiftJ = effLe ? bj * 8 : (fSlot.size - 1 - bj) * 8;
+          var bmaskJ = Math.floor(flag.mask / Math.pow(2, shiftJ)) & 0xFF;
+          if (bmaskJ) touchedFlagBits[fSlot.pos + bj] = (touchedFlagBits[fSlot.pos + bj] || 0) | bmaskJ;
+        }
+        var curWord = readEmbedded(flag.embedded, bytes, fOffset, xdf.little_endian)[0];
+        var nextWord = wantedBool
+          ? (((curWord >>> 0) | (flag.mask >>> 0)) >>> 0)
+          : (((curWord >>> 0) & (~(flag.mask >>> 0) >>> 0)) >>> 0);
+        writeEmbedded(flag.embedded, bytes, fOffset, xdf.little_endian, [nextWord]);
+        appliedByIdx[entry.idx] = {
+          kind: 'flag', id: fid, axis: '', index: null, title: flag.title,
+          row: null, col: null, x: '', y: '', units: '',
+          mask: '0x' + flag.mask.toString(16).toUpperCase(),
+          before_raw: beforeWord, after_raw: nextWord,
+          before: beforeBool, requested: wantedBool, after: wantedBool, quantized: false,
+        };
+        return;
+      }
+
+      if (kind === 'patch') {
+        var pMatches = (xdf.patches || []).filter(function (cand) {
+          var cid = cand.uniqueid || ('patch:0x' + cand.entries[0].address.toString(16).toUpperCase());
+          return cid === ref || cand.uniqueid === ref || cand.title === ref;
+        });
+        if (pMatches.length !== 1) throw new Error('no unique patch ' + JSON.stringify(ref));
+        var patch = pMatches[0];
+        var pid = patch.uniqueid || ('patch:0x' + patch.entries[0].address.toString(16).toUpperCase());
+        var pKey = 'patch:' + pid;
+        if (touched[pKey]) throw new Error(patch.title + ': patch is changed more than once');
+        touched[pKey] = true;
+        var pInfo = inspectPatch(xdf, patch, image.bytes, addressBase);
+        var expHex = change.expected_hex;
+        var curHex = pInfo.entries.map(function (e) { return e.current_hex.toLowerCase(); });
+        if (!Array.isArray(expHex) || expHex.length !== curHex.length
+            || expHex.some(function (h, hi) { return String(h || '').trim().toLowerCase() !== curHex[hi]; })) {
+          throw new Error(patch.title + ': source bytes changed; render the source again');
+        }
+        var wantApply = typeof change.value === 'boolean' ? change.value : Boolean(Number(change.value));
+        var writes = [], pByteSet = [];
+        patch.entries.forEach(function (pe) {
+          var ppos = fileOffset(xdf, pe.address) - addressBase;
+          var beforeB = image.bytes.slice(ppos, ppos + pe.size);
+          var targetB;
+          if (wantApply) {
+            if (pe.base_bytes !== null && !change.allow_base_mismatch
+                && !bytesEqual(beforeB, pe.base_bytes) && !bytesEqual(beforeB, pe.patch_bytes)) {
+              throw new Error(patch.title + ': source bytes do not match patch basedata');
+            }
+            targetB = pe.patch_bytes;
+          } else {
+            if (pe.base_bytes === null) {
+              throw new Error(patch.title + ': patch defines no basedata and cannot be reverted');
+            }
+            targetB = pe.base_bytes;
+          }
+          for (var pb = ppos; pb < ppos + pe.size; pb++) {
+            if (touchedBytes[pb] || touchedFlagBits[pb]) {
+              throw new Error(patch.title + ': overlapping byte writes in this change set');
+            }
+            pByteSet.push(pb);
+          }
+          writes.push({ pos: ppos, before: beforeB, after: targetB });
+        });
+        if (writes.every(function (w) { return bytesEqual(w.before, w.after); })) {
+          throw new Error(patch.title + ': requested patch state leaves image unchanged');
+        }
+        pByteSet.forEach(function (pb) { touchedBytes[pb] = true; });
+        writes.forEach(function (w) { bytes.set(w.after, w.pos); });
+        appliedByIdx[entry.idx] = {
+          kind: 'patch', id: pid, axis: '', index: null, title: patch.title,
+          row: null, col: null, x: '', y: '', units: '',
+          before_raw: curHex, after_raw: writes.map(function (w) { return bytesToHexUpper(w.after).toLowerCase(); }),
+          before: !!pInfo.applied, requested: wantApply, after: wantApply, quantized: false,
+        };
+        return;
+      }
+
       var lookupKind = kind === 'axis' ? 'table' : kind;
       var items = lookupKind === 'table' ? xdf.tables
         : lookupKind === 'constant' ? xdf.constants : [];
@@ -1193,26 +1923,37 @@
       var offset = fileOffset(xdf, item.embedded.address) - addressBase;
       var raws = readEmbedded(item.embedded, image.bytes, offset, xdf.little_endian);
       var beforeRaw = raws[index];
-      if (change.expected_raw === undefined || Number(change.expected_raw) !== beforeRaw) {
+      if (change.expected_raw === undefined) {
+        throw new Error(title + ': source changed; render the source again');
+      }
+      if (item.embedded.is_float) {
+        if (Math.abs(Number(change.expected_raw) - beforeRaw) > Math.max(1e-7, Math.abs(beforeRaw) * 1e-6)) {
+          throw new Error(title + ': source changed; render the source again');
+        }
+      } else if (Number(change.expected_raw) !== beforeRaw) {
         throw new Error(title + ': source changed; render the source again');
       }
       var decimals = kind === 'axis' ? null : item.decimalpl;
-      var converted = inverseMath(item.math, change.value, item.embedded, decimals);
+      var eqBefore = (kind === 'table' && item.that_refs && item.that_refs.length)
+        ? cellEquation(xdf, item, image.bytes, row, col, addressBase) : item.math;
+      var eqWorking = (kind === 'table' && item.that_refs && item.that_refs.length)
+        ? cellEquation(xdf, item, bytes, row, col, addressBase) : item.math;
+      var converted = inverseMath(eqWorking, change.value, item.embedded, decimals, beforeRaw, xdf.little_endian);
       if (converted.raw === beforeRaw) throw new Error(title + ': requested value is unchanged');
-      var before = compileMath(item.math)(beforeRaw);
+      var before = compileMath(eqBefore)(beforeRaw);
       if (decimals !== null) before = round(before, decimals);
       var slot = embeddedPositions(item.embedded, offset)[index];
       for (var byteIndex = slot.pos; byteIndex < slot.pos + slot.size; byteIndex++) {
-        if (touchedBytes[byteIndex]) throw new Error(title + ': overlapping byte writes in this change set');
+        if (touchedBytes[byteIndex] || touchedFlagBits[byteIndex]) {
+          throw new Error(title + ': overlapping byte writes in this change set');
+        }
         touchedBytes[byteIndex] = true;
       }
-      // Write only this cell. Rewriting a whole table from source would erase
-      // earlier edits to other cells in the same staged plan.
       var cellLayout = Object.assign({}, item.embedded, {
         rows: 1, cols: 1, major_stride_bits: 0, minor_stride_bits: 0, column_major: false,
       });
       writeEmbedded(cellLayout, bytes, slot.pos, xdf.little_endian, [converted.raw]);
-      applied.push({
+      appliedByIdx[entry.idx] = {
         kind: kind, id: id, axis: axisName,
         index: kind === 'axis' ? index : null, title: title,
         row: kind === 'table' ? row : null, col: kind === 'table' ? col : null,
@@ -1221,8 +1962,10 @@
         before_raw: beforeRaw, after_raw: converted.raw,
         before: before, requested: Number(change.value), after: converted.value,
         quantized: converted.value !== Number(change.value),
-      });
+      };
     });
+    var applied = [];
+    for (var outIdx = 0; outIdx < changes.length; outIdx++) applied.push(appliedByIdx[outIdx]);
     return { bytes: bytes, changes: applied, address_base: addressBase };
   }
 
@@ -1240,8 +1983,8 @@
       var offset = fileOffset(xdf, table.embedded.address) - addressBase;
       var beforeRows, afterRows, x, y, xAfter, yAfter;
       try {
-        beforeRows = tableValues(table, a, offset, xdf.little_endian);
-        afterRows = tableValues(table, b, offset, xdf.little_endian);
+        beforeRows = tableValues(xdf, table, a, offset, xdf.little_endian, addressBase);
+        afterRows = tableValues(xdf, table, b, offset, xdf.little_endian, addressBase);
         var xOffset = table.x.embedded
           ? fileOffset(xdf, table.x.embedded.address) - addressBase : offset;
         var yOffset = table.y.embedded
@@ -1302,6 +2045,10 @@
         var fn = compileMath(constant.math);
         var va = fn(readEmbedded(constant.embedded, a, offset, xdf.little_endian)[0]);
         var vb = fn(readEmbedded(constant.embedded, b, offset, xdf.little_endian)[0]);
+        if (constant.decimalpl !== null) {
+          va = round(va, constant.decimalpl);
+          vb = round(vb, constant.decimalpl);
+        }
         if (va !== vb) {
           constants.push({
             title: constant.title, units: constant.units,
@@ -1311,13 +2058,49 @@
       } catch (exc) { /* unreadable in one of the two: nothing to compare */ }
     });
 
+    var flags = [];
+    (xdf.flags || []).forEach(function (flag) {
+      var offset = fileOffset(xdf, flag.embedded.address) - addressBase;
+      try {
+        var wa = readEmbedded(flag.embedded, a, offset, xdf.little_endian)[0];
+        var wb = readEmbedded(flag.embedded, b, offset, xdf.little_endian)[0];
+        var ba = flagWordMatchesMask(wa, flag.mask);
+        var bb = flagWordMatchesMask(wb, flag.mask);
+        if (ba !== bb) {
+          flags.push({
+            title: flag.title, mask: '0x' + flag.mask.toString(16).toUpperCase(),
+            before: ba, after: bb,
+          });
+        }
+      } catch (exc) { /* unreadable */ }
+    });
+
+    var patches = [];
+    (xdf.patches || []).forEach(function (patch) {
+      try {
+        var ia = inspectPatch(xdf, patch, a, addressBase);
+        var ib = inspectPatch(xdf, patch, b, addressBase);
+        var hA = ia.entries.map(function (e) { return e.current_hex; });
+        var hB = ib.entries.map(function (e) { return e.current_hex; });
+        if (JSON.stringify(hA) !== JSON.stringify(hB)) {
+          patches.push({
+            title: patch.title,
+            before_state: ia.state, after_state: ib.state,
+            before_applied: ia.applied, after_applied: ib.applied,
+          });
+        }
+      } catch (exc) { /* unreadable */ }
+    });
+
     return {
       xdf: { title: xdf.title, path: xdf.path },
       image_size: a.length,
       address_base: addressBase,
-      identical: !tables.length && !constants.length,
+      identical: !tables.length && !constants.length && !flags.length && !patches.length,
       tables: tables,
       constants: constants,
+      flags: flags,
+      patches: patches,
     };
   }
 
@@ -1767,16 +2550,45 @@
     return profile;
   }
 
+  var WRITER_ACK = 'I have an external recovery plan and accept unverified ECU write risk';
+  var EXTERNAL_BACKUP_ACK = 'I confirm this file is a verified full backup from this exact ECU';
+
+  function hasImplementedWriter(profile) {
+    var mem = (profile && profile.memory) || {};
+    var proto = mem.protocol || (profile && profile.id === '5am' ? 'iaw_transfer' : '');
+    return proto === 'iaw_transfer' || proto === 'kwp_transfer';
+  }
+
   function memoryCapabilities(profile) {
     var memory = profile.memory || {};
+    var implWriter = hasImplementedWriter(profile);
+    var unlocked = !!(implWriter && WS.gate.allow_unverified_writers);
+    var writeSupported = !!memory.write_supported || unlocked;
+    var rawRegions = memory.regions || {};
+    var outRegions = {};
+    var implRegions = [];
+    Object.keys(rawRegions).forEach(function (rname) {
+      var rcopy = Object.assign({}, rawRegions[rname]);
+      if (implWriter) implRegions.push(rname);
+      if (unlocked) rcopy.writable = true;
+      outRegions[rname] = rcopy;
+    });
     return {
       ecu: profile.id,
       family: profile.family,
       protocol: memory.protocol || (profile.id === '5am' ? 'iaw_transfer' : 'kwp_transfer'),
-      regions: memory.regions || {},
+      regions: outRegions,
       read_supported: !!memory.read_supported,
-      write_supported: !!memory.write_supported,
-      write_blocked_reason: memory.write_blocked_reason || '',
+      write_supported: writeSupported,
+      has_implemented_writer: implWriter,
+      implemented_writer_available: implWriter && implRegions.length > 0,
+      implemented_writer_regions: implRegions,
+      unverified_writer_unlocked: unlocked,
+      unverified_hardware_writes_enabled: !!WS.gate.allow_unverified_writers,
+      unverified_hardware_writer_unlocked: unlocked,
+      unverified_writer_acknowledgement: WRITER_ACK,
+      external_backup_acknowledgement: EXTERNAL_BACKUP_ACK,
+      write_blocked_reason: writeSupported ? '' : (memory.write_blocked_reason || ''),
       simulated: true,
       simulation_note: (memory.simulation_note || '')
         + ' In this hosted demo the image itself is synthesised in your '
@@ -1971,8 +2783,11 @@
       job: jobStatus(),
       checkpoints: checkpoints,
       acknowledgement: 'I have a verified backup and accept the risk',
+      writer_acknowledgement: WRITER_ACK,
+      external_backup_acknowledgement: EXTERNAL_BACKUP_ACK,
       programming_enabled: WS.gate.allow_programming,
       unverified_keys_accepted: WS.gate.allow_unverified_keys,
+      unverified_writers_accepted: !!WS.gate.allow_unverified_writers,
       demo_images: demoHazardImages(),
       simulated: true,
       demo_note: 'Simulated ECU memory. The image is synthesised in this tab '
@@ -2252,11 +3067,11 @@
   D.register('POST', '/api/memory/check-write', function (body) {
     var profile = currentProfile();
     var region = body.region || 'flash';
-    var opts = { profile: profile, capability: 'memory_write' };
+    var opts = {
+      profile: profile, capability: 'memory_write',
+      writer_unlocked: !!(hasImplementedWriter(profile) && WS.gate.allow_unverified_writers),
+    };
     if (body.path) {
-      // With the candidate image on the bench the decision includes the
-      // hardware-family check, so a cross-family file is refused before the
-      // confirmation dialog - exactly like the local workstation.
       var image = imageAt(body.path);
       opts.image_hardware = image.identity && image.identity.Hardware
         ? String(image.identity.Hardware) : '';
@@ -2264,6 +3079,42 @@
     }
     var decision = WS.gate.evaluate('write:' + region, 'irreversible', opts);
     return [200, decision];
+  });
+
+  D.register('POST', '/api/memory/attest-backup', function (body) {
+    var profile = currentProfile();
+    var region = body.region || 'flash';
+    if (String(body.acknowledgement || '').trim() !== EXTERNAL_BACKUP_ACK) {
+      throw httpError(403, 'attest-backup refused: repeat exactly: ' + JSON.stringify(EXTERNAL_BACKUP_ACK), 'safety');
+    }
+    if (!body.path) throw bad("a 'path' to an image file is required");
+    var image = imageAt(body.path);
+    var validation = validateImage(image, profile, region);
+    if (!validation.ok) {
+      throw httpError(409, 'external backup failed validation: '
+        + validation.findings.filter(function (f) { return f.level === 'fatal'; })
+          .map(function (f) { return f.check + ': ' + f.detail; }).join('; '),
+        'validation');
+    }
+    WS.gate.state.verified_backup = true;
+    WS.gate.state.backup_path = image.path;
+    var baseResult = storeBaseMap(region, image, body.note || 'operator-attested external backup');
+    CHECKPOINTS[region] = { path: image.path, at: epoch(), verified: true, attested: true };
+    WS.gate.audit.push({ at: epoch(), event: 'external backup attested: ' + image.path });
+    return [200, {
+      attested: true,
+      verified: true,
+      path: image.path,
+      bytes: image.bytes.length,
+      sha256: validation.image && validation.image.checksums ? validation.image.checksums.sha256 : sha256(image.bytes),
+      sliced_from_full_dump: false,
+      describe: validation.image || null,
+      region: region,
+      validation: validation,
+      base_map: baseMapStatus(region),
+      result: baseResult,
+      simulated: true,
+    }];
   });
 
   D.register('POST', '/api/programming/enable', function (body) {
@@ -2275,6 +3126,12 @@
     WS.gate.allow_programming = true;
     WS.gate.mode = 'programming';
     if (body.allow_unverified_keys) WS.gate.allow_unverified_keys = true;
+    if (body.allow_unverified_writers) {
+      if (String(body.writer_acknowledgement || '').trim() !== WRITER_ACK) {
+        throw httpError(403, 'unlock-writer refused: repeat exactly: ' + JSON.stringify(WRITER_ACK), 'safety');
+      }
+      WS.gate.allow_unverified_writers = true;
+    }
     WS.gate.audit.push({
       at: epoch(),
       event: 'programming enabled (simulated ECU, browser demo)',
@@ -2282,15 +3139,46 @@
     return [200, {
       programming_enabled: true,
       unverified_keys_accepted: WS.gate.allow_unverified_keys,
+      unverified_writers_accepted: !!WS.gate.allow_unverified_writers,
       simulated: true,
     }];
   });
 
   D.register('POST', '/api/programming/disable', function () {
     WS.gate.allow_programming = false;
+    WS.gate.allow_unverified_writers = false;
     WS.gate.mode = 'simulator';
     WS.gate.audit.push({ at: epoch(), event: 'programming disabled' });
-    return [200, { programming_enabled: false }];
+    return [200, { programming_enabled: false, unverified_writers_accepted: false }];
+  });
+
+  D.register('POST', '/api/programming/unlock-writer', function (body) {
+    if (String(body.acknowledgement || '').trim() !== WRITER_ACK) {
+      throw httpError(403, 'unlock-writer refused: repeat exactly: ' + JSON.stringify(WRITER_ACK), 'safety');
+    }
+    WS.gate.allow_unverified_writers = true;
+    if (body.allow_unverified_keys) WS.gate.allow_unverified_keys = true;
+    WS.gate.audit.push({ at: epoch(), event: 'implemented hardware writer unlocked for session' });
+    var profile = WS.sessionProfile || WS.selection.profile;
+    return [200, {
+      unverified_hardware_writes_enabled: true,
+      unverified_writers_accepted: true,
+      unverified_keys_accepted: WS.gate.allow_unverified_keys,
+      capabilities: profile ? memoryCapabilities(profile) : null,
+      simulated: true,
+    }];
+  });
+
+  D.register('POST', '/api/programming/lock-writer', function () {
+    WS.gate.allow_unverified_writers = false;
+    WS.gate.audit.push({ at: epoch(), event: 'implemented hardware writer locked' });
+    var profile = WS.sessionProfile || WS.selection.profile;
+    return [200, {
+      unverified_hardware_writes_enabled: false,
+      unverified_writers_accepted: false,
+      capabilities: profile ? memoryCapabilities(profile) : null,
+      simulated: true,
+    }];
   });
 
   D.register('POST', '/api/security/unverified', function (body) {
@@ -2330,6 +3218,7 @@
     // refuses it the same way the installed workstation does.
     var decision = WS.gate.evaluate('write:' + region, 'irreversible', {
       profile: profile, capability: 'memory_write',
+      writer_unlocked: !!(hasImplementedWriter(profile) && WS.gate.allow_unverified_writers),
       image_hardware: image.identity && image.identity.Hardware
         ? String(image.identity.Hardware) : '',
       image_embedded_hardware: hardwareStrings(image.bytes),
@@ -2670,6 +3559,7 @@
         return {
           title: entry.title, path: entry.path, version: entry.version,
           tables: entry.tables, constants: entry.constants,
+          flags: entry.flags || 0, patches: entry.patches || 0,
           unsupported: entry.unsupported, region_size: entry.region_size,
           categories: entry.categories,
           filename: entry.filename, brand: entry.brand,
@@ -2685,13 +3575,30 @@
         available: true,
         acknowledgement: 'I understand modified maps can damage the engine and accept responsibility',
         requires_recommendation_evidence: true,
+        custom_modes: ['operator', 'dyno', 'afr-log'],
         note: 'Map builds are new files made from a hashed source. No tuning '
-          + 'values ship without a traceable recommendation.',
+          + 'values ship without an operator/dyno/log rationale or traceable recommendation.',
       },
       simulated: true,
       demo_note: 'The definitions are the real bundled XDFs. The dump they '
         + 'are rendered against is synthesised in your browser.',
     }];
+  });
+
+  var xdfLibraryPayload = null;
+
+  /* The table-level index behind the XDF library finder. It is one generated
+   * file rather than a slice of demo-data.json because only this tool needs
+   * it: every other visitor would otherwise download 4,280 table rows. */
+  D.register('GET', '/api/maps/library', function () {
+    if (xdfLibraryPayload) return [200, xdfLibraryPayload];
+    return fetch('xdf-library.json', { cache: 'force-cache' }).then(function (response) {
+      if (!response.ok) throw new Error('XDF library index: HTTP ' + response.status);
+      return response.json();
+    }).then(function (payload) {
+      xdfLibraryPayload = payload;
+      return [200, payload];
+    });
   });
 
   D.register('POST', '/api/maps/render', function (body) {
@@ -2723,11 +3630,66 @@
     });
   });
 
+  function bilinearTargetTable(targetTbl) {
+    if (!targetTbl || !Array.isArray(targetTbl.x) || !Array.isArray(targetTbl.y) || !Array.isArray(targetTbl.values)) {
+      throw bad('target_afr_table must be a rendered 2D XDF table');
+    }
+    var txs = targetTbl.x.map(Number), tys = targetTbl.y.map(Number);
+    if (!txs.length || !tys.length || txs.some(function (v) { return !Number.isFinite(v); })
+        || tys.some(function (v) { return !Number.isFinite(v); })) {
+      throw bad('target_afr_table axes must be numeric');
+    }
+    var xOrder = txs.map(function (v, idx) { return { v: v, idx: idx }; }).sort(function (a, b) { return a.v - b.v; });
+    var yOrder = tys.map(function (v, idx) { return { v: v, idx: idx }; }).sort(function (a, b) { return a.v - b.v; });
+    var grid = yOrder.map(function (yo) {
+      var row = targetTbl.values[yo.idx] || [];
+      return xOrder.map(function (xo) { return Number(row[xo.idx]); });
+    });
+    if (grid.some(function (r) { return r.some(function (v) { return !Number.isFinite(v); }); })) {
+      throw bad('target_afr_table values must be numeric');
+    }
+    var sx = xOrder.map(function (o) { return o.v; }), sy = yOrder.map(function (o) { return o.v; });
+    function bracket(axis, val) {
+      if (val < axis[0] || val > axis[axis.length - 1]) return null;
+      if (axis.length === 1) return [0, 0, 0];
+      var hi = 0;
+      while (hi < axis.length && axis[hi] < val) hi += 1;
+      if (hi < axis.length && axis[hi] === val) return [hi, hi, 0];
+      if (!hi || hi >= axis.length) return null;
+      var lo = hi - 1, span = axis[hi] - axis[lo];
+      return [lo, hi, span > 0 ? (val - axis[lo]) / span : 0];
+    }
+    return function (xv, yv) {
+      var bx = bracket(sx, xv), by = bracket(sy, yv);
+      if (!bx || !by) return NaN;
+      var z00 = grid[by[0]][bx[0]], z10 = grid[by[0]][bx[1]];
+      var z01 = grid[by[1]][bx[0]], z11 = grid[by[1]][bx[1]];
+      var top = z00 + (z10 - z00) * bx[2];
+      var bot = z01 + (z11 - z01) * bx[2];
+      return top + (bot - top) * by[2];
+    };
+  }
+
   D.register('POST', '/api/maps/analyze-log', function (body) {
     if (!body.xdf || !body.table) throw bad("'xdf' and 'table' are required");
-    var channels = ['x_channel', 'y_channel', 'measured_afr_channel', 'target_afr_channel'];
-    channels.forEach(function (name) { if (!body[name]) throw bad(name + ' is required'); });
-    if (body.measured_afr_channel === body.target_afr_channel) {
+    ['x_channel', 'y_channel', 'measured_afr_channel'].forEach(function (name) {
+      if (!body[name]) throw bad(name + ' is required');
+    });
+    var hasTargetCh = !!(body.target_afr_channel && String(body.target_afr_channel).trim());
+    var hasTargetConst = body.target_afr_constant !== undefined && body.target_afr_constant !== null && body.target_afr_constant !== '';
+    var hasTargetTbl = body.target_afr_table !== undefined && body.target_afr_table !== null && body.target_afr_table !== '';
+    var targetSourceCount = (hasTargetCh ? 1 : 0) + (hasTargetConst ? 1 : 0) + (hasTargetTbl ? 1 : 0);
+    if (targetSourceCount !== 1) {
+      throw bad('provide exactly one target AFR source: target_afr_channel, target_afr_constant, or target_afr_table');
+    }
+    var targetConstVal = null;
+    if (hasTargetConst) {
+      targetConstVal = Number(body.target_afr_constant);
+      if (!Number.isFinite(targetConstVal) || targetConstVal < 9 || targetConstVal > 22) {
+        throw bad('target_afr_constant must be between 9.0 and 22.0 AFR');
+      }
+    }
+    if (hasTargetCh && body.measured_afr_channel === body.target_afr_channel) {
       throw bad('measured and target AFR must use different columns');
     }
     var rows = body.rows;
@@ -2789,6 +3751,21 @@
           || ys.some(function (v) { return !Number.isFinite(v); })) {
         throw bad('table axes must be numeric');
       }
+      var targetTblObj = null, targetLookup = null;
+      if (hasTargetTbl) {
+        if (typeof body.target_afr_table === 'object') {
+          targetTblObj = body.target_afr_table;
+        } else {
+          var tMatches = render.tables.filter(function (t) {
+            return t.id === String(body.target_afr_table) || t.title === String(body.target_afr_table);
+          });
+          if (tMatches.length !== 1) {
+            throw bad('no unique rendered target AFR table matches ' + JSON.stringify(body.target_afr_table));
+          }
+          targetTblObj = tMatches[0];
+        }
+        targetLookup = bilinearTargetTable(targetTblObj);
+      }
       var buckets = {}, skipped = {
         invalid: 0, invalid_timestamp: 0, alignment_gap: 0, transient: 0,
         outside_axes: 0, afr_out_of_range: 0,
@@ -2805,6 +3782,11 @@
         if (value === null || value === undefined || String(value).trim() === '') return NaN;
         return Number(value);
       }
+      function resolveTargetAt(xVal, yVal, rowSource) {
+        if (hasTargetConst) return targetConstVal;
+        if (hasTargetTbl) return targetLookup(xVal, yVal);
+        return logNumber(rowSource[body.target_afr_channel]);
+      }
       var factor = timestampUnit === 'milliseconds' ? 0.001 : 1;
       var delayS = delayMs / 1000, settleS = settleMs / 1000, gapS = gapMs / 1000;
       var timeline = [], originalTimes = [], stateOnlyRows = 0, duplicateTimestamps = 0;
@@ -2812,7 +3794,7 @@
         rows.forEach(function (source) {
           var time = logNumber(source[timeChannel]) * factor;
           var x = logNumber(source[body.x_channel]), y = logNumber(source[body.y_channel]);
-          var target = logNumber(source[body.target_afr_channel]);
+          var target = hasTargetCh ? logNumber(source[body.target_afr_channel]) : 0;
           if ([time, x, y, target].every(Number.isFinite)) {
             timeline.push([time, x, y, target]); originalTimes.push(time);
             if (!Number.isFinite(logNumber(source[body.measured_afr_channel]))) stateOnlyRows += 1;
@@ -2874,7 +3856,9 @@
           var operatingTime = sampleTime - delayS;
           var stateAt = interpolatedAt(operatingTime);
           if (!stateAt) { skipped.alignment_gap += 1; return; }
-          x = stateAt[0]; y = stateAt[1]; target = stateAt[2];
+          x = stateAt[0]; y = stateAt[1];
+          target = hasTargetCh ? stateAt[2] : resolveTargetAt(x, y, source);
+          if (hasTargetTbl && !Number.isFinite(target)) { skipped.outside_axes += 1; return; }
           var colAt = nearest(xs, x), rowAt = nearest(ys, y);
           if (colAt === null || rowAt === null) { skipped.outside_axes += 1; return; }
           if (settleS > 0 && (String(locationAt(operatingTime - settleS)) !== String([rowAt, colAt])
@@ -2888,7 +3872,9 @@
           }
         } else {
           x = logNumber(source[body.x_channel]); y = logNumber(source[body.y_channel]);
-          target = logNumber(source[body.target_afr_channel]);
+          if (![x, y].every(Number.isFinite)) { skipped.invalid += 1; return; }
+          target = resolveTargetAt(x, y, source);
+          if (hasTargetTbl && !Number.isFinite(target)) { skipped.outside_axes += 1; return; }
         }
         if (![x, y, measured, target].every(Number.isFinite)) { skipped.invalid += 1; return; }
         if (measured < 6 || measured > 30 || target < 6 || target > 30) {
@@ -2946,6 +3932,9 @@
       return [200, {
         table: { id: table.id, title: table.title, units: table.units,
           x_units: table.x_units, y_units: table.y_units },
+        target_afr_mode: hasTargetConst ? 'constant' : (hasTargetTbl ? 'table' : 'channel'),
+        target_afr_constant: hasTargetConst ? targetConstVal : null,
+        target_afr_table: hasTargetTbl ? { id: targetTblObj.id || '', title: targetTblObj.title || '' } : null,
         rows_received: rows.length,
         rows_used: Object.keys(buckets).reduce(function (sum, key) { return sum + buckets[key].length; }, 0),
         skipped: skipped, min_samples: minSamples, max_correction_percent: limit,
@@ -2996,6 +3985,15 @@
       var ids = {};
       xdf.tables.concat(xdf.constants).forEach(function (item) {
         var id = item.uniqueid || ('address:0x' + item.embedded.address.toString(16));
+        ids[id] = (ids[id] || 0) + 1;
+      });
+      (xdf.flags || []).forEach(function (flag) {
+        var id = flag.uniqueid || ('flag:0x' + flag.embedded.address.toString(16).toUpperCase()
+          + ':0x' + flag.mask.toString(16).toUpperCase());
+        ids[id] = (ids[id] || 0) + 1;
+      });
+      (xdf.patches || []).forEach(function (patch) {
+        var id = patch.uniqueid || ('patch:0x' + patch.entries[0].address.toString(16).toUpperCase());
         ids[id] = (ids[id] || 0) + 1;
       });
       Object.keys(ids).forEach(function (id) {
@@ -3132,12 +4130,19 @@
     }
     if (!body.xdf) throw bad("an 'xdf' (filename or .xdf path) is required");
     var evidence = body.recommendation || {};
+    var recMode = String(evidence.mode || 'external').trim().toLowerCase() || 'external';
+    var customModes = ['operator', 'dyno', 'afr-log'];
+    if (recMode !== 'external' && customModes.indexOf(recMode) < 0) {
+      throw bad('recommendation mode must be external, operator, dyno, or afr-log');
+    }
     if (String(evidence.title || evidence.source_title || '').trim().length < 3) {
       throw bad('recommendation evidence needs a source title');
     }
     var sourceUrl = String(evidence.url || evidence.source_url || '').trim();
-    if (!/^https?:\/\/[^/]+/i.test(sourceUrl)) {
-      throw bad('recommendation evidence needs an inspectable http(s) source URL');
+    if (recMode === 'external' || sourceUrl) {
+      if (!/^https?:\/\/[^/\s]+/i.test(sourceUrl)) {
+        throw bad('recommendation evidence needs an inspectable http(s) source URL');
+      }
     }
     if (String(evidence.rationale || '').trim().length < 10) {
       throw bad('explain why this recommendation applies to this motorcycle and configuration');
@@ -3176,13 +4181,14 @@
         throw bad('the reviewed tuning plan no longer matches this source/XDF/change set');
       }
       var evidenceRecord = {
+        mode: recMode,
         title: String(evidence.title || evidence.source_title).trim(),
         url: sourceUrl,
         publisher: String(evidence.publisher || '').trim(),
         published: String(evidence.published || '').trim(),
         rationale: String(evidence.rationale || '').trim(),
         quote: String(evidence.quote || '').trim(),
-        status: 'traceable-not-endorsed',
+        status: recMode === 'external' ? 'traceable-not-endorsed' : (recMode + '-authored-not-endorsed'),
       };
       var manifest = {
         schema: 1, built_at: now, built_at_text: timeText(now),

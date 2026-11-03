@@ -108,50 +108,94 @@ def validate_package(value: dict, *, path: str = "") -> dict:
         if not isinstance(change, dict):
             raise RecommendationPackageError(f"change {index} must be an object")
         kind = str(change.get("kind") or "").lower()
-        if kind not in ("table", "constant", "axis"):
+        if kind not in ("table", "constant", "axis", "flag", "patch"):
             raise RecommendationPackageError(f"change {index} has an invalid kind")
         item_id = _text(change.get("id"), f"change {index} id")
-        try:
-            raw_value = change["expected_raw"]
-            expected_raw = int(raw_value)
-            target = float(change["value"])
-            if isinstance(raw_value, bool) or expected_raw != float(raw_value) or not math.isfinite(target):
-                raise ValueError
-        except (KeyError, TypeError, ValueError) as exc:
-            raise RecommendationPackageError(
-                f"change {index} needs integer expected_raw and numeric value"
-            ) from exc
-        normalized = {
-            "kind": kind, "id": item_id,
-            "expected_raw": expected_raw, "value": target,
-        }
-        if kind == "table":
+        if kind == "patch":
+            expected_hex = change.get("expected_hex")
+            if (not isinstance(expected_hex, list) or not expected_hex
+                    or any(not isinstance(h, str) or not re.fullmatch(r"[0-9A-Fa-f]{2,8192}", h.strip())
+                           or len(h.strip()) % 2 for h in expected_hex)):
+                raise RecommendationPackageError(
+                    f"change {index} patch needs a non-empty expected_hex list"
+                )
+            val = change.get("value")
+            if not isinstance(val, bool):
+                raise RecommendationPackageError(f"change {index} patch value must be boolean")
+            normalized = {
+                "kind": "patch",
+                "id": item_id,
+                "expected_hex": [h.strip().lower() for h in expected_hex],
+                "value": val,
+            }
+            identity = ("patch", item_id)
+        elif kind == "flag":
             try:
-                row, col = int(change["row"]), int(change["col"])
+                raw_value = change["expected_raw"]
+                expected_raw = int(raw_value)
+                if isinstance(raw_value, bool) or expected_raw != float(raw_value) or expected_raw < 0:
+                    raise ValueError
             except (KeyError, TypeError, ValueError) as exc:
                 raise RecommendationPackageError(
-                    f"change {index} needs integer row and col"
+                    f"change {index} flag needs non-negative integer expected_raw"
                 ) from exc
-            if row < 0 or col < 0:
-                raise RecommendationPackageError(f"change {index} row and col cannot be negative")
-            normalized.update(row=row, col=col)
-            identity = (kind, item_id, row, col)
-        elif kind == "axis":
-            axis = str(change.get("axis") or "").lower()
-            if axis not in ("x", "y"):
-                raise RecommendationPackageError(f"change {index} axis must be x or y")
-            try:
-                axis_index = int(change["index"])
-            except (KeyError, TypeError, ValueError) as exc:
-                raise RecommendationPackageError(
-                    f"change {index} needs an integer axis index"
-                ) from exc
-            if axis_index < 0:
-                raise RecommendationPackageError(f"change {index} axis index cannot be negative")
-            normalized.update(axis=axis, index=axis_index)
-            identity = (kind, item_id, axis, axis_index)
+            val = change.get("value")
+            if not isinstance(val, bool):
+                raise RecommendationPackageError(f"change {index} flag value must be boolean")
+            normalized = {
+                "kind": "flag",
+                "id": item_id,
+                "expected_raw": expected_raw,
+                "value": val,
+            }
+            identity = ("flag", item_id)
         else:
-            identity = (kind, item_id)
+            try:
+                raw_value = change["expected_raw"]
+                if isinstance(raw_value, bool):
+                    raise ValueError
+                expected_raw_f = float(raw_value)
+                if not math.isfinite(expected_raw_f):
+                    raise ValueError
+                expected_raw = int(expected_raw_f) if expected_raw_f.is_integer() and isinstance(raw_value, int) else expected_raw_f
+                target = float(change["value"])
+                if isinstance(change["value"], bool) or not math.isfinite(target):
+                    raise ValueError
+            except (KeyError, TypeError, ValueError) as exc:
+                raise RecommendationPackageError(
+                    f"change {index} needs finite expected_raw and numeric value"
+                ) from exc
+            normalized = {
+                "kind": kind, "id": item_id,
+                "expected_raw": expected_raw, "value": target,
+            }
+            if kind == "table":
+                try:
+                    row, col = int(change["row"]), int(change["col"])
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise RecommendationPackageError(
+                        f"change {index} needs integer row and col"
+                    ) from exc
+                if row < 0 or col < 0:
+                    raise RecommendationPackageError(f"change {index} row and col cannot be negative")
+                normalized.update(row=row, col=col)
+                identity = (kind, item_id, row, col)
+            elif kind == "axis":
+                axis = str(change.get("axis") or "").lower()
+                if axis not in ("x", "y"):
+                    raise RecommendationPackageError(f"change {index} axis must be x or y")
+                try:
+                    axis_index = int(change["index"])
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise RecommendationPackageError(
+                        f"change {index} needs an integer axis index"
+                    ) from exc
+                if axis_index < 0:
+                    raise RecommendationPackageError(f"change {index} axis index cannot be negative")
+                normalized.update(axis=axis, index=axis_index)
+                identity = (kind, item_id, axis, axis_index)
+            else:
+                identity = (kind, item_id)
         if identity in identities:
             raise RecommendationPackageError(f"change {index} duplicates another change")
         identities.add(identity)

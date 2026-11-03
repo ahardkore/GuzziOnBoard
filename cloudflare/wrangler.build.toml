@@ -1,6 +1,8 @@
 # Production relay for Workers Builds. This is separate from the public website
 # Worker named "guzzionboard". It contains only a D1 resource ID, never secrets.
-# Run from the repository root: npx wrangler deploy --config cloudflare/wrangler.build.toml
+# Preferred entry point: sh scripts/deploy_worker.sh  (deploys on the production
+# branch, uploads a version elsewhere). Manual equivalent, from the repository
+# root: npx wrangler deploy --config cloudflare/wrangler.build.toml
 name = "guzzionboard-validation"
 main = "worker.mjs"
 compatibility_date = "2025-08-01"

@@ -812,3 +812,328 @@ class TestMapsApi:
         assert api.post_maps_diff({"path_a": "/a"})[0] == 400
         assert api.post_maps_diff({"path_a": "/a", "path_b": "/b"})[0] == 400
 
+
+class TestUnlockedXdfCapabilities:
+    def test_xdf_flags_parse_render_compose_and_guard_bitmasks(self):
+        xml = """<?xml version="1.0"?>
+<XDFFORMAT version="1.70">
+  <XDFHEADER>
+    <deftitle>Flag Test</deftitle>
+    <BASEOFFSET offset="0" subtract="0" />
+    <DEFAULTS datasizeinbits="8" sigdigits="2" lsbfirst="0" float="0" />
+    <REGION type="0xFFFFFFFF" startaddress="0x0" size="0x100" />
+  </XDFHEADER>
+  <XDFFLAG uniqueid="0x10">
+    <title>Lambda Enable</title>
+    <EMBEDDEDDATA mmedaddress="0x20" mmedelementsizebits="8" />
+    <mask>0x01</mask>
+  </XDFFLAG>
+  <XDFFLAG uniqueid="0x11">
+    <title>Immobiliser Enable</title>
+    <EMBEDDEDDATA mmedaddress="0x20" mmedelementsizebits="8" />
+    <mask>0x04</mask>
+  </XDFFLAG>
+  <XDFFLAG uniqueid="0x12">
+    <title>Overlapping Bit</title>
+    <EMBEDDEDDATA mmedaddress="0x20" mmedelementsizebits="8" />
+    <mask>0x05</mask>
+  </XDFFLAG>
+</XDFFORMAT>"""
+        xdf = XdfFile.from_string(xml)
+        assert len(xdf.flags) == 3
+        raw_img = bytearray(0x100)
+        raw_img[0x20] = 0x81  # bit 7 + bit 0 set
+        rendered = xdf.render(bytes(raw_img))
+        assert rendered["flags"][0]["value"] is True
+        assert rendered["flags"][1]["value"] is False
+
+        # Non-overlapping flags in the same byte compose cleanly while preserving bit 7!
+        updated, changes = xdf.apply_changes(bytes(raw_img), [
+            {"kind": "flag", "id": "0x10", "expected_raw": 0x81, "value": False},
+            {"kind": "flag", "id": "0x11", "expected_raw": 0x81, "value": True},
+        ])
+        assert updated[0x20] == 0x84
+        assert [c["after"] for c in changes] == [False, True]
+        diff = xdf.diff(bytes(raw_img), updated)
+        assert len(diff["flags"]) == 2
+
+        # Overlapping bitmasks in the same batch are rejected
+        with pytest.raises(XdfError, match="overlapping byte/bit writes"):
+            xdf.apply_changes(bytes(raw_img), [
+                {"kind": "flag", "id": "0x10", "expected_raw": 0x81, "value": False},
+                {"kind": "flag", "id": "0x12", "expected_raw": 0x81, "value": True},
+            ])
+
+        # Source-lock mismatch is rejected
+        with pytest.raises(XdfError, match="expected raw"):
+            xdf.apply_changes(bytes(raw_img), [
+                {"kind": "flag", "id": "0x10", "expected_raw": 0x00, "value": False},
+            ])
+
+    def test_xdf_patches_apply_revert_and_enforce_basedata(self):
+        xml = """<?xml version="1.0"?>
+<XDFFORMAT version="1.70">
+  <XDFHEADER>
+    <deftitle>Patch Test</deftitle>
+    <BASEOFFSET offset="0" subtract="0" />
+    <DEFAULTS datasizeinbits="8" sigdigits="2" lsbfirst="0" float="0" />
+    <REGION type="0xFFFFFFFF" startaddress="0x0" size="0x100" />
+  </XDFHEADER>
+  <XDFPATCH uniqueid="0x20">
+    <title>Disable Exhaust Valve</title>
+    <XDFPATCHENTRY name="hook" address="0x40" datasize="0x2" patchdata="EA00" basedata="1020" />
+  </XDFPATCH>
+  <XDFPATCH uniqueid="0x21">
+    <title>One-Way Patch</title>
+    <XDFPATCHENTRY name="jump" address="0x50" datasize="0x2" patchdata="NOP?" />
+  </XDFPATCH>
+</XDFFORMAT>"""
+        # Valid hex for second patch
+        xml = xml.replace("NOP?", "0009")
+        xdf = XdfFile.from_string(xml)
+        assert len(xdf.patches) == 2
+
+        img = bytearray(0x100)
+        img[0x40:0x42] = bytes.fromhex("1020")
+        img[0x50:0x52] = bytes.fromhex("ABCD")
+        rendered = xdf.render(bytes(img))
+        assert rendered["patches"][0]["state"] == "unapplied"
+        assert rendered["patches"][0]["has_basedata"] is True
+        assert rendered["patches"][1]["has_basedata"] is False
+
+        patched, applied = xdf.apply_changes(bytes(img), [
+            {"kind": "patch", "id": "0x20", "expected_hex": ["1020"], "value": True},
+        ])
+        assert patched[0x40:0x42] == bytes.fromhex("EA00")
+        assert applied[0]["after"] is True
+        assert xdf.render(patched)["patches"][0]["state"] == "applied"
+        assert len(xdf.diff(bytes(img), patched)["patches"]) == 1
+
+        reverted, rev_applied = xdf.apply_changes(patched, [
+            {"kind": "patch", "id": "0x20", "expected_hex": ["ea00"], "value": False},
+        ])
+        assert reverted[0x40:0x42] == bytes.fromhex("1020")
+        assert rev_applied[0]["after"] is False
+
+        # Base mismatch rejected unless allow_base_mismatch is True
+        weird = bytearray(img)
+        weird[0x40:0x42] = bytes.fromhex("FFFF")
+        with pytest.raises(XdfError, match="do not match patch basedata"):
+            xdf.apply_changes(bytes(weird), [
+                {"kind": "patch", "id": "0x20", "expected_hex": ["ffff"], "value": True},
+            ])
+        forced, _ = xdf.apply_changes(bytes(weird), [
+            {"kind": "patch", "id": "0x20", "expected_hex": ["ffff"], "value": True,
+             "allow_base_mismatch": True},
+        ])
+        assert forced[0x40:0x42] == bytes.fromhex("EA00")
+
+        # Patch without basedata cannot be reverted
+        patched_one_way, _ = xdf.apply_changes(bytes(img), [
+            {"kind": "patch", "id": "0x21", "expected_hex": ["abcd"], "value": True},
+        ])
+        with pytest.raises(XdfError, match="defines no basedata"):
+            xdf.apply_changes(patched_one_way, [
+                {"kind": "patch", "id": "0x21", "expected_hex": ["0009"], "value": False},
+            ])
+
+    def test_ieee754_float_tables_constants_and_axes_roundtrip(self):
+        import struct
+        xml = """<?xml version="1.0"?>
+<XDFFORMAT version="1.70">
+  <XDFHEADER>
+    <deftitle>Float ECU</deftitle>
+    <BASEOFFSET offset="0" subtract="0" />
+    <DEFAULTS datasizeinbits="32" sigdigits="4" lsbfirst="1" float="1" />
+    <REGION type="0xFFFFFFFF" startaddress="0x0" size="0x100" />
+  </XDFHEADER>
+  <XDFCONSTANT uniqueid="0x1">
+    <title>Stoich Target</title>
+    <EMBEDDEDDATA mmedtypeflags="0x10002" mmedaddress="0x10" mmedelementsizebits="32" />
+    <MATH equation="X"><VAR id="X" /></MATH>
+  </XDFCONSTANT>
+  <XDFTABLE uniqueid="0x2">
+    <title>VE Table</title>
+    <XDFAXIS id="x">
+      <indexcount>2</indexcount>
+      <EMBEDDEDDATA mmedtypeflags="0x10002" mmedaddress="0x20" mmedelementsizebits="32" mmedcolcount="2" />
+      <MATH equation="X"><VAR id="X" /></MATH>
+    </XDFAXIS>
+    <XDFAXIS id="y">
+      <indexcount>1</indexcount>
+      <LABEL index="0" value="100" />
+    </XDFAXIS>
+    <XDFAXIS id="z">
+      <EMBEDDEDDATA mmedtypeflags="0x10002" mmedaddress="0x40" mmedelementsizebits="64" mmedrowcount="1" mmedcolcount="2" />
+      <decimalpl>3</decimalpl>
+      <MATH equation="X * 2.0"><VAR id="X" /></MATH>
+    </XDFAXIS>
+  </XDFTABLE>
+</XDFFORMAT>"""
+        xdf = XdfFile.from_string(xml)
+        xdf.path = Path("5AM_Float_Test.xdf")
+        img = bytearray(0x100)
+        img[0x10:0x14] = struct.pack("<f", 14.7)
+        img[0x20:0x28] = struct.pack("<2f", 1000.0, 2000.0)
+        img[0x40:0x50] = struct.pack("<2d", 42.25, 45.5)
+
+        report = xdf.validate_definition(bytes(img))
+        assert report["ok"] is True
+
+        rendered = xdf.render(bytes(img))
+        const = rendered["constants"][0]
+        assert const["is_float"] is True
+        assert const["value"] == pytest.approx(14.7, rel=1e-5)
+        table = rendered["tables"][0]
+        assert table["is_float"] is True
+        assert table["axes"]["x"]["is_float"] is True
+        assert table["values"] == [[84.5, 91.0]]
+
+        updated, applied = xdf.apply_changes(bytes(img), [
+            {"kind": "constant", "id": "0x1", "expected_raw": const["raw"], "value": 13.2},
+            {"kind": "axis", "id": "0x2", "axis": "x", "index": 1,
+             "expected_raw": table["axes"]["x"]["raw_values"][1], "value": 2500.0},
+            {"kind": "table", "id": "0x2", "row": 0, "col": 0,
+             "expected_raw": table["raw_values"][0][0], "value": 90.0},
+        ])
+        assert len(applied) == 3
+        after_render = xdf.render(updated)
+        assert after_render["constants"][0]["value"] == pytest.approx(13.2, rel=1e-5)
+        assert after_render["tables"][0]["axes"]["x"]["values"][1] == "2500"
+        assert after_render["tables"][0]["values"][0][0] == pytest.approx(90.0, rel=1e-6)
+
+    def test_hex_literals_bit_shifts_and_that_cross_table_chains(self):
+        # 1. Bit-shift preservation on CBR1000RR-style X >> 4
+        xml = """<?xml version="1.0"?>
+<XDFFORMAT version="1.70">
+  <XDFHEADER>
+    <deftitle>Shift And Hex</deftitle>
+    <BASEOFFSET offset="0" subtract="0" />
+    <DEFAULTS datasizeinbits="16" sigdigits="2" lsbfirst="0" float="0" />
+    <REGION type="0xFFFFFFFF" startaddress="0x0" size="0x100" />
+  </XDFHEADER>
+  <XDFCONSTANT uniqueid="0x1">
+    <title>Hex Magic</title>
+    <EMBEDDEDDATA mmedaddress="0x10" mmedelementsizebits="16" />
+    <MATH equation="0x55AA - X"><VAR id="X" /></MATH>
+  </XDFCONSTANT>
+  <XDFCONSTANT uniqueid="0x2">
+    <title>Top Speed Limit</title>
+    <EMBEDDEDDATA mmedaddress="0x12" mmedelementsizebits="16" />
+    <MATH equation="X &gt;&gt; 4"><VAR id="X" /></MATH>
+  </XDFCONSTANT>
+</XDFFORMAT>"""
+        xdf = XdfFile.from_string(xml)
+        img = bytearray(0x100)
+        img[0x10:0x12] = (0x55AA).to_bytes(2, "big")
+        img[0x12:0x14] = ((300 << 4) | 0x0A).to_bytes(2, "big")
+        rendered = xdf.render(bytes(img))
+        assert rendered["constants"][0]["value"] == 0
+        assert rendered["constants"][1]["value"] == 300
+        updated, _ = xdf.apply_changes(bytes(img), [
+            {"kind": "constant", "id": "0x2", "expected_raw": (300 << 4) | 0x0A, "value": 299},
+        ])
+        # Low 4 bits (0x0A) preserved!
+        assert int.from_bytes(updated[0x12:0x14], "big") == ((299 << 4) | 0x0A)
+
+        # 2. Bundled 2-level THAT(...) chain in 15M_GuzziDiag_V2.32.xdf (0x612 -> 0x531 -> 0x40a3)
+        guzzi_15m = XdfFile.from_file(BUNDLED_XDF_DIR / "moto_guzzi" / "15M_GuzziDiag_V2.32.xdf")
+        base_tbl = next(t for t in guzzi_15m.tables if t.uniqueid.lower() == "0x612")
+        mid_tbl = next(t for t in guzzi_15m.tables if t.uniqueid.lower() == "0x531")
+        leaf_tbl = next(t for t in guzzi_15m.tables if t.uniqueid.lower() == "0x40a3")
+        assert mid_tbl.that_refs and leaf_tbl.that_refs
+
+        rom = bytearray(guzzi_15m.region_size)
+        rom[guzzi_15m.file_offset(base_tbl.embedded.address)] = 100
+        rom[guzzi_15m.file_offset(mid_tbl.embedded.address)] = 138   # 100 + (138 - 128) = 110
+        rom[guzzi_15m.file_offset(leaf_tbl.embedded.address)] = 123
+        r0 = guzzi_15m.render(bytes(rom), address_base=0)
+        by_id = {t["id"].lower(): t for t in r0["tables"]}
+        assert by_id["0x612"]["values"][0][0] == 100
+        assert by_id["0x531"]["values"][0][0] == 110
+        leaf_initial = by_id["0x40a3"]["values"][0][0]
+
+        # Edit leaf BEFORE base in input list: topological ordering applies base -> mid -> leaf!
+        target_leaf = round(leaf_initial + 30, 1)
+        rom_after, _ = guzzi_15m.apply_changes(bytes(rom), [
+            {"kind": "table", "id": leaf_tbl.item_id, "row": 0, "col": 0, "expected_raw": 123, "value": target_leaf},
+            {"kind": "table", "id": mid_tbl.item_id, "row": 0, "col": 0, "expected_raw": 138, "value": 135},
+            {"kind": "table", "id": base_tbl.item_id, "row": 0, "col": 0, "expected_raw": 100, "value": 120},
+        ], address_base=0)
+        r1 = {t["id"].lower(): t for t in guzzi_15m.render(rom_after, address_base=0)["tables"]}
+        assert r1["0x612"]["values"][0][0] == 120
+        assert r1["0x531"]["values"][0][0] == 135
+        assert r1["0x40a3"]["values"][0][0] == pytest.approx(target_leaf, abs=0.2)
+
+        # 3. Cycle guard quarantines cyclic THAT(...) tables into unsupported
+        cyclic_xml = """<?xml version="1.0"?>
+<XDFFORMAT version="1.70">
+  <XDFHEADER><deftitle>Cycle</deftitle><REGION startaddress="0x0" size="0x40" /></XDFHEADER>
+  <XDFCONSTANT uniqueid="0x9"><title>Valid</title>
+    <EMBEDDEDDATA mmedaddress="0x2" mmedelementsizebits="8" />
+    <MATH equation="X"><VAR id="X" /></MATH>
+  </XDFCONSTANT>
+  <XDFTABLE uniqueid="0x1"><title>A</title>
+    <XDFAXIS id="x"><indexcount>1</indexcount></XDFAXIS>
+    <XDFAXIS id="y"><indexcount>1</indexcount></XDFAXIS>
+    <XDFAXIS id="z"><EMBEDDEDDATA mmedaddress="0x0" mmedelementsizebits="8" mmedrowcount="1" mmedcolcount="1" />
+      <MATH equation="X + THAT(0x2;ROW();COL();TRUE)"><VAR id="X" /></MATH></XDFAXIS>
+  </XDFTABLE>
+  <XDFTABLE uniqueid="0x2"><title>B</title>
+    <XDFAXIS id="x"><indexcount>1</indexcount></XDFAXIS>
+    <XDFAXIS id="y"><indexcount>1</indexcount></XDFAXIS>
+    <XDFAXIS id="z"><EMBEDDEDDATA mmedaddress="0x1" mmedelementsizebits="8" mmedrowcount="1" mmedcolcount="1" />
+      <MATH equation="X + THAT(0x1;ROW();COL();TRUE)"><VAR id="X" /></MATH></XDFAXIS>
+  </XDFTABLE>
+</XDFFORMAT>"""
+        cyclic_xdf = XdfFile.from_string(cyclic_xml)
+        assert cyclic_xdf.tables == []
+        assert len(cyclic_xdf.unsupported) == 2
+        assert all("cyclic THAT" in u["reason"] for u in cyclic_xdf.unsupported)
+
+
+
+
+# -- library index (the Tools bench table finder) ---------------------------
+
+def test_library_index_describes_every_bundled_definition():
+    from guzzionboard.maps import library_index, load_bundled_xdfs
+
+    bundled = load_bundled_xdfs()
+    rows = library_index()
+    assert len(rows) == len(bundled) >= 121
+    assert {row["filename"] for row in rows} == {Path(x.path).name for x in bundled}
+    for row in rows:
+        assert row["tables"], f"{row['filename']} exposes no tables"
+        assert row["brand"], row["filename"]
+        for table in row["tables"]:
+            assert isinstance(table["title"], str) and table["title"]
+            assert table["address"] is None or isinstance(table["address"], int)
+            assert table["rows"] >= 1 and table["cols"] >= 1
+            assert table["size_bits"] in (0, 1, 8, 16, 32, 64)
+
+
+def test_library_index_is_sorted_by_brand_and_carries_no_cell_values():
+    from guzzionboard.maps import library_index
+
+    rows = library_index()
+    order = [(row["brand_label"].lower(), row["label"].lower()) for row in rows]
+    assert order == sorted(order)
+    fields = set()
+    for row in rows:
+        for table in row["tables"]:
+            fields.update(table)
+    assert fields == {"title", "category", "units", "address", "rows", "cols",
+                      "size_bits", "signed", "is_float", "equation"}
+
+
+def test_library_payload_is_repository_relative_and_counted():
+    from guzzionboard.maps import library_payload
+
+    payload = library_payload()
+    assert payload["directory"] == "guzzionboard/xdfs"
+    assert payload["definitions"] == len(payload["xdfs"])
+    assert payload["tables"] == sum(len(row["tables"]) for row in payload["xdfs"])
+    for row in payload["xdfs"]:
+        assert not Path(row["path"]).is_absolute(), row["path"]
+        assert row["path"].startswith("guzzionboard/xdfs/")

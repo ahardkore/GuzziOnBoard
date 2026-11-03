@@ -1,0 +1,53 @@
+name: Worker build (Cloudflare relay)
+
+# The relay Worker is deployed by Cloudflare Workers Builds, in Cloudflare's
+# account, not here. This job checks the part that lives in the repository: it
+# runs the same entry point Cloudflare runs (scripts/deploy_worker.sh) in
+# dry-run mode for both the production branch and a feature branch, so a broken
+# bundle or a wrong branch rule fails a check we control instead of appearing as
+# a red Workers Builds check on every commit of a pull request.
+#
+# No Cloudflare credentials are used: --dry-run builds and validates the bundle
+# without uploading it, and the branch rule is pinned by
+# tests/test_deploy_worker_script.py.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  relay:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install npm deps
+        run: npm ci
+
+      - name: Production branch deploys the relay (dry run)
+        env:
+          WORKERS_CI_BRANCH: main
+          WRANGLER_DRY_RUN: '1'
+        run: sh scripts/deploy_worker.sh
+
+      - name: Feature branch uploads a version only (dry run)
+        env:
+          WORKERS_CI_BRANCH: ci/feature-branch
+          WRANGLER_DRY_RUN: '1'
+        run: |
+          set -eu
+          sh scripts/deploy_worker.sh 2>&1 | tee /tmp/branch-deploy.log
+          if grep -q 'wrangler deploy' /tmp/branch-deploy.log; then
+            echo "::error::a feature branch reached the production deploy command"
+            exit 1
+          fi
+          grep -q 'versions upload' /tmp/branch-deploy.log

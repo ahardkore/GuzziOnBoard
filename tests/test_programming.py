@@ -1008,3 +1008,112 @@ def test_5am_writer_record_response_mismatch_stops_before_erase(service, monkeyp
     with pytest.raises(ProtocolError, match='writer/date record response mismatch'):
         service._pre_write_records()
     assert sent == [bytes.fromhex('3b 98 20')]
+
+
+# -- unlocked physical writers, external backup attestation & 15-block verify --
+
+
+class TestUnlockedPhysicalWritersAndAttestation:
+    """Unlocking implemented KWP2000 writers without mutating catalog JSON."""
+
+    def test_writer_unlock_and_lock_gate_and_capabilities(self, service):
+        # Default state: 5am catalog has write_supported=False, so non-simulated
+        # capabilities report write_supported=False until explicitly unlocked.
+        service.diag.gate.mode = Mode.SERVICE
+        service.diag.gate.state.battery_v = 13.4
+        service.diag.gate.state.checklist_accepted = True
+        caps_locked = service.capabilities()
+        assert caps_locked["implemented_writer_available"] is True
+        assert caps_locked["implemented_writer_regions"] == ["flash"]
+        assert caps_locked["unverified_hardware_writer_unlocked"] is False
+        assert caps_locked["write_supported"] is False
+
+        with pytest.raises(SafetyViolation, match="unverified ECU write risk"):
+            service.diag.gate.enable_unverified_hardware_writes("wrong phrase")
+
+        service.diag.gate.enable_unverified_hardware_writes(
+            SafetyGate.UNVERIFIED_WRITER_ACKNOWLEDGEMENT
+        )
+        caps_unlocked = service.capabilities()
+        assert caps_unlocked["unverified_hardware_writes_enabled"] is True
+        assert caps_unlocked["unverified_hardware_writer_unlocked"] is True
+        assert caps_unlocked["write_supported"] is True
+        assert service.region("flash").writable is True
+
+        service.diag.gate.disable_unverified_hardware_writes()
+        assert service.capabilities()["write_supported"] is False
+        assert service.region("flash").writable is False
+
+    def test_external_backup_attestation_normalizes_320kb_and_unlocks_5am_partial_verify_write(
+        self, service, tmp_path, monkeypatch
+    ):
+        from pathlib import Path
+        # Read a real 311,296-byte flash image (0x4000..0x50000) from the simulated 5AM,
+        # then prepend 0x4000 bytes (0x0000..0x4000) to form a 327,680-byte GuzziDiag/IAW5xReader dump.
+        raw_304k = service.read_region("flash")
+        assert len(raw_304k.data) == 311296
+        raw_320k = (b"\xff" * 0x4000) + raw_304k.data
+        assert len(raw_320k) == 327680
+        ext_file = tmp_path / "external_guzzidiag_dump.bin"
+        ext_file.write_bytes(raw_320k)
+
+        # Fresh gate on physical SERVICE/PROGRAMMING mode (non-simulator).
+        service.diag.gate.mode = Mode.SERVICE
+        service.diag.gate.state.battery_v = 13.6
+        service.diag.gate.state.checklist_accepted = True
+        service.diag.gate.state.engine_running = False
+        service.diag.gate.state.verified_backup = False
+        service.diag.gate.state.base_map = False
+
+        with pytest.raises(ProgrammingError, match="repeat exactly"):
+            service.attest_external_backup(ext_file, acknowledgement="wrong")
+
+        attested = service.attest_external_backup(
+            ext_file,
+            acknowledgement=ProgrammingService.EXTERNAL_BACKUP_ACKNOWLEDGEMENT,
+            note="GuzziDiag 320 KB stock dump",
+        )
+        assert attested["verified"] is True
+        assert attested["sliced_from_full_dump"] is True
+        assert Path(attested["path"]).stat().st_size == 311296
+        assert service.diag.gate.state.verified_backup is True
+        assert service.diag.gate.state.base_map is True
+
+        # Enable programming + unlock implemented 5AM writer without mutating profile!
+        service.diag.gate.enable_programming(ACK)
+        service.diag.gate.enable_unverified_hardware_writes(
+            SafetyGate.UNVERIFIED_WRITER_ACKNOWLEDGEMENT
+        )
+
+        # Emulate physical IAW 5AM post-write readback where blocks 2..5 return 0xFF
+        # placeholders with meta["synthetic_blocks"] == [2, 3, 4, 5]:
+        real_read_region = service.read_region
+
+        def physical_5am_partial_readback(region_name="flash", **kwargs):
+            full = real_read_region(region_name, **kwargs)
+            buf = bytearray(full.data)
+            buf[0x4000:0x14000] = b"\xff" * 0x10000
+            return FirmwareImage(
+                data=bytes(buf),
+                ecu_id=full.ecu_id,
+                region=full.region,
+                source="research-read",
+                identity=full.identity,
+                meta={"synthetic_blocks": [2, 3, 4, 5]},
+            )
+
+        monkeypatch.setattr(service, "read_region", physical_5am_partial_readback)
+
+        # Run unlocked physical write + 15-block partial readback verification!
+        decision = service.check_write("flash", image=raw_304k)
+        assert decision.allowed, decision.reason
+        write_res = service.write_region(raw_304k, decision.token)
+        assert write_res["verified"] is True
+        assert write_res["partial_readback_unverified_blocks"] == [2, 3, 4, 5]
+
+        # And if one of the 15 readable blocks is corrupted, verification MUST still fail!
+        service.diag.transport.ecu.corrupt_write_at = 0x4000 + 0x15000
+        decision2 = service.check_write("flash", image=raw_304k)
+        with pytest.raises(VerificationFailed):
+            service.write_region(raw_304k, decision2.token)
+

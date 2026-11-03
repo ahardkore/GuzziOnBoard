@@ -109,15 +109,15 @@ test('Tools and ECU Memory organizers filter panels cleanly and programmatic sho
   await expect.poll(async () => page.locator('#gearPreset option').count()).toBeGreaterThan(1);
 
   // Filter Tools by category and search query
-  await expect(page.locator('#toolsCountBadge')).toHaveText('24 of 24 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('44 of 44 tools');
   await page.locator('[data-tool-filter="workshop"]').click();
   await expect(page.locator('#workshopManual')).toBeVisible();
   await expect(page.locator('#signalPanel')).toBeHidden();
 
   await page.locator('#toolsSearchInput').fill('gearing');
-  await expect(page.locator('#toolsCountBadge')).toHaveText('1 of 24 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('1 of 44 tools');
   await page.locator('#toolsSearchClear').click();
-  await expect(page.locator('#toolsCountBadge')).toHaveText('24 of 24 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('44 of 44 tools');
 
   // Filter ECU Memory workflow steps
   await page.locator('[data-view="firmware"]').click();
@@ -175,3 +175,62 @@ test('File -> Exit Application confirms before exit and CSV/regex audit fixes ho
   await page.locator('#appResumeBtn').click();
   await expect(page.locator('#appExitedOverlay')).toBeHidden();
 });
+
+test('tuning suite shell provides View/Tuning/Tools menus, perspective ribbon, telemetry strip, status bar, and docked map layout', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 840 });
+  await page.goto('/web/index.html');
+
+  // Top menubar spans View, Tuning, Tools, plus command ribbon & status bar
+  await expect(page.locator('#viewMenuBtn')).toBeVisible();
+  await expect(page.locator('#tuningMenuBtn')).toBeVisible();
+  await expect(page.locator('#toolsMenuBtn')).toBeVisible();
+  await expect(page.locator('#commandRibbon')).toBeVisible();
+  await expect(page.locator('#topTelemetryStrip')).toBeVisible();
+  await expect(page.locator('#workstationStatusBar')).toBeVisible();
+
+  // Perspective tabs switch views cleanly and sync pageTitle
+  await page.locator('#perspectiveBar [data-goto-view="firmware"]').click();
+  await expect(page.locator('#pageTitle')).toHaveText('ECU memory');
+
+  // Verify #mapEditorTools sits directly above #mapsOut and #mapBuilder sits below #mapsOut
+  const orderOk = await page.evaluate(() => {
+    const tools = document.getElementById('mapEditorTools');
+    const out = document.getElementById('mapsOut');
+    const builder = document.getElementById('mapBuilder');
+    return Boolean(
+      tools && out && builder
+      && (tools.compareDocumentPosition(out) & Node.DOCUMENT_POSITION_FOLLOWING)
+      && (out.compareDocumentPosition(builder) & Node.DOCUMENT_POSITION_FOLLOWING),
+    );
+  });
+  expect(orderOk).toBe(true);
+
+  // Tools menu jumps directly to Gearing calculator & Single-Tool Focus mode isolates 1 panel
+  await page.locator('#toolsMenuBtn').click();
+  await page.locator('[data-menu-tool="#gearingPanel"]').click();
+  await expect(page.locator('#pageTitle')).toHaveText('Tools');
+  await expect(page.locator('#toolsQuickJump')).toBeVisible();
+  await expect(page.locator('#gearingPanel')).toBeVisible();
+
+  await page.locator('#toolsFocusModeBtn').click();
+  await expect(page.locator('#toolsFocusModeBtn')).toHaveText('Single-Tool Focus');
+  const visibleInFocus = await page.locator('#tools > article.panel[data-tool-cat]:not(.hidden)').count();
+  expect(visibleInFocus).toBe(1);
+  await page.locator('#toolsFocusModeBtn').click();
+  await expect(page.locator('#toolsFocusModeBtn')).toHaveText('2-Column Bench');
+
+  // View -> Toggle Explorer Dock collapses and restores sidebar on desktop
+  await page.locator('#viewMenuBtn').click();
+  await page.locator('#viewToggleExplorer').click();
+  await expect(page.locator('body')).toHaveClass(/explorer-collapsed/);
+  await page.locator('#toggleExplorerBtn').click();
+  await expect(page.locator('body')).not.toHaveClass(/explorer-collapsed/);
+
+  // Explorer filter narrows sidebar nav items
+  await page.locator('#explorerSearchInput').fill('fault');
+  await expect(page.locator('[data-view="faults"]')).toBeVisible();
+  await expect(page.locator('[data-view="garage"]')).toBeHidden();
+  await page.locator('#explorerSearchInput').fill('');
+  await expect(page.locator('[data-view="garage"]')).toBeVisible();
+});
+

@@ -218,6 +218,7 @@ SIMULATED_ENDPOINTS = (
     "/api/sessions/replay", "/api/sessions/export", "/api/sessions/compare",
     "/api/tools/gearing", "/api/tools/z2dif", "/api/tools/rpmsignal",
     "/api/tools/canlog", "/api/tools/klinelog", "/api/adapter",
+    "/api/maps/library",
 )
 
 
@@ -307,3 +308,24 @@ def test_the_browser_xdf_parser_agrees_with_the_python_one(tmp_path):
         )
         checked += 1
     assert checked, "no bundled definition was available to compare"
+
+
+def test_the_xdf_library_index_is_generated_not_hand_written():
+    """web/xdf-library.json is what the hosted finder searches.
+
+    The desktop build parses the definitions live, so the checked-in copy has
+    to be the same payload: a definition added to guzzionboard/xdfs must not be
+    invisible in the demo, and the demo must not list one the parser rejects.
+    """
+    import json
+
+    from guzzionboard.maps import library_payload
+
+    path = WEB / "xdf-library.json"
+    assert path.exists(), "web/xdf-library.json is missing — run scripts/build_demo_data.py"
+    on_disk = json.loads(path.read_text(encoding="utf-8"))
+    generated = json.loads(json.dumps(library_payload()))
+    assert on_disk == generated, "web/xdf-library.json is out of date — run scripts/build_demo_data.py"
+    assert on_disk["definitions"] == len(on_disk["xdfs"]) >= 121
+    assert on_disk["tables"] == sum(len(row["tables"]) for row in on_disk["xdfs"])
+    assert on_disk["tables"] >= 4000

@@ -2254,3 +2254,101 @@ test('desktop File menu, Save/Load presets, and ZT-2 DIF export write through de
   expect(page.failures).toEqual([]);
 });
 
+test('desktop attests a 320 KiB full 5AM dump, unlocks hardware writers, toggles XDF flags, and builds a custom tune on disk', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#modelSelect option[value="Griso 1200 8V"]')).toHaveCount(1);
+  await page.locator('#modelSelect').selectOption('Griso 1200 8V');
+  await page.locator('#yearSelect').selectOption('2012');
+  await page.locator('input[name="transport"][value="simulator"]').check();
+  await expect(page.locator('#connectBtn')).toBeEnabled();
+  await page.locator('#connectBtn').click();
+  await expect(page.locator('#connTitle')).toHaveText('Connected', { timeout: 20_000 });
+  await page.locator('#identifyBtn').click();
+  if (await page.locator('#modal').isVisible()) await page.locator('#modalConfirm').click();
+  await expect(page.locator('#identityBody')).toContainText('IAW5AMHW610', { timeout: 15_000 });
+
+  // Synthesize a valid 320 KiB (0x50000) full GuzziDiag/IAW5xReader dump on disk
+  const fullDumpPath = join(resolve('.desktop-test-data'), 'guzzidiag-5am-full-320k.bin');
+  const fullDump = Buffer.alloc(0x50000, 0);
+  // Fill non-blank calibration content + 16 vector markers 0xFA at flash start 0x4000 + matching HW string
+  for (let i = 0; i < 0x4c000; i += 1) fullDump[0x4000 + i] = (i * 37 + 13) & 0xff;
+  for (let v = 0; v < 16; v += 1) fullDump[0x4000 + v * 4] = 0xfa;
+  Buffer.from('IAW5AMHW610', 'ascii').copy(fullDump, 0x4200);
+  writeFileSync(fullDumpPath, fullDump);
+
+  await page.locator('[data-view="firmware"]').click();
+  await page.locator('#externalBackupDetails').evaluate((el) => { el.open = true; });
+  await page.locator('#externalBackupPath').fill(fullDumpPath);
+  await page.locator('#externalBackupNote').fill('GuzziDiag 320 KiB cold bench dump');
+  await page.locator('#externalBackupAckCheck').check();
+  await page.locator('#externalBackupAttestBtn').click();
+  await expect(page.locator('#externalBackupOut')).toContainText('304 KiB flash extracted from 320 KiB full dump', { timeout: 15_000 });
+
+  // Unlock and re-lock implemented hardware writer gate
+  await page.locator('#writerUnlockDetails').evaluate((el) => { el.open = true; });
+  await page.locator('#writerAckCheck').check();
+  await page.locator('#unlockWriterBtn').click();
+  await expect(page.locator('#lockWriterBtn')).toBeEnabled();
+  await page.locator('#lockWriterBtn').click();
+  await expect(page.locator('#unlockWriterBtn')).toBeEnabled();
+
+  // Load attested base map with 5AM XDF, toggle an XDF flag switch, and build in afr-log mode (no URL)
+  await expect(page.locator('#mapsBaseBtn')).toBeEnabled();
+  await page.locator('#xdfOnlyFitting').uncheck();
+  await page.locator('#xdfSelect').selectOption('5AM_GuzziDiag_One_Lambda_V1.41.xdf');
+  await page.locator('#mapsBaseBtn').click();
+  await expect(page.locator('#mapsOut details.xdf-section-flags')).toBeVisible({ timeout: 30_000 });
+  await page.locator('#mapsOut details.xdf-section-flags').evaluate((el) => { el.open = true; });
+  await page.locator('#mapsOut [data-flag-id]').first().click();
+  await expect(page.locator('#mapBuildChanges')).toContainText('1 staged change(s)');
+
+  await page.locator('#mapEvidenceMode').selectOption('afr-log');
+  await page.locator('#mapEvidenceTitle').fill('Wideband AFR pass #2 lambda flag');
+  await page.locator('#mapEvidenceUrl').fill('');
+  await page.locator('#mapEvidenceRationale').fill('Disable closed-loop lambda feedback on bench fixture for steady-state AFR sweep.');
+  await page.locator('#mapAckCheck').check();
+  await page.locator('#mapBuildBtn').click();
+  await expect(page.locator('#modal')).toBeVisible();
+  await page.locator('#modalConfirm').click();
+  await expect(page.locator('#mapBuildOut')).toContainText('Modified map built', { timeout: 20_000 });
+
+  const builtDiskPath = await page.locator('#imagePath').inputValue();
+  expect(existsSync(builtDiskPath)).toBe(true);
+  const savedMeta = JSON.parse(readFileSync(`${builtDiskPath}.json`, 'utf-8'));
+  expect(savedMeta.meta.tuning_build.recommendation.status).toBe('afr-log-authored-not-endorsed');
+  await page.locator('[data-view="garage"]').click();
+  await page.locator('#disconnectBtn').click();
+  expect(page.failures).toEqual([]);
+});
+
+
+test('desktop help center indexes the live ECU catalog and the bundled XDF library', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-view="help"]').click();
+  await expect(page.locator('#pageTitle')).toHaveText('Help & guides');
+
+  // The real Python API answers /api/catalog and /api/maps, so the search index
+  // grows to include every catalog ECU and every bundled definition.
+  await page.locator('#helpSearchInput').fill('mana');
+  await expect(page.locator('#helpSearchResultsPanel .kind-xdf').first()).toBeVisible({ timeout: 30_000 });
+  await page.locator('#helpSearchInput').fill('5am');
+  await expect(page.locator('#helpSearchResultsPanel .kind-ecu').first()).toBeVisible({ timeout: 30_000 });
+
+  await page.locator('[data-view="help"]').click();
+  await page.goto('/#help/ecus-overview');
+  await expect(page.locator('#helpEcuCatalog .help-ecu-card').first()).toBeVisible({ timeout: 30_000 });
+  expect(await page.locator('#helpEcuCatalog .help-ecu-card').count()).toBeGreaterThan(30);
+  await expect(page.locator('#helpEcuCatalog')).toContainText('IAW 5AM');
+
+  await page.goto('/#help/ecus-xdf-library');
+  await expect(page.locator('#helpXdfLibrary .help-xdf-card').first()).toBeVisible({ timeout: 30_000 });
+  expect(await page.locator('#helpXdfLibrary .help-xdf-card').count()).toBeGreaterThan(50);
+
+  await page.keyboard.press('Control+k');
+  await expect(page.locator('#helpSpotlightModal')).toBeVisible();
+  await page.locator('#helpSpotlightInput').fill('kwp2000');
+  await expect(page.locator('#helpSpotlightResults')).toContainText('KWP2000');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#helpSpotlightModal')).toBeHidden();
+  expect(page.failures).toEqual([]);
+});

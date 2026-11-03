@@ -334,3 +334,107 @@ def test_physical_validation_manifest_verifies_artifact_hash_but_does_not_certif
     }]}
     with pytest.raises(ValueError, match="invalid kind"):
         validate_manifest(broken, path=str(tmp_path / "record.json"))
+
+
+def test_analyze_fuel_log_supports_constant_and_2d_table_target_afr(tmp_path, monkeypatch):
+    from guzzionboard import server
+    from guzzionboard.firmware import FirmwareImage
+    from guzzionboard.map_analysis import LogAnalysisError, analyze_fuel_log
+    from guzzionboard.maps import XdfFile
+    from guzzionboard.workstation import Workstation
+
+    fuel_table = {
+        "id": "fuel-table", "title": "Main Fuel", "units": "ms",
+        "x_units": "RPM", "y_units": "TPS",
+        "x": ["2000", "4000"], "y": ["20", "60"],
+        "values": [[10.0, 12.0], [14.0, 18.0]],
+        "raw_values": [[100, 120], [140, 180]],
+    }
+    target_table = {
+        "id": "afr-target", "title": "Target AFR", "units": "AFR",
+        "x_units": "RPM", "y_units": "TPS",
+        "x": ["2000", "4000"], "y": ["20", "60"],
+        "values": [[14.0, 13.0], [13.0, 12.0]],
+        "raw_values": [[140, 130], [130, 120]],
+    }
+    rows = [
+        {"rpm": 3900, "tps": 58, "wb_afr": 13.2},
+        {"rpm": 3950, "tps": 59, "wb_afr": 13.2},
+        {"rpm": 4000, "tps": 60, "wb_afr": 13.2},
+    ]
+
+    const_report = analyze_fuel_log(
+        fuel_table, rows,
+        x_channel="rpm", y_channel="tps", measured_afr_channel="wb_afr",
+        target_afr_constant=13.2,
+    )
+    assert const_report["target_afr_mode"] == "constant"
+    assert const_report["target_afr_constant"] == 13.2
+    assert len(const_report["proposals"]) == 1
+    assert const_report["proposals"][0]["correction_percent"] == pytest.approx(0.0, abs=1e-4)
+
+    bilinear_rows = [
+        {"rpm": 3000, "tps": 40, "wb_afr": 14.3},
+        {"rpm": 3000, "tps": 40, "wb_afr": 14.3},
+        {"rpm": 3000, "tps": 40, "wb_afr": 14.3},
+    ]
+    tbl_report = analyze_fuel_log(
+        fuel_table, bilinear_rows,
+        x_channel="rpm", y_channel="tps", measured_afr_channel="wb_afr",
+        target_afr_table=target_table,
+    )
+    # Bilinear midpoint of [[14, 13], [13, 12]] at (3000, 40) is 13.0 AFR;
+    # measured 14.3 / target 13.0 - 1 = +10.0%.
+    assert tbl_report["target_afr_mode"] == "table"
+    assert tbl_report["target_afr_table"]["id"] == "afr-target"
+    assert len(tbl_report["proposals"]) == 1
+    assert tbl_report["proposals"][0]["target_afr"] == pytest.approx(13.0, abs=1e-4)
+    assert tbl_report["proposals"][0]["correction_percent"] == pytest.approx(10.0, abs=1e-4)
+
+    with pytest.raises(LogAnalysisError, match="provide only one of target_afr_channel"):
+        analyze_fuel_log(
+            fuel_table, rows,
+            x_channel="rpm", y_channel="tps", measured_afr_channel="wb_afr",
+            target_afr_channel="wb_afr", target_afr_constant=13.2,
+        )
+
+    # Also exercise server resolution of target_afr_table by XDF table ID.
+    xdf_file = tmp_path / "dual_table.xdf"
+    xdf_file.write_text("""<?xml version="1.0"?>
+    <XDFFORMAT version="1.60">
+      <XDFHEADER><deftitle>Dual</deftitle><REGION size="0x100"/></XDFHEADER>
+      <XDFTABLE uniqueid="fuel-table"><title>Main Fuel</title>
+        <XDFAXIS id="x"><indexcount>2</indexcount><LABEL index="0" value="2000"/><LABEL index="1" value="4000"/></XDFAXIS>
+        <XDFAXIS id="y"><indexcount>2</indexcount><LABEL index="0" value="20"/><LABEL index="1" value="60"/></XDFAXIS>
+        <XDFAXIS id="z"><EMBEDDEDDATA mmedaddress="0x10" mmedelementsizebits="8" mmedrowcount="2" mmedcolcount="2"/>
+          <MATH equation="X*0.1"><VAR id="X"/></MATH></XDFAXIS>
+      </XDFTABLE>
+      <XDFTABLE uniqueid="afr-target"><title>Target AFR</title>
+        <XDFAXIS id="x"><indexcount>2</indexcount><LABEL index="0" value="2000"/><LABEL index="1" value="4000"/></XDFAXIS>
+        <XDFAXIS id="y"><indexcount>2</indexcount><LABEL index="0" value="20"/><LABEL index="1" value="60"/></XDFAXIS>
+        <XDFAXIS id="z"><EMBEDDEDDATA mmedaddress="0x20" mmedelementsizebits="8" mmedrowcount="2" mmedcolcount="2"/>
+          <MATH equation="X*0.1"><VAR id="X"/></MATH></XDFAXIS>
+      </XDFTABLE>
+    </XDFFORMAT>""")
+    parsed = XdfFile.from_file(xdf_file)
+    monkeypatch.setattr(server, "available_xdfs", lambda directory=None: [parsed])
+    raw_bytes = bytearray(0x100)
+    raw_bytes[0x10:0x14] = bytes([100, 120, 140, 180])
+    raw_bytes[0x20:0x24] = bytes([140, 130, 130, 120])
+    img_path = tmp_path / "bench.bin"
+    FirmwareImage(data=bytes(raw_bytes), ecu_id="5am", region="flash").save(img_path)
+    api = server.Api(Workstation(session_dir=tmp_path / "sessions"))
+    status, api_report = api.post_maps_analyze_log({
+        "path": str(img_path),
+        "xdf": xdf_file.name,
+        "table": "fuel-table",
+        "x_channel": "rpm",
+        "y_channel": "tps",
+        "measured_afr_channel": "wb_afr",
+        "target_afr_table": "afr-target",
+        "rows": bilinear_rows,
+    })
+    assert status == 200, api_report
+    assert api_report["target_afr_mode"] == "table"
+    assert api_report["proposals"][0]["correction_percent"] == pytest.approx(10.0, abs=1e-4)
+

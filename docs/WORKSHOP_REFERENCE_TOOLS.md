@@ -1,5 +1,10 @@
 # Workshop reference tools
 
+The five analysis tools that work on files rather than on a motorcycle — the
+checksum workbench, the ROM region map, the XDF library finder, the wideband
+transfer-function lab and the J1939/ISO-TP frame lab — are documented separately
+in [the offline toolkit](OFFLINE_TOOLKIT.md).
+
 These tools work in the browser and in the desktop host without an ECU
 connection. Nothing here changes service indicators, configures an ECU, or
 recommends a modification.

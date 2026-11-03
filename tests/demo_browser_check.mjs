@@ -162,8 +162,54 @@ check('hosted multi-cell edits preserve both exact little-endian column-major lo
   && layoutBytes[0x24] === 2 && layoutBytes[0x2a] === 6);
 const floatLayout = lab.parseXdf(layoutFixture.replace('mmedtypeflags="0x06"', 'mmedtypeflags="0x10002"')
   .replace('<XDFCHECKSUM/>', '<XDFCONSTANT uniqueid="valid"><title>Valid</title><EMBEDDEDDATA mmedaddress="0x10" mmedelementsizebits="8" mmedtypeflags="0"/></XDFCONSTANT>'), 'float.xdf');
-check('hosted parser refuses float layouts instead of interpreting them as integers',
+check('hosted parser refuses 16-bit non-IEEE float layouts instead of interpreting them as integers',
   floatLayout.tables.length === 0 && floatLayout.unsupported.length === 1);
+
+const unlockedFixture = `<XDFFORMAT><XDFHEADER><deftitle>Unlocked</deftitle>
+<DEFAULTS signed="0" lsbfirst="1" float="0"/><REGION size="0x80"/></XDFHEADER>
+<XDFCONSTANT uniqueid="0x10"><title>FloatGain</title>
+<EMBEDDEDDATA mmedtypeflags="0x10002" mmedaddress="0x04" mmedelementsizebits="32"/>
+<MATH equation="X * 2"/></XDFCONSTANT>
+<XDFTABLE uniqueid="0x20"><title>BaseTable</title>
+<XDFAXIS id="x"><indexcount>2</indexcount></XDFAXIS><XDFAXIS id="y"><indexcount>1</indexcount></XDFAXIS>
+<XDFAXIS id="z"><EMBEDDEDDATA mmedtypeflags="0x02" mmedaddress="0x10" mmedelementsizebits="8" mmedrowcount="1" mmedcolcount="2"/><MATH equation="X"/></XDFAXIS>
+</XDFTABLE>
+<XDFTABLE uniqueid="0x21"><title>CrossTable</title>
+<XDFAXIS id="x"><indexcount>2</indexcount></XDFAXIS><XDFAXIS id="y"><indexcount>1</indexcount></XDFAXIS>
+<XDFAXIS id="z"><EMBEDDEDDATA mmedtypeflags="0x02" mmedaddress="0x14" mmedelementsizebits="8" mmedrowcount="1" mmedcolcount="2"/><MATH equation="X + THAT(0x20; ROW(); COL(); FALSE)"/></XDFAXIS>
+</XDFTABLE>
+<XDFFLAG uniqueid="0x30"><title>LambdaSwitch</title>
+<EMBEDDEDDATA mmedaddress="0x20" mmedelementsizebits="8"/><mask>0x04</mask></XDFFLAG>
+<XDFPATCH uniqueid="0x40"><title>ChecksumBypass</title>
+<XDFPATCHENTRY address="0x30" datasize="2" patchdata="9090" basedata="7508"/></XDFPATCH>
+</XDFFORMAT>`;
+const unlockedDef = lab.parseXdf(unlockedFixture, 'unlocked.xdf');
+const unlockedBytes = new Uint8Array(0x80);
+new DataView(unlockedBytes.buffer).setFloat32(0x04, 1.5, true);
+unlockedBytes[0x10] = 10; unlockedBytes[0x11] = 20;
+unlockedBytes[0x14] = 3;  unlockedBytes[0x15] = 7;
+unlockedBytes[0x20] = 0x01;
+unlockedBytes[0x30] = 0x75; unlockedBytes[0x31] = 0x08;
+const unlockedRendered = lab.renderXdf(unlockedDef, { bytes: unlockedBytes }, 0);
+check('hosted XDF decodes 32-bit IEEE-754 floats, THAT(...) cross-tables, flags, and patches',
+  unlockedRendered.constants[0]?.value === 3
+  && JSON.stringify(unlockedRendered.tables[1]?.values) === '[[13,27]]'
+  && unlockedRendered.flags[0]?.value === false
+  && unlockedRendered.patches[0]?.state === 'unapplied'
+  && unlockedRendered.patches[0]?.can_apply === true,
+  JSON.stringify({ c: unlockedRendered.constants[0]?.value, t: unlockedRendered.tables[1]?.values, f: unlockedRendered.flags[0]?.value, p: unlockedRendered.patches[0], e: unlockedRendered.errors, u: unlockedRendered.unsupported }));
+const unlockedApplied = lab.applyXdfChanges(unlockedDef, { bytes: unlockedBytes }, [
+  { kind: 'constant', id: '0x10', expected_raw: 1.5, value: 5.0 },
+  { kind: 'flag', id: '0x30', expected_raw: 0x01, value: true },
+  { kind: 'patch', id: '0x40', expected_hex: ['7508'], value: true },
+], 0);
+const unlockedAfter = lab.renderXdf(unlockedDef, { bytes: unlockedApplied.bytes }, 0);
+check('hosted XDF encodes float constants, toggles flag masks preserving sibling bits, and applies patches',
+  unlockedAfter.constants[0].value === 5
+  && unlockedApplied.bytes[0x20] === 0x05
+  && unlockedAfter.flags[0].value === true
+  && unlockedAfter.patches[0].applied === true
+  && unlockedApplied.bytes[0x30] === 0x90 && unlockedApplied.bytes[0x31] === 0x90);
 
 
 check('every hosted-demo API route has a browser implementation',
@@ -561,6 +607,18 @@ if (overlayTable) {
     unstable.status === 200 && unstable.payload.proposals.length === 0
       && /variable/.test(unstable.payload.cells[0].eligibility),
     JSON.stringify(unstable.payload.cells[0] || {}));
+  const constTarget = await post('/api/maps/analyze-log', {
+    path: imagePath, xdf: fitted.filename, table: overlayTable.id,
+    rows: [0, 1, 2, 3].map(() => ({
+      x: Number(overlayTable.x[0]), y: Number(overlayTable.y[0]), measured: 14.52,
+    })),
+    x_channel: 'x', y_channel: 'y', measured_afr_channel: 'measured',
+    target_afr_constant: 13.2, min_samples: 3, max_correction_percent: 12, max_afr_stddev: 0.5,
+  });
+  check('hosted log analysis supports constant target AFR without a target CSV column',
+    constTarget.status === 200 && constTarget.payload.target_afr_mode === 'constant'
+      && constTarget.payload.proposals.length === 1
+      && Math.abs(constTarget.payload.cells[0].correction_percent - 10) < 0.05);
 }
 
 /* The advanced builder changes a copy of the protected base map only when an
@@ -611,6 +669,51 @@ if (editable) {
     built.status === 201 && built.payload.path !== imagePath
       && built.payload.changes.length === 1,
     String(built.payload.error || built.payload.path));
+  const dynoChanges = [{
+    kind: 'table', id: editable.id, row: 0, col: 0,
+    expected_raw: editable.raw_values[0][0], value: beforeValue + 1,
+    x: editable.x[0], y: editable.y[0],
+  }];
+  if (buildRendered.payload.flags?.length) {
+    const fl = buildRendered.payload.flags[0];
+    dynoChanges.push({ kind: 'flag', id: fl.id, expected_raw: fl.raw, value: !fl.value });
+  }
+  const dynoBody = {
+    use_base_map: true, region: 'flash', xdf: buildDefinition.filename,
+    changes: dynoChanges,
+    recommendation: {
+      mode: 'dyno',
+      title: 'Dyno run #4 steady-state sweep',
+      url: '',
+      rationale: 'Local chassis dyno AFR log sweep on Griso 1200 8V fixture.',
+    },
+    acknowledgement: 'I understand modified maps can damage the engine and accept responsibility',
+  };
+  const dynoPreview = await post('/api/maps/preview', dynoBody);
+  dynoBody.expected_plan_sha256 = dynoPreview.payload.plan_sha256;
+  const dynoBuilt = await post('/api/maps/build', dynoBody);
+  check('custom dyno build mode succeeds without external URL and toggles XDF flags',
+    dynoBuilt.status === 201
+      && dynoBuilt.payload.manifest.recommendation.status === 'dyno-authored-not-endorsed'
+      && dynoBuilt.payload.changes.length === dynoChanges.length,
+    JSON.stringify(dynoBuilt.payload.error || dynoBuilt.payload.manifest?.recommendation));
+  const writerUnlock = await post('/api/programming/unlock-writer', {
+    acknowledgement: 'I have an external recovery plan and accept unverified ECU write risk',
+  });
+  check('hosted programming unlock-writer enables implemented hardware writers with exact acknowledgement',
+    writerUnlock.status === 200 && writerUnlock.payload.unverified_hardware_writes_enabled === true);
+  const attested = await post('/api/memory/attest-backup', {
+    path: imagePath,
+    region: 'flash',
+    save_base_map: true,
+    acknowledgement: 'I confirm this file is a verified full backup from this exact ECU',
+  });
+  check('hosted external backup attestation records verified backup and SHA-256',
+    attested.status === 200 && attested.payload.verified === true && /^[a-f0-9]{64}$/.test(attested.payload.sha256),
+    JSON.stringify(attested.payload));
+  const writerLock = await post('/api/programming/lock-writer', {});
+  check('hosted programming lock-writer re-locks unverified hardware writers',
+    writerLock.status === 200 && writerLock.payload.unverified_hardware_writes_enabled === false);
   check('the build records evidence and liability acknowledgement',
     built.payload.manifest.liability_acknowledged === true
       && built.payload.manifest.recommendation.status === 'traceable-not-endorsed'

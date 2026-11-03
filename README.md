@@ -47,9 +47,29 @@ Honda source-scoped research reads, automatic candidate XDF review and offline c
   offline multi-brand decoders, record and compare sessions, and produce
   reports. Workshop tools include service-interval arithmetic, manual-text
   search, gearing, log conversion and a bench signal generator.
+- **Find a tool by brand:** the Tools bench groups modules by manufacturer —
+  General tools that suit any motorcycle, then Bajaj, Buell, CFMoto,
+  Harley-Davidson, Honda and Yamaha, plus aftermarket entries for BRT Juken,
+  Dynojet and rusEFI. A Brand dropdown narrows the bench, brand and category
+  filters combine with the search box, and the same grouping drives the Help
+  center's tool directory.
+- **Check a file before you trust it:** a checksum workbench finds and repairs a
+  stored checksum in a copy of an image, a ROM entropy map shows where the
+  tables are, an XDF library finder searches all 121 bundled definitions by
+  table, unit or address, a wideband lab converts logged volts to AFR and
+  lambda against the controller's own curve, and a J1939/ISO-TP frame lab
+  decodes captures and composes KWP2000 requests. All five work offline.
+- **Bring your own files:** import TunerStudio/MegaLogViewer `.mlg` logs, read a
+  Vector `.dbc` and decode a capture against it, decode OBD-II live data, trouble
+  codes and the VIN from an ELM327 transcript or candump capture, and compare two
+  tunes constant by constant and cell by cell.
 - **Use the desktop or browser interface:** the installed desktop shell and
   local browser workstation share the same application. The static hosted
   demo is useful for exploring the interface without installation.
+- **Look anything up in the program:** the Help & guides workspace documents
+  every tool, wire protocol, ECU family, checksum concept and workshop
+  workflow. `Ctrl`/`Cmd`+`K` searches all of it plus every panel, menu command,
+  catalog ECU and bundled XDF, and every article has a `#help/...` permalink.
 
 ## Coverage: what is and isn't enabled
 
@@ -188,6 +208,13 @@ and the [source review](docs/USER_SOURCE_REVIEW.md).
 | Harley diagnostics and Delphi research | [Harley tuning](docs/HARLEY_TUNING.md) |
 | Programming and recovery boundaries | [Programming](docs/PROGRAMMING.md) |
 | Workshop utilities and multi-brand sources | [Workshop tools](docs/WORKSHOP_REFERENCE_TOOLS.md) · [External research](docs/EXTERNAL_MOTORCYCLE_RESEARCH.md) · [Source review](docs/USER_SOURCE_REVIEW.md) |
+| Candidate tools, brand and general | [Tool expansion research](docs/TOOL_EXPANSION_RESEARCH.md) |
+| Checksum and decoder evidence, with sources and pins | [Checksum & decoder evidence](docs/CHECKSUM_AND_DECODER_EVIDENCE.md) |
+| Offline analysis tools (checksums, ROM map, XDF finder, wideband, frames) | [Offline toolkit](docs/OFFLINE_TOOLKIT.md) |
+| Log, database, OBD-II and tune-file formats | [Format tools](docs/FORMAT_TOOLS.md) |
+| Brand frame decoders (Kawasaki, Suzuki, Triumph, BMW, Ducati, Indian) and IAW image layout | [Brand tools](docs/BRAND_TOOLS.md) |
+| Injector sizing, dyno correction, fuel blend and lambda | [Bench calculators](docs/BENCH_CALCULATORS.md) |
+| In-app help, guides and global search | [Help module](docs/HELP_MODULE.md) |
 | Project design and contributions | [Architecture](docs/ARCHITECTURE.md) · [Prior art](docs/PRIOR_ART.md) |
 
 ## License and acknowledgements

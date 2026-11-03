@@ -368,3 +368,124 @@ def test_2026_kawasaki_user_definition_research_preview_never_builds(tmp_path, m
     assert sorted(p.name for p in tmp_path.iterdir()) == before
     status, _ = api.post_maps_preview(body)
     assert status == 400
+
+
+class TestCustomBuildModesAndUnlockedEdits:
+    """Custom operator/dyno/log builds without external URLs, plus flag/patch builds."""
+
+    @pytest.mark.parametrize("mode", ["operator", "dyno", "afr-log"])
+    def test_custom_modes_build_without_external_url(self, xdf, source, tmp_path, mode):
+        plan = preview_tune(
+            source, xdf,
+            [{"kind": "table", "id": "fuel-main", "row": 0, "col": 0,
+              "expected_raw": 10, "value": 2.0}],
+            source_is_base_map=True,
+        )
+        result = build_tune(
+            source, xdf,
+            [{"kind": "table", "id": "fuel-main", "row": 0, "col": 0,
+              "expected_raw": 10, "value": 2.0}],
+            recommendation={
+                "mode": mode,
+                "title": f"{mode.upper()} session run #4",
+                "rationale": "Measured steady-state wideband AFR 14.4 vs 13.2 target at 2000 RPM.",
+            },
+            acknowledgement=TUNING_ACKNOWLEDGEMENT,
+            output_dir=tmp_path,
+            source_is_base_map=True,
+            expected_plan_sha256=plan["plan_sha256"],
+        )
+        assert result["manifest"]["recommendation"]["mode"] == mode
+        assert result["manifest"]["recommendation"]["url"] == ""
+        assert result["manifest"]["recommendation"]["status"] == f"{mode}-authored-not-endorsed"
+        assert Path(result["path"]).exists()
+
+    def test_custom_mode_still_validates_url_when_supplied_and_rejects_bad_mode(self, xdf, source, tmp_path):
+        changes = [{"kind": "table", "id": "fuel-main", "row": 0, "col": 0,
+                    "expected_raw": 10, "value": 2.0}]
+        with pytest.raises(TuningError, match="http"):
+            build_tune(
+                source, xdf, changes,
+                recommendation={
+                    "mode": "dyno",
+                    "title": "Dyno pull",
+                    "url": "ftp://bad.example/file",
+                    "rationale": "Measured steady-state wideband AFR on chassis dyno.",
+                },
+                acknowledgement=TUNING_ACKNOWLEDGEMENT,
+                output_dir=tmp_path,
+                source_is_base_map=True,
+            )
+        with pytest.raises(TuningError, match="mode"):
+            build_tune(
+                source, xdf, changes,
+                recommendation={
+                    "mode": "invented",
+                    "title": "Invented mode",
+                    "rationale": "Measured steady-state wideband AFR on chassis dyno.",
+                },
+                acknowledgement=TUNING_ACKNOWLEDGEMENT,
+                output_dir=tmp_path,
+                source_is_base_map=True,
+            )
+
+    def test_server_exposes_custom_modes_and_builds_flag_and_patch_changes(self, tmp_path, monkeypatch, source):
+        from guzzionboard import server
+        from guzzionboard.workstation import Workstation
+
+        rich_xdf = tmp_path / "5AM_fixture.xdf"
+        rich_xdf.write_text(
+            XDF_TEXT.replace(
+                "</XDFFORMAT>",
+                """
+                <XDFFLAG uniqueid="0xF01">
+                  <title>Lambda closed loop switch</title>
+                  <EMBEDDEDDATA mmedaddress="0x38" mmedelementsizebits="8" />
+                  <mask>0x04</mask>
+                </XDFFLAG>
+                <XDFPATCH uniqueid="0xP01">
+                  <title>Immobiliser bypass patch</title>
+                  <XDFPATCHENTRY name="hook" address="0x40" datasize="2" patchdata="9090" basedata="0000" />
+                </XDFPATCH>
+                </XDFFORMAT>""",
+            )
+        )
+        parsed = XdfFile.from_file(rich_xdf)
+        monkeypatch.setattr(server, "available_xdfs", lambda directory=None: [parsed])
+        monkeypatch.setattr(
+            server, "build_tune",
+            partial(build_tune, output_dir=tmp_path / "api-output"),
+        )
+        api = server.Api(Workstation(session_dir=tmp_path / "sessions"))
+        api.ws.select(ecu="5am")
+
+        status, maps_info = api.get_maps({})
+        assert status == 200
+        assert set(maps_info["build"]["custom_modes"]) == {"operator", "dyno", "afr-log"}
+
+        changes = [
+            {"kind": "flag", "id": "0xF01", "expected_raw": 0, "value": True},
+            {"kind": "patch", "id": "0xP01", "expected_hex": ["0000"], "value": True},
+        ]
+        status, preview = api.post_maps_preview({
+            "path": source.path, "xdf": rich_xdf.name, "changes": changes,
+        })
+        assert status == 200, preview
+        status, built = api.post_maps_build({
+            "path": source.path,
+            "xdf": rich_xdf.name,
+            "changes": changes,
+            "accept_non_base_source": True,
+            "expected_plan_sha256": preview["plan_sha256"],
+            "acknowledgement": TUNING_ACKNOWLEDGEMENT,
+            "recommendation": {
+                "mode": "operator",
+                "title": "Bench closed-loop & patch test",
+                "rationale": "Disable narrowband closed loop for steady-state wideband sweep.",
+            },
+        })
+        assert status == 201, built
+        out_img = FirmwareImage.from_file(built["path"])
+        assert out_img.data[0x38] == 0x04
+        assert out_img.data[0x40:0x42] == b"\x90\x90"
+

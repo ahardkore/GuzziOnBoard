@@ -10,7 +10,7 @@ in the browser, in the installed app and in the hosted demo alike.
 | MLVLG log importer | `#mlgLogPanel` | `.mlg` binary logs from TunerStudio, MegaLogViewer, Speeduino |
 | CAN database & frame decoder | `#dbcPanel` | Vector `.dbc` plus a candump capture |
 | OBD-II / EOBD explorer | `#obdExplorerPanel` | ELM327 transcripts, candump of `0x7E8`, typed codes |
-| Tune-file diff | `#tuneDiffPanel` | `.msq`, TunerStudio-style `.ini`, logger CSV |
+| Tune-file diff | `#tuneDiffPanel` | `.msq`, TunerStudio-style `.ini`, MotoLink `.xml` tunes, logger CSV |
 
 ## MLVLG log importer (`web/mlg-import.js`)
 
@@ -111,6 +111,17 @@ Recognises files by content, not extension:
   whether the shape changed.
 - **`.ini`**: `[Section]` headers and `key = value` pairs; keys are compared as
   `Section.key`.
+- **MotoLink tune file** (XML with a `<Motolink>` root): read from upstream
+  `GUI/src/mtlfile.cpp` (fpoussin/MotoLink, GPL-3.0). The writer emits
+  `<Info date version>`, an empty `<Settings/>`, then
+  `<Properties><Property Name="…">value</Property>`, then shared `<Rows>` /
+  `<Columns>` axis labels, then `<Tables><Table Name="AFR"><Row><Column>…`.
+  The GUI writes the settings `RpmMult`, `SpeedMult`, `AFRInput`, `TPS0`,
+  `TPS100`, `AFR0V`, `AFR5V` and the three permanent tables `AFR`, `AFR Target`
+  and `Knock`; the parser reports which of those settings a file actually
+  carries, because a file with none of them is a table dump rather than a tune.
+  Note the extension: upstream saves and opens `*.xml`, so the format is
+  recognised by its root element and never by its filename.
 - **CSV**: columns matched by header, each with a changed-cell count, largest
   and mean delta and sample rows, plus columns that only exist on one side.
 
@@ -126,6 +137,9 @@ different things under a different firmware's addressing.
   float decoding, unknown identifiers, OBD transcripts, candump ISO-TP framing,
   the Royal Enfield profile and gear maths, MSQ and CSV diffs, and a refused
   mismatch between formats.
+- `tests/browser/toolkit-additions.spec.mjs` — eight later cases: the
+  speedometer section (see [brand tools](BRAND_TOOLS.md#speedometer) for its
+  maths) and the MotoLink dialect, including that a `.msq` is still a `.msq`.
 - `tests/test_help_module.py` — every bench panel, including these four, has a
   help entry.
 - `tests/test_demo_mode.py` — the demo's simulated endpoints stay labelled, and

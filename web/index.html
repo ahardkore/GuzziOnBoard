@@ -1261,6 +1261,36 @@
         <span class="muted small" id="gearMeta"></span>
       </div>
       <div id="gearOut"></div>
+
+      <h3>Speedometer &amp; driveline correction</h3>
+      <p class="muted small">Three different questions, kept apart: how much faster the bike goes at the
+      same rpm (performance), what the dash reads at the same true speed (indication), and what a
+      corrector needs to be set to (correction). Gearing changes only move the reading when the sensor
+      counts gearbox output rather than wheel revolutions &mdash; pick that below.</p>
+      <div class="toolbar">
+        <label class="inline">Front sprocket <input type="number" id="spdFrontFrom" value="15" min="5" max="30" step="1" size="3"> &rarr; <input type="number" id="spdFrontTo" value="15" min="5" max="30" step="1" size="3"></label>
+        <label class="inline">Rear sprocket <input type="number" id="spdRearFrom" value="45" min="20" max="80" step="1" size="3"> &rarr; <input type="number" id="spdRearTo" value="45" min="20" max="80" step="1" size="3"></label>
+      </div>
+      <div class="toolbar">
+        <label class="inline">Tyre <input type="text" id="spdTyreFrom" size="9" value="180/55-17"> &rarr; <input type="text" id="spdTyreTo" size="9" placeholder="unchanged"></label>
+        <label class="inline">Speed sensor
+          <select id="spdSensor">
+            <option value="wheel">on the wheel (front wheel / rear ring)</option>
+            <option value="gearbox">on the gearbox output</option>
+          </select>
+        </label>
+      </div>
+      <div class="toolbar">
+        <label class="inline">Measured <input type="number" id="spdIndicated" step="0.1" size="5" placeholder="indicated"> vs <input type="number" id="spdActual" step="0.1" size="5" placeholder="GPS"> km/h</label>
+        <button class="btn primary" id="spdRun">Work it out</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="spdMeta"></span>
+      </div>
+      <div id="spdOut"></div>
+      <p class="tip warn"><b>A corrector changes the reading, not the motorcycle.</b> Speed on the dash is
+      not evidence of road speed, and a healer set to make the number agree with GPS does not fix an
+      odometer that has been counting the wrong distance. Where a wheel-speed signal feeds the ABS, the
+      traction control or a gear indicator, changing the tyre size changes those systems too.</p>
     </article>
 
     <article class="panel" id="z2ConverterPanel" data-tool-cat="workshop" data-tool-brand="general">
@@ -1634,12 +1664,13 @@
       <p class="tip">
         <b>What it does:</b> compares two calibration files and says what actually moved: constants by name,
         tables cell by cell with the row and column, or two logger CSVs column by column. It reads
-        TunerStudio/MegaSquirt/Speeduino <code>.msq</code>, TunerStudio-style <code>.ini</code> sections and
-        CSV exports — and never writes, applies or uploads a tune.
+        TunerStudio/MegaSquirt/Speeduino <code>.msq</code>, TunerStudio-style <code>.ini</code> sections,
+        MotoLink tune files (<code>.xml</code> with a <code>&lt;Motolink&gt;</code> root) and CSV exports —
+        and never writes, applies or uploads a tune.
       </p>
       <div class="toolbar">
-        <label class="inline">First file <input type="file" id="tuneDiffA" accept=".msq,.ini,.csv,.txt,text/plain"></label>
-        <label class="inline">Second file <input type="file" id="tuneDiffB" accept=".msq,.ini,.csv,.txt,text/plain"></label>
+        <label class="inline">First file <input type="file" id="tuneDiffA" accept=".msq,.ini,.xml,.csv,.txt,text/plain"></label>
+        <label class="inline">Second file <input type="file" id="tuneDiffB" accept=".msq,.ini,.xml,.csv,.txt,text/plain"></label>
         <button class="btn primary" id="tuneDiffBtn">Compare</button>
         <div class="spacer"></div>
         <span class="muted small" id="tuneDiffMeta"></span>
@@ -2833,6 +2864,7 @@
 <script src="brand-tools.js"></script>
 <script src="iaw-layout.js"></script>
 <script src="bench-calculators.js"></script>
+<script src="speedo-math.js"></script>
 <script src="help-content.js"></script>
 <script src="help-module.js"></script>
 </body>

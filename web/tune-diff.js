@@ -5,6 +5,7 @@
  *   - TunerStudio / MegaSquirt / Speeduino .msq (XML: <constant>, <table> with
  *     <x>/<y>/<z> rows),
  *   - TunerStudio-style .ini (sections and key = value),
+ *   - MotoLink tune files (XML: <Motolink>/<Properties>/<Tables><Table Name>),
  *   - logger CSV exports.
  * Nothing is written, uploaded or applied: a difference is a question to
  * answer, not an edit to make.
@@ -81,6 +82,103 @@ function parseMsq(text) {
   return { constants, tables };
 }
 
+/* MotoLink's tune file, read from upstream mtlfile.cpp (fpoussin/MotoLink, GPL-3.0):
+ * the writer emits <Motolink><Info date version><Settings/><Properties> with one
+ * <Property Name="…">value</Property> per setting, then shared <Rows>/<Columns>
+ * axis labels, then <Tables><Table Name="AFR"><Row><Column>…</Column></Row>…
+ * Readers require all four elements and refuse anything whose root is not
+ * <Motolink>. The GUI writes the settings RpmMult, SpeedMult, AFRInput, TPS0,
+ * TPS100, AFR0V and AFR5V, and the three permanent tables AFR, AFR Target and
+ * Knock. */
+const MTL_PROPERTIES = ['RpmMult', 'SpeedMult', 'AFRInput', 'TPS0', 'TPS100', 'AFR0V', 'AFR5V'];
+
+function parseMtl(text) {
+  const body = String(text || '');
+  if (typeof DOMParser !== 'undefined') {
+    const doc = new DOMParser().parseFromString(body, 'text/xml');
+    if (doc.querySelector('parsererror')) throw new Error('The MotoLink file is not well-formed XML.');
+    const root = doc.documentElement;
+    if (!root || root.tagName !== 'Motolink') throw new Error('Not a MotoLink tune file: the root element is not <Motolink>.');
+    const constants = {};
+    const axis = { rows: [], columns: [] };
+    doc.querySelectorAll('Properties > Property').forEach((node) => {
+      const name = node.getAttribute('Name');
+      if (name) constants[name] = tuneNumberOrText(node.textContent);
+    });
+    doc.querySelectorAll('Rows > Row').forEach((node) => axis.rows.push(node.textContent.trim()));
+    doc.querySelectorAll('Columns > Column').forEach((node) => axis.columns.push(node.textContent.trim()));
+    const tables = [];
+    doc.querySelectorAll('Tables > Table').forEach((node, index) => {
+      const name = node.getAttribute('Name') || `table ${index + 1}`;
+      const z = [];
+      let cols = 0;
+      node.querySelectorAll(':scope > Row').forEach((row) => {
+        const cells = Array.from(row.querySelectorAll(':scope > Column')).map((cell) => tuneNumberOrText(cell.textContent));
+        cols = Math.max(cols, cells.length);
+        cells.forEach((cell) => z.push(cell));
+      });
+      if (!z.length) return;
+      tables.push({ name, x: [], y: [], z, rows: cols ? Math.ceil(z.length / cols) : 0, cols });
+    });
+    const info = doc.querySelector('Info');
+    return {
+      constants,
+      tables,
+      axis,
+      format: 'MotoLink',
+      info: {
+        version: info?.getAttribute('version') || '',
+        date: info?.getAttribute('date') || '',
+        // Which of the settings the upstream GUI reads are actually present:
+        // a file that carries none of them is a table dump, not a tune.
+        settings: MTL_PROPERTIES.filter((name) => name in constants),
+      },
+    };
+  }
+  // Regex fallback for environments without DOMParser.
+  if (!/<Motolink\b/i.test(body)) throw new Error('Not a MotoLink tune file: the root element is not <Motolink>.');
+  const constants = {};
+  const propRe = /<Property\s+Name="([^"]*)"\s*>([^<]*)<\/Property>/g;
+  let match;
+  while ((match = propRe.exec(body))) constants[match[1]] = tuneNumberOrText(match[2]);
+  const axis = { rows: [], columns: [] };
+  const rowsBlock = (body.match(/<Rows\b[^>]*>([\s\S]*?)<\/Rows>/) || [])[1] || '';
+  const columnsBlock = (body.match(/<Columns\b[^>]*>([\s\S]*?)<\/Columns>/) || [])[1] || '';
+  (rowsBlock.match(/<Row>([\s\S]*?)<\/Row>/g) || []).forEach((row) => {
+    axis.rows.push((row.match(/<Row>([\s\S]*?)<\/Row>/) || [])[1].trim());
+  });
+  (columnsBlock.match(/<Column>([\s\S]*?)<\/Column>/g) || []).forEach((cell) => {
+    axis.columns.push((cell.match(/<Column>([\s\S]*?)<\/Column>/) || [])[1].trim());
+  });
+  const tables = [];
+  const tableRe = /<Table\s+Name="([^"]*)"\s*>([\s\S]*?)<\/Table>/g;
+  while ((match = tableRe.exec(body))) {
+    const z = [];
+    let cols = 0;
+    (match[2].match(/<Row>([\s\S]*?)<\/Row>/g) || []).forEach((row) => {
+      const cells = (row.match(/<Column>([\s\S]*?)<\/Column>/g) || [])
+        .map((cell) => tuneNumberOrText((cell.match(/<Column>([\s\S]*?)<\/Column>/) || [])[1]));
+      cols = Math.max(cols, cells.length);
+      cells.forEach((cell) => z.push(cell));
+    });
+    if (!z.length) continue;
+    tables.push({ name: match[1], x: [], y: [], z, rows: cols ? Math.ceil(z.length / cols) : 0, cols });
+  }
+  const info = body.match(/<Info\b([^>]*)\/?>/);
+  const attributes = info ? info[1] : '';
+  return {
+    constants,
+    tables,
+    axis,
+    format: 'MotoLink',
+    info: {
+      version: (attributes.match(/version="([^"]*)"/) || [])[1] || '',
+      date: (attributes.match(/date="([^"]*)"/) || [])[1] || '',
+      settings: MTL_PROPERTIES.filter((name) => name in constants),
+    },
+  };
+}
+
 function parseIni(text) {
   const constants = {};
   let section = '';
@@ -116,6 +214,12 @@ function parseCsv(text) {
 
 function parseTuneText(name, text) {
   const body = String(text || '');
+  // MotoLink first: its XML also contains <Table>, which the .msq branch would
+  // claim, so the root element decides before any generic tag test runs.
+  if (/<Motolink\b/i.test(body)) {
+    const parsed = parseMtl(body);
+    return { name, kind: 'mtl', ...parsed };
+  }
   if (/<msq\b|<constant\b|<table\b/i.test(body)) {
     const parsed = parseMsq(body);
     return { name, kind: 'msq', ...parsed };

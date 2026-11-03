@@ -810,7 +810,7 @@
         'For two CSV logs the table becomes per-column statistics with sample rows.',
       ],
       caution: 'A difference is a question, not an instruction: the same change can be a fix, a mistake, or a different firmware\u2019s addressing. This tool never writes, applies or uploads a tune.',
-      tags: ['tune', 'diff', 'compare', 'msq', 'ini', 'csv', 'constant', 'table', 'calibration'],
+      tags: ['tune', 'diff', 'compare', 'msq', 'ini', 'mtl', 'motolink', 'xml', 'csv', 'constant', 'table', 'calibration'],
     },
 
     /* ------------------------------------------- brand frame decoders */

@@ -221,6 +221,19 @@ Three tools that are pure arithmetic on typed input: no adapter, no file, and
 nothing to reverse engineer, which is why they could be built to the full
 standard in one pass.
 
+Two of the original safe entries were landed as *additions to shipped tools*
+rather than as new panels, in Batch 4b:
+
+- **#19 Speedometer / gearing correction** — `web/speedo-math.js` inside the
+  gearing panel: sprocket and tyre factors, the sensor-location distinction that
+  decides whether gearing moves the reading, and measured-error → corrector
+  factor. *(shipped — see [brand tools](BRAND_TOOLS.md#speedometer-and-driveline-correction))*
+- **#15 Tune-file diff, third dialect** — MotoLink tune files, read from upstream
+  `mtlfile.cpp`. The research note said "`.mtl`"; the source shows the files are
+  XML saved as `*.xml` with a `<Motolink>` root, and that only settings plus the
+  three permanent tables are written, so that is what was implemented.
+  *(shipped — see [format tools](FORMAT_TOOLS.md))*
+
 **Batch 5 — only with a hardware plan**: KTM/Husqvarna KMSK16, CFMoto MSE8/MG1
 checksums, Royal Enfield keyed checksums, the Zero/Energica EV decoder. Lowest
 evidence, highest risk, and the closest thing here to a write path.

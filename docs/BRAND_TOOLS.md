@@ -228,6 +228,43 @@ use: `guzzionboard/maps.py` `library_payload()` in the desktop build, and
 `web/xdf-library.json` in the hosted demo, with a fallback to the JSON file so a
 statically opened page still works.
 
+## Speedometer and driveline correction
+
+`web/speedo-math.js`, inside the `#gearingPanel` (Workshop, General). Added as an
+addition to a shipped tool rather than a new panel, because it is the same
+question the gearing table answers — with the part that gets confused added.
+
+Three questions are kept apart, and the panel labels each one:
+
+| Question | Factor | Depends on the speed sensor? |
+| --- | --- | --- |
+| Speed at the same engine rpm (performance) | `(rear_front / front_from) / (rear_to / front_to) × tyre` | No |
+| What the dash reads at the same true speed (indication) | tyre only — or tyre × gearing | **Yes** |
+| What a corrector should be set to (correction) | `actual ÷ indicated` | No, it is measured |
+
+- **Sensor on the wheel** (front wheel, rear ABS ring): a sprocket change does
+  nothing to the reading; a bigger tyre makes it under-read, because the wheel
+  turns fewer times for the same distance.
+- **Sensor on the gearbox output** (most shaft-drive and many ABS-less bikes):
+  the final-drive ratio is part of the calibration, so a sprocket change moves
+  the reading as well. A 15 → 16 tooth front sprocket is −6.25 % at the dash on
+  a gearbox sensor and 0 % on a wheel sensor, while the bike is 6.67 % faster at
+  the same rpm either way.
+
+Worked example from the panel: 15 → 16 front sprocket and 180/55-17 → 190/55-17,
+gearbox sensor, 100 indicated against 92 on GPS → speed +8.53 %, dash −7.86 %,
+corrector factor 0.9200 (−8.0 %), and 0.8625 × if the hardware change and the
+measured error are combined into one setting.
+
+Tyre circumference is the geometric rolling circumference from the marking
+(`π × (rim × 25.4 + 2 × width × aspect/100)`), which is what the gearing panel
+already uses. It is not the laden rolling radius — a loaded tyre squats, and a
+measured circumference beats a nominal one.
+
+The caution the panel carries: a corrector changes the reading, not the
+motorcycle. Where a wheel-speed signal feeds ABS, traction control or a gear
+indicator, changing the tyre size changes those systems too.
+
 ## Tests
 
 - `tests/browser/brand-tools.spec.mjs` — 10 cases: every panel is filed under its

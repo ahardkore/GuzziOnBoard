@@ -38,6 +38,49 @@ uploads. The Worker discards connection frames after validation, but receives
 those frames and they may contain identifying bytes; Cloudflare network and
 logging systems can see request metadata. Configure log retention appropriately.
 
+## The static site Worker `guzzionboard`
+
+There are two Workers in this account and they are not the same thing:
+
+| Worker | What it is | Configuration |
+| --- | --- | --- |
+| `guzzionboard-validation` | the relay described above | `cloudflare/wrangler.build.toml`, explicit `--config` |
+| `guzzionboard` | the public site at `https://guzzionboard.aaron-hard11.workers.dev` | `wrangler.jsonc` at the repository root |
+
+The site Worker publishes the repository root as static assets. Until
+`wrangler.jsonc` existed, that set was decided by wrangler's automatic project
+configuration on every build: it detected a static project, answered its own
+prompts with fallback values ("using fallback value in non-interactive
+context"), wrote a throwaway config, appended to `.gitignore`, created its own
+`.assetsignore` in the build container, and uploaded whatever it found — 3,497
+files read, including build output the container produces by running
+`pip install .`. Nothing in git said what was public.
+
+`wrangler.jsonc` pins the asset directory to `.`, keeps `workers_dev` on, and
+sets `preview_urls` to false, which is what Cloudflare asked for in the build
+log warning. `.assetsignore` lists what is never uploaded:
+
+* build output and caches (`build`, `dist`, `*.egg-info`, `__pycache__`,
+  `.venv`, `node_modules`, `.wrangler`, `.dev.vars*`, test reports);
+* research binaries — `*.bin`, `*.zip`, `*.jsonl`. The repository root and
+  `docs/` carry OEM calibration archives and flash dumps (`7SM_*`, `MIUG3_*`,
+  `5AM_*`, `Hayabusa gen 3 stock.bin`, and byte-identical copies under
+  `docs/`). No page links to them, a branded calibration file is not covered by
+  the repository licence (see [DYNOAI_AND_UPLOADS.md](DYNOAI_AND_UPLOADS.md)),
+  and they are not served from this site. They remain in git and on GitHub;
+  this is about the CDN copy, not the repository.
+
+`node_modules` must stay listed: it contains a 137 MiB `workerd` binary, and
+Workers assets cap a single file at 25 MiB, so an unignored `node_modules`
+fails the deploy outright with `Asset too large`. `tests/test_static_site_assets.py`
+pins the config, the ignore list, and the fact that `index.html` and `web/`
+remain publishable.
+
+To publish a branch's site instead of production, re-add `preview_urls: true`.
+Do not point the relay at this file — it deploys through
+`cloudflare/wrangler.build.toml`, and `tests/test_static_site_assets.py` asserts
+this config cannot become the relay.
+
 ## Workers Builds from a phone
 
 The account has a separate existing `guzzionboard` Worker serving a website.

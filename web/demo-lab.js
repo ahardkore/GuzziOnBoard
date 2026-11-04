@@ -6284,6 +6284,37 @@
       ignored_tx_frames: ignoredTx, omitted_events: Math.max(0, recognized - events.length)};
   }
 
+  /* KDS3-era CAN broadcast candidates, cited from the Arduino forum KDS3
+   * CAN table (ec2021, 2026-08); Round 25. Candidate-grade, offline only. */
+  function decodeKds3CanCapture(frames) {
+    var events = [], recognized = 0, invalid = 0, ignoredTx = 0;
+    var lengths = {0x10: 8, 0x18: 8, 0x50: 8, 0x58: 8, 0x60: 8, 0x100: 6, 0x110: 6,
+      0x120: 6, 0x121: 2, 0x130: 4, 0x220: 8, 0x221: 8, 0x223: 8, 0x224: 8, 0x225: 8, 0x227: 8,
+      0x321: 8, 0x695: 8, 0x696: 8};
+    frames.forEach(function (frame) {
+      if (frame.extended || !Object.hasOwn(lengths, frame.id)) return;
+      if (String(frame.direction || '').toLowerCase().startsWith('t')) { ignoredTx++; return; }
+      var d = frame.data;
+      if (d.length !== lengths[frame.id] || d.some(function (n) { return !Number.isInteger(n) || n < 0 || n > 255; })) { invalid++; return; }
+      var id = frame.id, values;
+      if (id === 0x100) values = {rpm_candidate: (d[0] << 8) | d[1]};
+      else if (id === 0x110) values = {speed_raw_candidate: (d[0] << 8) | d[1]};
+      else if (id === 0x120) values = {coolant_c_candidate: ((d[0] << 8) | d[1]) - 40};
+      else if (id === 0x121) values = {gear_candidate: d[0], neutral_flag: !!d[1]};
+      else if (id === 0x130) values = {tpms_front_psi_candidate: d[0] * 0.2, tpms_rear_psi_candidate: d[1] * 0.2, tpms_front_warn: !!d[2], tpms_rear_warn: !!d[3]};
+      else if (id === 0x18) values = {brake_depressed: d[0] === 0};
+      else if (id === 0x321) values = {engine_running: d[0] === 1, engine_stopped: d[0] === 5};
+      else if (id >= 0x220 && id <= 0x227 && id !== 0x222 && id !== 0x226) values = {status_on: !!d[0]};
+      else if (id === 0x695 || id === 0x696) values = {tpms_sensor_psi_candidate: d[5] * 0.2, counter: d[6], side: id === 0x695 ? 'front' : 'rear'};
+      else values = {button_state_raw: d[0]};
+      recognized++;
+      if (events.length < 200) events.push({timestamp: frame.timestamp, id: '0x' + id.toString(16).toUpperCase(),
+        direction: frame.direction || 'unknown', raw: d.map(function (v) { return v.toString(16).padStart(2, '0').toUpperCase(); }).join(''), values: values});
+    });
+    return {profile: 'kawasaki_kds3_can', events: events, recognized_frames: recognized, invalid_length_frames: invalid,
+      ignored_tx_frames: ignoredTx, omitted_events: Math.max(0, recognized - events.length)};
+  }
+
   // Raw per-byte observations only: not a vehicle profile or signal decoder.
   function summarizeCanBytes(frames) {
     var groups = {};
@@ -6322,7 +6353,7 @@
         + 'of giving a path (the local workstation reads candump, SavvyCAN '
         + 'CSV and CRTD files).');
     }
-    if (body.decoder !== undefined && body.decoder !== '' && body.decoder !== 'ducati_panigale_mitsubishi' && body.decoder !== 'harley_hdlan_community' && body.decoder !== 'yamaha_r9_2026') throw bad('unknown offline telemetry decoder');
+    if (body.decoder !== undefined && body.decoder !== '' && body.decoder !== 'ducati_panigale_mitsubishi' && body.decoder !== 'harley_hdlan_community' && body.decoder !== 'yamaha_r9_2026' && body.decoder !== 'kawasaki_kds3_can') throw bad('unknown offline telemetry decoder');
     if (body.byte_stats !== undefined && typeof body.byte_stats !== 'boolean') throw bad('byte statistics setting must be true or false');
     if (body.byte_stats && (typeof body.filter_ids !== 'string' || !body.filter_ids.trim())) throw bad('byte statistics require an explicit CAN ID filter');
     var parsed = parseCanText(String(body.text || ''));
@@ -6348,6 +6379,7 @@
     if (body.decoder === 'ducati_panigale_mitsubishi') result.decoder = decodeDucatiCapture(parsed.frames);
     if (body.decoder === 'harley_hdlan_community') result.decoder = decodeHarleyHdlanCapture(parsed.frames);
     if (body.decoder === 'yamaha_r9_2026') result.decoder = decodeYamahaR9Capture(parsed.frames);
+    if (body.decoder === 'kawasaki_kds3_can') result.decoder = decodeKds3CanCapture(parsed.frames);
     if (body.byte_stats) result.byte_stats = summarizeCanBytes(parsed.frames);
     result.format = parsed.format;
     result.notes = parsed.warnings.concat(result.notes);

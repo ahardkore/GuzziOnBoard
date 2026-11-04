@@ -239,6 +239,13 @@ test('multi-brand research decoders validate framing and remain local', async ({
   await expect(out).toContainText('J1850 CRC matches');
   await expect(out).toContainText('J1850 CRC mismatch');
 
+  await profile.selectOption('delphi_mt05_kline');
+  await input.fill('83 11 F1 03 1A F1 90 23\n83 11 F1 03 1A F1 90 00');
+  await page.locator('#multiResearchDecode').click();
+  await expect(out).toContainText('MT05/MT05.2 addressing (0x11/0xF1) - candidate match');
+  await expect(out).toContainText('sum checksum mismatch');
+  await expect(out).toContainText('no diagnostic session, no write path');
+
   await profile.selectOption('bmw_r1300gs');
   await input.fill('10C#00003E\n2D2#2C\n2D0#00000000000000\n800#0102\n10C#00\n<script>alert(1)</script>');
   await page.locator('#multiResearchDecode').click();
@@ -248,6 +255,16 @@ test('multi-brand research decoders validate framing and remain local', async ({
   await expect(out).toContainText('Only 11-bit classic CAN data frames');
   await expect(out).toContainText('insufficient payload');
   await expect(out.locator('script')).toHaveCount(0);
+
+  const kds3 = await page.evaluate(async () => {
+    const r = await fetch('/api/tools/canlog', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: '(1.0) can0 100#1B5800000000\n(1.1) can0 121#0300', decoder: 'kawasaki_kds3_can' }) });
+    return r.json();
+  });
+  expect(kds3.decoder.profile).toBe('kawasaki_kds3_can');
+  expect(kds3.decoder.recognized_frames).toBe(2);
+  expect(kds3.decoder.events[0].values.rpm_candidate).toBe(7000);
+  expect(kds3.decoder.events[1].values.gear_candidate).toBe(3);
   expect(posts).toEqual([]);
   await page.locator('#multiResearchClear').click();
   await expect(out).toBeEmpty();

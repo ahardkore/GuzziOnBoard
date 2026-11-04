@@ -345,6 +345,15 @@ test('desktop exposes multi-brand offline research and blocks hardware sessions'
   await page.locator('#multiResearchFrames').fill('01 00 42 06 FF 02 57 08 01 5A 3C 03 82');
   await page.locator('#multiResearchDecode').click();
   await expect(page.locator('#multiResearchOut')).toContainText('never writes');
+  await page.selectOption('#multiResearchProfile', 'delphi_mt05_kline');
+  await page.locator('#multiResearchFrames').fill('83 11 F1 03 1A F1 90 23');
+  await page.locator('#multiResearchDecode').click();
+  await expect(page.locator('#multiResearchOut')).toContainText('MT05/MT05.2 addressing (0x11/0xF1) - candidate match');
+  await page.locator('#canlogText').locator('..').locator('summary').click();
+  await page.locator('#canlogText').fill('(1.0) can0 100#1B5800000000');
+  await page.locator('#canlogDecoder').selectOption('kawasaki_kds3_can');
+  await page.locator('#canlogPasteBtn').click();
+  await expect(page.locator('#canlogOut')).toContainText('7000');
   const posts = [];
   page.on('request', (req) => { if (req.method() === 'POST') posts.push(req.url()); });
   const synthetic = Buffer.alloc(0x100000);

@@ -972,6 +972,7 @@
         <option value="suzuki_sv650_sds">Suzuki SV650 2003–2005 · SDS K-Line (sv650sds captured session)</option>
         <option value="honda_keihin_k25">Honda Keihin PGM-FI K25 · K-Line (AutotronicCommunity captured transcript)</option>
         <option value="buell_xb12x_ddfi2">Buell XB12X · DDFI-2 serial PDU (buell-xb12x-logger, MIT)</option>
+        <option value="delphi_mt05_kline">Delphi MT05/MT05.2 · KWP2000 K-Line frame (MT05 addressing)</option>
       </select></label>
       <p class="muted small">For K-Line and J1850 paste full space-separated hex bytes including checksum/CRC. For BMW CAN use <code>10C#0011223344556677</code> per line (11-bit data frames only); direction is unknown. Up to 100 frames. Raw bytes are preserved in results.</p>
       <label class="field"><span>Frames</span><textarea id="multiResearchFrames" rows="5" maxlength="16000" placeholder="Paste one complete frame per line"></textarea></label>
@@ -2036,7 +2037,7 @@
       </details>
       <div class="toolbar">
         <label class="inline">Filter IDs (hex, optional) <input id="canlogFilter" type="text" placeholder="7E0, 7E8" size="24"></label>
-        <label class="inline">Offline decoder <select id="canlogDecoder"><option value="">None</option><option value="ducati_panigale_mitsubishi">Ducati Mitsubishi (research only)</option><option value="harley_hdlan_community">Harley HDLAN community (best-effort)</option><option value="yamaha_r9_2026">Yamaha R9 2026 (source-specific research)</option></select></label>
+        <label class="inline">Offline decoder <select id="canlogDecoder"><option value="">None</option><option value="ducati_panigale_mitsubishi">Ducati Mitsubishi (research only)</option><option value="harley_hdlan_community">Harley HDLAN community (best-effort)</option><option value="yamaha_r9_2026">Yamaha R9 2026 (source-specific research)</option><option value="kawasaki_kds3_can">Kawasaki KDS3-era CAN (forum candidates)</option></select></label>
         <label class="inline"><input id="canlogByteStats" type="checkbox"> Summarize raw byte changes</label>
       </div>
       <div class="toolbar" id="canlogFileControls">

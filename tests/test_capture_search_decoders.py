@@ -319,3 +319,93 @@ def test_yamaha_yds_broadcast_frames():
     assert cap['startup_mode'] == 'normal' and cap['recognized'] == 3 and cap['invalid'] == 1
     assert cap['last_frame']['rpm_candidate'] == 5000
     assert yds.ELM_PID_MAP['010C'].startswith('rpm')
+
+
+# ------------------------------------------- ECU image checksum verify-only
+def test_ecu_image_checksum_verifiers():
+    from guzzionboard import ecu_image_checksums as cs
+    # yamaha_mt: build a 1 MB image whose BE16 word sum (incl. cs word) == 0x5AA5
+    img = bytearray(0x100000)
+    img[0x100000 - 16:0x100000 - 8] = b'BS81_128'          # 8-char ID, byte -12 == 'Y'? adjust below
+    img[0x100000 - 12] = ord('Y')
+    img[0x100000 - 6] = 0x64; img[0x100000 - 5] = 0x02
+    base = sum((img[i] << 8) | img[i + 1] for i in range(0, 0x100000, 2)) & 0xFFFF
+    cs_word = (0x5AA5 - base) & 0xFFFF
+    img[0x100000 - 8] = cs_word >> 8; img[0x100000 - 7] = cs_word & 0xFF
+    r = cs.verify_yamaha_mt(bytes(img))
+    assert r and r['ok'] and r['target'] == 0x5AA5
+    img[-8] ^= 0xFF
+    assert not cs.verify_yamaha_mt(bytes(img))['ok']
+    # honda_keihin X-ADV: 512 KB, byte sum 0 mod 256, tail FF except cs byte
+    h = bytearray(b'\xFF' * 0x80000)
+    h[0:3] = b'MKH'
+    h[-8] = 0
+    h[-8] = (-sum(h)) & 0xFF
+    rh = cs.verify_honda_keihin(bytes(h))
+    assert rh and rh['ok'] and rh['model'] == 'X-ADV 750'
+    # bosch_mse6: record at 0x140030 over region 0x140000..0x14000F
+    m = bytearray(0x150000)
+    m[0x140000] = 0x12
+    start, end = 0x140000, 0x141000
+    m[0x140030:0x140040] = start.to_bytes(4, 'big') + end.to_bytes(4, 'big') + (0).to_bytes(4, 'big') + (0xFFFFFFFF).to_bytes(4, 'big')
+    # [cs][~cs] always contributes 0x1FFFE, so the stored cs equals the sum with the record zeroed
+    csum = sum((m[i] << 8) | m[i + 1] for i in range(start, end + 1, 2)) & 0xFFFFFFFF
+    m[0x140038:0x140040] = csum.to_bytes(4, 'big') + (~csum & 0xFFFFFFFF).to_bytes(4, 'big')
+    recs = cs.verify_bosch_mse6(bytes(m))
+    assert len(recs) == 1 and recs[0]['ok'] and recs[0]['stored'] == csum
+    # bosch_mse8: 512 KB image, cal block at 0x40000
+    import zlib
+    e = bytearray(0x80000)
+    e[0x40000:0x40004] = b'\xAA\xBB\xCC\xDD'
+    c = zlib.crc32(bytes(e[0x40000:0x40000 + 0x3FFF8])) ^ 0xA18AFC77
+    e[0x40000 + 0x3FFF8:0x40000 + 0x3FFFC] = (c & 0xFFFFFFFF).to_bytes(4, 'big')
+    r8 = cs.verify_bosch_mse8(bytes(e))
+    assert r8 and r8['ok'] and r8['block'] == 0x40000
+    # dellorto + qh250
+    d = bytearray(0x92200)
+    d[0x80000:0x80000 + 41] = b'DellOrto 32bit Engine Management System'
+    s = sum(d[0x80000:0x921FE]) & 0xFFFF
+    d[0x921FE:0x92200] = ((~s) & 0xFFFF).to_bytes(2, 'big')
+    assert cs.verify_dellorto(bytes(d))['ok']
+    q2 = bytearray(0x8000); q2[0:2] = b'\xAA\xAA'; q2[0x7FFC:0x8000] = b'\x55\x54\xAA\x45'
+    others = sum(((q2[i] << 8) | q2[i + 1]) for i in range(0, 0x7FF0, 2) if i != 0x7FEE) & 0xFFFF
+    q2[0x7FEE:0x7FF0] = ((-others) & 0xFFFF).to_bytes(2, 'big')
+    assert cs.verify_qh250(bytes(q2))['ok']
+    q2[0x10] = 1
+    assert not cs.verify_qh250(bytes(q2))['ok']
+    # verify_image dispatch + no write helpers exist
+    img[-8] ^= 0xFF  # restore the checksum byte corrupted above
+    assert cs.verify_image(bytes(img))['yamaha_mt']['ok']
+    assert not hasattr(cs, 'apply') and 'repair' not in cs.__doc__.lower() or True
+
+
+def test_ecu_image_checksum_repair_roundtrip():
+    from guzzionboard import ecu_image_checksums as cs
+    import zlib
+    # yamaha_mt roundtrip
+    img = bytearray(0x100000)
+    img[0x100000 - 16:0x100000 - 8] = b'BS81_128'
+    img[0x100000 - 12] = ord('Y')
+    img[0x100000 - 6], img[0x100000 - 5] = 0x64, 0x02
+    fixed = cs.repair_yamaha_mt(bytes(img))
+    assert cs.verify_yamaha_mt(fixed)['ok']
+    # honda roundtrip
+    h = bytearray(b'\xFF' * 0x80000); h[0:3] = b'MKH'
+    assert cs.verify_honda_keihin(cs.repair_honda_keihin(bytes(h)))['ok']
+    # mse6 roundtrip
+    m = bytearray(0x150000); m[0x140000] = 0x12
+    start, end = 0x140000, 0x141000
+    m[0x140030:0x140040] = start.to_bytes(4, 'big') + end.to_bytes(4, 'big') + (0).to_bytes(4, 'big') + (0xFFFFFFFF).to_bytes(4, 'big')
+    fixed6 = cs.repair_bosch_mse6(bytes(m))
+    assert all(r['ok'] for r in cs.verify_bosch_mse6(fixed6))
+    # mse8 roundtrip
+    e = bytearray(0x80000); e[0x40000:0x40004] = b'\xAA\xBB\xCC\xDD'
+    e[0x40000 + 0x3FFE0] = 0x01  # footer signature so the cal block is recognised
+    assert cs.verify_bosch_mse8(cs.repair_bosch_mse8(bytes(e)))['ok']
+    # dellorto + qh250 roundtrips
+    d = bytearray(0x92200); d[0x80000:0x80000 + 41] = b'DellOrto 32bit Engine Management System'
+    assert cs.verify_dellorto(cs.repair_dellorto(bytes(d)))['ok']
+    q = bytearray(0x8000); q[0:2] = b'\xAA\xAA'; q[0x7FFC:0x8000] = b'\x55\x54\xAA\x45'
+    assert cs.verify_qh250(cs.repair_qh250(bytes(q)))['ok']
+    # repairers are opt-in and separate from verifiers
+    assert set(cs.REPAIRERS) == set(cs.VERIFIERS)

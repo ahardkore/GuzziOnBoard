@@ -236,7 +236,7 @@ SV650 profile stays synthetic-tested with no memory/programming ops.
 
 ## License policy note (applies to Rounds 9–14)
 
-License policy: a source is treated as open for use and modification whether or not a license is stated; if an author later advises that a source is not open, the affected material can be modified or removed at that point.
+License policy: a source is treated as open for use and modification whether or not a license is stated; if an author later advises that a source is not open, the affected material can be modified or removed at that point. Write-oriented (flash-class) algorithms may be used when the upstream author indicates success (byte-identical output vs. a commercial tool, or flashed-and-running) — see Round 16.
 
 ## Round 9 — AutotronicCommunity account swept in depth (155 repos) (2026-11-03)
 
@@ -458,3 +458,116 @@ implementation quirk, recorded not adopted.)
 **Built:** `guzzionboard/yamaha_yds_kline.py` — frame parser + startup
 classifier + passive `decode_capture` + `ELM_PID_MAP` reference. 16/16
 decoder tests pass. Citation pinned in `yamaha_kline_research.json`.
+
+## Round 16 — NetworkDir/moto-ecu-checksum deep audit (2026-11-03)
+
+Audited `github.com/NetworkDir/moto-ecu-checksum` @ `43ccc5f3663e2a175b7217f802bc302830e6862b` (17 files, all
+read: README, 8 algorithm modules, 3 Python scripts, app.js). No license
+stated — treated as open per the standing license policy (modifiable/
+removable later if the author advises otherwise).
+
+**What it is:** a verify-**and-repair** checksum tool for motorcycle ECU
+images (Bosch MSE6.0/MSE8.0/MG1, Yamaha MT, Honda Keihin, Dell'Orto, QH250,
+Italjet/Suzuki-type). Per the standing policy, write-oriented algorithms are usable **because the author indicates success** (byte-identical MD5 vs. commercial flash tools / flashed-and-running on every listed model), so both the *verification* and the *repair* algorithms were extracted — repair is opt-in and labelled; this app still performs no ECU writes itself:
+
+- **Yamaha MT**: whole-image BE16 word sum == 0x5AA5 (1 MB) / 0xE81F
+  (896 KB); checksum word at end-8 after the 8-char software ID, followed by 64 02
+- **Honda Keihin**: byte at end-8 makes byte sum 0 mod 256 (X-ADV 750: whole
+  512 KB image; ADV350: 0x10000..end of 768 KB)
+- **Bosch MSE6.0**: structurally-found 16-byte BE records [start][end][cs][~cs]
+  (cs^~cs == 0xFFFFFFFF); cs = BE16 word sum of region; self-invariant
+  ([cs][~cs] always contributes 0x1FFFE)
+- **Bosch MSE8.0**: 256 KB cal block via footer signature; CRC-32 ^ 0xA18AFC77
+  stored BE at block+0x3FFF8
+- **Bosch MG1**: DEADBEEF blocks on 256 KB boundaries; CRC-32 (init
+  0xACC08E37) == zlib.crc32(block, 0x533F71C8) after the 0x15C-byte 12345678 fill
+- **Dell'Orto**: BE16 one's complement of byte sum 0x80000..0x921FD at 0x921FE
+- **QH250**: BE16 words 0x0000..0x7FEF sum to 0, checksum at 0x7FEE
+- **Italjet/Suzuki-type**: LE16 checksum + complement after the AA55CC33
+  marker before the part number; byte sum of 0x20000..end
+- Out of scope upstream too: signed/keyed images (Royal Enfield Hunter 350)
+
+**Built:** `guzzionboard/ecu_image_checksums.py` — 8 verifiers + `verify_image` dispatcher + opt-in, author-confirmed `repair_*` functions (local file images only; the app never writes to an ECU). 17/17 decoder tests pass.
+
+## Round 17 — refused write-class repos re-audited for the author-success rule (2026-11-04)
+
+Re-audited every repo refused under the old write rule (Round 9/10 list plus
+earlier rounds) via the GitHub API: existence, license, README success
+claims (works/tested/verified/berhasil/compatible), description.
+
+**Result: none of them meet the "author indicates success" bar.**
+- All 15 named AutotronicCommunity repos exist but are license-NONE with
+  empty or one-line demo READMEs and **no verifiable success evidence**
+  (`YAMAHA-FLASH-TOOL-V6-DEMO` exists only as `...-DEMO-VERSION`, README is
+  just "DEMO VERSION: MX KING V1 2PV0 ... ONLY"; `YamahaFlasher`,
+  `SIMPLE-REMAP-*` etc. have no README at all).
+- `SIMPLE-REMAP-K1ZG_N21_IN01_PCX-160`, `SIMPLE-REMAP-MX-KING-2PV0`,
+  `SoftwareHondaECU`, `CopyPaste24C02`, `hex2id_keihin_keyless`,
+  `ID_TAG_PROGRAM_DEMO`, `ODOMETER-FILE-GENERATOR`, `APP-EDIT-FLASH-COUNT`,
+  `License-Tuner-Pro-RT`, `licenseRFPv3`, `YAHAMA-FLASH-VIA-KLINE---BACKDOOR`,
+  `ShindengenFlasher`, `SoftwareHondaFlasher`, `ARDUINO_READ_ECU_MX_KING_V1`
+  — same: no author success indication.
+- `Sirawit45/josave-tuner` and `gobftald/CCM450-diag` are the only ones with
+  success-sounding commercial descriptions, but they are **commercial
+  write tooling**, not algorithms with verifiable byte-level evidence —
+  recorded as [experimental] citation-only references, no capability added.
+- `tientuk3/m32r-bootloader-protocol` (Denso M32R flash read/write via
+  factory bootloader) — no success evidence in README; bootloader write
+  path stays excluded.
+
+**Verdict:** 0 of the ~18 refused sources qualify under the author-success
+rule, so **nothing was added, even behind an experimental flag** — the only
+author-confirmed write-class source remains `NetworkDir/moto-ecu-checksum`
+(Round 16). Odometer / flash-count / keyless / license-crack repos remain
+excluded outright regardless of flags (tampering/cracking, not
+write-oriented *algorithms*). The experimental flag mechanism is noted here
+for any future source that does publish verifiable success evidence.
+
+## Round 18 — GitHub deep dive under the updated rules (2026-11-04)
+
+Rules applied: no-license = treated as open; documented success = verified;
+legitimate-looking but unproven = [experimental] citation-only; write-class
+only with author-indicated success. Searched repo API across
+motorcycle-ECU / immobilizer / seed-key / bench / tuning angles (~20
+queries).
+
+**Verified (documented success, license stated or open-by-policy):**
+- `kz6fittycent/XBTune` @ `f474b9401bc4` (GPL-3.0) — Buell DDFI-2/DDFI-3
+  diagnostics, logging **and offline tuning with ECM write-back**;
+  README: "Tested on a 2005 XB9SX". Complements our read-only DDFI-2 decoder
+  (Round 12); its tune-write path is author-confirmed → [verified] reference.
+  LICENSES/XBTune-GPL3.txt added.
+- `lab-vex/OBDuke` @ `cf51c6325fd5` (no license → open) — Gen1 KTM 390 Duke
+  (2013-16) CAN diagnostic tool + app, shipped releases; complements
+  ktmrc3902022/KTM-OBD. [verified]
+- `singular0/trecu` @ `2969212aa462` (GPL-3.0) — Triumph K-Line
+  ISO 9141-2 (5-baud 0x33 init) OBD-II: VIN/cal-ID, stored+pending DTCs
+  with a 415-code dictionary, live-data stream; "confirmed on a real
+  Triumph". [verified] — strengthens the Triumph Daytona panel entry.
+- `lefaton/DDA_to_XML` @ `e90dc42f77cd` (NOASSERTION) — Ducati DDA binary
+  telemetry file format → XML, "Tested on a 2014 Streetfighter 848".
+  Read-only file parser. [verified]
+- `sunsided/suzuki-sds-obdii-gateway` @ `20644c2e21ca` (no license → open)
+  — SDS/KWP2000 codec (Rust, host-tested) bridged to OBD-II/CAN for a 2017
+  DL650; independent corroboration of the sv650sds SDS work. [verified]
+- `oJudgeStore/SmartGauge_for_Honda` @ `2ce31f06ec53` (NOASSERTION) — ESP32
+  Honda PGM-FI live-data + DTC read/clear gauge; corroborates the K25
+  decoder. [verified]
+
+**[experimental] (legitimate-looking protocol, no documented success):**
+- `TanakonKetsakron/Motorcycle-ECU-Diagnostic-Monitoring-System` @
+  `dfad01639f2e` (no license → open) — Honda/Yamaha K-Line live data + DTCs.
+- `ludwig-v/psa-seedkey-algorithm` @ `5aef5117ac38` (GPL-3.0) — published
+  method for extracting UDS 0x27 seed/key algorithms from ECU flash dumps
+  (PSA cars). Documents the *class* of ECU-unlock research; no motorcycle
+  target; [experimental] reference only — no seed/key or immobilizer-defeat
+  capability is implemented here.
+- `poozam/HondaKLineFlasherV1` @ `3ec24c436234` (MIT) — Honda K-Line
+  flasher, but **no documented success** → write-class without
+  author-indicated success: [experimental] citation only, not adopted.
+- `tepzraisya028-gif/TepzRaisya-Scanner` @ `bfe2fbf6571e` (no license) —
+  2-file stub, no protocol content → skipped.
+
+**Excluded outright:** `AshanDilakshana/NS200-ESP32-Keyless-Immobilizer-Strobe`
+— keyless/immobilizer-defeat hardware; not a write-class *algorithm* and not
+added even experimentally.

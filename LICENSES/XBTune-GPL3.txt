@@ -1,0 +1,6 @@
+XBTune (kz6fittycent/XBTune) — GPL-3.0-or-later
+Upstream: https://github.com/kz6fittycent/XBTune @ f474b9401bc4 (2026-11-03)
+Buell DDFI diagnostics/logging/tuning. Cited as a [verified] reference in
+GuzziOnBoard (Round 18); no code vendored, no write capability adopted —
+GuzziOnBoard remains read-only/offline. License text: GPL v3
+(https://www.gnu.org/licenses/gpl-3.0.txt).

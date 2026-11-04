@@ -468,3 +468,15 @@ The immobilizer is not in this ECU (it lives in the 5AM-era Guzzi dash) and is
 not touched; immobilizer material remains citation-only, legal-use-only.
 `write_supported` in the catalog stays `false` against hardware: no verified
 complete backup/recovery path exists yet.
+
+## Ducati Panigale V2 dash service-reset builders (2026-11-04)
+
+`guzzionboard/ducati_service_reset.py` — EXPERIMENTAL, token-gated, bytes-only
+builders for the dash annual-service-indicator reset confirmed working by
+slava-fm/moto-service-tool @ ac39e456 (MIT, `LICENSES/MotoServiceTool-MIT.txt`):
+KWP2000-over-CAN to dash 0x7E3 (resp 0x7EB), ISO-TP single frames, payload
+sequence transcribed verbatim from `reset-scripts/annual-service-reset.txt`
+(`10 01`, `1A 91/93` reads, `31 09 00` routine, `33 09`, `32 09 00`, `3E 00`).
+Author-confirmed success on the stated Panigale V2 fitment only — not validated
+for other models. Dashboard service reminder only; not an ECU flash; nothing
+immobilizer/odometer related. No transport is opened — frame bytes only.

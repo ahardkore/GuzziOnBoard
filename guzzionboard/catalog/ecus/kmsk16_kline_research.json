@@ -1,0 +1,29 @@
+{
+  "id": "kmsk16_kline_research",
+  "family": "Keihin KMSK16 K-Line (research)",
+  "display_name": "Keihin KMSK16 K-Line (candidate capture decode)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "KTM / Husqvarna 449-511 / CCM 450 Adventure (source-observed)",
+  "notes": "Offline passive decoder for KMSK16 K-Line captures: KWP2000 framing (FMT 0x80|len, 8-bit sum) at 10,400 baud; decodes 0x62 data responses against the documented DID table (rpm 0x1001, MAP, temps, throttle, STFT, injector, ignition, dwell, CLV, lambda, 2nd throttle, purge, RaceMAP, high-rev counters) and 0x58 DTC responses; write-class SIDs (0x14/0x27/0x31/0x32/0x3B/0x3D...) classified only. Source: gobftald/CCM450-diag @ 43104d2c + EDIABAS job table (facts reimplemented+cited, not vendored; supplier security-access code NOT shipped; programming sequence not documented -> no write path). guzzionboard/kmsk16_kline.py; synthetic tests only.",
+  "session": {
+    "protocol": "kmsk16-kline-research",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_evidence_note": "Capture decoder only; no session, no write path."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Programming sequence not documented; security access is a supplier-specific secret not shipped."
+  },
+  "capabilities": [
+    "live"
+  ],
+  "sources": [
+    "https://github.com/gobftald/CCM450-diag/tree/43104d2cfca93368b3eac2f396e65754e1493728 (KMSK16 KWP2000 stack + EDIABAS jobs)"
+  ]
+}

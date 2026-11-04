@@ -340,3 +340,13 @@ that the claims this document makes about the repository stay true:
 When a family from §2 is implemented, it gets a known-answer test built from a
 synthetic image constructed to satisfy that family, plus — where a real factory
 image can be obtained lawfully — a verification-only test against it.
+
+### KMSK16 capture decoder — shipped 2026-11-04
+
+`guzzionboard/kmsk16_kline.py` (PROFILE `kmsk16_kline_research`): passive
+KWP2000 K-Line capture decoder reusing `klinelog` framing; decodes 0x62 data
+responses against the DID table from the CCM450-diag job file and 0x58 DTC
+responses; write-class SIDs classified only (supplier access code not
+shipped, programming sequence undocumented). Web multi-brand option
+`kmsk16_kline` with browser assertions. Catalog profile
+`kmsk16_kline_research` (confidence `unknown`).

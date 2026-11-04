@@ -318,6 +318,46 @@ function researchDelphiMt05(bytes) {
   return lines;
 }
 
+
+/* Keihin KMSK16 K-Line KWP2000 frame check (source: gobftald/CCM450-diag
+ * @43104d2, EDIABAS job table). Addressed frame FMT 0x80|len, 8-bit sum CS;
+ * decodes 0x62 data responses against the documented DID table as
+ * candidates. Offline only - no session, write-class SIDs flagged only. */
+var KMSK16_DIDS = {0x1001: 'engine_rpm', 0x0100: 'engine_rpm_alt', 0x1002: 'map_mbar',
+  0x1004: 'coolant_raw', 0x1005: 'iat_raw', 0x1006: 'throttle_raw', 0x1007: 'stft',
+  0x0102: 'stft_alt', 0x1009: 'hego', 0x1012: '2nd_tps_raw', 0x1013: 'battery_raw',
+  0x1020: 'injector_us', 0x0110: 'injector_us_alt', 0x1030: 'ignition_raw', 0x0120: 'ignition_raw_alt',
+  0x0130: 'dwell_raw', 0x0107: 'clv_raw', 0x0140: 'thref_raw', 0x0142: 'lambda_part_load',
+  0x0143: 'lambda_idle', 0x0149: 'lambda_show', 0x0170: '2nd_throttle_angle_raw', 0x0171: '2nd_throttle_target_raw',
+  0x0172: '2nd_throttle_adll_raw', 0x0173: '2nd_throttle_adhh_raw', 0x0174: '2nd_throttle_steps_raw',
+  0x0185: 'purge_raw', 0x0500: 'racemap', 0x0510: 'high_rev_counter', 0x0006: 'battery_adc_raw',
+  0x0000: 'tps_voltage_raw', 0x0018: '2nd_throttle_actuator_v_raw'};
+var KMSK16_WRITE_SIDS = [0x11, 0x14, 0x27, 0x2E, 0x31, 0x32, 0x3B, 0x3D];
+function researchKmsk16(bytes) {
+  if (bytes.length < 5) throw new Error('frame too short');
+  const fmt = bytes[0], len = bytes[3];
+  if ((fmt & 0xC0) !== 0x80) throw new Error('not an addressed (0x80) KWP2000 frame');
+  if (bytes.length !== len + 5) throw new Error(`length mismatch: LEN=${len} but ${bytes.length} bytes`);
+  let cs = 0; for (let i = 0; i < bytes.length - 1; i++) cs = (cs + bytes[i]) & 0xFF;
+  if (cs !== bytes[bytes.length - 1]) throw new Error(`sum checksum mismatch: computed 0x${cs.toString(16).toUpperCase().padStart(2, '0')}`);
+  const sid = bytes[4];
+  const lines = [`KWP2000 addressed frame: TGT 0x${bytes[1].toString(16).toUpperCase().padStart(2, '0')} SRC 0x${bytes[2].toString(16).toUpperCase().padStart(2, '0')} LEN ${len} CS OK`];
+  if (KMSK16_WRITE_SIDS.indexOf(sid) >= 0 || KMSK16_WRITE_SIDS.indexOf(sid - 0x40) >= 0) {
+    lines.push(`Service 0x${sid.toString(16).toUpperCase().padStart(2, '0')} is WRITE-CLASS - classified only, never emitted as a decoded event.`);
+  } else if (sid === 0x62 && bytes.length >= 7) {
+    const did = (bytes[5] << 8) | bytes[6], data = bytes.slice(7, -1);
+    const name = KMSK16_DIDS[did];
+    lines.push(`Data response DID 0x${did.toString(16).toUpperCase().padStart(4, '0')}${name ? ' (' + name + ' candidate)' : ''} raw ${data.map((b) => b.toString(16).toUpperCase().padStart(2, '0')).join(' ') || '(none)'}`);
+    if (name && data.length >= 2) lines.push(`u16 candidate: ${(data[0] << 8) | data[1]}`);
+  } else if (sid === 0x58) {
+    lines.push(`DTC response (0x58) status 0x${(bytes[5] || 0).toString(16).toUpperCase().padStart(2, '0')}`);
+  } else {
+    lines.push(`Service 0x${sid.toString(16).toUpperCase().padStart(2, '0')} (not decoded)`);
+  }
+  lines.push('Offline candidate check only; no diagnostic session, no write path; supplier access code not shipped.');
+  return lines;
+}
+
 function decodeMultiResearch(profile, line) {
   if (profile === 'bmw_r1300gs') return researchBmw(line);
   const bytes = researchHex(line);
@@ -330,6 +370,7 @@ function decodeMultiResearch(profile, line) {
   if (profile === 'honda_keihin_k25') return researchHondaKeihin(bytes);
   if (profile === 'buell_xb12x_ddfi2') return researchBuellDdfi2(bytes);
   if (profile === 'delphi_mt05_kline') return researchDelphiMt05(bytes);
+  if (profile === 'kmsk16_kline') return researchKmsk16(bytes);
   throw new Error('Choose an exact research profile.');
 }
 

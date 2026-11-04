@@ -515,3 +515,38 @@ def test_ktm_690_can_broadcast():
     assert c['values']['rpm_candidate'] == 7000 and c['values']['coolant_c_candidate'] == 79.4
     cap = ktm.decode_capture([F(0x120, [0]*8), F(0x999, [0]*8), F(0x120, [0])])
     assert cap['recognized'] == 1 and cap['invalid'] == 1
+
+
+# ------------------------------------------- Triumph CAN broadcast
+def test_triumph_can_broadcast():
+    from guzzionboard import triumph_can as tr
+    from guzzionboard.canlog import CanFrame
+    F = lambda i, d, ext=False: CanFrame(timestamp=0.0, id=i, data=bytes(d), direction='rx', extended=ext)
+    t = tr.decode_frame(F(0x600, [0x00, 0x00, 0xB4, 0x5A, 0x30, 0x00, 0x34, 0x12]))
+    assert t['values']['tyre'] == 'front' and t['values']['pressure_psi_candidate'] == 36.0
+    assert t['values']['temperature_c_candidate'] == 40 and t['values']['data_counter'] == 0x34
+    b = tr.decode_frame(F(0x567, [0, 0x0A, 0, 0, 0, 0, 0, 0]))
+    assert b['values']['btn_horn'] == 'pressed' and b['values']['btn_joystick_press'] == 'pressed'
+    g = tr.decode_frame(F(0x540, [0x62, 0, 0, 0, 0, 0, 0, 0]))
+    assert g['values'] == {'gear_candidate': 6, 'neutral_light': True, 'check_engine_candidate': False}
+    c = tr.decode_frame(F(0x570, [0, 0, 0x03, 0x1A, 0, 0, 0, 0]))
+    assert c['values']['coolant_c_candidate'] == 79.4
+    cap = tr.decode_capture([F(0x600, [0]*8), F(0x999, [0]*8), F(0x600, [0])])
+    assert cap['recognized'] == 1 and cap['invalid'] == 1
+
+
+# ------------------------------------------- Zero SR battery CAN (29-bit)
+def test_zero_sr_battery_can_broadcast():
+    from guzzionboard import zero_sr_battery_can as z
+    from guzzionboard.canlog import CanFrame
+    F = lambda i, d: CanFrame(timestamp=0.0, id=i, data=bytes(d), direction='rx', extended=True)
+    s = z.decode_frame(F(0x0B57ED14, [0xD2, 0x08, 0xC4, 0x09, 0x5A, 0x00, 0x05, 0x00]))
+    assert s['values']['state_of_charge_pct_candidate'] == 90
+    v = z.decode_frame(F(0x0B57ED10, [0xD0, 0x0F, 0xE8, 0x0F, 0x10, 0x27, 0x00, 0x00]))
+    assert abs(v['values']['lowest_cell_v_candidate'] - 4.048) < 1e-9
+    assert abs(v['values']['pack_voltage_v_candidate'] - 10.0) < 1e-9
+    ver = z.decode_frame(F(0x0B57ED00, [0x01, 0x02, 0x03]))
+    assert ver['values']['battery_version_candidate'] == '1.2.3'
+    assert z.decode_frame(F(0x123, [0]*8)) is None  # standard ID rejected
+    cap = z.decode_capture([F(0x0B57ED14, [0]*8), F(0x0B57ED00, [0, 0, 0, 0])])
+    assert cap['recognized'] == 1 and cap['invalid'] == 1

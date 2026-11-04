@@ -275,6 +275,25 @@ test('multi-brand research decoders validate framing and remain local', async ({
   expect(ktm.decoder.recognized_frames).toBe(2);
   expect(ktm.decoder.events[0].values.rpm_candidate).toBe(7000);
   expect(ktm.decoder.events[1].values.coolant_c_candidate).toBe(79.4);
+
+  const triumph = await page.evaluate(async () => {
+    const r = await fetch('/api/tools/canlog', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: '(1.0) can0 600#0000B45A3000340C\n(1.1) can0 540#62000000000000', decoder: 'triumph_can' }) });
+    return r.json();
+  });
+  expect(triumph.decoder.profile).toBe('triumph_can_broadcast');
+  expect(triumph.decoder.recognized_frames).toBe(2);
+  expect(triumph.decoder.events[0].values.pressure_psi_candidate).toBe(36);
+  expect(triumph.decoder.events[1].values.gear_candidate).toBe(6);
+
+  const zero = await page.evaluate(async () => {
+    const r = await fetch('/api/tools/canlog', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: '(1.0) can0 0B57ED14#D208C4095A000500', decoder: 'zero_sr_battery_can' }) });
+    return r.json();
+  });
+  expect(zero.decoder.profile).toBe('zero_sr_battery_can_broadcast');
+  expect(zero.decoder.recognized_frames).toBe(1);
+  expect(zero.decoder.events[0].values.state_of_charge_pct_candidate).toBe(90);
   expect(posts).toEqual([]);
   await page.locator('#multiResearchClear').click();
   await expect(out).toBeEmpty();

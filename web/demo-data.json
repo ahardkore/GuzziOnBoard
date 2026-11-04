@@ -15,7 +15,7 @@
     "applied": false,
     "status": {}
    },
-   "ecu_count": 47,
+   "ecu_count": 49,
    "vehicle_count": 555,
    "model_count": 461,
    "year_range": [
@@ -2377,6 +2377,43 @@
      "field_confirmation": {}
     },
     {
+     "id": "triumph_can_research",
+     "family": "Triumph CAN broadcast (research)",
+     "display_name": "Triumph CAN (candidate broadcast decode)",
+     "transport": "can",
+     "confidence": "unknown",
+     "years": "2013 Street Triple / 2017-2021 Tiger 1200 Gen 3 (source-observed)",
+     "notes": "Offline passive decoder of observed Triumph broadcast IDs: Tiger 1200 Gen 3 0x500 brake light, 0x567 handlebar buttons (2-bit crumbs), 0x600 TPMS (psi*5, temp+50, counters/faults), 0x210 ABS brake pressure (raw); Daytona 675/Street Triple 2013-era 0x518 RPM/4, 0x540 gear/neutral/CEL, 0x550 coolant bars, 0x570 coolant BE16/10. Sources: talss89/motorcycle-canbus-info (MIT, LICENSES/MotorcycleCanbusInfo-MIT.txt) + triumph675.net forum ID post cross-checked with triumphrat.net 2019 dash-eliminator thread. Candidate-grade sniffing notes; not verified captures. guzzionboard/triumph_can.py; synthetic tests only.",
+     "capabilities": [
+      "live"
+     ],
+     "effective_capabilities": [
+      "live"
+     ],
+     "sources": [
+      "https://github.com/talss89/motorcycle-canbus-info/blob/main/Motorcycles/triumph-tiger-1200-gen3.md (MIT)",
+      "https://www.triumph675.net/threads/ecu-to-dash-can-bus-message-ids.242889/ (2018 forum ID post)",
+      "https://www.triumphrat.net/threads/triumph-instrumentation-cluster-abs-adapter-eliminator-can-bus.948858/ (2019)"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Broadcast only; no ECU memory access."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "triumph-can-research",
+      "physical_supported": false,
+      "simulator_supported": false,
+      "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "triumph_daytona_675_2012",
      "family": "2012 Triumph Daytona 675 Keihin (source-reported)",
      "display_name": "Triumph Daytona 675 2012 (read-only OBD)",
@@ -2457,6 +2494,41 @@
      "session": {
       "physical_supported": false,
       "physical_blocked_reason": "Only passive stream observations and offline checksum research exist; no family-specific initialization transcript or primary diagnostic wire definition was recovered."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "zero_sr_battery_can_research",
+     "family": "Zero SR/SR-F battery & ESC CAN (research)",
+     "display_name": "Zero SR battery CAN (candidate broadcast decode)",
+     "transport": "can",
+     "confidence": "unknown",
+     "years": "Zero SR / SR-F (source-observed)",
+     "notes": "Offline passive decoder of Zero SR 29-bit extended-ID battery/ESC broadcasts at 250 kbit/s from the beambreak DBC + notes: 0x0B57ED00 battery version, 0x0B57ED01 serial, 0x0B57ED0F ESC version/serial, 0x0B57ED10 lowest/highest cell V + pack V (LE x0.001), 0x0B57ED14 SoC %, 0x0B57ED1F ESC power control, 0x0B57EDC0 button/BLE-pair; remaining IDs observed-undecoded. Source: rscullin/beambreak CAN Bus/SR_Battery.dbc (no license stated, open per policy; facts reimplemented+cited, DBC not vendored). The upstream battery/ESC EMULATOR (TX) is deliberately NOT implemented. guzzionboard/zero_sr_battery_can.py; synthetic tests only.",
+     "capabilities": [
+      "live"
+     ],
+     "effective_capabilities": [
+      "live"
+     ],
+     "sources": [
+      "https://github.com/rscullin/beambreak/tree/master/CAN%20Bus (SR_Battery.dbc + SR Battery CAN Bus.md, no license stated)"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Broadcast only; no ECU memory access."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "zero-sr-battery-can-research",
+      "physical_supported": false,
+      "simulator_supported": false,
+      "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
      },
      "actuators": [],
      "routines": [],
@@ -21454,6 +21526,44 @@
     ]
    },
    {
+    "id": "triumph_can_research",
+    "family": "Triumph CAN broadcast (research)",
+    "display_name": "Triumph CAN (candidate broadcast decode)",
+    "transport": "can",
+    "confidence": "unknown",
+    "years": "2013 Street Triple / 2017-2021 Tiger 1200 Gen 3 (source-observed)",
+    "notes": "Offline passive decoder of observed Triumph broadcast IDs: Tiger 1200 Gen 3 0x500 brake light, 0x567 handlebar buttons (2-bit crumbs), 0x600 TPMS (psi*5, temp+50, counters/faults), 0x210 ABS brake pressure (raw); Daytona 675/Street Triple 2013-era 0x518 RPM/4, 0x540 gear/neutral/CEL, 0x550 coolant bars, 0x570 coolant BE16/10. Sources: talss89/motorcycle-canbus-info (MIT, LICENSES/MotorcycleCanbusInfo-MIT.txt) + triumph675.net forum ID post cross-checked with triumphrat.net 2019 dash-eliminator thread. Candidate-grade sniffing notes; not verified captures. guzzionboard/triumph_can.py; synthetic tests only.",
+    "capabilities": [
+     "live"
+    ],
+    "effective_capabilities": [
+     "live"
+    ],
+    "sources": [
+     "https://github.com/talss89/motorcycle-canbus-info/blob/main/Motorcycles/triumph-tiger-1200-gen3.md (MIT)",
+     "https://www.triumph675.net/threads/ecu-to-dash-can-bus-message-ids.242889/ (2018 forum ID post)",
+     "https://www.triumphrat.net/threads/triumph-instrumentation-cluster-abs-adapter-eliminator-can-bus.948858/ (2019)"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Broadcast only; no ECU memory access."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "triumph-can-research",
+     "physical_supported": false,
+     "simulator_supported": false,
+     "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
     "id": "triumph_daytona_675_2012",
     "family": "2012 Triumph Daytona 675 Keihin (source-reported)",
     "display_name": "Triumph Daytona 675 2012 (read-only OBD)",
@@ -21662,6 +21772,42 @@
     "session": {
      "physical_supported": false,
      "physical_blocked_reason": "Only passive stream observations and offline checksum research exist; no family-specific initialization transcript or primary diagnostic wire definition was recovered."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
+    "id": "zero_sr_battery_can_research",
+    "family": "Zero SR/SR-F battery & ESC CAN (research)",
+    "display_name": "Zero SR battery CAN (candidate broadcast decode)",
+    "transport": "can",
+    "confidence": "unknown",
+    "years": "Zero SR / SR-F (source-observed)",
+    "notes": "Offline passive decoder of Zero SR 29-bit extended-ID battery/ESC broadcasts at 250 kbit/s from the beambreak DBC + notes: 0x0B57ED00 battery version, 0x0B57ED01 serial, 0x0B57ED0F ESC version/serial, 0x0B57ED10 lowest/highest cell V + pack V (LE x0.001), 0x0B57ED14 SoC %, 0x0B57ED1F ESC power control, 0x0B57EDC0 button/BLE-pair; remaining IDs observed-undecoded. Source: rscullin/beambreak CAN Bus/SR_Battery.dbc (no license stated, open per policy; facts reimplemented+cited, DBC not vendored). The upstream battery/ESC EMULATOR (TX) is deliberately NOT implemented. guzzionboard/zero_sr_battery_can.py; synthetic tests only.",
+    "capabilities": [
+     "live"
+    ],
+    "effective_capabilities": [
+     "live"
+    ],
+    "sources": [
+     "https://github.com/rscullin/beambreak/tree/master/CAN%20Bus (SR_Battery.dbc + SR Battery CAN Bus.md, no license stated)"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Broadcast only; no ECU memory access."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "zero-sr-battery-can-research",
+     "physical_supported": false,
+     "simulator_supported": false,
+     "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
     },
     "actuators": [],
     "routines": [],
@@ -33571,6 +33717,28 @@
     "available": false
    }
   },
+  "triumph_can_research": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "TriumphCANbroadcast(research)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "triumph-can-research",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
+   },
+   "identification": {
+    "available": false
+   }
+  },
   "triumph_daytona_675_2012": {
    "parameters": {
     "rpm": {
@@ -33729,6 +33897,28 @@
     "physical_blocked_reason": "Only passive stream observations and offline checksum research exist; no family-specific initialization transcript or primary diagnostic wire definition was recovered."
    },
    "identification": {}
+  },
+  "zero_sr_battery_can_research": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "ZeroSR/SR-Fbattery&ESCCAN(research)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "zero-sr-battery-can-research",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
+   },
+   "identification": {
+    "available": false
+   }
   }
  },
  "dtc_descriptions": {

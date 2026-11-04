@@ -6346,6 +6346,73 @@
       ignored_tx_frames: ignoredTx, omitted_events: Math.max(0, recognized - events.length)};
   }
 
+
+  /* Triumph broadcast candidates: talss89/motorcycle-canbus-info (MIT) Tiger
+   * 1200 Gen 3 notes + triumph675.net 2013-era ID post; Round 28. */
+  function decodeTriumphCanCapture(frames) {
+    var events = [], recognized = 0, invalid = 0, ignoredTx = 0;
+    var lengths = {0x210: 8, 0x500: 8, 0x567: 8, 0x600: 8, 0x518: 8, 0x519: 8, 0x540: 8, 0x550: 8, 0x570: 8};
+    var buttons = [[1,0,'horn'],[1,2,'joystick_press'],[1,4,'indicator_left'],[1,6,'fog_light'],
+      [2,0,'joystick_left'],[2,2,'joystick_right'],[2,6,'home'],[3,0,'joystick_up'],
+      [3,2,'indicator_cancel'],[3,4,'headlight_flash'],[3,6,'joystick_down'],
+      [4,0,'indicator_right'],[4,2,'heated_seat'],[4,4,'mode']];
+    frames.forEach(function (frame) {
+      if (frame.extended || !Object.hasOwn(lengths, frame.id)) return;
+      if (String(frame.direction || '').toLowerCase().startsWith('t')) { ignoredTx++; return; }
+      var d = frame.data;
+      if (d.length !== lengths[frame.id] || d.some(function (n) { return !Number.isInteger(n) || n < 0 || n > 255; })) { invalid++; return; }
+      var id = frame.id, values;
+      if (id === 0x567) { values = {}; buttons.forEach(function (b) {
+        var c = (d[b[0]] >> b[1]) & 3; values['btn_' + b[2]] = c === 1 ? 'inactive' : c === 2 ? 'pressed' : 'raw_' + c; }); }
+      else if (id === 0x600) values = {tyre: d[1] === 0 ? 'front' : d[1] === 0x10 ? 'rear' : 'unknown',
+        pressure_psi_candidate: d[2] / 5, temperature_c_candidate: d[3] - 50,
+        pressure_status_candidate: (d[4] >> 4) & 0xF, battery_status_candidate: d[4] & 0xF,
+        data_counter: (d[5] << 8) | d[6], fault_status_candidate: [(d[7] >> 4) & 0xF, d[7] & 0xF]};
+      else if (id === 0x500) values = {brake_light_candidate: !!((d[4] >> 3) & 1)};
+      else if (id === 0x210) values = {abs_brake_pressure_raw_candidate: (d[0] << 8) | d[1]};
+      else if (id === 0x518) values = {rpm_candidate: ((d[0] << 8) | d[1]) / 4};
+      else if (id === 0x519) values = {tps_raw_candidate: (d[0] << 8) | d[1]};
+      else if (id === 0x540) values = {gear_candidate: (d[0] >> 4) & 7, neutral_light: !!(d[0] & 2), check_engine_candidate: !!(d[0] & 4)};
+      else if (id === 0x550) values = {coolant_bars_candidate: d[0] & 7, warning_light: !!((d[0] >> 3) & 1)};
+      else values = {coolant_c_candidate: ((d[2] << 8) | d[3]) / 10};
+      recognized++;
+      if (events.length < 200) events.push({timestamp: frame.timestamp, id: '0x' + id.toString(16).toUpperCase(),
+        direction: frame.direction || 'unknown', raw: d.map(function (v) { return v.toString(16).padStart(2, '0').toUpperCase(); }).join(''), values: values});
+    });
+    return {profile: 'triumph_can_broadcast', events: events, recognized_frames: recognized, invalid_length_frames: invalid,
+      ignored_tx_frames: ignoredTx, omitted_events: Math.max(0, recognized - events.length)};
+  }
+
+  /* Zero SR battery/ESC 29-bit extended IDs from rscullin/beambreak DBC
+   * (no license stated, open per policy); Round 28. Passive decode only. */
+  function decodeZeroSrBatteryCanCapture(frames) {
+    var events = [], recognized = 0, invalid = 0, ignoredTx = 0;
+    var lengths = {}; [0x0B57ED00,0x0B57ED01,0x0B57ED02,0x0B57ED03,0x0B57ED0F,0x0B57ED10,0x0B57ED11,
+      0x0B57ED12,0x0B57ED13,0x0B57ED14,0x0B57ED15,0x0B57ED1F,0x0B57EDC0,0x0B57EDC1,0x0B57EDC2]
+      .forEach(function (i) { lengths[i] = i === 0x0B57ED00 ? 3 : 8; });
+    frames.forEach(function (frame) {
+      if (!frame.extended || !Object.hasOwn(lengths, frame.id)) return;
+      if (String(frame.direction || '').toLowerCase().startsWith('t')) { ignoredTx++; return; }
+      var d = frame.data;
+      if (d.length !== lengths[frame.id] || d.some(function (n) { return !Number.isInteger(n) || n < 0 || n > 255; })) { invalid++; return; }
+      var id = frame.id, values;
+      if (id === 0x0B57ED00) values = {battery_version_candidate: d[0] + '.' + d[1] + '.' + d[2]};
+      else if (id === 0x0B57ED01) values = {battery_serial_candidate: d.slice(0, 4).map(function (v) { return v.toString(16).padStart(2, '0').toUpperCase(); }).join('')};
+      else if (id === 0x0B57ED0F) values = {esc_version_candidate: d[0] + '.' + d[1] + '.' + d[2]};
+      else if (id === 0x0B57ED10) values = {lowest_cell_v_candidate: (d[0] | (d[1] << 8)) * 0.001,
+        highest_cell_v_candidate: (d[2] | (d[3] << 8)) * 0.001, pack_voltage_v_candidate: (d[4] | (d[5] << 8)) * 0.001};
+      else if (id === 0x0B57ED14) values = {state_of_charge_pct_candidate: d[4]};
+      else if (id === 0x0B57ED1F) values = {esc_power_control_candidate: {0: 'run', 2: 'power_off', 7: 'idle_power_off'}[d[0]] || ('raw_' + d[0])};
+      else if (id === 0x0B57EDC0) values = {button_press_count_candidate: d[0] & 0xF, ble_pair_candidate: d[1] & 0xF};
+      else values = {observed_undecoded: true};
+      recognized++;
+      if (events.length < 200) events.push({timestamp: frame.timestamp, id: '0x' + id.toString(16).toUpperCase(),
+        direction: frame.direction || 'unknown', raw: d.map(function (v) { return v.toString(16).padStart(2, '0').toUpperCase(); }).join(''), values: values});
+    });
+    return {profile: 'zero_sr_battery_can_broadcast', events: events, recognized_frames: recognized, invalid_length_frames: invalid,
+      ignored_tx_frames: ignoredTx, omitted_events: Math.max(0, recognized - events.length)};
+  }
+
   // Raw per-byte observations only: not a vehicle profile or signal decoder.
   function summarizeCanBytes(frames) {
     var groups = {};
@@ -6384,7 +6451,7 @@
         + 'of giving a path (the local workstation reads candump, SavvyCAN '
         + 'CSV and CRTD files).');
     }
-    if (body.decoder !== undefined && body.decoder !== '' && body.decoder !== 'ducati_panigale_mitsubishi' && body.decoder !== 'harley_hdlan_community' && body.decoder !== 'yamaha_r9_2026' && body.decoder !== 'kawasaki_kds3_can' && body.decoder !== 'ktm_690_can') throw bad('unknown offline telemetry decoder');
+    if (body.decoder !== undefined && body.decoder !== '' && body.decoder !== 'ducati_panigale_mitsubishi' && body.decoder !== 'harley_hdlan_community' && body.decoder !== 'yamaha_r9_2026' && body.decoder !== 'kawasaki_kds3_can' && body.decoder !== 'ktm_690_can' && body.decoder !== 'triumph_can' && body.decoder !== 'zero_sr_battery_can') throw bad('unknown offline telemetry decoder');
     if (body.byte_stats !== undefined && typeof body.byte_stats !== 'boolean') throw bad('byte statistics setting must be true or false');
     if (body.byte_stats && (typeof body.filter_ids !== 'string' || !body.filter_ids.trim())) throw bad('byte statistics require an explicit CAN ID filter');
     var parsed = parseCanText(String(body.text || ''));
@@ -6412,6 +6479,8 @@
     if (body.decoder === 'yamaha_r9_2026') result.decoder = decodeYamahaR9Capture(parsed.frames);
     if (body.decoder === 'kawasaki_kds3_can') result.decoder = decodeKds3CanCapture(parsed.frames);
     if (body.decoder === 'ktm_690_can') result.decoder = decodeKtm690CanCapture(parsed.frames);
+    if (body.decoder === 'triumph_can') result.decoder = decodeTriumphCanCapture(parsed.frames);
+    if (body.decoder === 'zero_sr_battery_can') result.decoder = decodeZeroSrBatteryCanCapture(parsed.frames);
     if (body.byte_stats) result.byte_stats = summarizeCanBytes(parsed.frames);
     result.format = parsed.format;
     result.notes = parsed.warnings.concat(result.notes);

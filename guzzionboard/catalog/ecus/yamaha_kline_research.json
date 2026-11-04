@@ -1,0 +1,42 @@
+{
+  "id": "yamaha_kline_research",
+  "family": "Yamaha K-Line research (MT / YZF / XSR / Tracer)",
+  "display_name": "Yamaha K-Line research placeholder (MT / YZF / XSR / Tracer)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "2014-present",
+  "notes": "Common Yamaha models (MT-03/07/09/10, YZF-R6/R1, XSR700/900, Tracer 700/900, MT-125). Evidence recovered so far is a passive MT-03 660 dashboard-stream observation (one source-captured 6-byte frame shape, synthetic tests only), source-reported MT-03 K-Line streams (smiddelkoop/yamaha-kline-ubuntu, captured status bytes are not stored fault codes), and offline Yamaha MT image checksum research (NetworkDir/moto-ecu-checksum: MT-25 2019, MT-07 2014-16/2020/2021, MT-09 SP 2019; a checksum match is not a signature, fitment or flash authorization). No Yamaha diagnostic initialization, addressing, request or scaling definition was recovered, so this is an unknown zero-capability placeholder and physical use is blocked. The offline checksum and dashboard-stream tools in the web workstation remain available. 2026-11-03 capture search: passive 500 kbps CAN broadcast captures and a CC BY 4.0 DBC exist for the Yamaha R9 2026 (DeziderMesko/motocan, acdb146) and an MIT MT-07 2014 decoder (JackHat1/MT07_CAN_Project, fec86c3); both are broadcast-only with no tester-transmitted diagnostic session, so they improve offline decoding only and do not change this placeholder's blocked physical status.",
+  "kline": {
+    "note": "K-Line hardware is suggested by source-reported streams, but baud rate, initialization, addressing and application framing are not claimed without a model-specific public definition or capture."
+  },
+  "session": {
+    "physical_supported": false,
+    "physical_blocked_reason": "Only passive stream observations and offline checksum research exist; no family-specific initialization transcript or primary diagnostic wire definition was recovered."
+  },
+  "identification": {},
+  "memory": {
+    "image_size": null,
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Offline checksum research on listed MT images does not establish a memory-access sequence, complete backup geometry or any programming authorization; this build refuses the operation.",
+    "regions": {}
+  },
+  "capabilities": [],
+  "sources": [
+    "docs/EXTERNAL_MOTORCYCLE_RESEARCH.md section 'Yamaha MT-03 660 (2010) dashboard-stream observation'",
+    "https://github.com/smiddelkoop/yamaha-kline-ubuntu/blob/0f7fef82d1987923198b53ffa001d09ed1ceae4e/kline_protocol.py (source-reported MT-03 streams)",
+    "https://github.com/NetworkDir/moto-ecu-checksum/tree/43ccc5f3663e2a175b7217f802bc302830e6862b (offline Yamaha MT checksum research; README declares MIT)",
+    "https://github.com/DeziderMesko/motocan/tree/acdb1464e327363a7be52a53134f34d0ca2d4e62 (captures + r9.dbc CC BY 4.0; code MIT): R9 2026 CAN captures, 20 decoded broadcast signals",
+    "https://github.com/JackHat1/MT07_CAN_Project/tree/fec86c3da7a05b099e9259b1142980f339b3fa92 (MIT): MT-07 2014 500 kbps CAN decoder",
+    "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+    "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+    "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)",
+    "https://github.com/billyjack2/CAN-DBC-Collection/blob/6e2f88fd6cd9c1f47d0db7bd022711b106f27027/YAMAHA/CAN_2015/can1v3.dbc (AiM YAMAHA/CAN_2015 logger DBC: R1/R1M 2015+, R6 2017+; IDs 0x205/0x209/0x215/0x226/0x23E/0x250/0x254/0x260; collection has no root license = all rights reserved, facts reimplemented + cited only)",
+    "https://www.r1-forum.com/threads/can-bus-protocol.512553/ (SySt 2015+ R1/R1M hand reverse-engineering: 500 kbps, ~16 IDs, 0x260 brake pressures, 0x264 wheel speeds, lean angle in 5 deg steps ~100 Hz; forum-only, bot challenge - cited not vendored)",
+    "https://github.com/DeziderMesko/motocan (2026 R9 Euro5 connector decode: 0x27C RPM/gear/TCS/PWR, 0x383 brake, 0x512 temps, 0x751 neutral, 0x756/0x765 wheel speeds, 0x758/0x759 throttle, 0x76D/0x76E cruise/PWR/display + candump captures and r9.dbc; corroborates/extends yamaha_r9_can.py)",
+    "https://github.com/terrafirma2021/Yamaha-DataLogger/tree/d06a80aef95bf97d6e15eef1c1d851fde6cc4975 (ESP32-S3 Yamaha YDS K-Line 16040-baud broadcast: IMMO 0x3E burst, 5-byte frames [rpm*50, speed, error, coolant-30, sum-csum] + ELM327 mode-01 emulation; no license stated - treated as open per project policy, cited only)"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}

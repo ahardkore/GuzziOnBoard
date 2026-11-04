@@ -1,17 +1,17 @@
 {
   "id": "suzuki_sv650_2003",
-  "family": "Suzuki SV650 2003\u20132005 (source-reported SDS)",
-  "display_name": "Suzuki SV650 2003\u20132005 (raw SDS snapshot)",
+  "family": "Suzuki SV650 2003–2005 (source-reported SDS)",
+  "display_name": "Suzuki SV650 2003–2005 (raw SDS snapshot)",
   "transport": "kline",
   "confidence": "unknown",
-  "years": "2003\u20132005",
-  "notes": "Source reverse-engineers 03\u201305 SV650 and captures 32920-17G2. This integration has synthetic tests only. Raw SDS snapshot only; no 2007 decoding, ECU identity, faults, memory or programming.",
+  "years": "2003–2005",
+  "notes": "Source reverse-engineers 03–05 SV650 and captures 32920-17G2. This integration has synthetic tests only. Raw SDS snapshot only; no 2007 decoding, ECU identity, faults, memory or programming.",
   "session": {
     "protocol": "suzuki-sv650-2003",
     "physical_supported": true,
     "simulator_supported": false,
     "tester_present_interval": 1.0,
-    "physical_evidence_note": "Source reports 03\u201305 SV650 communication; this adaptation is synthetic-tested only."
+    "physical_evidence_note": "Source reports 03–05 SV650 communication; this adaptation is synthetic-tested only."
   },
   "identification": {
     "available": false
@@ -25,7 +25,13 @@
     "live"
   ],
   "sources": [
-    "https://github.com/synfinatic/sv650sds/tree/bacf803a9056241ef270acf0e7e31467961aeba5"
+    "https://github.com/synfinatic/sv650sds/tree/bacf803a9056241ef270acf0e7e31467961aeba5",
+    "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/data/sds_tool_output.txt (captured SDT<->ECU K-Line session, 03-05 SV650, ECU 32920-17G2)",
+    "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/data/001-basic.csv (OLS UART capture of the same session)",
+    "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/sds_decode/sds_decode.ino (sensor field table + candidate formulas)",
+    "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+    "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+    "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
   ],
   "parameters": [
     {

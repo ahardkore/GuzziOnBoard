@@ -448,3 +448,59 @@ machine — USB timing jitter has bricked ECUs.
 - GuzziDiag beginner tutorials (thisoldtractor.com, wildguzzi.com) — TPS target
   values and per-model reset rules
 - ISO 14230-1/-2/-3 (KWP2000), ISO 9141-2, ISO 15765-2 (ISO-TP), SAE J2012
+
+## Common-motorcycle catalog expansion (2026-11-03)
+
+- **Royal Enfield 650 twins** (Interceptor 650, Continental GT 650, Super
+  Meteor 650) now map to the opt-in `generic_obd_can_11bit` profile at
+  `unknown` confidence: `moca-owner-dev/RoyalEnfieldObd` (MIT) documents a
+  standard OBD-II CAN polling set on one Interceptor 650, which is one bike's
+  reading list, not a fitment claim. The existing generic-OBD gates apply
+  unchanged: ECU-only selection, physical 500 kbit/s 11-bit CAN, read-only
+  mode.
+- **Common Yamahas** (MT-03/07/09/10, YZF-R6/R1, XSR700/900, Tracer 700/900 GT,
+  MT-125) map to a new `yamaha_kline_research` placeholder: passive MT-03
+  dashboard-stream observation and offline MT checksum research exist, but no
+  diagnostic wire definition was recovered, so the family has zero
+  capabilities and refuses physical sessions (same posture as `59m`).
+- **Suzuki** (V-Strom DL650/DL1000, GSX-S750/S1000, Bandit 650/1250) and
+  **Kawasaki** (Z900, Z400) join the existing bounded raw
+  `suzuki_sds_generic_research` / `kawasaki_kds_research` attempts at `unknown`
+  confidence on the strength of KDS2Bluetooth's broad SDS/KDS support claims —
+  synthetic tests only, no fitment claim.
+- **BMW Motorrad** common models (R 1250/1300 GS, S 1000 RR/XR, R nineT,
+  F 850 GS, F 900 XR, G 310 R) map to a new `bmw_can_research` placeholder:
+  EasierCan's MIT-licensed R1300GS capture documents only three 11-bit
+  broadcast frames for the offline decoder, so the family has zero
+  capabilities and refuses physical sessions.
+- A new generic **ISO 9141-2 K-Line OBD** message layer
+  (`guzzionboard/protocol/iso9141.py`, profile `generic_obd_iso9141_kline`)
+  serves legislated OBD over K-Line after a validated 5-baud handshake
+  (`08 08` / `94 94`), read-only mode only.
+
+## 2026-11-03 — two more generic standard protocols (read-only, opt-in)
+
+Built from the written-form sources catalogued in
+`docs/CAPTURE_SEARCH_2026-11-03.md` (ISO 14230/14229 service tables, the
+archived Fiat KWP2000 standard document, py-uds / python-udsoncan reference
+implementations) — standard protocols only, no family-specific fitment
+claimed, synthetic tests only:
+
+- **Generic KWP2000 over K-Line** — `guzzionboard/protocol/generic_kwp.py`
+  (`GenericKwp2000Session`, an allowlist-enforcing `KWP2000Session` subclass:
+  only 0x10/0x1A/0x21/0x17/0x18/0x3E may be transmitted; 0x23 memory reads and
+  every mutating service are refused with `PermissionError` before any byte
+  is sent), wired to the opt-in profile `generic_kwp2000_kline`
+  (`generic-kwp2000-kline`, fast or 5-baud init, 10400 baud, physical
+  read-only only).
+- **Generic UDS over 11-bit ISO-TP CAN** — `guzzionboard/protocol/uds.py`
+  (`UdsSession`: DiagnosticSessionControl default/extended, ReadDataByIdentifier,
+  ReadDTCInformation, TesterPresent only; VIN via DID F190; DTCs via 0x19 0x02),
+  wired to the opt-in profile `generic_uds_can_11bit` (`generic-uds-can`,
+  500 kbit/s, physical ID pair 0x7E0–0x7E7/+8, zero padding, read-only only).
+
+Both profiles keep `simulator_supported: false` and are ECU-only selections,
+exactly like the existing generic OBD profiles. Placeholder families remain
+untouched: these generics are standard-protocol entry points, not evidence
+about any specific ECU family, so `physical_supported` stays false for
+59M/15M/15RC/P8/MIU G3/G4/11MP/Mana TCU/Yamaha/BMW research placeholders.

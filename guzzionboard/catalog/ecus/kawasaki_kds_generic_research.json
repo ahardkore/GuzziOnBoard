@@ -28,7 +28,11 @@
     "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3",
     "https://orebrobildiagnos.se/en/product/obd-scan-tool-for-kawasaki-motorcycles/",
     "https://www.amazon.com/AMHTDOL-Diagnostic-Connector-Motorcycles-Compatible/dp/B0GVTYHT94",
-    "https://github.com/HerrRiebmann/KDS2Bluetooth/tree/bb8be32a6ed54d995c838bb58af528731fc8fae1"
+    "https://github.com/HerrRiebmann/KDS2Bluetooth/tree/bb8be32a6ed54d995c838bb58af528731fc8fae1",
+    "https://github.com/digitwolf/w230/tree/c4e11d7dc54bf76470512da18361faab00e72dcf (W230 2024-26 KDS: ISO-14230 fast init, RPM reg 0x09 quarter-rpm, speed reg 0x0C km/h; register table reimplemented in guzzionboard/kawasaki_w230.py)",
+    "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+    "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+    "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
   ],
   "parameters": [
     {

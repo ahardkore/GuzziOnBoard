@@ -25,7 +25,10 @@
     "live"
   ],
   "sources": [
-    "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce"
+    "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce",
+    "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+    "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+    "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
   ],
   "parameters": [
     {
@@ -52,7 +55,7 @@
       "key": "coolant",
       "name": "Coolant (source candidate)",
       "local_id": 8,
-      "unit": "\u00b0C",
+      "unit": "°C",
       "length": 1,
       "digits": 0,
       "default": true,
@@ -62,7 +65,7 @@
       "key": "airtemp",
       "name": "Intake temperature (source candidate)",
       "local_id": 8,
-      "unit": "\u00b0C",
+      "unit": "°C",
       "length": 1,
       "digits": 0,
       "default": true,

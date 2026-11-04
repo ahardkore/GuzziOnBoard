@@ -1,0 +1,33 @@
+{
+  "id": "bmw_can_research",
+  "family": "BMW Motorrad CAN research (broadcast frames only)",
+  "display_name": "BMW Motorrad CAN research placeholder (R / S / F / G series)",
+  "transport": "can",
+  "confidence": "unknown",
+  "years": "2014-present",
+  "notes": "Common BMW Motorrad models (R 1250 GS, R 1300 GS, S 1000 RR/XR, R nineT, F 850 GS, F 900 XR, G 310 R). The only recovered evidence is EasierCan's MIT-licensed BMW R1300GS capture: three 11-bit broadcast frames (0x10C engine speed, 0x2D0 high-beam flash bit, 0x2D2 switch cluster) with arithmetic formulas, decoded offline by the brand-tools panel. The source does not record frame direction and matching IDs do not establish fitment. No BMW diagnostic session, UDS/KWP-on-CAN definition, DTC or memory protocol was recovered, so this is an unknown zero-capability placeholder and physical use is blocked.",
+  "can": {
+    "note": "11-bit classic CAN broadcast frames are documented for one R1300GS capture; no diagnostic request/response identifiers are claimed."
+  },
+  "session": {
+    "physical_supported": false,
+    "physical_blocked_reason": "Only offline broadcast-frame decoding from one R1300GS capture exists; no BMW diagnostic application protocol or validated CAN identifier pair was recovered."
+  },
+  "identification": {},
+  "memory": {
+    "image_size": null,
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No BMW memory-access sequence, geometry or security definition was recovered; this build refuses the operation.",
+    "regions": {}
+  },
+  "capabilities": [],
+  "sources": [
+    "https://github.com/HagayBT/BMW-R1300GS-Smart-Backlight-Fog-Light-Controller/tree/a4c37ceabeea57bc7e97b51da345dd7b84e21596 (EasierCan, MIT; LICENSES/BMW-R1300GS-EasierCan-MIT.txt)",
+    "docs/BRAND_TOOLS.md section 'BMW Motorrad - 11-bit CAN'",
+    "https://github.com/SchwarzeLanzenreiter/MotoRecoLogger/tree/30e08e034ac2f58ce6c3e5ba930bfa4b1108f4da (MIT): BMW Motorrad CAN logger tooling; no captures bundled"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}

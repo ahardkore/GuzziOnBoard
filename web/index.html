@@ -969,12 +969,15 @@
         <option value="bmw_r1300gs">BMW R1300GS · CAN (EasierCan; year unspecified)</option>
         <option value="harley_vpw">Harley-Davidson Touring 2008 · J1850 VPW CRC research (not bike-validated)</option>
         <option value="harley_j1850_harleydroid">Harley-Davidson J1850 · HarleyDroid capture decoder</option>
+        <option value="suzuki_sv650_sds">Suzuki SV650 2003–2005 · SDS K-Line (sv650sds captured session)</option>
+        <option value="honda_keihin_k25">Honda Keihin PGM-FI K25 · K-Line (AutotronicCommunity captured transcript)</option>
+        <option value="buell_xb12x_ddfi2">Buell XB12X · DDFI-2 serial PDU (buell-xb12x-logger, MIT)</option>
       </select></label>
       <p class="muted small">For K-Line and J1850 paste full space-separated hex bytes including checksum/CRC. For BMW CAN use <code>10C#0011223344556677</code> per line (11-bit data frames only); direction is unknown. Up to 100 frames. Raw bytes are preserved in results.</p>
       <label class="field"><span>Frames</span><textarea id="multiResearchFrames" rows="5" maxlength="16000" placeholder="Paste one complete frame per line"></textarea></label>
       <div class="toolbar"><button class="btn" id="multiResearchDecode">Decode locally</button><button class="btn small" id="multiResearchClear">Clear</button></div>
       <pre id="multiResearchOut" class="small" aria-live="polite"></pre>
-      <p class="muted small">Interpretations are candidate values, not proof of vehicle fitment or frame authenticity. <a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/EXTERNAL_MOTORCYCLE_RESEARCH.md" target="_blank" rel="noopener">Sources, licenses and limitations</a>.</p>
+      <p class="muted small">Interpretations are candidate values, not proof of vehicle fitment or frame authenticity. Sources are treated as open for use and modification whether or not a license is stated; if an author advises otherwise, the affected material can be modified or removed later. <a href="https://github.com/ahardkore/GuzziOnBoard/blob/main/docs/EXTERNAL_MOTORCYCLE_RESEARCH.md" target="_blank" rel="noopener">Sources, licenses and limitations</a>.</p>
     </article>
 
     <article class="panel" id="etvResearch" data-tool-cat="calibration" data-tool-brand="general">

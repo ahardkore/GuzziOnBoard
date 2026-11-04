@@ -1,0 +1,46 @@
+{
+  "id": "generic_kwp2000_kline",
+  "family": "Generic KWP2000 / ISO 14230 K-Line (opt-in)",
+  "display_name": "Generic KWP2000 K-Line (read-only, ECU-only)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "not model-specific",
+  "notes": "Opt-in standard KWP2000 (ISO 14230) read-only diagnostics only, where the selected ECU answers fast or 5-baud init and speaks addressed ISO 14230 framing at 10400 baud. Not established for any particular motorcycle. Synthetic integration tests only. Read-only services only: readECUIdentification (0x1A), readDataByLocalIdentifier (0x21), readDTCByStatus (0x18), testerPresent; every mutating service is refused by the session guard before transmission. Requires a correct K-Line adapter.",
+  "session": {
+    "protocol": "generic-kwp2000-kline",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "physical_evidence_note": "Standard ISO 14230 read-only services only; no model-specific fitment is claimed. This integration is synthetic-tested only."
+  },
+  "identification": {
+    "available": true,
+    "option": 128,
+    "note": "KWP2000 readECUIdentification option 0x80, returned raw. Not confirmed ECU hardware identity or any programming authorization."
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "The generic KWP2000 profile exposes no memory read and no write path; readMemoryByAddress (0x23) is not in the read-only allowlist."
+  },
+  "capabilities": [
+    "identify",
+    "dtc_read"
+  ],
+  "sources": [
+    "ISO 14230-2 / ISO 14230-3 (KWP2000 data link and application layer)",
+    "Fiat 'Standard Diagnostic Protocol on K-Line KWP 2000' (06/07/2000, archived) - service list and 5-baud key-byte handshake",
+    "https://github.com/aster94/Keyword-Protocol-2000 (KDS/SDS KWP2000 framing reference)",
+    "https://github.com/HerrRiebmann/KDS2Bluetooth (KDS/SDS KWP2000)"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "baud": 10400,
+    "init": "fast",
+    "address": 16,
+    "fast_target": 16,
+    "tester_address": 241,
+    "inter_byte_delay": 0.005
+  }
+}

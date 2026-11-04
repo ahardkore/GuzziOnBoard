@@ -15,9 +15,9 @@
     "applied": false,
     "status": {}
    },
-   "ecu_count": 39,
-   "vehicle_count": 525,
-   "model_count": 431,
+   "ecu_count": 44,
+   "vehicle_count": 555,
+   "model_count": 461,
    "year_range": [
     1992,
     2026
@@ -36,7 +36,8 @@
      "sources": [
       "Moto Guzzi Euro 5 service-station manuals: IAW 11MP application and diagnostic-tool procedures",
       "Diagcode Piaggio Group 11MP coverage: operation existence only; no wire definitions",
-      "GuzziDiag/GuzziCANDiag public download site: no 11MP diagnostic definition or capture published"
+      "GuzziDiag/GuzziCANDiag public download site: no 11MP diagnostic definition or capture published",
+      "https://www.diagcode.com/products/diagnostics-for-piaggio-group/ (written service list for 11MP HW002, Euro5 CAN; commercial claims only, no wire bytes)"
      ],
      "memory": {
       "image_size": null,
@@ -201,13 +202,15 @@
      "transport": "kline",
      "confidence": "unknown",
      "years": "2001-2009",
-     "notes": "Ducati 749/999, injected air-cooled Monsters, Multistrada, SportClassic, S2R/S4R and ST4S applications. GuzziDiag, TuneECU, and user documentation establish that tooling exists and mention slow initialization, but no primary family transcript, identifier table, or diagnostic payload definition was recovered. Compatibility is not a protocol definition: this remains an unknown zero-capability placeholder and physical use is blocked.",
+     "notes": "Ducati 749/999, injected air-cooled Monsters, Multistrada, SportClassic, S2R/S4R and ST4S applications. GuzziDiag, TuneECU, and user documentation establish that tooling exists and mention slow initialization, but no primary family transcript, identifier table, or diagnostic payload definition was recovered. Compatibility is not a protocol definition: this remains an unknown zero-capability placeholder and physical use is blocked. 2026-11-03: broadcast-CAN decoder written (marelli_iaw59m_can.py); K-Line LDI map remains forum-level evidence, so physical sessions stay blocked.",
      "capabilities": [],
      "effective_capabilities": [],
      "sources": [
       "Ducati.ms Model/ECU list (2009)",
       "GuzziTek ECU master list (2011)",
-      "tuneecu.net Ducati tune list"
+      "tuneecu.net Ducati tune list",
+      "https://www.ducati.ms/threads/ducati-998-999-iaw59m-canbus.627217/ (KWP 0x21/0x1A LDI map: 20-2F EEPROM, 30-7F RAM, 98 tester, 99 date, A0-BF snapshots; forum prose, not a capture)",
+      "https://github.com/billyjack2/CAN-DBC-Collection/tree/6e2f88fd6cd9c1f47d0db7bd022711b106f27027 DUCATI/Marelli_IAW59M_C/can1v3.dbc (broadcast CAN only; no root license - cited, facts reimplemented in guzzionboard/marelli_iaw59m_can.py)"
      ],
      "memory": {
       "image_size": null,
@@ -745,6 +748,88 @@
      "field_confirmation": {}
     },
     {
+     "id": "bmw_can_research",
+     "family": "BMW Motorrad CAN research (broadcast frames only)",
+     "display_name": "BMW Motorrad CAN research placeholder (R / S / F / G series)",
+     "transport": "can",
+     "confidence": "unknown",
+     "years": "2014-present",
+     "notes": "Common BMW Motorrad models (R 1250 GS, R 1300 GS, S 1000 RR/XR, R nineT, F 850 GS, F 900 XR, G 310 R). The only recovered evidence is EasierCan's MIT-licensed BMW R1300GS capture: three 11-bit broadcast frames (0x10C engine speed, 0x2D0 high-beam flash bit, 0x2D2 switch cluster) with arithmetic formulas, decoded offline by the brand-tools panel. The source does not record frame direction and matching IDs do not establish fitment. No BMW diagnostic session, UDS/KWP-on-CAN definition, DTC or memory protocol was recovered, so this is an unknown zero-capability placeholder and physical use is blocked.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://github.com/HagayBT/BMW-R1300GS-Smart-Backlight-Fog-Light-Controller/tree/a4c37ceabeea57bc7e97b51da345dd7b84e21596 (EasierCan, MIT; LICENSES/BMW-R1300GS-EasierCan-MIT.txt)",
+      "docs/BRAND_TOOLS.md section 'BMW Motorrad - 11-bit CAN'",
+      "https://github.com/SchwarzeLanzenreiter/MotoRecoLogger/tree/30e08e034ac2f58ce6c3e5ba930bfa4b1108f4da (MIT): BMW Motorrad CAN logger tooling; no captures bundled"
+     ],
+     "memory": {
+      "image_size": null,
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "No BMW memory-access sequence, geometry or security definition was recovered; this build refuses the operation.",
+      "regions": {}
+     },
+     "kline": {},
+     "can": {
+      "note": "11-bit classic CAN broadcast frames are documented for one R1300GS capture; no diagnostic request/response identifiers are claimed."
+     },
+     "session": {
+      "physical_supported": false,
+      "physical_blocked_reason": "Only offline broadcast-frame decoding from one R1300GS capture exists; no BMW diagnostic application protocol or validated CAN identifier pair was recovered."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "generic_kwp2000_kline",
+     "family": "Generic KWP2000 / ISO 14230 K-Line (opt-in)",
+     "display_name": "Generic KWP2000 K-Line (read-only, ECU-only)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "not model-specific",
+     "notes": "Opt-in standard KWP2000 (ISO 14230) read-only diagnostics only, where the selected ECU answers fast or 5-baud init and speaks addressed ISO 14230 framing at 10400 baud. Not established for any particular motorcycle. Synthetic integration tests only. Read-only services only: readECUIdentification (0x1A), readDataByLocalIdentifier (0x21), readDTCByStatus (0x18), testerPresent; every mutating service is refused by the session guard before transmission. Requires a correct K-Line adapter.",
+     "capabilities": [
+      "identify",
+      "dtc_read"
+     ],
+     "effective_capabilities": [
+      "identify",
+      "dtc_read"
+     ],
+     "sources": [
+      "ISO 14230-2 / ISO 14230-3 (KWP2000 data link and application layer)",
+      "Fiat 'Standard Diagnostic Protocol on K-Line KWP 2000' (06/07/2000, archived) - service list and 5-baud key-byte handshake",
+      "https://github.com/aster94/Keyword-Protocol-2000 (KDS/SDS KWP2000 framing reference)",
+      "https://github.com/HerrRiebmann/KDS2Bluetooth (KDS/SDS KWP2000)"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "The generic KWP2000 profile exposes no memory read and no write path; readMemoryByAddress (0x23) is not in the read-only allowlist."
+     },
+     "kline": {
+      "baud": 10400,
+      "init": "fast",
+      "address": 16,
+      "fast_target": 16,
+      "tester_address": 241,
+      "inter_byte_delay": 0.005
+     },
+     "can": {},
+     "session": {
+      "protocol": "generic-kwp2000-kline",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "physical_evidence_note": "Standard ISO 14230 read-only services only; no model-specific fitment is claimed. This integration is synthetic-tested only."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "generic_obd_can_11bit",
      "family": "Generic OBD-II 11-bit CAN (opt-in)",
      "display_name": "Generic OBD-II 11-bit CAN (read-only, ECU-only)",
@@ -786,6 +871,98 @@
       "physical_supported": true,
       "simulator_supported": false,
       "physical_evidence_note": "Standard OBD-II requests only; no model-specific fitment is claimed. This integration is synthetic-tested only."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "generic_obd_iso9141_kline",
+     "family": "Generic OBD-II ISO 9141-2 K-Line (opt-in)",
+     "display_name": "Generic OBD-II ISO 9141-2 K-Line (read-only, ECU-only)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "not model-specific",
+     "notes": "Opt-in standard OBD-II emission diagnostics only, where the selected ECU answers 5-baud init at address 0x33 with ISO 9141-2 key bytes (08 08 or 94 94) and then speaks ISO 9141-2 framing at 10400 baud. Not established for any particular motorcycle. Synthetic integration tests only. Requires a correct K-Line adapter. Optional Mode 09 VIN and calibration IDs are not verified ECU identity; no memory image, tuning, clears or programming.",
+     "capabilities": [
+      "identify",
+      "live",
+      "dtc_read"
+     ],
+     "effective_capabilities": [
+      "identify",
+      "live",
+      "dtc_read"
+     ],
+     "sources": [
+      "https://github.com/RyoheiHashimoto/obd2",
+      "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32",
+      "https://github.com/brendan-w/python-OBD/tree/a378bdd81d58c67d08050e4244173a9a7dbda73d"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Standard OBD live PIDs and DTCs do not provide ECU memory or flashing."
+     },
+     "kline": {
+      "baud": 10400,
+      "init": "generic-obd-iso9141-kline",
+      "address": 51,
+      "inter_byte_delay": 0.005
+     },
+     "can": {},
+     "session": {
+      "protocol": "generic-obd-iso9141-kline",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "physical_evidence_note": "Standard OBD-II requests only over ISO 9141-2; no model-specific fitment is claimed. This integration is synthetic-tested only."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "generic_uds_can_11bit",
+     "family": "Generic UDS / ISO 14229 11-bit CAN (opt-in)",
+     "display_name": "Generic UDS 11-bit CAN (read-only, ECU-only)",
+     "transport": "can",
+     "confidence": "unknown",
+     "years": "not model-specific",
+     "notes": "Opt-in standard UDS (ISO 14229) read-only diagnostics only, where the selected ECU answers ISO 15765-4 11-bit CAN at 500 kbit/s on a physical diagnostic ID pair (0x7E0-0x7E7 request, +8 response). Not established for any particular motorcycle. Synthetic integration tests only. Read-only services only: DiagnosticSessionControl default/extended, ReadDataByIdentifier (0x22), ReadDTCInformation (0x19), TesterPresent; every write, clear, security, routine, memory and programming service is refused before transmission. Requires a correct CAN adapter and the physical ECU ID pair.",
+     "capabilities": [
+      "identify",
+      "dtc_read"
+     ],
+     "effective_capabilities": [
+      "identify",
+      "dtc_read"
+     ],
+     "sources": [
+      "ISO 14229-1 (UDS application layer) service tables",
+      "https://github.com/mdabrowski1990/uds (python-uds reference implementation)",
+      "https://github.com/RyoheiHashimoto/obd2 (ISO-TP/UDS-over-CAN reference)"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "The generic UDS profile exposes no memory read and no write path; ReadMemoryByAddress (0x23) and the transfer services are not in the read-only allowlist."
+     },
+     "kline": {
+      "init": "can"
+     },
+     "can": {
+      "bitrate": 500000,
+      "tx_id": 2016,
+      "rx_id": 2024,
+      "interface": "socketcan"
+     },
+     "session": {
+      "protocol": "generic-uds-can",
+      "physical_supported": true,
+      "simulator_supported": false,
+      "physical_evidence_note": "Standard ISO 14229 read-only services only; no model-specific fitment is claimed. This integration is synthetic-tested only."
      },
      "actuators": [],
      "routines": [],
@@ -890,7 +1067,11 @@
      "capabilities": [],
      "effective_capabilities": [],
      "sources": [
-      "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952"
+      "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+      "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+      "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+      "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+      "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
      ],
      "memory": {
       "read_supported": false,
@@ -930,7 +1111,11 @@
       "https://github.com/atoid/DashBle/tree/9c65818d13dde39b8d8203736b43109eb84a9651",
       "https://github.com/atoid/Dash/tree/532d0f4fef1b2e11a15f1c6663fb5351757f87b8",
       "https://github.com/WiseNoodle/honda-moto-ecu-suite/tree/85431bd831b2c50a640fac35dccf36c09df20c07",
-      "https://github.com/PhatDatPQ/eculib/tree/7921cc46551fd26d487ec778e8822ace4777899e"
+      "https://github.com/PhatDatPQ/eculib/tree/7921cc46551fd26d487ec778e8822ace4777899e",
+      "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+      "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+      "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+      "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
      ],
      "memory": {
       "read_supported": true,
@@ -983,7 +1168,18 @@
      "capabilities": [],
      "effective_capabilities": [],
      "sources": [
-      "https://github.com/roccofz1/HondaECU/tree/dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109"
+      "https://github.com/roccofz1/HondaECU/tree/dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109",
+      "https://github.com/RyanHope/HondaECU + https://www.1000rr.net/threads/k-line-ecu-logging.247922/ (captured CBR1000RR K-Line session hex; reply decoder written in guzzionboard/honda_cbr1000rr_kline.py)",
+      "https://github.com/AutotronicCommunity/Honda_Keihin_KLine_Protocol (main): README protocol doc + 'REQUEST - RESPONSE ECU HONDA K25 901.txt' captured K-Line session (wake FE 04 72 8C, init 72 05 00 F0 99, tables 71/73/74)",
+      "https://github.com/AutotronicCommunity/ScantoolHonda ScantoolHonda.ino: table-17 live-data field offsets (rpm b9-10 BE, tps/ect/iat/map/bat/inj/igt/speed)",
+      "https://github.com/AutotronicCommunity/READ-ECM-CODE-DAN-ECM-PART-DENGAN-ESP32 TES_WAKE_UP_READ_ECM_HONDA.ino: ECM part decode from 71 00 reply bytes [9:14] (0102E30F01 -> 30400-K81H-N52)",
+      "https://github.com/AutotronicCommunity/scantoolHondaEsp32 ESP32_SCANTOOL.ino: same Keihin K-Line protocol as ESP32 web scantool",
+      "https://github.com/AutotronicCommunity/dtc_honda + dtc-yamaha: manufacturer DTC <-> OBD2 P-code dictionaries",
+      "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA: model/part-code -> K-Line vs CANBUS connection table",
+      "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+      "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+      "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+      "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
      ],
      "memory": {
       "read_supported": false,
@@ -1020,7 +1216,11 @@
       "live"
      ],
      "sources": [
-      "https://github.com/andreibaw/Honda_K-Line_KWP2000/tree/f3bd42ff438e840e4da3802dd5038a195f3d67be"
+      "https://github.com/andreibaw/Honda_K-Line_KWP2000/tree/f3bd42ff438e840e4da3802dd5038a195f3d67be",
+      "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+      "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+      "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+      "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
      ],
      "memory": {
       "read_supported": false,
@@ -1060,7 +1260,11 @@
       "live"
      ],
      "sources": [
-      "https://github.com/seife/honda-ecu-minidash/tree/016102471bbff50abeeeac5447593a3a1e93477d"
+      "https://github.com/seife/honda-ecu-minidash/tree/016102471bbff50abeeeac5447593a3a1e93477d",
+      "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+      "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+      "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+      "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
      ],
      "memory": {
       "read_supported": false,
@@ -1103,7 +1307,17 @@
       "https://github.com/WiseNoodle/honda-moto-ecu-suite/tree/85431bd831b2c50a640fac35dccf36c09df20c07",
       "https://github.com/PhatDatPQ/eculib/tree/7921cc46551fd26d487ec778e8822ace4777899e",
       "https://github.com/AlexKovalevich/HondaECU/tree/db0a6cb8e516aac2406a231380c93e258c722b7c",
-      "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952"
+      "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+      "https://github.com/AutotronicCommunity/Honda_Keihin_KLine_Protocol (main): README protocol doc + 'REQUEST - RESPONSE ECU HONDA K25 901.txt' captured K-Line session (wake FE 04 72 8C, init 72 05 00 F0 99, tables 71/73/74)",
+      "https://github.com/AutotronicCommunity/ScantoolHonda ScantoolHonda.ino: table-17 live-data field offsets (rpm b9-10 BE, tps/ect/iat/map/bat/inj/igt/speed)",
+      "https://github.com/AutotronicCommunity/READ-ECM-CODE-DAN-ECM-PART-DENGAN-ESP32 TES_WAKE_UP_READ_ECM_HONDA.ino: ECM part decode from 71 00 reply bytes [9:14] (0102E30F01 -> 30400-K81H-N52)",
+      "https://github.com/AutotronicCommunity/scantoolHondaEsp32 ESP32_SCANTOOL.ino: same Keihin K-Line protocol as ESP32 web scantool",
+      "https://github.com/AutotronicCommunity/dtc_honda + dtc-yamaha: manufacturer DTC <-> OBD2 P-code dictionaries",
+      "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA: model/part-code -> K-Line vs CANBUS connection table",
+      "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+      "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+      "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+      "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
      ],
      "memory": {
       "read_supported": true,
@@ -1170,7 +1384,17 @@
       "https://www.dynojet.com/power-vision-3-for-2019-2020-honda-crf110f-pv3-16-07/",
       "https://github.com/abyryn/AMQC-WRT-Diagnosis/tree/8b72c7d444c2171e14b9d1cbe6df4c016b0685dd",
       "https://www.aimtechnologies.com/aim-support/docs/SoloDL_HondaCRF-HDS_250dal2010+450dal2009_100_eng.pdf",
-      "https://www.honda.co.jp/HRC/products/racingkit/crf250r/settingtool/"
+      "https://www.honda.co.jp/HRC/products/racingkit/crf250r/settingtool/",
+      "https://github.com/AutotronicCommunity/Honda_Keihin_KLine_Protocol (main): README protocol doc + 'REQUEST - RESPONSE ECU HONDA K25 901.txt' captured K-Line session (wake FE 04 72 8C, init 72 05 00 F0 99, tables 71/73/74)",
+      "https://github.com/AutotronicCommunity/ScantoolHonda ScantoolHonda.ino: table-17 live-data field offsets (rpm b9-10 BE, tps/ect/iat/map/bat/inj/igt/speed)",
+      "https://github.com/AutotronicCommunity/READ-ECM-CODE-DAN-ECM-PART-DENGAN-ESP32 TES_WAKE_UP_READ_ECM_HONDA.ino: ECM part decode from 71 00 reply bytes [9:14] (0102E30F01 -> 30400-K81H-N52)",
+      "https://github.com/AutotronicCommunity/scantoolHondaEsp32 ESP32_SCANTOOL.ino: same Keihin K-Line protocol as ESP32 web scantool",
+      "https://github.com/AutotronicCommunity/dtc_honda + dtc-yamaha: manufacturer DTC <-> OBD2 P-code dictionaries",
+      "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA: model/part-code -> K-Line vs CANBUS connection table",
+      "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+      "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+      "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+      "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
      ],
      "memory": {
       "read_supported": false,
@@ -1258,7 +1482,11 @@
       "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3",
       "https://orebrobildiagnos.se/en/product/obd-scan-tool-for-kawasaki-motorcycles/",
       "https://www.amazon.com/AMHTDOL-Diagnostic-Connector-Motorcycles-Compatible/dp/B0GVTYHT94",
-      "https://github.com/HerrRiebmann/KDS2Bluetooth/tree/bb8be32a6ed54d995c838bb58af528731fc8fae1"
+      "https://github.com/HerrRiebmann/KDS2Bluetooth/tree/bb8be32a6ed54d995c838bb58af528731fc8fae1",
+      "https://github.com/digitwolf/w230/tree/c4e11d7dc54bf76470512da18361faab00e72dcf (W230 2024-26 KDS: ISO-14230 fast init, RPM reg 0x09 quarter-rpm, speed reg 0x0C km/h; register table reimplemented in guzzionboard/kawasaki_w230.py)",
+      "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+      "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+      "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
      ],
      "memory": {
       "read_supported": false,
@@ -1513,13 +1741,14 @@
      "transport": "kline",
      "confidence": "inferred",
      "years": "2007-2016",
-     "notes": "The Mana engine ECU is the shared IAW 5AM; this entry is the separate CVT controller. A published PADS K-Line capture proves KWP2000 physical addressing to target 0xEC from tester 0xF1 and records the two learning commands exactly: IOControl 30 02 08 (belt replacement) followed by 30 01 08 (pulley-potentiometer reset). ManaTCU V1.03 was built from those captures, includes SecurityAccess, and has been field tested. Identification, fault-request and live-data wire definitions were not published, so this workstation does not guess them. The two captured routines remain unavailable because they require security access plus motorcycle-specific conditions (engine running, rear wheel free, side stand up, ordered execution) that the current safety state cannot verify.",
+     "notes": "The Mana engine ECU is the shared IAW 5AM; this entry is the separate CVT controller. A published PADS K-Line capture proves KWP2000 physical addressing to target 0xEC from tester 0xF1 and records the two learning commands exactly: IOControl 30 02 08 (belt replacement) followed by 30 01 08 (pulley-potentiometer reset). ManaTCU V1.03 was built from those captures, includes SecurityAccess, and has been field tested. Identification, fault-request and live-data wire definitions were not published, so this workstation does not guess them. The two captured routines remain unavailable because they require security access plus motorcycle-specific conditions (engine running, rear wheel free, side stand up, ordered execution) that the current safety state cannot verify. 2026-11-03: written shop-manual evidence that the TCU exposes a K-Line diagnostic pin; still no session transcript, so physical stays blocked.",
      "capabilities": [],
      "effective_capabilities": [],
      "sources": [
       "ApriliaForum Mana belt thread: PADS/K-Spy K-Line capture, 30 02 08 and 30 01 08 routine frames, field-test reports (September-October 2023)",
       "ManaTCU V1.03 executable mirrored in vendor/guzzidiag/tools/ (SHA-256 in MANIFEST.json)",
-      "Aprilia Mana 850 service-station manual: TCU K-Line pinout, required learning procedures and DTC descriptions"
+      "Aprilia Mana 850 service-station manual: TCU K-Line pinout, required learning procedures and DTC descriptions",
+      "Aprilia Mana 850 GT ABS shop manual (scribd 75501969): transmission ECU pin B2 = series K-Line for diagnosis; CAN links TCU/injection/dash (U1601 Mute Node)"
      ],
      "memory": {
       "image_size": null,
@@ -1557,7 +1786,9 @@
      "sources": [
       "Piaggio Group / Moto Guzzi ECU MIU G3 Technical Training presentation: published RLI, IOLI and RELI tables",
       "IAWDiag V0.52 and IAWMIUG3 Reader/Writer binaries: implementation existence only; no unpublished constants promoted",
-      "Moto Guzzi V7 II service-station manual: application, DTC descriptions and service conditions"
+      "Moto Guzzi V7 II service-station manual: application, DTC descriptions and service conditions",
+      "https://www.guzzitek.org/documents/injection/ECU_MIU-G3_Training.pdf (OEM training doc: Alpha-n, 10x10 self-adaptive matrices, adaptive fuel correction readable by diagnostic tool)",
+      "https://www.griso.org/GuzziDiag%20for%20V7-V9.pdf (written GuzziDiag manual: reader log, per-model throttle references, no TPS reset on MIU G3)"
      ],
      "memory": {
       "image_size": null,
@@ -1607,7 +1838,9 @@
      "sources": [
       "Moto Guzzi V7/V9 Euro 5 service-station manual 2Q000466: MIU G4 application and diagnostic-tool procedures",
       "ASW-NEXT MIUG4 technical user manual: CAN connection and supported operations (no wire identifiers/payloads)",
-      "Diagcode Piaggio Group coverage: MIU G4 Euro 5 CAN operation existence only"
+      "Diagcode Piaggio Group coverage: MIU G4 Euro 5 CAN operation existence only",
+      "https://www.immo-tools.lt/site/files/failai/ASW-NEXT/MIUG4_UM.pdf (written internals: EEPROM M95640, flash 0x20000-0x7FFFF, DTC/TPS/adaptive services)",
+      "https://www.diagcode.com/products/diagnostics-for-piaggio-group/ (written service list, Euro5 CAN; commercial claims only)"
      ],
      "memory": {
       "image_size": null,
@@ -1688,7 +1921,10 @@
       "live"
      ],
      "sources": [
-      "https://github.com/sunsided/suzuki-sds-obdii-gateway/tree/20644c2e21ca2a867e086409c7f130230a7327d7"
+      "https://github.com/sunsided/suzuki-sds-obdii-gateway/tree/20644c2e21ca2a867e086409c7f130230a7327d7",
+      "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+      "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+      "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
      ],
      "memory": {
       "read_supported": false,
@@ -1728,7 +1964,10 @@
       "live"
      ],
      "sources": [
-      "https://github.com/uronour/suzuki-Kawasaki-ecu-tool/tree/4f92cc2adab254595b08c21e2c90b4c57d2e9cc6"
+      "https://github.com/uronour/suzuki-Kawasaki-ecu-tool/tree/4f92cc2adab254595b08c21e2c90b4c57d2e9cc6",
+      "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+      "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+      "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
      ],
      "memory": {
       "read_supported": false,
@@ -1768,7 +2007,10 @@
       "live"
      ],
      "sources": [
-      "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3"
+      "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3",
+      "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+      "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+      "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
      ],
      "memory": {
       "read_supported": false,
@@ -1812,7 +2054,13 @@
       "https://support.aimshop.com/downloads/stockEcu/bike/suzuki/Suzuki_SDS_Protocol_102_eng.pdf",
       "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3",
       "https://store.aim-sportline.com/en/others/237-suzuki-sports-bike-dedicated-cable.html",
-      "https://github.com/HerrRiebmann/KDS2Bluetooth/tree/bb8be32a6ed54d995c838bb58af528731fc8fae1"
+      "https://github.com/HerrRiebmann/KDS2Bluetooth/tree/bb8be32a6ed54d995c838bb58af528731fc8fae1",
+      "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/data/sds_tool_output.txt (captured SDT<->ECU K-Line session, 03-05 SV650, ECU 32920-17G2)",
+      "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/data/001-basic.csv (OLS UART capture of the same session)",
+      "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/sds_decode/sds_decode.ino (sensor field table + candidate formulas)",
+      "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+      "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+      "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
      ],
      "memory": {
       "read_supported": false,
@@ -1854,7 +2102,13 @@
      "sources": [
       "https://support.aimshop.com/downloads/stockEcu/bike/suzuki/Suzuki_SDS_Protocol_102_eng.pdf",
       "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3",
-      "https://store.aim-sportline.com/en/others/237-suzuki-sports-bike-dedicated-cable.html"
+      "https://store.aim-sportline.com/en/others/237-suzuki-sports-bike-dedicated-cable.html",
+      "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/data/sds_tool_output.txt (captured SDT<->ECU K-Line session, 03-05 SV650, ECU 32920-17G2)",
+      "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/data/001-basic.csv (OLS UART capture of the same session)",
+      "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/sds_decode/sds_decode.ino (sensor field table + candidate formulas)",
+      "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+      "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+      "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
      ],
      "memory": {
       "read_supported": false,
@@ -1894,7 +2148,13 @@
       "live"
      ],
      "sources": [
-      "https://github.com/synfinatic/sv650sds/tree/bacf803a9056241ef270acf0e7e31467961aeba5"
+      "https://github.com/synfinatic/sv650sds/tree/bacf803a9056241ef270acf0e7e31467961aeba5",
+      "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/data/sds_tool_output.txt (captured SDT<->ECU K-Line session, 03-05 SV650, ECU 32920-17G2)",
+      "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/data/001-basic.csv (OLS UART capture of the same session)",
+      "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/sds_decode/sds_decode.ino (sensor field table + candidate formulas)",
+      "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+      "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+      "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
      ],
      "memory": {
       "read_supported": false,
@@ -1934,7 +2194,10 @@
       "live"
      ],
      "sources": [
-      "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce"
+      "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce",
+      "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+      "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+      "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
      ],
      "memory": {
       "read_supported": false,
@@ -2045,16 +2308,62 @@
      "routines": [],
      "capability_confidence": {},
      "field_confirmation": {}
+    },
+    {
+     "id": "yamaha_kline_research",
+     "family": "Yamaha K-Line research (MT / YZF / XSR / Tracer)",
+     "display_name": "Yamaha K-Line research placeholder (MT / YZF / XSR / Tracer)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "2014-present",
+     "notes": "Common Yamaha models (MT-03/07/09/10, YZF-R6/R1, XSR700/900, Tracer 700/900, MT-125). Evidence recovered so far is a passive MT-03 660 dashboard-stream observation (one source-captured 6-byte frame shape, synthetic tests only), source-reported MT-03 K-Line streams (smiddelkoop/yamaha-kline-ubuntu, captured status bytes are not stored fault codes), and offline Yamaha MT image checksum research (NetworkDir/moto-ecu-checksum: MT-25 2019, MT-07 2014-16/2020/2021, MT-09 SP 2019; a checksum match is not a signature, fitment or flash authorization). No Yamaha diagnostic initialization, addressing, request or scaling definition was recovered, so this is an unknown zero-capability placeholder and physical use is blocked. The offline checksum and dashboard-stream tools in the web workstation remain available. 2026-11-03 capture search: passive 500 kbps CAN broadcast captures and a CC BY 4.0 DBC exist for the Yamaha R9 2026 (DeziderMesko/motocan, acdb146) and an MIT MT-07 2014 decoder (JackHat1/MT07_CAN_Project, fec86c3); both are broadcast-only with no tester-transmitted diagnostic session, so they improve offline decoding only and do not change this placeholder's blocked physical status.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "docs/EXTERNAL_MOTORCYCLE_RESEARCH.md section 'Yamaha MT-03 660 (2010) dashboard-stream observation'",
+      "https://github.com/smiddelkoop/yamaha-kline-ubuntu/blob/0f7fef82d1987923198b53ffa001d09ed1ceae4e/kline_protocol.py (source-reported MT-03 streams)",
+      "https://github.com/NetworkDir/moto-ecu-checksum/tree/43ccc5f3663e2a175b7217f802bc302830e6862b (offline Yamaha MT checksum research; README declares MIT)",
+      "https://github.com/DeziderMesko/motocan/tree/acdb1464e327363a7be52a53134f34d0ca2d4e62 (captures + r9.dbc CC BY 4.0; code MIT): R9 2026 CAN captures, 20 decoded broadcast signals",
+      "https://github.com/JackHat1/MT07_CAN_Project/tree/fec86c3da7a05b099e9259b1142980f339b3fa92 (MIT): MT-07 2014 500 kbps CAN decoder",
+      "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+      "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+      "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)",
+      "https://github.com/billyjack2/CAN-DBC-Collection/blob/6e2f88fd6cd9c1f47d0db7bd022711b106f27027/YAMAHA/CAN_2015/can1v3.dbc (AiM YAMAHA/CAN_2015 logger DBC: R1/R1M 2015+, R6 2017+; IDs 0x205/0x209/0x215/0x226/0x23E/0x250/0x254/0x260; collection has no root license = all rights reserved, facts reimplemented + cited only)",
+      "https://www.r1-forum.com/threads/can-bus-protocol.512553/ (SySt 2015+ R1/R1M hand reverse-engineering: 500 kbps, ~16 IDs, 0x260 brake pressures, 0x264 wheel speeds, lean angle in 5 deg steps ~100 Hz; forum-only, bot challenge - cited not vendored)",
+      "https://github.com/DeziderMesko/motocan (2026 R9 Euro5 connector decode: 0x27C RPM/gear/TCS/PWR, 0x383 brake, 0x512 temps, 0x751 neutral, 0x756/0x765 wheel speeds, 0x758/0x759 throttle, 0x76D/0x76E cruise/PWR/display + candump captures and r9.dbc; corroborates/extends yamaha_r9_can.py)",
+      "https://github.com/terrafirma2021/Yamaha-DataLogger/tree/d06a80aef95bf97d6e15eef1c1d851fde6cc4975 (ESP32-S3 Yamaha YDS K-Line 16040-baud broadcast: IMMO 0x3E burst, 5-byte frames [rpm*50, speed, error, coolant-30, sum-csum] + ELM327 mode-01 emulation; no license stated - treated as open per project policy, cited only)"
+     ],
+     "memory": {
+      "image_size": null,
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Offline checksum research on listed MT images does not establish a memory-access sequence, complete backup geometry or any programming authorization; this build refuses the operation.",
+      "regions": {}
+     },
+     "kline": {
+      "note": "K-Line hardware is suggested by source-reported streams, but baud rate, initialization, addressing and application framing are not claimed without a model-specific public definition or capture."
+     },
+     "can": {},
+     "session": {
+      "physical_supported": false,
+      "physical_blocked_reason": "Only passive stream observations and offline checksum research exist; no family-specific initialization transcript or primary diagnostic wire definition was recovered."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
     }
    ]
   },
   "makes": [
    "Aprilia",
+   "BMW Motorrad",
    "Ducati",
    "Harley-Davidson",
    "Honda",
    "Kawasaki",
    "Moto Guzzi",
+   "Royal Enfield",
    "Suzuki",
    "Triumph",
    "Yamaha"
@@ -2370,6 +2679,42 @@
       "notes": "Ride-by-wire. Handle self-learning must be followed immediately by throttle self-learning. No CO trim.",
       "confidence": "documented",
       "label": "Audace 1400 (2015-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Bandit 1250",
+    "variants": [
+     {
+      "make": "Suzuki",
+      "model": "Bandit 1250",
+      "year_from": 2007,
+      "year_to": 2026,
+      "ecu": "suzuki_sds_generic_research",
+      "displacement": "1255",
+      "tps": "",
+      "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike.",
+      "confidence": "unknown",
+      "label": "Bandit 1250 (2007-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Bandit 650",
+    "variants": [
+     {
+      "make": "Suzuki",
+      "model": "Bandit 650",
+      "year_from": 2005,
+      "year_to": 2026,
+      "ecu": "suzuki_sds_generic_research",
+      "displacement": "656",
+      "tps": "",
+      "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike.",
+      "confidence": "unknown",
+      "label": "Bandit 650 (2005-2026)",
       "can": {}
      }
     ]
@@ -4004,6 +4349,24 @@
     ]
    },
    {
+    "model": "Continental GT 650",
+    "variants": [
+     {
+      "make": "Royal Enfield",
+      "model": "Continental GT 650",
+      "year_from": 2018,
+      "year_to": 2026,
+      "ecu": "generic_obd_can_11bit",
+      "displacement": "648",
+      "tps": "",
+      "notes": "RoyalEnfieldObd (MIT) documents standard OBD-II CAN polling (PIDs 0x0C/0x0D/0x11/0x0B/0x0F/0x5C/0x04) on one Interceptor 650; one bike's reading list is not a fitment claim for other years or markets. Read-only standard OBD only; no memory, clears or programming.",
+      "confidence": "unknown",
+      "label": "Continental GT 650 (2018-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "D-Tracker 125",
     "variants": [
      {
@@ -4156,6 +4519,42 @@
       "notes": "Ride-by-wire. Handle self-learning must be followed immediately by throttle self-learning. No CO trim.",
       "confidence": "documented",
       "label": "Eldorado 1400 (2015-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "F 850 GS",
+    "variants": [
+     {
+      "make": "BMW Motorrad",
+      "model": "F 850 GS",
+      "year_from": 2018,
+      "year_to": 2026,
+      "ecu": "bmw_can_research",
+      "displacement": "853",
+      "tps": "",
+      "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+      "confidence": "unknown",
+      "label": "F 850 GS (2018-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "F 900 XR",
+    "variants": [
+     {
+      "make": "BMW Motorrad",
+      "model": "F 900 XR",
+      "year_from": 2020,
+      "year_to": 2026,
+      "ecu": "bmw_can_research",
+      "displacement": "895",
+      "tps": "",
+      "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+      "confidence": "unknown",
+      "label": "F 900 XR (2020-2026)",
       "can": {}
      }
     ]
@@ -6994,6 +7393,24 @@
     ]
    },
    {
+    "model": "G 310 R",
+    "variants": [
+     {
+      "make": "BMW Motorrad",
+      "model": "G 310 R",
+      "year_from": 2017,
+      "year_to": 2026,
+      "ecu": "bmw_can_research",
+      "displacement": "313",
+      "tps": "",
+      "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+      "confidence": "unknown",
+      "label": "G 310 R (2017-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "GL1800",
     "variants": [
      {
@@ -7175,6 +7592,42 @@
     ]
    },
    {
+    "model": "GSX-S1000",
+    "variants": [
+     {
+      "make": "Suzuki",
+      "model": "GSX-S1000",
+      "year_from": 2015,
+      "year_to": 2026,
+      "ecu": "suzuki_sds_generic_research",
+      "displacement": "999",
+      "tps": "",
+      "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike.",
+      "confidence": "unknown",
+      "label": "GSX-S1000 (2015-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "GSX-S750",
+    "variants": [
+     {
+      "make": "Suzuki",
+      "model": "GSX-S750",
+      "year_from": 2019,
+      "year_to": 2026,
+      "ecu": "suzuki_sds_generic_research",
+      "displacement": "749",
+      "tps": "",
+      "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike.",
+      "confidence": "unknown",
+      "label": "GSX-S750 (2019-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "GT 1000",
     "variants": [
      {
@@ -7296,6 +7749,24 @@
       "notes": "Hypermotard 1100 / 1100 S / SP. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "Hypermotard 1100 (2007-2012)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Interceptor 650",
+    "variants": [
+     {
+      "make": "Royal Enfield",
+      "model": "Interceptor 650",
+      "year_from": 2018,
+      "year_to": 2026,
+      "ecu": "generic_obd_can_11bit",
+      "displacement": "648",
+      "tps": "",
+      "notes": "RoyalEnfieldObd (MIT) documents standard OBD-II CAN polling (PIDs 0x0C/0x0D/0x11/0x0B/0x0F/0x5C/0x04) on one Interceptor 650; one bike's reading list is not a fitment claim for other years or markets. Read-only standard OBD only; no memory, clears or programming.",
+      "confidence": "unknown",
+      "label": "Interceptor 650 (2018-2026)",
       "can": {}
      }
     ]
@@ -7489,6 +7960,96 @@
       "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming.",
       "confidence": "unknown",
       "label": "MSX125 GROM (2013-2019)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "MT-03",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "MT-03",
+      "year_from": 2014,
+      "year_to": 2020,
+      "ecu": "yamaha_kline_research",
+      "displacement": "321",
+      "tps": "",
+      "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+      "confidence": "unknown",
+      "label": "MT-03 (2014-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "MT-07",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "MT-07",
+      "year_from": 2014,
+      "year_to": 2026,
+      "ecu": "yamaha_kline_research",
+      "displacement": "689",
+      "tps": "",
+      "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+      "confidence": "unknown",
+      "label": "MT-07 (2014-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "MT-09",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "MT-09",
+      "year_from": 2014,
+      "year_to": 2020,
+      "ecu": "yamaha_kline_research",
+      "displacement": "847",
+      "tps": "",
+      "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+      "confidence": "unknown",
+      "label": "MT-09 (2014-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "MT-10",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "MT-10",
+      "year_from": 2016,
+      "year_to": 2026,
+      "ecu": "yamaha_kline_research",
+      "displacement": "998",
+      "tps": "",
+      "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+      "confidence": "unknown",
+      "label": "MT-10 (2016-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "MT-125",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "MT-125",
+      "year_from": 2014,
+      "year_to": 2026,
+      "ecu": "yamaha_kline_research",
+      "displacement": "125",
+      "tps": "",
+      "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+      "confidence": "unknown",
+      "label": "MT-125 (2014-2026)",
       "can": {}
      }
     ]
@@ -8256,6 +8817,60 @@
     ]
    },
    {
+    "model": "R 1250 GS",
+    "variants": [
+     {
+      "make": "BMW Motorrad",
+      "model": "R 1250 GS",
+      "year_from": 2019,
+      "year_to": 2026,
+      "ecu": "bmw_can_research",
+      "displacement": "1254",
+      "tps": "",
+      "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+      "confidence": "unknown",
+      "label": "R 1250 GS (2019-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "R 1300 GS",
+    "variants": [
+     {
+      "make": "BMW Motorrad",
+      "model": "R 1300 GS",
+      "year_from": 2024,
+      "year_to": 2026,
+      "ecu": "bmw_can_research",
+      "displacement": "1300",
+      "tps": "",
+      "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+      "confidence": "unknown",
+      "label": "R 1300 GS (2024-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "R nineT",
+    "variants": [
+     {
+      "make": "BMW Motorrad",
+      "model": "R nineT",
+      "year_from": 2014,
+      "year_to": 2026,
+      "ecu": "bmw_can_research",
+      "displacement": "1170",
+      "tps": "",
+      "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+      "confidence": "unknown",
+      "label": "R nineT (2014-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "RS 150",
     "variants": [
      {
@@ -8341,6 +8956,42 @@
       "notes": "GuzziTek master list maps the 2009-2011 RSV4 Factory to the 7SM - the same ECU family as the Guzzi California 1400. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "RSV4 Factory (2009-2011)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "S 1000 RR",
+    "variants": [
+     {
+      "make": "BMW Motorrad",
+      "model": "S 1000 RR",
+      "year_from": 2019,
+      "year_to": 2026,
+      "ecu": "bmw_can_research",
+      "displacement": "999",
+      "tps": "",
+      "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+      "confidence": "unknown",
+      "label": "S 1000 RR (2019-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "S 1000 XR",
+    "variants": [
+     {
+      "make": "BMW Motorrad",
+      "model": "S 1000 XR",
+      "year_from": 2020,
+      "year_to": 2026,
+      "ecu": "bmw_can_research",
+      "displacement": "999",
+      "tps": "",
+      "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+      "confidence": "unknown",
+      "label": "S 1000 XR (2020-2026)",
       "can": {}
      }
     ]
@@ -8688,6 +9339,24 @@
     ]
    },
    {
+    "model": "Super Meteor 650",
+    "variants": [
+     {
+      "make": "Royal Enfield",
+      "model": "Super Meteor 650",
+      "year_from": 2023,
+      "year_to": 2026,
+      "ecu": "generic_obd_can_11bit",
+      "displacement": "648",
+      "tps": "",
+      "notes": "RoyalEnfieldObd (MIT) documents standard OBD-II CAN polling (PIDs 0x0C/0x0D/0x11/0x0B/0x0F/0x5C/0x04) on one Interceptor 650; one bike's reading list is not a fitment claim for other years or markets. Read-only standard OBD only; no memory, clears or programming.",
+      "confidence": "unknown",
+      "label": "Super Meteor 650 (2023-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Superbike 1098",
     "variants": [
      {
@@ -8778,6 +9447,42 @@
     ]
    },
    {
+    "model": "Tracer 700",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "Tracer 700",
+      "year_from": 2016,
+      "year_to": 2020,
+      "ecu": "yamaha_kline_research",
+      "displacement": "689",
+      "tps": "",
+      "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+      "confidence": "unknown",
+      "label": "Tracer 700 (2016-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Tracer 900 GT",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "Tracer 900 GT",
+      "year_from": 2018,
+      "year_to": 2026,
+      "ecu": "yamaha_kline_research",
+      "displacement": "847",
+      "tps": "",
+      "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+      "confidence": "unknown",
+      "label": "Tracer 900 GT (2018-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Transalp700",
     "variants": [
      {
@@ -8809,6 +9514,42 @@
       "notes": "First-generation Tuono. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "Tuono 1000 (2002-2005)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "V-Strom DL1000",
+    "variants": [
+     {
+      "make": "Suzuki",
+      "model": "V-Strom DL1000",
+      "year_from": 2002,
+      "year_to": 2026,
+      "ecu": "suzuki_sds_generic_research",
+      "displacement": "1037",
+      "tps": "",
+      "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike.",
+      "confidence": "unknown",
+      "label": "V-Strom DL1000 (2002-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "V-Strom DL650",
+    "variants": [
+     {
+      "make": "Suzuki",
+      "model": "V-Strom DL650",
+      "year_from": 2012,
+      "year_to": 2016,
+      "ecu": "suzuki_sds_generic_research",
+      "displacement": "645",
+      "tps": "",
+      "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike.",
+      "confidence": "unknown",
+      "label": "V-Strom DL650 (2012-2016)",
       "can": {}
      }
     ]
@@ -10652,6 +11393,60 @@
     ]
    },
    {
+    "model": "XSR700",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "XSR700",
+      "year_from": 2016,
+      "year_to": 2020,
+      "ecu": "yamaha_kline_research",
+      "displacement": "689",
+      "tps": "",
+      "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+      "confidence": "unknown",
+      "label": "XSR700 (2016-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "XSR900",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "XSR900",
+      "year_from": 2016,
+      "year_to": 2026,
+      "ecu": "yamaha_kline_research",
+      "displacement": "847",
+      "tps": "",
+      "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+      "confidence": "unknown",
+      "label": "XSR900 (2016-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "YZF-R1",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "YZF-R1",
+      "year_from": 2015,
+      "year_to": 2026,
+      "ecu": "yamaha_kline_research",
+      "displacement": "998",
+      "tps": "",
+      "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+      "confidence": "unknown",
+      "label": "YZF-R1 (2015-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "YZF-R15",
     "variants": [
      {
@@ -10665,6 +11460,24 @@
       "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support.",
       "confidence": "unknown",
       "label": "YZF-R15 (2014-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "YZF-R6",
+    "variants": [
+     {
+      "make": "Yamaha",
+      "model": "YZF-R6",
+      "year_from": 2017,
+      "year_to": 2020,
+      "ecu": "yamaha_kline_research",
+      "displacement": "599",
+      "tps": "",
+      "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+      "confidence": "unknown",
+      "label": "YZF-R6 (2017-2020)",
       "can": {}
      }
     ]
@@ -10786,6 +11599,24 @@
     ]
    },
    {
+    "model": "Z400",
+    "variants": [
+     {
+      "make": "Kawasaki",
+      "model": "Z400",
+      "year_from": 2018,
+      "year_to": 2020,
+      "ecu": "kawasaki_kds_research",
+      "displacement": "399",
+      "tps": "",
+      "notes": "KDS2Bluetooth (GPL-3.0) reports broad Kawasaki KDS support; bounded raw KDS research attempt only (synthetic tests), no fitment claim for any specific bike.",
+      "confidence": "unknown",
+      "label": "Z400 (2018-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Z650",
     "variants": [
      {
@@ -10866,6 +11697,24 @@
       "notes": "Adapter seller lists this model/year for a Kawasaki KDS K-Line adapter; connector variants and ECU support vary. The separate Aster-derived raw requests are not documented for this model. This is a read-only diagnostic attempt with synthetic tests only; no ECU memory or programming. Verify connector and K-Line before attempting.",
       "confidence": "unknown",
       "label": "Z800 (2015-2016)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Z900",
+    "variants": [
+     {
+      "make": "Kawasaki",
+      "model": "Z900",
+      "year_from": 2017,
+      "year_to": 2020,
+      "ecu": "kawasaki_kds_research",
+      "displacement": "948",
+      "tps": "",
+      "notes": "KDS2Bluetooth (GPL-3.0) reports broad Kawasaki KDS support; bounded raw KDS research attempt only (synthetic tests), no fitment claim for any specific bike.",
+      "confidence": "unknown",
+      "label": "Z900 (2017-2020)",
       "can": {}
      }
     ]
@@ -14716,6 +15565,216 @@
     "year_from": 2017,
     "year_to": 2026,
     "ecu": "bikestudio_reference_only"
+   },
+   {
+    "make": "Royal Enfield",
+    "model": "Interceptor 650",
+    "year_from": 2018,
+    "year_to": 2026,
+    "ecu": "generic_obd_can_11bit"
+   },
+   {
+    "make": "Royal Enfield",
+    "model": "Continental GT 650",
+    "year_from": 2018,
+    "year_to": 2026,
+    "ecu": "generic_obd_can_11bit"
+   },
+   {
+    "make": "Royal Enfield",
+    "model": "Super Meteor 650",
+    "year_from": 2023,
+    "year_to": 2026,
+    "ecu": "generic_obd_can_11bit"
+   },
+   {
+    "make": "Yamaha",
+    "model": "MT-03",
+    "year_from": 2014,
+    "year_to": 2020,
+    "ecu": "yamaha_kline_research"
+   },
+   {
+    "make": "Yamaha",
+    "model": "MT-07",
+    "year_from": 2014,
+    "year_to": 2026,
+    "ecu": "yamaha_kline_research"
+   },
+   {
+    "make": "Yamaha",
+    "model": "MT-09",
+    "year_from": 2014,
+    "year_to": 2020,
+    "ecu": "yamaha_kline_research"
+   },
+   {
+    "make": "Yamaha",
+    "model": "MT-10",
+    "year_from": 2016,
+    "year_to": 2026,
+    "ecu": "yamaha_kline_research"
+   },
+   {
+    "make": "Yamaha",
+    "model": "YZF-R6",
+    "year_from": 2017,
+    "year_to": 2020,
+    "ecu": "yamaha_kline_research"
+   },
+   {
+    "make": "Yamaha",
+    "model": "YZF-R1",
+    "year_from": 2015,
+    "year_to": 2026,
+    "ecu": "yamaha_kline_research"
+   },
+   {
+    "make": "Yamaha",
+    "model": "XSR700",
+    "year_from": 2016,
+    "year_to": 2020,
+    "ecu": "yamaha_kline_research"
+   },
+   {
+    "make": "Yamaha",
+    "model": "XSR900",
+    "year_from": 2016,
+    "year_to": 2026,
+    "ecu": "yamaha_kline_research"
+   },
+   {
+    "make": "Yamaha",
+    "model": "Tracer 700",
+    "year_from": 2016,
+    "year_to": 2020,
+    "ecu": "yamaha_kline_research"
+   },
+   {
+    "make": "Yamaha",
+    "model": "Tracer 900 GT",
+    "year_from": 2018,
+    "year_to": 2026,
+    "ecu": "yamaha_kline_research"
+   },
+   {
+    "make": "Yamaha",
+    "model": "MT-125",
+    "year_from": 2014,
+    "year_to": 2026,
+    "ecu": "yamaha_kline_research"
+   },
+   {
+    "make": "Suzuki",
+    "model": "V-Strom DL650",
+    "year_from": 2012,
+    "year_to": 2016,
+    "ecu": "suzuki_sds_generic_research"
+   },
+   {
+    "make": "Suzuki",
+    "model": "V-Strom DL1000",
+    "year_from": 2002,
+    "year_to": 2026,
+    "ecu": "suzuki_sds_generic_research"
+   },
+   {
+    "make": "Suzuki",
+    "model": "GSX-S750",
+    "year_from": 2019,
+    "year_to": 2026,
+    "ecu": "suzuki_sds_generic_research"
+   },
+   {
+    "make": "Suzuki",
+    "model": "GSX-S1000",
+    "year_from": 2015,
+    "year_to": 2026,
+    "ecu": "suzuki_sds_generic_research"
+   },
+   {
+    "make": "Suzuki",
+    "model": "Bandit 650",
+    "year_from": 2005,
+    "year_to": 2026,
+    "ecu": "suzuki_sds_generic_research"
+   },
+   {
+    "make": "Suzuki",
+    "model": "Bandit 1250",
+    "year_from": 2007,
+    "year_to": 2026,
+    "ecu": "suzuki_sds_generic_research"
+   },
+   {
+    "make": "Kawasaki",
+    "model": "Z900",
+    "year_from": 2017,
+    "year_to": 2020,
+    "ecu": "kawasaki_kds_research"
+   },
+   {
+    "make": "Kawasaki",
+    "model": "Z400",
+    "year_from": 2018,
+    "year_to": 2020,
+    "ecu": "kawasaki_kds_research"
+   },
+   {
+    "make": "BMW Motorrad",
+    "model": "R 1250 GS",
+    "year_from": 2019,
+    "year_to": 2026,
+    "ecu": "bmw_can_research"
+   },
+   {
+    "make": "BMW Motorrad",
+    "model": "R 1300 GS",
+    "year_from": 2024,
+    "year_to": 2026,
+    "ecu": "bmw_can_research"
+   },
+   {
+    "make": "BMW Motorrad",
+    "model": "S 1000 RR",
+    "year_from": 2019,
+    "year_to": 2026,
+    "ecu": "bmw_can_research"
+   },
+   {
+    "make": "BMW Motorrad",
+    "model": "S 1000 XR",
+    "year_from": 2020,
+    "year_to": 2026,
+    "ecu": "bmw_can_research"
+   },
+   {
+    "make": "BMW Motorrad",
+    "model": "R nineT",
+    "year_from": 2014,
+    "year_to": 2026,
+    "ecu": "bmw_can_research"
+   },
+   {
+    "make": "BMW Motorrad",
+    "model": "F 850 GS",
+    "year_from": 2018,
+    "year_to": 2026,
+    "ecu": "bmw_can_research"
+   },
+   {
+    "make": "BMW Motorrad",
+    "model": "F 900 XR",
+    "year_from": 2020,
+    "year_to": 2026,
+    "ecu": "bmw_can_research"
+   },
+   {
+    "make": "BMW Motorrad",
+    "model": "G 310 R",
+    "year_from": 2017,
+    "year_to": 2026,
+    "ecu": "bmw_can_research"
    }
   ],
   "ecus": [
@@ -14732,7 +15791,8 @@
     "sources": [
      "Moto Guzzi Euro 5 service-station manuals: IAW 11MP application and diagnostic-tool procedures",
      "Diagcode Piaggio Group 11MP coverage: operation existence only; no wire definitions",
-     "GuzziDiag/GuzziCANDiag public download site: no 11MP diagnostic definition or capture published"
+     "GuzziDiag/GuzziCANDiag public download site: no 11MP diagnostic definition or capture published",
+     "https://www.diagcode.com/products/diagnostics-for-piaggio-group/ (written service list for 11MP HW002, Euro5 CAN; commercial claims only, no wire bytes)"
     ],
     "memory": {
      "image_size": null,
@@ -15034,13 +16094,15 @@
     "transport": "kline",
     "confidence": "unknown",
     "years": "2001-2009",
-    "notes": "Ducati 749/999, injected air-cooled Monsters, Multistrada, SportClassic, S2R/S4R and ST4S applications. GuzziDiag, TuneECU, and user documentation establish that tooling exists and mention slow initialization, but no primary family transcript, identifier table, or diagnostic payload definition was recovered. Compatibility is not a protocol definition: this remains an unknown zero-capability placeholder and physical use is blocked.",
+    "notes": "Ducati 749/999, injected air-cooled Monsters, Multistrada, SportClassic, S2R/S4R and ST4S applications. GuzziDiag, TuneECU, and user documentation establish that tooling exists and mention slow initialization, but no primary family transcript, identifier table, or diagnostic payload definition was recovered. Compatibility is not a protocol definition: this remains an unknown zero-capability placeholder and physical use is blocked. 2026-11-03: broadcast-CAN decoder written (marelli_iaw59m_can.py); K-Line LDI map remains forum-level evidence, so physical sessions stay blocked.",
     "capabilities": [],
     "effective_capabilities": [],
     "sources": [
      "Ducati.ms Model/ECU list (2009)",
      "GuzziTek ECU master list (2011)",
-     "tuneecu.net Ducati tune list"
+     "tuneecu.net Ducati tune list",
+     "https://www.ducati.ms/threads/ducati-998-999-iaw59m-canbus.627217/ (KWP 0x21/0x1A LDI map: 20-2F EEPROM, 30-7F RAM, 98 tester, 99 date, A0-BF snapshots; forum prose, not a capture)",
+     "https://github.com/billyjack2/CAN-DBC-Collection/tree/6e2f88fd6cd9c1f47d0db7bd022711b106f27027 DUCATI/Marelli_IAW59M_C/can1v3.dbc (broadcast CAN only; no root license - cited, facts reimplemented in guzzionboard/marelli_iaw59m_can.py)"
     ],
     "memory": {
      "image_size": null,
@@ -16172,6 +17234,90 @@
     "parameters": []
    },
    {
+    "id": "bmw_can_research",
+    "family": "BMW Motorrad CAN research (broadcast frames only)",
+    "display_name": "BMW Motorrad CAN research placeholder (R / S / F / G series)",
+    "transport": "can",
+    "confidence": "unknown",
+    "years": "2014-present",
+    "notes": "Common BMW Motorrad models (R 1250 GS, R 1300 GS, S 1000 RR/XR, R nineT, F 850 GS, F 900 XR, G 310 R). The only recovered evidence is EasierCan's MIT-licensed BMW R1300GS capture: three 11-bit broadcast frames (0x10C engine speed, 0x2D0 high-beam flash bit, 0x2D2 switch cluster) with arithmetic formulas, decoded offline by the brand-tools panel. The source does not record frame direction and matching IDs do not establish fitment. No BMW diagnostic session, UDS/KWP-on-CAN definition, DTC or memory protocol was recovered, so this is an unknown zero-capability placeholder and physical use is blocked.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://github.com/HagayBT/BMW-R1300GS-Smart-Backlight-Fog-Light-Controller/tree/a4c37ceabeea57bc7e97b51da345dd7b84e21596 (EasierCan, MIT; LICENSES/BMW-R1300GS-EasierCan-MIT.txt)",
+     "docs/BRAND_TOOLS.md section 'BMW Motorrad - 11-bit CAN'",
+     "https://github.com/SchwarzeLanzenreiter/MotoRecoLogger/tree/30e08e034ac2f58ce6c3e5ba930bfa4b1108f4da (MIT): BMW Motorrad CAN logger tooling; no captures bundled"
+    ],
+    "memory": {
+     "image_size": null,
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "No BMW memory-access sequence, geometry or security definition was recovered; this build refuses the operation.",
+     "regions": {}
+    },
+    "kline": {},
+    "can": {
+     "note": "11-bit classic CAN broadcast frames are documented for one R1300GS capture; no diagnostic request/response identifiers are claimed."
+    },
+    "session": {
+     "physical_supported": false,
+     "physical_blocked_reason": "Only offline broadcast-frame decoding from one R1300GS capture exists; no BMW diagnostic application protocol or validated CAN identifier pair was recovered."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
+    "id": "generic_kwp2000_kline",
+    "family": "Generic KWP2000 / ISO 14230 K-Line (opt-in)",
+    "display_name": "Generic KWP2000 K-Line (read-only, ECU-only)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "not model-specific",
+    "notes": "Opt-in standard KWP2000 (ISO 14230) read-only diagnostics only, where the selected ECU answers fast or 5-baud init and speaks addressed ISO 14230 framing at 10400 baud. Not established for any particular motorcycle. Synthetic integration tests only. Read-only services only: readECUIdentification (0x1A), readDataByLocalIdentifier (0x21), readDTCByStatus (0x18), testerPresent; every mutating service is refused by the session guard before transmission. Requires a correct K-Line adapter.",
+    "capabilities": [
+     "identify",
+     "dtc_read"
+    ],
+    "effective_capabilities": [
+     "identify",
+     "dtc_read"
+    ],
+    "sources": [
+     "ISO 14230-2 / ISO 14230-3 (KWP2000 data link and application layer)",
+     "Fiat 'Standard Diagnostic Protocol on K-Line KWP 2000' (06/07/2000, archived) - service list and 5-baud key-byte handshake",
+     "https://github.com/aster94/Keyword-Protocol-2000 (KDS/SDS KWP2000 framing reference)",
+     "https://github.com/HerrRiebmann/KDS2Bluetooth (KDS/SDS KWP2000)"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "The generic KWP2000 profile exposes no memory read and no write path; readMemoryByAddress (0x23) is not in the read-only allowlist."
+    },
+    "kline": {
+     "baud": 10400,
+     "init": "fast",
+     "address": 16,
+     "fast_target": 16,
+     "tester_address": 241,
+     "inter_byte_delay": 0.005
+    },
+    "can": {},
+    "session": {
+     "protocol": "generic-kwp2000-kline",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "physical_evidence_note": "Standard ISO 14230 read-only services only; no model-specific fitment is claimed. This integration is synthetic-tested only."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
     "id": "generic_obd_can_11bit",
     "family": "Generic OBD-II 11-bit CAN (opt-in)",
     "display_name": "Generic OBD-II 11-bit CAN (read-only, ECU-only)",
@@ -16432,6 +17578,311 @@
     ]
    },
    {
+    "id": "generic_obd_iso9141_kline",
+    "family": "Generic OBD-II ISO 9141-2 K-Line (opt-in)",
+    "display_name": "Generic OBD-II ISO 9141-2 K-Line (read-only, ECU-only)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "not model-specific",
+    "notes": "Opt-in standard OBD-II emission diagnostics only, where the selected ECU answers 5-baud init at address 0x33 with ISO 9141-2 key bytes (08 08 or 94 94) and then speaks ISO 9141-2 framing at 10400 baud. Not established for any particular motorcycle. Synthetic integration tests only. Requires a correct K-Line adapter. Optional Mode 09 VIN and calibration IDs are not verified ECU identity; no memory image, tuning, clears or programming.",
+    "capabilities": [
+     "identify",
+     "live",
+     "dtc_read"
+    ],
+    "effective_capabilities": [
+     "identify",
+     "live",
+     "dtc_read"
+    ],
+    "sources": [
+     "https://github.com/RyoheiHashimoto/obd2",
+     "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32",
+     "https://github.com/brendan-w/python-OBD/tree/a378bdd81d58c67d08050e4244173a9a7dbda73d"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Standard OBD live PIDs and DTCs do not provide ECU memory or flashing."
+    },
+    "kline": {
+     "baud": 10400,
+     "init": "generic-obd-iso9141-kline",
+     "address": 51,
+     "inter_byte_delay": 0.005
+    },
+    "can": {},
+    "session": {
+     "protocol": "generic-obd-iso9141-kline",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "physical_evidence_note": "Standard OBD-II requests only over ISO 9141-2; no model-specific fitment is claimed. This integration is synthetic-tested only."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": [
+     {
+      "key": "rpm",
+      "name": "Engine speed (unverified)",
+      "local_id": 12,
+      "request_ids": [],
+      "unit": "rpm",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "speed",
+      "name": "Speed (unverified)",
+      "local_id": 13,
+      "request_ids": [],
+      "unit": "km/h",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "tps",
+      "name": "Throttle (unverified)",
+      "local_id": 17,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "coolant",
+      "name": "Coolant temperature (unverified)",
+      "local_id": 5,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "airtemp",
+      "name": "Intake temperature (unverified)",
+      "local_id": 15,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "map",
+      "name": "Manifold pressure (unverified)",
+      "local_id": 11,
+      "request_ids": [],
+      "unit": "kPa",
+      "group": "engine",
+      "digits": 0,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "load",
+      "name": "Engine load (unverified)",
+      "local_id": 4,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "timing",
+      "name": "Timing advance (unverified)",
+      "local_id": 14,
+      "request_ids": [],
+      "unit": "°",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "trim",
+      "name": "Short-term fuel trim (unverified)",
+      "local_id": 6,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": true,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "engine_runtime",
+      "name": "Engine runtime (unverified)",
+      "local_id": 31,
+      "request_ids": [],
+      "unit": "s",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "fuel_level",
+      "name": "Fuel level (unverified)",
+      "local_id": 47,
+      "request_ids": [],
+      "unit": "%",
+      "group": "engine",
+      "digits": 1,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "barometric",
+      "name": "Barometric pressure (unverified)",
+      "local_id": 51,
+      "request_ids": [],
+      "unit": "kPa",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "control_voltage",
+      "name": "Control module voltage (unverified)",
+      "local_id": 66,
+      "request_ids": [],
+      "unit": "V",
+      "group": "engine",
+      "digits": 2,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "oil_temp",
+      "name": "Oil temperature (unverified)",
+      "local_id": 92,
+      "request_ids": [],
+      "unit": "°C",
+      "group": "engine",
+      "digits": 0,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     },
+     {
+      "key": "fuel_rate",
+      "name": "Engine fuel rate (unverified)",
+      "local_id": 94,
+      "request_ids": [],
+      "unit": "L/h",
+      "group": "engine",
+      "digits": 2,
+      "default": false,
+      "states": {},
+      "min": null,
+      "max": null,
+      "confidence": "inferred"
+     }
+    ]
+   },
+   {
+    "id": "generic_uds_can_11bit",
+    "family": "Generic UDS / ISO 14229 11-bit CAN (opt-in)",
+    "display_name": "Generic UDS 11-bit CAN (read-only, ECU-only)",
+    "transport": "can",
+    "confidence": "unknown",
+    "years": "not model-specific",
+    "notes": "Opt-in standard UDS (ISO 14229) read-only diagnostics only, where the selected ECU answers ISO 15765-4 11-bit CAN at 500 kbit/s on a physical diagnostic ID pair (0x7E0-0x7E7 request, +8 response). Not established for any particular motorcycle. Synthetic integration tests only. Read-only services only: DiagnosticSessionControl default/extended, ReadDataByIdentifier (0x22), ReadDTCInformation (0x19), TesterPresent; every write, clear, security, routine, memory and programming service is refused before transmission. Requires a correct CAN adapter and the physical ECU ID pair.",
+    "capabilities": [
+     "identify",
+     "dtc_read"
+    ],
+    "effective_capabilities": [
+     "identify",
+     "dtc_read"
+    ],
+    "sources": [
+     "ISO 14229-1 (UDS application layer) service tables",
+     "https://github.com/mdabrowski1990/uds (python-uds reference implementation)",
+     "https://github.com/RyoheiHashimoto/obd2 (ISO-TP/UDS-over-CAN reference)"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "The generic UDS profile exposes no memory read and no write path; ReadMemoryByAddress (0x23) and the transfer services are not in the read-only allowlist."
+    },
+    "kline": {
+     "init": "can"
+    },
+    "can": {
+     "bitrate": 500000,
+     "tx_id": 2016,
+     "rx_id": 2024,
+     "interface": "socketcan"
+    },
+    "session": {
+     "protocol": "generic-uds-can",
+     "physical_supported": true,
+     "simulator_supported": false,
+     "physical_evidence_note": "Standard ISO 14229 read-only services only; no model-specific fitment is claimed. This integration is synthetic-tested only."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
     "id": "harley_delphi_can_uds",
     "family": "Harley Delphi CAN identity (research)",
     "display_name": "Harley Delphi CAN (identity research, read-only)",
@@ -16631,7 +18082,11 @@
     "capabilities": [],
     "effective_capabilities": [],
     "sources": [
-     "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952"
+     "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+     "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+     "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+     "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+     "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
     ],
     "memory": {
      "read_supported": false,
@@ -16672,7 +18127,11 @@
      "https://github.com/atoid/DashBle/tree/9c65818d13dde39b8d8203736b43109eb84a9651",
      "https://github.com/atoid/Dash/tree/532d0f4fef1b2e11a15f1c6663fb5351757f87b8",
      "https://github.com/WiseNoodle/honda-moto-ecu-suite/tree/85431bd831b2c50a640fac35dccf36c09df20c07",
-     "https://github.com/PhatDatPQ/eculib/tree/7921cc46551fd26d487ec778e8822ace4777899e"
+     "https://github.com/PhatDatPQ/eculib/tree/7921cc46551fd26d487ec778e8822ace4777899e",
+     "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+     "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+     "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+     "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
     ],
     "memory": {
      "read_supported": true,
@@ -16857,7 +18316,18 @@
     "capabilities": [],
     "effective_capabilities": [],
     "sources": [
-     "https://github.com/roccofz1/HondaECU/tree/dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109"
+     "https://github.com/roccofz1/HondaECU/tree/dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109",
+     "https://github.com/RyanHope/HondaECU + https://www.1000rr.net/threads/k-line-ecu-logging.247922/ (captured CBR1000RR K-Line session hex; reply decoder written in guzzionboard/honda_cbr1000rr_kline.py)",
+     "https://github.com/AutotronicCommunity/Honda_Keihin_KLine_Protocol (main): README protocol doc + 'REQUEST - RESPONSE ECU HONDA K25 901.txt' captured K-Line session (wake FE 04 72 8C, init 72 05 00 F0 99, tables 71/73/74)",
+     "https://github.com/AutotronicCommunity/ScantoolHonda ScantoolHonda.ino: table-17 live-data field offsets (rpm b9-10 BE, tps/ect/iat/map/bat/inj/igt/speed)",
+     "https://github.com/AutotronicCommunity/READ-ECM-CODE-DAN-ECM-PART-DENGAN-ESP32 TES_WAKE_UP_READ_ECM_HONDA.ino: ECM part decode from 71 00 reply bytes [9:14] (0102E30F01 -> 30400-K81H-N52)",
+     "https://github.com/AutotronicCommunity/scantoolHondaEsp32 ESP32_SCANTOOL.ino: same Keihin K-Line protocol as ESP32 web scantool",
+     "https://github.com/AutotronicCommunity/dtc_honda + dtc-yamaha: manufacturer DTC <-> OBD2 P-code dictionaries",
+     "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA: model/part-code -> K-Line vs CANBUS connection table",
+     "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+     "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+     "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+     "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
     ],
     "memory": {
      "read_supported": false,
@@ -16895,7 +18365,11 @@
      "live"
     ],
     "sources": [
-     "https://github.com/andreibaw/Honda_K-Line_KWP2000/tree/f3bd42ff438e840e4da3802dd5038a195f3d67be"
+     "https://github.com/andreibaw/Honda_K-Line_KWP2000/tree/f3bd42ff438e840e4da3802dd5038a195f3d67be",
+     "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+     "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+     "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+     "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
     ],
     "memory": {
      "read_supported": false,
@@ -17069,7 +18543,11 @@
      "live"
     ],
     "sources": [
-     "https://github.com/seife/honda-ecu-minidash/tree/016102471bbff50abeeeac5447593a3a1e93477d"
+     "https://github.com/seife/honda-ecu-minidash/tree/016102471bbff50abeeeac5447593a3a1e93477d",
+     "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+     "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+     "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+     "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
     ],
     "memory": {
      "read_supported": false,
@@ -17258,7 +18736,17 @@
      "https://github.com/WiseNoodle/honda-moto-ecu-suite/tree/85431bd831b2c50a640fac35dccf36c09df20c07",
      "https://github.com/PhatDatPQ/eculib/tree/7921cc46551fd26d487ec778e8822ace4777899e",
      "https://github.com/AlexKovalevich/HondaECU/tree/db0a6cb8e516aac2406a231380c93e258c722b7c",
-     "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952"
+     "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+     "https://github.com/AutotronicCommunity/Honda_Keihin_KLine_Protocol (main): README protocol doc + 'REQUEST - RESPONSE ECU HONDA K25 901.txt' captured K-Line session (wake FE 04 72 8C, init 72 05 00 F0 99, tables 71/73/74)",
+     "https://github.com/AutotronicCommunity/ScantoolHonda ScantoolHonda.ino: table-17 live-data field offsets (rpm b9-10 BE, tps/ect/iat/map/bat/inj/igt/speed)",
+     "https://github.com/AutotronicCommunity/READ-ECM-CODE-DAN-ECM-PART-DENGAN-ESP32 TES_WAKE_UP_READ_ECM_HONDA.ino: ECM part decode from 71 00 reply bytes [9:14] (0102E30F01 -> 30400-K81H-N52)",
+     "https://github.com/AutotronicCommunity/scantoolHondaEsp32 ESP32_SCANTOOL.ino: same Keihin K-Line protocol as ESP32 web scantool",
+     "https://github.com/AutotronicCommunity/dtc_honda + dtc-yamaha: manufacturer DTC <-> OBD2 P-code dictionaries",
+     "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA: model/part-code -> K-Line vs CANBUS connection table",
+     "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+     "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+     "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+     "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
     ],
     "memory": {
      "read_supported": true,
@@ -17326,7 +18814,17 @@
      "https://www.dynojet.com/power-vision-3-for-2019-2020-honda-crf110f-pv3-16-07/",
      "https://github.com/abyryn/AMQC-WRT-Diagnosis/tree/8b72c7d444c2171e14b9d1cbe6df4c016b0685dd",
      "https://www.aimtechnologies.com/aim-support/docs/SoloDL_HondaCRF-HDS_250dal2010+450dal2009_100_eng.pdf",
-     "https://www.honda.co.jp/HRC/products/racingkit/crf250r/settingtool/"
+     "https://www.honda.co.jp/HRC/products/racingkit/crf250r/settingtool/",
+     "https://github.com/AutotronicCommunity/Honda_Keihin_KLine_Protocol (main): README protocol doc + 'REQUEST - RESPONSE ECU HONDA K25 901.txt' captured K-Line session (wake FE 04 72 8C, init 72 05 00 F0 99, tables 71/73/74)",
+     "https://github.com/AutotronicCommunity/ScantoolHonda ScantoolHonda.ino: table-17 live-data field offsets (rpm b9-10 BE, tps/ect/iat/map/bat/inj/igt/speed)",
+     "https://github.com/AutotronicCommunity/READ-ECM-CODE-DAN-ECM-PART-DENGAN-ESP32 TES_WAKE_UP_READ_ECM_HONDA.ino: ECM part decode from 71 00 reply bytes [9:14] (0102E30F01 -> 30400-K81H-N52)",
+     "https://github.com/AutotronicCommunity/scantoolHondaEsp32 ESP32_SCANTOOL.ino: same Keihin K-Line protocol as ESP32 web scantool",
+     "https://github.com/AutotronicCommunity/dtc_honda + dtc-yamaha: manufacturer DTC <-> OBD2 P-code dictionaries",
+     "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA: model/part-code -> K-Line vs CANBUS connection table",
+     "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+     "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+     "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+     "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
     ],
     "memory": {
      "read_supported": false,
@@ -17824,7 +19322,11 @@
      "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3",
      "https://orebrobildiagnos.se/en/product/obd-scan-tool-for-kawasaki-motorcycles/",
      "https://www.amazon.com/AMHTDOL-Diagnostic-Connector-Motorcycles-Compatible/dp/B0GVTYHT94",
-     "https://github.com/HerrRiebmann/KDS2Bluetooth/tree/bb8be32a6ed54d995c838bb58af528731fc8fae1"
+     "https://github.com/HerrRiebmann/KDS2Bluetooth/tree/bb8be32a6ed54d995c838bb58af528731fc8fae1",
+     "https://github.com/digitwolf/w230/tree/c4e11d7dc54bf76470512da18361faab00e72dcf (W230 2024-26 KDS: ISO-14230 fast init, RPM reg 0x09 quarter-rpm, speed reg 0x0C km/h; register table reimplemented in guzzionboard/kawasaki_w230.py)",
+     "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+     "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+     "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
     ],
     "memory": {
      "read_supported": false,
@@ -18510,13 +20012,14 @@
     "transport": "kline",
     "confidence": "inferred",
     "years": "2007-2016",
-    "notes": "The Mana engine ECU is the shared IAW 5AM; this entry is the separate CVT controller. A published PADS K-Line capture proves KWP2000 physical addressing to target 0xEC from tester 0xF1 and records the two learning commands exactly: IOControl 30 02 08 (belt replacement) followed by 30 01 08 (pulley-potentiometer reset). ManaTCU V1.03 was built from those captures, includes SecurityAccess, and has been field tested. Identification, fault-request and live-data wire definitions were not published, so this workstation does not guess them. The two captured routines remain unavailable because they require security access plus motorcycle-specific conditions (engine running, rear wheel free, side stand up, ordered execution) that the current safety state cannot verify.",
+    "notes": "The Mana engine ECU is the shared IAW 5AM; this entry is the separate CVT controller. A published PADS K-Line capture proves KWP2000 physical addressing to target 0xEC from tester 0xF1 and records the two learning commands exactly: IOControl 30 02 08 (belt replacement) followed by 30 01 08 (pulley-potentiometer reset). ManaTCU V1.03 was built from those captures, includes SecurityAccess, and has been field tested. Identification, fault-request and live-data wire definitions were not published, so this workstation does not guess them. The two captured routines remain unavailable because they require security access plus motorcycle-specific conditions (engine running, rear wheel free, side stand up, ordered execution) that the current safety state cannot verify. 2026-11-03: written shop-manual evidence that the TCU exposes a K-Line diagnostic pin; still no session transcript, so physical stays blocked.",
     "capabilities": [],
     "effective_capabilities": [],
     "sources": [
      "ApriliaForum Mana belt thread: PADS/K-Spy K-Line capture, 30 02 08 and 30 01 08 routine frames, field-test reports (September-October 2023)",
      "ManaTCU V1.03 executable mirrored in vendor/guzzidiag/tools/ (SHA-256 in MANIFEST.json)",
-     "Aprilia Mana 850 service-station manual: TCU K-Line pinout, required learning procedures and DTC descriptions"
+     "Aprilia Mana 850 service-station manual: TCU K-Line pinout, required learning procedures and DTC descriptions",
+     "Aprilia Mana 850 GT ABS shop manual (scribd 75501969): transmission ECU pin B2 = series K-Line for diagnosis; CAN links TCU/injection/dash (U1601 Mute Node)"
     ],
     "memory": {
      "image_size": null,
@@ -18555,7 +20058,9 @@
     "sources": [
      "Piaggio Group / Moto Guzzi ECU MIU G3 Technical Training presentation: published RLI, IOLI and RELI tables",
      "IAWDiag V0.52 and IAWMIUG3 Reader/Writer binaries: implementation existence only; no unpublished constants promoted",
-     "Moto Guzzi V7 II service-station manual: application, DTC descriptions and service conditions"
+     "Moto Guzzi V7 II service-station manual: application, DTC descriptions and service conditions",
+     "https://www.guzzitek.org/documents/injection/ECU_MIU-G3_Training.pdf (OEM training doc: Alpha-n, 10x10 self-adaptive matrices, adaptive fuel correction readable by diagnostic tool)",
+     "https://www.griso.org/GuzziDiag%20for%20V7-V9.pdf (written GuzziDiag manual: reader log, per-model throttle references, no TPS reset on MIU G3)"
     ],
     "memory": {
      "image_size": null,
@@ -18859,7 +20364,9 @@
     "sources": [
      "Moto Guzzi V7/V9 Euro 5 service-station manual 2Q000466: MIU G4 application and diagnostic-tool procedures",
      "ASW-NEXT MIUG4 technical user manual: CAN connection and supported operations (no wire identifiers/payloads)",
-     "Diagcode Piaggio Group coverage: MIU G4 Euro 5 CAN operation existence only"
+     "Diagcode Piaggio Group coverage: MIU G4 Euro 5 CAN operation existence only",
+     "https://www.immo-tools.lt/site/files/failai/ASW-NEXT/MIUG4_UM.pdf (written internals: EEPROM M95640, flash 0x20000-0x7FFFF, DTC/TPS/adaptive services)",
+     "https://www.diagcode.com/products/diagnostics-for-piaggio-group/ (written service list, Euro5 CAN; commercial claims only)"
     ],
     "memory": {
      "image_size": null,
@@ -18942,7 +20449,10 @@
      "live"
     ],
     "sources": [
-     "https://github.com/sunsided/suzuki-sds-obdii-gateway/tree/20644c2e21ca2a867e086409c7f130230a7327d7"
+     "https://github.com/sunsided/suzuki-sds-obdii-gateway/tree/20644c2e21ca2a867e086409c7f130230a7327d7",
+     "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+     "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+     "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
     ],
     "memory": {
      "read_supported": false,
@@ -18998,7 +20508,10 @@
      "live"
     ],
     "sources": [
-     "https://github.com/uronour/suzuki-Kawasaki-ecu-tool/tree/4f92cc2adab254595b08c21e2c90b4c57d2e9cc6"
+     "https://github.com/uronour/suzuki-Kawasaki-ecu-tool/tree/4f92cc2adab254595b08c21e2c90b4c57d2e9cc6",
+     "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+     "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+     "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
     ],
     "memory": {
      "read_supported": false,
@@ -19054,7 +20567,10 @@
      "live"
     ],
     "sources": [
-     "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3"
+     "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3",
+     "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+     "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+     "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
     ],
     "memory": {
      "read_supported": false,
@@ -19212,7 +20728,13 @@
      "https://support.aimshop.com/downloads/stockEcu/bike/suzuki/Suzuki_SDS_Protocol_102_eng.pdf",
      "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3",
      "https://store.aim-sportline.com/en/others/237-suzuki-sports-bike-dedicated-cable.html",
-     "https://github.com/HerrRiebmann/KDS2Bluetooth/tree/bb8be32a6ed54d995c838bb58af528731fc8fae1"
+     "https://github.com/HerrRiebmann/KDS2Bluetooth/tree/bb8be32a6ed54d995c838bb58af528731fc8fae1",
+     "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/data/sds_tool_output.txt (captured SDT<->ECU K-Line session, 03-05 SV650, ECU 32920-17G2)",
+     "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/data/001-basic.csv (OLS UART capture of the same session)",
+     "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/sds_decode/sds_decode.ino (sensor field table + candidate formulas)",
+     "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+     "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+     "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
     ],
     "memory": {
      "read_supported": false,
@@ -19270,7 +20792,13 @@
     "sources": [
      "https://support.aimshop.com/downloads/stockEcu/bike/suzuki/Suzuki_SDS_Protocol_102_eng.pdf",
      "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3",
-     "https://store.aim-sportline.com/en/others/237-suzuki-sports-bike-dedicated-cable.html"
+     "https://store.aim-sportline.com/en/others/237-suzuki-sports-bike-dedicated-cable.html",
+     "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/data/sds_tool_output.txt (captured SDT<->ECU K-Line session, 03-05 SV650, ECU 32920-17G2)",
+     "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/data/001-basic.csv (OLS UART capture of the same session)",
+     "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/sds_decode/sds_decode.ino (sensor field table + candidate formulas)",
+     "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+     "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+     "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
     ],
     "memory": {
      "read_supported": false,
@@ -19326,7 +20854,13 @@
      "live"
     ],
     "sources": [
-     "https://github.com/synfinatic/sv650sds/tree/bacf803a9056241ef270acf0e7e31467961aeba5"
+     "https://github.com/synfinatic/sv650sds/tree/bacf803a9056241ef270acf0e7e31467961aeba5",
+     "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/data/sds_tool_output.txt (captured SDT<->ECU K-Line session, 03-05 SV650, ECU 32920-17G2)",
+     "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/data/001-basic.csv (OLS UART capture of the same session)",
+     "https://github.com/synfinatic/sv650sds/blob/bacf803a9056241ef270acf0e7e31467961aeba5/sds_decode/sds_decode.ino (sensor field table + candidate formulas)",
+     "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+     "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+     "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
     ],
     "memory": {
      "read_supported": false,
@@ -19382,7 +20916,10 @@
      "live"
     ],
     "sources": [
-     "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce"
+     "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce",
+     "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+     "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+     "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
     ],
     "memory": {
      "read_supported": false,
@@ -19863,6 +21400,51 @@
       "confidence": "inferred"
      }
     ]
+   },
+   {
+    "id": "yamaha_kline_research",
+    "family": "Yamaha K-Line research (MT / YZF / XSR / Tracer)",
+    "display_name": "Yamaha K-Line research placeholder (MT / YZF / XSR / Tracer)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "2014-present",
+    "notes": "Common Yamaha models (MT-03/07/09/10, YZF-R6/R1, XSR700/900, Tracer 700/900, MT-125). Evidence recovered so far is a passive MT-03 660 dashboard-stream observation (one source-captured 6-byte frame shape, synthetic tests only), source-reported MT-03 K-Line streams (smiddelkoop/yamaha-kline-ubuntu, captured status bytes are not stored fault codes), and offline Yamaha MT image checksum research (NetworkDir/moto-ecu-checksum: MT-25 2019, MT-07 2014-16/2020/2021, MT-09 SP 2019; a checksum match is not a signature, fitment or flash authorization). No Yamaha diagnostic initialization, addressing, request or scaling definition was recovered, so this is an unknown zero-capability placeholder and physical use is blocked. The offline checksum and dashboard-stream tools in the web workstation remain available. 2026-11-03 capture search: passive 500 kbps CAN broadcast captures and a CC BY 4.0 DBC exist for the Yamaha R9 2026 (DeziderMesko/motocan, acdb146) and an MIT MT-07 2014 decoder (JackHat1/MT07_CAN_Project, fec86c3); both are broadcast-only with no tester-transmitted diagnostic session, so they improve offline decoding only and do not change this placeholder's blocked physical status.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "docs/EXTERNAL_MOTORCYCLE_RESEARCH.md section 'Yamaha MT-03 660 (2010) dashboard-stream observation'",
+     "https://github.com/smiddelkoop/yamaha-kline-ubuntu/blob/0f7fef82d1987923198b53ffa001d09ed1ceae4e/kline_protocol.py (source-reported MT-03 streams)",
+     "https://github.com/NetworkDir/moto-ecu-checksum/tree/43ccc5f3663e2a175b7217f802bc302830e6862b (offline Yamaha MT checksum research; README declares MIT)",
+     "https://github.com/DeziderMesko/motocan/tree/acdb1464e327363a7be52a53134f34d0ca2d4e62 (captures + r9.dbc CC BY 4.0; code MIT): R9 2026 CAN captures, 20 decoded broadcast signals",
+     "https://github.com/JackHat1/MT07_CAN_Project/tree/fec86c3da7a05b099e9259b1142980f339b3fa92 (MIT): MT-07 2014 500 kbps CAN decoder",
+     "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+     "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+     "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)",
+     "https://github.com/billyjack2/CAN-DBC-Collection/blob/6e2f88fd6cd9c1f47d0db7bd022711b106f27027/YAMAHA/CAN_2015/can1v3.dbc (AiM YAMAHA/CAN_2015 logger DBC: R1/R1M 2015+, R6 2017+; IDs 0x205/0x209/0x215/0x226/0x23E/0x250/0x254/0x260; collection has no root license = all rights reserved, facts reimplemented + cited only)",
+     "https://www.r1-forum.com/threads/can-bus-protocol.512553/ (SySt 2015+ R1/R1M hand reverse-engineering: 500 kbps, ~16 IDs, 0x260 brake pressures, 0x264 wheel speeds, lean angle in 5 deg steps ~100 Hz; forum-only, bot challenge - cited not vendored)",
+     "https://github.com/DeziderMesko/motocan (2026 R9 Euro5 connector decode: 0x27C RPM/gear/TCS/PWR, 0x383 brake, 0x512 temps, 0x751 neutral, 0x756/0x765 wheel speeds, 0x758/0x759 throttle, 0x76D/0x76E cruise/PWR/display + candump captures and r9.dbc; corroborates/extends yamaha_r9_can.py)",
+     "https://github.com/terrafirma2021/Yamaha-DataLogger/tree/d06a80aef95bf97d6e15eef1c1d851fde6cc4975 (ESP32-S3 Yamaha YDS K-Line 16040-baud broadcast: IMMO 0x3E burst, 5-byte frames [rpm*50, speed, error, coolant-30, sum-csum] + ELM327 mode-01 emulation; no license stated - treated as open per project policy, cited only)"
+    ],
+    "memory": {
+     "image_size": null,
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Offline checksum research on listed MT images does not establish a memory-access sequence, complete backup geometry or any programming authorization; this build refuses the operation.",
+     "regions": {}
+    },
+    "kline": {
+     "note": "K-Line hardware is suggested by source-reported streams, but baud rate, initialization, addressing and application framing are not claimed without a model-specific public definition or capture."
+    },
+    "can": {},
+    "session": {
+     "physical_supported": false,
+     "physical_blocked_reason": "Only passive stream observations and offline checksum research exist; no family-specific initialization transcript or primary diagnostic wire definition was recovered."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
    }
   ]
  },
@@ -26691,6 +28273,396 @@
    "confidence": "unknown",
    "label": "XMAX (2017-2026)",
    "can": {}
+  },
+  {
+   "make": "Royal Enfield",
+   "model": "Interceptor 650",
+   "year_from": 2018,
+   "year_to": 2026,
+   "ecu": "generic_obd_can_11bit",
+   "displacement": "648",
+   "tps": "",
+   "notes": "RoyalEnfieldObd (MIT) documents standard OBD-II CAN polling (PIDs 0x0C/0x0D/0x11/0x0B/0x0F/0x5C/0x04) on one Interceptor 650; one bike's reading list is not a fitment claim for other years or markets. Read-only standard OBD only; no memory, clears or programming.",
+   "confidence": "unknown",
+   "label": "Interceptor 650 (2018-2026)",
+   "can": {}
+  },
+  {
+   "make": "Royal Enfield",
+   "model": "Continental GT 650",
+   "year_from": 2018,
+   "year_to": 2026,
+   "ecu": "generic_obd_can_11bit",
+   "displacement": "648",
+   "tps": "",
+   "notes": "RoyalEnfieldObd (MIT) documents standard OBD-II CAN polling (PIDs 0x0C/0x0D/0x11/0x0B/0x0F/0x5C/0x04) on one Interceptor 650; one bike's reading list is not a fitment claim for other years or markets. Read-only standard OBD only; no memory, clears or programming.",
+   "confidence": "unknown",
+   "label": "Continental GT 650 (2018-2026)",
+   "can": {}
+  },
+  {
+   "make": "Royal Enfield",
+   "model": "Super Meteor 650",
+   "year_from": 2023,
+   "year_to": 2026,
+   "ecu": "generic_obd_can_11bit",
+   "displacement": "648",
+   "tps": "",
+   "notes": "RoyalEnfieldObd (MIT) documents standard OBD-II CAN polling (PIDs 0x0C/0x0D/0x11/0x0B/0x0F/0x5C/0x04) on one Interceptor 650; one bike's reading list is not a fitment claim for other years or markets. Read-only standard OBD only; no memory, clears or programming.",
+   "confidence": "unknown",
+   "label": "Super Meteor 650 (2023-2026)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "MT-03",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "yamaha_kline_research",
+   "displacement": "321",
+   "tps": "",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+   "confidence": "unknown",
+   "label": "MT-03 (2014-2020)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "MT-07",
+   "year_from": 2014,
+   "year_to": 2026,
+   "ecu": "yamaha_kline_research",
+   "displacement": "689",
+   "tps": "",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+   "confidence": "unknown",
+   "label": "MT-07 (2014-2026)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "MT-09",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "yamaha_kline_research",
+   "displacement": "847",
+   "tps": "",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+   "confidence": "unknown",
+   "label": "MT-09 (2014-2020)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "MT-10",
+   "year_from": 2016,
+   "year_to": 2026,
+   "ecu": "yamaha_kline_research",
+   "displacement": "998",
+   "tps": "",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+   "confidence": "unknown",
+   "label": "MT-10 (2016-2026)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "YZF-R6",
+   "year_from": 2017,
+   "year_to": 2020,
+   "ecu": "yamaha_kline_research",
+   "displacement": "599",
+   "tps": "",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+   "confidence": "unknown",
+   "label": "YZF-R6 (2017-2020)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "YZF-R1",
+   "year_from": 2015,
+   "year_to": 2026,
+   "ecu": "yamaha_kline_research",
+   "displacement": "998",
+   "tps": "",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+   "confidence": "unknown",
+   "label": "YZF-R1 (2015-2026)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "XSR700",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "yamaha_kline_research",
+   "displacement": "689",
+   "tps": "",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+   "confidence": "unknown",
+   "label": "XSR700 (2016-2020)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "XSR900",
+   "year_from": 2016,
+   "year_to": 2026,
+   "ecu": "yamaha_kline_research",
+   "displacement": "847",
+   "tps": "",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+   "confidence": "unknown",
+   "label": "XSR900 (2016-2026)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "Tracer 700",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "yamaha_kline_research",
+   "displacement": "689",
+   "tps": "",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+   "confidence": "unknown",
+   "label": "Tracer 700 (2016-2020)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "Tracer 900 GT",
+   "year_from": 2018,
+   "year_to": 2026,
+   "ecu": "yamaha_kline_research",
+   "displacement": "847",
+   "tps": "",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+   "confidence": "unknown",
+   "label": "Tracer 900 GT (2018-2026)",
+   "can": {}
+  },
+  {
+   "make": "Yamaha",
+   "model": "MT-125",
+   "year_from": 2014,
+   "year_to": 2026,
+   "ecu": "yamaha_kline_research",
+   "displacement": "125",
+   "tps": "",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions.",
+   "confidence": "unknown",
+   "label": "MT-125 (2014-2026)",
+   "can": {}
+  },
+  {
+   "make": "Suzuki",
+   "model": "V-Strom DL650",
+   "year_from": 2012,
+   "year_to": 2016,
+   "ecu": "suzuki_sds_generic_research",
+   "displacement": "645",
+   "tps": "",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike.",
+   "confidence": "unknown",
+   "label": "V-Strom DL650 (2012-2016)",
+   "can": {}
+  },
+  {
+   "make": "Suzuki",
+   "model": "V-Strom DL1000",
+   "year_from": 2002,
+   "year_to": 2026,
+   "ecu": "suzuki_sds_generic_research",
+   "displacement": "1037",
+   "tps": "",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike.",
+   "confidence": "unknown",
+   "label": "V-Strom DL1000 (2002-2026)",
+   "can": {}
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-S750",
+   "year_from": 2019,
+   "year_to": 2026,
+   "ecu": "suzuki_sds_generic_research",
+   "displacement": "749",
+   "tps": "",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike.",
+   "confidence": "unknown",
+   "label": "GSX-S750 (2019-2026)",
+   "can": {}
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-S1000",
+   "year_from": 2015,
+   "year_to": 2026,
+   "ecu": "suzuki_sds_generic_research",
+   "displacement": "999",
+   "tps": "",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike.",
+   "confidence": "unknown",
+   "label": "GSX-S1000 (2015-2026)",
+   "can": {}
+  },
+  {
+   "make": "Suzuki",
+   "model": "Bandit 650",
+   "year_from": 2005,
+   "year_to": 2026,
+   "ecu": "suzuki_sds_generic_research",
+   "displacement": "656",
+   "tps": "",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike.",
+   "confidence": "unknown",
+   "label": "Bandit 650 (2005-2026)",
+   "can": {}
+  },
+  {
+   "make": "Suzuki",
+   "model": "Bandit 1250",
+   "year_from": 2007,
+   "year_to": 2026,
+   "ecu": "suzuki_sds_generic_research",
+   "displacement": "1255",
+   "tps": "",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike.",
+   "confidence": "unknown",
+   "label": "Bandit 1250 (2007-2026)",
+   "can": {}
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z900",
+   "year_from": 2017,
+   "year_to": 2020,
+   "ecu": "kawasaki_kds_research",
+   "displacement": "948",
+   "tps": "",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Kawasaki KDS support; bounded raw KDS research attempt only (synthetic tests), no fitment claim for any specific bike.",
+   "confidence": "unknown",
+   "label": "Z900 (2017-2020)",
+   "can": {}
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z400",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "kawasaki_kds_research",
+   "displacement": "399",
+   "tps": "",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Kawasaki KDS support; bounded raw KDS research attempt only (synthetic tests), no fitment claim for any specific bike.",
+   "confidence": "unknown",
+   "label": "Z400 (2018-2020)",
+   "can": {}
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "R 1250 GS",
+   "year_from": 2019,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "1254",
+   "tps": "",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+   "confidence": "unknown",
+   "label": "R 1250 GS (2019-2026)",
+   "can": {}
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "R 1300 GS",
+   "year_from": 2024,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "1300",
+   "tps": "",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+   "confidence": "unknown",
+   "label": "R 1300 GS (2024-2026)",
+   "can": {}
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "S 1000 RR",
+   "year_from": 2019,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "999",
+   "tps": "",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+   "confidence": "unknown",
+   "label": "S 1000 RR (2019-2026)",
+   "can": {}
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "S 1000 XR",
+   "year_from": 2020,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "999",
+   "tps": "",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+   "confidence": "unknown",
+   "label": "S 1000 XR (2020-2026)",
+   "can": {}
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "R nineT",
+   "year_from": 2014,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "1170",
+   "tps": "",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+   "confidence": "unknown",
+   "label": "R nineT (2014-2026)",
+   "can": {}
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "F 850 GS",
+   "year_from": 2018,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "853",
+   "tps": "",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+   "confidence": "unknown",
+   "label": "F 850 GS (2018-2026)",
+   "can": {}
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "F 900 XR",
+   "year_from": 2020,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "895",
+   "tps": "",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+   "confidence": "unknown",
+   "label": "F 900 XR (2020-2026)",
+   "can": {}
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "G 310 R",
+   "year_from": 2017,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "313",
+   "tps": "",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability.",
+   "confidence": "unknown",
+   "label": "G 310 R (2017-2026)",
+   "can": {}
   }
  ],
  "profiles": {
@@ -28230,6 +30202,48 @@
     "available": false
    }
   },
+  "bmw_can_research": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "BMWMotorradCANresearch(broadcastframesonly)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "physical_supported": false,
+    "physical_blocked_reason": "Only offline broadcast-frame decoding from one R1300GS capture exists; no BMW diagnostic application protocol or validated CAN identifier pair was recovered."
+   },
+   "identification": {}
+  },
+  "generic_kwp2000_kline": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "GenericKWP2000/ISO14230K-Line(opt-in)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "generic-kwp2000-kline",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "physical_evidence_note": "Standard ISO 14230 read-only services only; no model-specific fitment is claimed. This integration is synthetic-tested only."
+   },
+   "identification": {
+    "available": true,
+    "option": 128,
+    "note": "KWP2000 readECUIdentification option 0x80, returned raw. Not confirmed ECU hardware identity or any programming authorization."
+   }
+  },
   "generic_obd_can_11bit": {
    "parameters": {
     "rpm": {
@@ -28447,6 +30461,248 @@
    "identification": {
     "available": true,
     "note": "Optional support-bitmap-gated Mode 09 VIN and calibration IDs, not confirmed ECU identity or programming authorization."
+   }
+  },
+  "generic_obd_iso9141_kline": {
+   "parameters": {
+    "rpm": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.25,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 12,
+     "states": {}
+    },
+    "speed": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 13,
+     "states": {}
+    },
+    "tps": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.39215686274509803,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 17,
+     "states": {}
+    },
+    "coolant": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": -40.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 5,
+     "states": {}
+    },
+    "airtemp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": -40.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 15,
+     "states": {}
+    },
+    "map": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 11,
+     "states": {}
+    },
+    "load": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.39215686274509803,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 4,
+     "states": {}
+    },
+    "timing": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.5,
+     "bias": -64.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 14,
+     "states": {}
+    },
+    "trim": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.78125,
+     "bias": -100.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 6,
+     "states": {}
+    },
+    "engine_runtime": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 31,
+     "states": {}
+    },
+    "fuel_level": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.39215686274509803,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 1,
+     "dead": false,
+     "local_id": 47,
+     "states": {}
+    },
+    "barometric": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 51,
+     "states": {}
+    },
+    "control_voltage": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.001,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 2,
+     "dead": false,
+     "local_id": 66,
+     "states": {}
+    },
+    "oil_temp": {
+     "offset": 0,
+     "length": 1,
+     "endian": "big",
+     "signed": false,
+     "scale": 1.0,
+     "bias": -40.0,
+     "recip": 0.0,
+     "digits": 0,
+     "dead": false,
+     "local_id": 92,
+     "states": {}
+    },
+    "fuel_rate": {
+     "offset": 0,
+     "length": 2,
+     "endian": "big",
+     "signed": false,
+     "scale": 0.05,
+     "bias": 0.0,
+     "recip": 0.0,
+     "digits": 2,
+     "dead": false,
+     "local_id": 94,
+     "states": {}
+    }
+   },
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "GenericOBD-IIISO9141-2K-Line(opt-in)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "generic-obd-iso9141-kline",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "physical_evidence_note": "Standard OBD-II requests only over ISO 9141-2; no model-specific fitment is claimed. This integration is synthetic-tested only."
+   },
+   "identification": {
+    "available": true,
+    "note": "Optional support-bitmap-gated Mode 09 VIN and calibration IDs, not confirmed ECU identity or programming authorization."
+   }
+  },
+  "generic_uds_can_11bit": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "GenericUDS/ISO1422911-bitCAN(opt-in)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "generic-uds-can",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "physical_evidence_note": "Standard ISO 14229 read-only services only; no model-specific fitment is claimed. This integration is synthetic-tested only."
+   },
+   "identification": {
+    "available": true,
+    "note": "UDS ReadDataByIdentifier DID F190 (VIN), reported as an unverified response - not confirmed ECU hardware identity or any programming authorization."
    }
   },
   "harley_delphi_can_uds": {
@@ -31166,6 +33422,24 @@
    "identification": {
     "available": false
    }
+  },
+  "yamaha_kline_research": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "YamahaK-Lineresearch(MT/YZF/XSR/Tracer)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "physical_supported": false,
+    "physical_blocked_reason": "Only passive stream observations and offline checksum research exist; no family-specific initialization transcript or primary diagnostic wire definition was recovered."
+   },
+   "identification": {}
   }
  },
  "dtc_descriptions": {

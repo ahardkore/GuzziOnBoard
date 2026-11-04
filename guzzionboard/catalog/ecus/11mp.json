@@ -31,7 +31,8 @@
   "sources": [
     "Moto Guzzi Euro 5 service-station manuals: IAW 11MP application and diagnostic-tool procedures",
     "Diagcode Piaggio Group 11MP coverage: operation existence only; no wire definitions",
-    "GuzziDiag/GuzziCANDiag public download site: no 11MP diagnostic definition or capture published"
+    "GuzziDiag/GuzziCANDiag public download site: no 11MP diagnostic definition or capture published",
+    "https://www.diagcode.com/products/diagnostics-for-piaggio-group/ (written service list for 11MP HW002, Euro5 CAN; commercial claims only, no wire bytes)"
   ],
   "parameters": [],
   "actuators": [],

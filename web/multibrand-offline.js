@@ -13,6 +13,14 @@
  * GPL-3.0-or-later, commit 668b63efc05977eb65cb8e84e597ae2205355d4c.
  * J1850 VPW CRC adapted from vpw-sniffer, Copyright (c) 2026 bbutka,
  * MIT, commit 37aa6f974615154419bc28eb9cf9f9cfb804ade0. No bike validation.
+ * Suzuki SV650 03-05 SDS: protocol and captured K-Line session documented in
+ * synfinatic/sv650sds, GPL-3.0, commit bacf803a9056241ef270acf0e7e31467961aeba5
+ * (LICENSES/SV650SDS-GPL-3.0.txt); framing/checksum/field offsets reimplemented here.
+ * Honda Keihin K-Line (K25 capture): protocol documented in
+ * AutotronicCommunity/Honda_Keihin_KLine_Protocol and the live-data poster
+ * AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike: no license stated,
+ * treated as open per project policy (modifiable/removable later if advised
+ * otherwise); protocol facts and captured frames cited, code reimplemented.
  * No hardware or commands are included. See docs/EXTERNAL_MOTORCYCLE_RESEARCH.md
  * and LICENSES for attribution, terms, limitations and sources. NO WARRANTY.
  */
@@ -166,6 +174,129 @@ function researchHarleyJ1850(bytes) {
   return ['CRC matches; this frame is not decoded by the selected profile.'];
 }
 
+// Suzuki SDS (KWP2000 K-Line, 10400 8N1) as captured in synfinatic/sv650sds
+// data/sds_tool_output.txt: fmt byte high bits 10; low 6 bits are the data
+// length, or 0 -> separate length byte; addresses are the 0x12/0xF1 pair;
+// checksum = sum of all bytes except the last, mod 256.
+function researchSuzukiSds(bytes) {
+  if (bytes.length < 5 || (bytes[0] & 0xc0) !== 0x80) throw new Error('Expected an SDS frame (fmt byte 0x80/0x81...).');
+  if (![0x12, 0xf1].includes(bytes[1]) || ![0x12, 0xf1].includes(bytes[2]) || bytes[1] === bytes[2]) {
+    throw new Error('Addresses are not the 0x12/0xF1 SDS pair.');
+  }
+  let length = bytes[0] & 0x3f, start = 3, expected = length + 4;
+  if (length === 0) { length = bytes[3]; start = 4; expected = length + 5; }
+  if (bytes.length !== expected) throw new Error(`Length ${length} does not match frame size ${bytes.length}.`);
+  if ((bytes.slice(0, -1).reduce((a, b) => a + b, 0) & 255) !== bytes[bytes.length - 1]) {
+    throw new Error('Checksum mismatch; not decoded.');
+  }
+  const dir = bytes[1] === 0x12 ? 'tester->ECU' : 'ECU->tester';
+  const payload = bytes.slice(start, -1);
+  const svc = payload[0];
+  if (dir === 'tester->ECU') {
+    if (svc === 0x81) return ['SDS StartCommunication request', 'ECU answers 80 F1 12 03 C1 EA 8F C0 (key bytes C1 EA 8F)'];
+    if (svc === 0x1a) return [`SDS readDataByLocalId 0x${payload[1].toString(16).toUpperCase()} request`];
+    if (svc === 0x21) return [`SDS readDataByLocalId 0x${payload[1].toString(16).toUpperCase()} request (all-sensors block when 0x08)`];
+    return [`SDS request, query 0x${svc.toString(16).toUpperCase()}, table 0x${payload[1].toString(16).toUpperCase()}`];
+  }
+  if (payload[0] === 0xc1) return ['SDS init response · key bytes candidate: ' + payload.slice(1).map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ')];
+  if (payload[0] === 0x5a) {
+    const text = payload.slice(2).map((b) => (b >= 32 && b < 127 ? String.fromCharCode(b) : '·')).join('').replace(/·+$/, '');
+    return [`SDS ECU-model reply (local ID 0x${payload[1].toString(16).toUpperCase()})`, `Model string candidate: "${text}" (ASCII, source-captured e.g. 32920-17G2*)`];
+  }
+  if (payload[0] === 0x61 && payload[1] === 0x08) {
+    // Source field table (sds_decode.ino): 1-based positions in the full frame.
+    const f = (pos1, pos2) => [bytes[pos1 - 1], pos2 > 0 ? bytes[pos2 - 1] : null];
+    const rpm = f(25, 26);
+    return [
+      'SDS all-sensors block (61 08) · synfinatic/sv650sds field table, candidates',
+      `RPM candidate: ${rpm[0] * 100 + rpm[1]} rpm (a*100+b, unverified)`,
+      `TPS candidate raw 0x${f(27, -1)[0].toString(16).padStart(2, '0')} · ECT raw 0x${f(29, -1)[0].toString(16).padStart(2, '0')} · IAT raw 0x${f(30, -1)[0].toString(16).padStart(2, '0')}`,
+      `Battery raw 0x${f(32, -1)[0].toString(16).padStart(2, '0')} · gear raw ${f(34, -1)[0]} · neutral raw 0x${f(53, -1)[0].toString(16).padStart(2, '0')}`,
+      "Conversions are the source author's unverified formulas; do not use for riding decisions.",
+    ];
+  }
+  return [`SDS ECU response, query 0x${svc.toString(16).toUpperCase()}`];
+}
+
+// Honda Keihin PGM-FI K-Line (10400 8N1): request 72 NN QQ ZZ CS, response
+// 02 NN QQ ZZ data CS; CS = (0x100 - (sum of preceding bytes & 0xFF)) & 0xFF.
+// Per-table parameter map from the AutotronicCommunity live-data poster.
+function researchHondaKeihin(bytes) {
+  if (bytes.length < 4) throw new Error('Frame too short.');
+  const cs = (0x100 - (bytes.slice(0, -1).reduce((a, b) => a + b, 0) & 255)) & 255;
+  if (cs !== bytes[bytes.length - 1]) throw new Error('Checksum mismatch; not decoded.');
+  if (bytes[0] === 0xfe) return ['Honda wake-up burst', 'ECU answers 0E 04 72 7C (captured)'];
+  if (bytes[0] === 0x72) {
+    if (bytes.length !== 5) throw new Error('Expected a 72 05 QQ ZZ CS request.');
+    const q = bytes[2], t = bytes[3];
+    if (q === 0x71) return [`Honda live-data request, table 0x${t.toString(16).toUpperCase()} (query 71)`];
+    if (q === 0x73) return [`Honda past-DTC table request 0x${t.toString(16).toUpperCase()} (read-only)`];
+    if (q === 0x74) return [`Honda current-DTC table request 0x${t.toString(16).toUpperCase()} (read-only)`];
+    if (q === 0x60) throw new Error('Query 0x60 is clear-DTC: a write operation; this tool never clears faults.');
+    return [`Honda request, query 0x${q.toString(16).toUpperCase()}, table 0x${t.toString(16).toUpperCase()}`];
+  }
+  if (bytes[0] !== 0x02) throw new Error('Expected a 02.. response or 72.. request.');
+  const q = bytes[2], t = bytes[3];
+  if (q === 0x71 && (t === 0x17 || t === 0x67)) {
+    if (bytes.length < 24) throw new Error('Table 17/67 reply too short.');
+    const b = bytes;
+    return [
+      `Honda table ${t === 0x17 ? '17' : '67 (alias of 17)'} live data · poster formulas, candidates`,
+      `RPM candidate: ${b[9] * 256 + b[10]} rpm · TPS candidate: ${Math.round(b[11] * 5 / 256 * 100) / 100} V / ${(b[12] * 0.5).toFixed(1)} %`,
+      `ECT candidate: ${b[14] - 40} °C · IAT candidate: ${b[16] - 40} °C · MAP candidate: ${b[18]} kPa`,
+      `Battery candidate: ${Math.round(b[19] / 10 * 100) / 100} V · injector candidate: ${Math.round((b[20] * 256 + b[21]) / 200 * 100) / 100} ms`,
+      `Ignition candidate: ${-64 + b[22] * 0.5} °BTDC · speed candidate: ${bytes.length > 24 ? b[24] : 'n/a (short capture)'} km/h`,
+    ];
+  }
+  if (q === 0x71 && t === 0x00) {
+    const part = bytes.slice(4, 9).map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join('');
+    return ['Honda ECM-ID reply (71 00)', `Part-code bytes candidate: ${part}` + (part === '0102E30F01' ? ' -> 30400-K81H-N52 (source example)' : '')];
+  }
+  if (q === 0x73 || q === 0x74) {
+    return [`Honda ${q === 0x74 ? 'current' : 'past'} DTC reply, table 0x${t.toString(16).toUpperCase()}`,
+      `DTC bytes candidate: ${bytes.slice(4, -1).map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ')} (3-byte manufacturer codes; see catalog DTC dictionaries)`];
+  }
+  return [`Honda response, query 0x${q.toString(16).toUpperCase()}, table 0x${t.toString(16).toUpperCase()}`];
+}
+
+// Buell XB12X IDS DDFI-2 serial PDU (9600 8N1), MIT source
+// pacdavid1/buell-xb12x-logger @ 45a762442fb3018500f9dcc789725d4383de4332 (LICENSES/Buell-XB12X-Logger-MIT.txt).
+// Envelope: 01 SRC DST LEN(=N+1) FF 02 payload(N) 03 XOR-CS (XOR of SRC..EOT).
+function researchBuellDdfi2(bytes) {
+  if (bytes.length < 9 || bytes[0] !== 0x01 || bytes[4] !== 0xff || bytes[5] !== 0x02 || bytes[bytes.length - 2] !== 0x03) {
+    throw new Error('Expected a DDFI-2 PDU (01 .. FF 02 .. 03 CS).');
+  }
+  if ((bytes[1] !== 0x00 && bytes[1] !== 0x42) || bytes[1] === bytes[2] || bytes[2] !== (bytes[1] === 0x00 ? 0x42 : 0x00)) {
+    throw new Error('Addresses are not the 0x00/0x42 DDFI-2 pair.');
+  }
+  if (bytes.length !== bytes[3] + 7) throw new Error(`Length byte ${bytes[3]} does not match frame size ${bytes.length}.`);
+  let cs = 0;
+  for (let i = 1; i < bytes.length - 1; i++) cs ^= bytes[i];
+  if ((cs & 0xff) !== bytes[bytes.length - 1]) throw new Error('XOR checksum mismatch; not decoded.');
+  const dir = bytes[2] === 0x42 ? 'tester->ECU' : 'ECU->tester';
+  const payload = bytes.slice(6, -2);
+  const cmd = payload[0];
+  if (cmd === 0x57) throw new Error('CMD_SET 0x57 is an EEPROM write; this tool never writes.');
+  if (dir === 'tester->ECU') {
+    if (cmd === 0x52) return [`DDFI-2 GET read: page ${payload[2]}, offset ${payload[1]}, count ${payload[3]} (max 16/chunk)`];
+    if (cmd === 0x56) return ['DDFI-2 VERSION request'];
+    if (cmd === 0x43) return ['DDFI-2 RT_DATA request (real-time block)'];
+    return [`DDFI-2 request 0x${cmd.toString(16).toUpperCase()}`];
+  }
+  if (cmd === 0x06) {
+    if (bytes.length >= 104) {
+      const rpm = bytes[11] | (bytes[12] << 8);
+      const clt = Math.round((bytes[30] | (bytes[31] << 8)) * 0.1 - 40);
+      const batt = Math.round((bytes[28] | (bytes[29] << 8)) * 0.01 * 100) / 100;
+      const tps = Math.round((bytes[90] | (bytes[91] << 8)) * 0.004887585 * 1000) / 1000;
+      return ['DDFI-2 RT_DATA ACK · rtdata.xml DDFI-2 fields, candidates',
+        `RPM candidate: ${rpm} · CLT candidate: ${clt} °C · Batt candidate: ${batt} V · TPS candidate: ${tps} V`];
+    }
+    return [`DDFI-2 ACK with ${payload.length - 1} data byte(s): ${payload.slice(1).map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join(' ')}`];
+  }
+  return [`DDFI-2 ECU response 0x${cmd.toString(16).toUpperCase()}`];
+}
+
 function decodeMultiResearch(profile, line) {
   if (profile === 'bmw_r1300gs') return researchBmw(line);
   const bytes = researchHex(line);
@@ -174,6 +305,9 @@ function decodeMultiResearch(profile, line) {
   if (profile === 'triumph_daytona') return researchTriumph(bytes);
   if (profile === 'harley_vpw') return researchVpw(bytes);
   if (profile === 'harley_j1850_harleydroid') return researchHarleyJ1850(bytes);
+  if (profile === 'suzuki_sv650_sds') return researchSuzukiSds(bytes);
+  if (profile === 'honda_keihin_k25') return researchHondaKeihin(bytes);
+  if (profile === 'buell_xb12x_ddfi2') return researchBuellDdfi2(bytes);
   throw new Error('Choose an exact research profile.');
 }
 

@@ -25,7 +25,10 @@
     "live"
   ],
   "sources": [
-    "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3"
+    "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3",
+    "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+    "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+    "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
   ],
   "parameters": [
     {

@@ -25,7 +25,10 @@
     "live"
   ],
   "sources": [
-    "https://github.com/sunsided/suzuki-sds-obdii-gateway/tree/20644c2e21ca2a867e086409c7f130230a7327d7"
+    "https://github.com/sunsided/suzuki-sds-obdii-gateway/tree/20644c2e21ca2a867e086409c7f130230a7327d7",
+    "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA (101-row model/part-code -> K-Line vs CANBUS connection table)",
+    "https://github.com/AutotronicCommunity/dtc-yamaha (Yamaha DTC <-> OBD2 dictionary, transcribed into catalog/dtc_manufacturer.json)",
+    "https://github.com/AutotronicCommunity/pinoutECMYamaha + pinouECMHonda (connector pinout reference pages)"
   ],
   "parameters": [
     {

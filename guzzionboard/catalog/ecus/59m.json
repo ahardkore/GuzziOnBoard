@@ -5,7 +5,7 @@
   "transport": "kline",
   "confidence": "unknown",
   "years": "2001-2009",
-  "notes": "Ducati 749/999, injected air-cooled Monsters, Multistrada, SportClassic, S2R/S4R and ST4S applications. GuzziDiag, TuneECU, and user documentation establish that tooling exists and mention slow initialization, but no primary family transcript, identifier table, or diagnostic payload definition was recovered. Compatibility is not a protocol definition: this remains an unknown zero-capability placeholder and physical use is blocked.",
+  "notes": "Ducati 749/999, injected air-cooled Monsters, Multistrada, SportClassic, S2R/S4R and ST4S applications. GuzziDiag, TuneECU, and user documentation establish that tooling exists and mention slow initialization, but no primary family transcript, identifier table, or diagnostic payload definition was recovered. Compatibility is not a protocol definition: this remains an unknown zero-capability placeholder and physical use is blocked. 2026-11-03: broadcast-CAN decoder written (marelli_iaw59m_can.py); K-Line LDI map remains forum-level evidence, so physical sessions stay blocked.",
   "kline": {
     "note": "K-Line hardware is established by compatible tooling, but baud rate, initialization, addressing, and application framing are not claimed without a family-specific public definition or capture."
   },
@@ -25,7 +25,9 @@
   "sources": [
     "Ducati.ms Model/ECU list (2009)",
     "GuzziTek ECU master list (2011)",
-    "tuneecu.net Ducati tune list"
+    "tuneecu.net Ducati tune list",
+    "https://www.ducati.ms/threads/ducati-998-999-iaw59m-canbus.627217/ (KWP 0x21/0x1A LDI map: 20-2F EEPROM, 30-7F RAM, 98 tester, 99 date, A0-BF snapshots; forum prose, not a capture)",
+    "https://github.com/billyjack2/CAN-DBC-Collection/tree/6e2f88fd6cd9c1f47d0db7bd022711b106f27027 DUCATI/Marelli_IAW59M_C/can1v3.dbc (broadcast CAN only; no root license - cited, facts reimplemented in guzzionboard/marelli_iaw59m_can.py)"
   ],
   "parameters": [],
   "actuators": [],

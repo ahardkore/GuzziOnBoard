@@ -648,7 +648,10 @@ async function loadCatalog() {
   const { summary } = state.catalog;
 
   const make = $('#makeSelect');
-  const availableMakes = isHostedDemo() ? ['Moto Guzzi', 'Honda'] : state.catalog.makes;
+  // The bike dropdown always encompasses the whole garage — in the hosted
+  // demo too. Only the initial preselection and the simulator-only transport
+  // are demo-specific; connect stays disabled for non-simulator profiles there.
+  const availableMakes = state.catalog.makes;
   make.innerHTML = availableMakes
     .map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
   const savedMake = Prefs.get('make');
@@ -716,8 +719,9 @@ async function loadCatalog() {
 }
 
 function vehiclesOf(make) {
-  return (state.catalog.vehicles || []).filter((vehicle) =>
-    vehicle.make === make && (!isHostedDemo() || ['5am', 'honda_cbr1000rr_2012_us', 'honda_cb500_mgz_a03'].includes(vehicle.ecu)));
+  // Every catalogued bike is selectable, hosted demo included; profiles
+  // without a simulator simply cannot connect there (see updateConnectEnabled).
+  return (state.catalog.vehicles || []).filter((vehicle) => vehicle.make === make);
 }
 
 function fillModels() {
@@ -940,7 +944,7 @@ function selectionRequest() {
   const ecuOverride = $('#ecuOverride').value;
   const body = ecuOverride
     ? { ecu: ecuOverride, transport: currentTransport(), device: $('#deviceInput').value,
-        ...(!['generic_obd_can_11bit', 'honda_cb500f_dashble', 'honda_pgmfi_flash_research', 'honda_ctx700_minidash', 'harley_delphi_can_uds', 'kawasaki_kds_generic_research', 'suzuki_sds_generic_research'].includes(ecuOverride) && $('#modelSelect').value && $('#yearSelect').value ? {
+        ...(!['generic_obd_can_11bit', 'generic_obd_iso9141_kline', 'honda_cb500f_dashble', 'honda_pgmfi_flash_research', 'honda_ctx700_minidash', 'harley_delphi_can_uds', 'kawasaki_kds_generic_research', 'suzuki_sds_generic_research'].includes(ecuOverride) && $('#modelSelect').value && $('#yearSelect').value ? {
           make: $('#makeSelect').value, model: $('#modelSelect').value,
           year: parseInt($('#yearSelect').value, 10),
         } : {}) }
@@ -1000,7 +1004,7 @@ async function connect() {
       await api('/api/checklist', { method: 'POST', body: { accepted: $('#checklistAccept').checked } });
     }
     const initMethod = currentTransport() === 'kline' ? $('#initMethod').value : '';
-    if (['kawasaki_er6n_2006', 'triumph_daytona_675_2012', 'kawasaki_versys650_2012', 'kawasaki_kds_research', 'suzuki_gsxr600_2011', 'honda_cbr600rr_2005', 'honda_cb500f_dashble', 'honda_pgmfi_flash_research', 'honda_ctx700_minidash', 'honda_pgmfi_research', 'suzuki_gsxr1000_2004', 'suzuki_sv650ak7_2007', 'suzuki_sv650_2003', 'suzuki_sds_gsxr_research'].includes(selection.ecu?.id) && initMethod) {
+    if (['generic_obd_iso9141_kline', 'kawasaki_er6n_2006', 'triumph_daytona_675_2012', 'kawasaki_versys650_2012', 'kawasaki_kds_research', 'suzuki_gsxr600_2011', 'honda_cbr600rr_2005', 'honda_cb500f_dashble', 'honda_pgmfi_flash_research', 'honda_ctx700_minidash', 'honda_pgmfi_research', 'suzuki_gsxr1000_2004', 'suzuki_sv650ak7_2007', 'suzuki_sv650_2003', 'suzuki_sds_gsxr_research'].includes(selection.ecu?.id) && initMethod) {
       throw new Error('This model requires ECU profile default handshake; select it before connecting.');
     }
     Prefs.set('initMethod', initMethod);
@@ -1040,7 +1044,7 @@ async function connect() {
               ? 'A Honda diagnostic initialization response was received. Table availability and candidate sensor interpretations vary by ECU; this does not establish ECU identity or programming support.'
             : selection.ecu?.id === 'suzuki_gsxr1000_2004'
               ? 'An addressed SDS initialization response was received. The snapshot is raw and its fields are unverified; this does not establish ECU identity or programming support.'
-            : selection.ecu?.id === 'generic_obd_can_11bit'
+            : selection.ecu?.id === 'generic_obd_can_11bit' || selection.ecu?.id === 'generic_obd_iso9141_kline'
               ? 'The selected ECU answered a standard OBD support query. This does not identify the ECU or prove vehicle fitment; no keepalives are sent.'
               : 'The ECU is online and the workstation will keep the session alive.',
           [

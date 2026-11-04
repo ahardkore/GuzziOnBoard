@@ -543,6 +543,9 @@ def load_catalog(*, overlays: bool = True) -> Catalog:
     exists only on the maintainer's machine must never leak into either.
     """
     shared_dtc = _load_json(CATALOG_DIR / "dtc_sae.json")["codes"]
+    mfr_dtc_file = CATALOG_DIR / "dtc_manufacturer.json"
+    if mfr_dtc_file.exists():
+        shared_dtc = {**shared_dtc, **_load_json(mfr_dtc_file)["codes"]}
 
     ecus: dict[str, EcuProfile] = {}
     for path in sorted(ECU_DIR.glob("*.json")):

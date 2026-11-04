@@ -622,3 +622,22 @@ function requires an explicit confirmation token, no transport is opened,
 and the passive decoder still reports such frames as
 `0x57-SET-WRITE-REJECTED`. 19/19 decoder tests pass. No other brand has an
 author-confirmed write path, so no other tune capability was added.
+
+## Round 22 — experimental write builders for all decoded protocols (2026-11-04)
+
+Per owner direction ("build it as experimental where absent"), added
+`guzzionboard/experimental_writers.py`: token-gated, offline frame builders
+that return BYTES only — no transport is ever opened. Coverage:
+
+- **KWP2000/ISO 14230:** 0x3B WriteDataByIdentifier, 0x3D WriteMemoryByAddress
+- **UDS/ISO 14229:** 0x27 requestSeed/sendKey (unlock/tuning research),
+  0x31 RoutineControl, 0x34 RequestDownload
+- **Honda Keihin K-Line (K25):** clear-DTC request `72 02 60 00 CS`
+- **Buell DDFI-2:** CMD_SET 0x57 EEPROM write (Round 19 module,
+  author-confirmed via MIT logger + GPL XBTune)
+
+Every function raises without the explicit confirmation token
+(legal-use-only wording: local research / off-road / track vehicles owned or
+authorized). Passive decoders still classify these frames as write-class
+(Buell 0x57-SET-WRITE-REJECTED; Honda 0x60 counted as request, never data).
+20/20 decoder tests pass.

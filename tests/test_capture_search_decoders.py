@@ -435,3 +435,30 @@ def test_buell_ddfi2_tune_frames_gated():
     assert tune.page_for_offset(0x100) == 2 and tune.page_for_offset(0x00) == 1
     with pytest.raises(ValueError):
         tune.page_for_offset(0x10000)
+
+
+# ------------------------------------------- experimental write builders
+def test_experimental_writers_gated_and_wellformed():
+    from guzzionboard import experimental_writers as xw
+    from guzzionboard import honda_keihin_kline as k25
+    T = xw.CONFIRM_TOKEN
+    with pytest.raises(PermissionError):
+        xw.uds_request_seed(1, confirm_token='nope')
+    with pytest.raises(PermissionError):
+        xw.honda_k25_clear_dtc(confirm_token='nope')
+    f = xw.kwp2000_write_data_by_identifier(0xF190, b'\x01\x02', confirm_token=T)
+    assert f[0] == 0x80 and f[4] == 0x3B and f[5:7] == b'\xF1\x90' and f[-1] == (sum(f[3:-1]) & 0xFF)
+    s = xw.uds_request_seed(1, confirm_token=T)
+    assert s == bytes([0x02, 0x27, 0x01])
+    k = xw.uds_send_key(1, b'\xDE\xAD', confirm_token=T)
+    assert k == bytes([0x04, 0x27, 0x01, 0xDE, 0xAD])
+    r = xw.uds_routine_control(0x0203, confirm_token=T)
+    assert r == bytes([0x04, 0x31, 0x01, 0x02, 0x03])
+    d = xw.uds_request_download(0, 0x8000, 0x1000, confirm_token=T)
+    assert d[1] == 0x34
+    c = xw.honda_k25_clear_dtc(confirm_token=T)
+    assert c == bytes([0x72, 0x02, 0x60, 0x00, 0x2C]) and (-sum(c[:-1])) & 0xFF == c[-1]
+    # the read-only Honda decoder still rejects the clear-DTC frame as write-class
+    cap = k25.decode_capture([c])
+    # counted as a request query, never decoded as live data
+    assert cap['requests'].get('0x60/0x00') == 1 and cap['last_table17'] is None

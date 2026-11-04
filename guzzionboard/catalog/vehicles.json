@@ -16,11 +16,11 @@
   "https://www.woolichracing.com/products/kawasaki/z650/kawasaki-z650-ecu-flashing.aspx: commercial Kawasaki part and year-list research",
   "https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce: Suzuki SV650AK7 2007 author-tested K-Line reference",
   "https://github.com/andrewwilke/daytona-kline/tree/d37e96718f5cd82ebde3297c1181c687a922ea32: Triumph Daytona 675 2012 author-tested read-only OBD reference",
-  "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952: CB500F / CBR500R 2013\u20132016 MGZ-A03 offline reference",
+  "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952: CB500F / CBR500R 2013–2016 MGZ-A03 offline reference",
   "https://github.com/aster94/Keyword-Protocol-2000/tree/94c4ff0675cc24d7b21c98da0fca2d14b892d5f3: author-reported 2012 Versys 650 and 2011 GSX-R600 read-only K-Line",
   "https://mcuinnovations.com/news/protocol-honda_keihin_kline_pgmfi/: source-listed Honda Keihin PGM-FI models; model-specific diagnostic support unverified",
   "https://github.com/uronour/suzuki-Kawasaki-ecu-tool/tree/4f92cc2adab254595b08c21e2c90b4c57d2e9cc6: source-reported 2004 Suzuki GSX-R1000 SDS",
-  "https://github.com/synfinatic/sv650sds/tree/bacf803a9056241ef270acf0e7e31467961aeba5: SV650 2003\u20132005 SDS research and live capture",
+  "https://github.com/synfinatic/sv650sds/tree/bacf803a9056241ef270acf0e7e31467961aeba5: SV650 2003–2005 SDS research and live capture",
   "https://mcuinnovations.com/vehicles/protocols/honda_keihin_kline_pgmfi/",
   "https://www.obd2tool.com/goods-5014-OBD+Tool+For+Fuel+Injected+Honda+Motorcycles+Support+Multi-languages.html",
   "https://support.aimshop.com/downloads/stockEcu/bike/suzuki/Suzuki_SDS_Protocol_102_eng.pdf",
@@ -36,7 +36,11 @@
   "https://www.honda.co.jp/HRC/products/racingkit/crf250r/settingtool/",
   "https://www.amazon.com/AMHTDOL-Diagnostic-Connector-Motorcycles-Compatible/dp/B0GVTYHT94",
   "https://github.com/sunsided/suzuki-sds-obdii-gateway/tree/20644c2e21ca2a867e086409c7f130230a7327d7: 2017 DL650XAL7 SDS gateway, explicitly unverified on bike",
-  "https://bikestudio.io/ecu?lang=en"
+  "https://bikestudio.io/ecu?lang=en",
+  "https://github.com/moca-owner-dev/RoyalEnfieldObd (MIT): Interceptor 650 standard OBD-II CAN polling set; one owner's reading list, not a fitment claim",
+  "https://github.com/HerrRiebmann/KDS2Bluetooth/tree/bb8be32a6ed54d995c838bb58af528731fc8fa (GPL-3.0): broad Kawasaki KDS and Suzuki SDS support claims",
+  "https://github.com/NetworkDir/moto-ecu-checksum/tree/43ccc5f3663e2a175b7217f802bc302830e6862b: offline Yamaha MT and Honda checksum research (README declares MIT)",
+  "https://github.com/HagayBT/BMW-R1300GS-Smart-Backlight-Fog-Light-Controller/tree/a4c37ceabeea57bc7e97b51da345dd7b84e21596 (EasierCan, MIT): R1300GS 11-bit broadcast frame capture; matching IDs do not establish fitment"
  ],
  "vehicles": [
   {
@@ -1371,7 +1375,7 @@
    "year_to": 2026,
    "ecu": "kawasaki_z650_2023_2026",
    "confidence": "inferred",
-   "notes": "Vendor year range and ECU numbers are research leads, not proof for every market, year or motorcycle. No physical diagnostics, simulation or programming in this profile. Vendor product title says 2023\u20132025 but its feature list says 2023\u20132026; verify 2026 applicability."
+   "notes": "Vendor year range and ECU numbers are research leads, not proof for every market, year or motorcycle. No physical diagnostics, simulation or programming in this profile. Vendor product title says 2023–2025 but its feature list says 2023–2026; verify 2026 applicability."
   },
   {
    "make": "Kawasaki",
@@ -1425,7 +1429,7 @@
    "year_to": 2012,
    "ecu": "honda_cbr1000rr_2012_us",
    "confidence": "inferred",
-   "notes": "HondaECU repository: 2012 US XDF; source image 38770-MGP-A01 2012\u20132013. Offline build is locked to the exact source and definition; no live Honda sessions or programming."
+   "notes": "HondaECU repository: 2012 US XDF; source image 38770-MGP-A01 2012–2013. Offline build is locked to the exact source and definition; no live Honda sessions or programming."
   },
   {
    "make": "Honda",
@@ -2031,7 +2035,7 @@
    "model": "SV650",
    "ecu": "suzuki_sv650_2003",
    "confidence": "unknown",
-   "notes": "Source reports 03\u201305 SV650 communication; raw SDS snapshot only. Integration synthetic-tested, no ECU ID, memory or programming.",
+   "notes": "Source reports 03–05 SV650 communication; raw SDS snapshot only. Integration synthetic-tested, no ECU ID, memory or programming.",
    "year_from": 2003,
    "year_to": 2005
   },
@@ -4580,7 +4584,7 @@
    "year_to": 2024,
    "ecu": "honda_pgmfi_research",
    "confidence": "unknown",
-   "notes": "HondaECU-1 lists a 2019 CRF110F K-Line ECU; Dynojet lists CRF110F 2019\u20132024 for its Power Vision. This is not confirmation that this separate implementation works on every ECU. Synthetic tests only; read-only attempt, no memory or programming."
+   "notes": "HondaECU-1 lists a 2019 CRF110F K-Line ECU; Dynojet lists CRF110F 2019–2024 for its Power Vision. This is not confirmation that this separate implementation works on every ECU. Synthetic tests only; read-only attempt, no memory or programming."
   },
   {
    "make": "Honda",
@@ -4788,7 +4792,7 @@
    "year_to": 2005,
    "ecu": "suzuki_sds_gsxr_research",
    "confidence": "unknown",
-   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation\u2019s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
+   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation’s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
   },
   {
    "make": "Suzuki",
@@ -4797,7 +4801,7 @@
    "year_to": 2023,
    "ecu": "suzuki_sds_gsxr_research",
    "confidence": "unknown",
-   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation\u2019s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
+   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation’s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
   },
   {
    "make": "Suzuki",
@@ -4806,7 +4810,7 @@
    "year_to": 2005,
    "ecu": "suzuki_sds_gsxr_research",
    "confidence": "unknown",
-   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation\u2019s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
+   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation’s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
   },
   {
    "make": "Suzuki",
@@ -4815,7 +4819,7 @@
    "year_to": 2017,
    "ecu": "suzuki_sds_gsxr_research",
    "confidence": "unknown",
-   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation\u2019s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
+   "notes": "AiM lists this model/year for its SDS_Protocol cable; its publication does not establish this implementation’s exact wake-up, request or 50-byte response. Source-based raw diagnostic attempt; synthetic tests only. No memory, controls or programming."
   },
   {
    "make": "Honda",
@@ -5149,6 +5153,336 @@
    "tps": "",
    "confidence": "unknown",
    "notes": "BikeStudio source-listed vehicle years and ECU part candidates only; check the exact part, market and source data. This placeholder is not an ECU family and provides no live, simulated or programming support."
+  },
+  {
+   "make": "Royal Enfield",
+   "model": "Interceptor 650",
+   "year_from": 2018,
+   "year_to": 2026,
+   "ecu": "generic_obd_can_11bit",
+   "displacement": "648",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "RoyalEnfieldObd (MIT) documents standard OBD-II CAN polling (PIDs 0x0C/0x0D/0x11/0x0B/0x0F/0x5C/0x04) on one Interceptor 650; one bike's reading list is not a fitment claim for other years or markets. Read-only standard OBD only; no memory, clears or programming."
+  },
+  {
+   "make": "Royal Enfield",
+   "model": "Continental GT 650",
+   "year_from": 2018,
+   "year_to": 2026,
+   "ecu": "generic_obd_can_11bit",
+   "displacement": "648",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "RoyalEnfieldObd (MIT) documents standard OBD-II CAN polling (PIDs 0x0C/0x0D/0x11/0x0B/0x0F/0x5C/0x04) on one Interceptor 650; one bike's reading list is not a fitment claim for other years or markets. Read-only standard OBD only; no memory, clears or programming."
+  },
+  {
+   "make": "Royal Enfield",
+   "model": "Super Meteor 650",
+   "year_from": 2023,
+   "year_to": 2026,
+   "ecu": "generic_obd_can_11bit",
+   "displacement": "648",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "RoyalEnfieldObd (MIT) documents standard OBD-II CAN polling (PIDs 0x0C/0x0D/0x11/0x0B/0x0F/0x5C/0x04) on one Interceptor 650; one bike's reading list is not a fitment claim for other years or markets. Read-only standard OBD only; no memory, clears or programming."
+  },
+  {
+   "make": "Yamaha",
+   "model": "MT-03",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "yamaha_kline_research",
+   "displacement": "321",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions."
+  },
+  {
+   "make": "Yamaha",
+   "model": "MT-07",
+   "year_from": 2014,
+   "year_to": 2026,
+   "ecu": "yamaha_kline_research",
+   "displacement": "689",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions."
+  },
+  {
+   "make": "Yamaha",
+   "model": "MT-09",
+   "year_from": 2014,
+   "year_to": 2020,
+   "ecu": "yamaha_kline_research",
+   "displacement": "847",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions."
+  },
+  {
+   "make": "Yamaha",
+   "model": "MT-10",
+   "year_from": 2016,
+   "year_to": 2026,
+   "ecu": "yamaha_kline_research",
+   "displacement": "998",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions."
+  },
+  {
+   "make": "Yamaha",
+   "model": "YZF-R6",
+   "year_from": 2017,
+   "year_to": 2020,
+   "ecu": "yamaha_kline_research",
+   "displacement": "599",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions."
+  },
+  {
+   "make": "Yamaha",
+   "model": "YZF-R1",
+   "year_from": 2015,
+   "year_to": 2026,
+   "ecu": "yamaha_kline_research",
+   "displacement": "998",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions."
+  },
+  {
+   "make": "Yamaha",
+   "model": "XSR700",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "yamaha_kline_research",
+   "displacement": "689",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions."
+  },
+  {
+   "make": "Yamaha",
+   "model": "XSR900",
+   "year_from": 2016,
+   "year_to": 2026,
+   "ecu": "yamaha_kline_research",
+   "displacement": "847",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions."
+  },
+  {
+   "make": "Yamaha",
+   "model": "Tracer 700",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "yamaha_kline_research",
+   "displacement": "689",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions."
+  },
+  {
+   "make": "Yamaha",
+   "model": "Tracer 900 GT",
+   "year_from": 2018,
+   "year_to": 2026,
+   "ecu": "yamaha_kline_research",
+   "displacement": "847",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions."
+  },
+  {
+   "make": "Yamaha",
+   "model": "MT-125",
+   "year_from": 2014,
+   "year_to": 2026,
+   "ecu": "yamaha_kline_research",
+   "displacement": "125",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "Passive MT-03 dashboard-stream observation and offline Yamaha MT checksum research only; no diagnostic initialization or wire definition recovered. Placeholder provides no live, simulated or programming support and refuses physical sessions."
+  },
+  {
+   "make": "Suzuki",
+   "model": "V-Strom DL650",
+   "year_from": 2012,
+   "year_to": 2016,
+   "ecu": "suzuki_sds_generic_research",
+   "displacement": "645",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike."
+  },
+  {
+   "make": "Suzuki",
+   "model": "V-Strom DL1000",
+   "year_from": 2002,
+   "year_to": 2026,
+   "ecu": "suzuki_sds_generic_research",
+   "displacement": "1037",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike."
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-S750",
+   "year_from": 2019,
+   "year_to": 2026,
+   "ecu": "suzuki_sds_generic_research",
+   "displacement": "749",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike."
+  },
+  {
+   "make": "Suzuki",
+   "model": "GSX-S1000",
+   "year_from": 2015,
+   "year_to": 2026,
+   "ecu": "suzuki_sds_generic_research",
+   "displacement": "999",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike."
+  },
+  {
+   "make": "Suzuki",
+   "model": "Bandit 650",
+   "year_from": 2005,
+   "year_to": 2026,
+   "ecu": "suzuki_sds_generic_research",
+   "displacement": "656",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike."
+  },
+  {
+   "make": "Suzuki",
+   "model": "Bandit 1250",
+   "year_from": 2007,
+   "year_to": 2026,
+   "ecu": "suzuki_sds_generic_research",
+   "displacement": "1255",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Suzuki SDS support and AiM lists SDS cables for GSX-R models; bounded raw SDS research attempts only (synthetic tests), no fitment claim for any specific bike."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z900",
+   "year_from": 2017,
+   "year_to": 2020,
+   "ecu": "kawasaki_kds_research",
+   "displacement": "948",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Kawasaki KDS support; bounded raw KDS research attempt only (synthetic tests), no fitment claim for any specific bike."
+  },
+  {
+   "make": "Kawasaki",
+   "model": "Z400",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "kawasaki_kds_research",
+   "displacement": "399",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "KDS2Bluetooth (GPL-3.0) reports broad Kawasaki KDS support; bounded raw KDS research attempt only (synthetic tests), no fitment claim for any specific bike."
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "R 1250 GS",
+   "year_from": 2019,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "1254",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability."
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "R 1300 GS",
+   "year_from": 2024,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "1300",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability."
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "S 1000 RR",
+   "year_from": 2019,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "999",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability."
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "S 1000 XR",
+   "year_from": 2020,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "999",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability."
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "R nineT",
+   "year_from": 2014,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "1170",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability."
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "F 850 GS",
+   "year_from": 2018,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "853",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability."
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "F 900 XR",
+   "year_from": 2020,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "895",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability."
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "G 310 R",
+   "year_from": 2017,
+   "year_to": 2026,
+   "ecu": "bmw_can_research",
+   "displacement": "313",
+   "tps": "",
+   "confidence": "unknown",
+   "notes": "EasierCan (MIT) documents three 11-bit broadcast frames from one R1300GS capture (0x10C rpm, 0x2D0 high-beam bit, 0x2D2 switch cluster); matching IDs do not establish fitment. Offline CAN decoder panel only - no diagnostic session definition, so this placeholder refuses physical sessions and offers no live/DTC/memory capability."
   }
  ]
 }

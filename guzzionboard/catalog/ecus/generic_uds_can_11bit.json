@@ -1,0 +1,45 @@
+{
+  "id": "generic_uds_can_11bit",
+  "family": "Generic UDS / ISO 14229 11-bit CAN (opt-in)",
+  "display_name": "Generic UDS 11-bit CAN (read-only, ECU-only)",
+  "transport": "can",
+  "confidence": "unknown",
+  "years": "not model-specific",
+  "notes": "Opt-in standard UDS (ISO 14229) read-only diagnostics only, where the selected ECU answers ISO 15765-4 11-bit CAN at 500 kbit/s on a physical diagnostic ID pair (0x7E0-0x7E7 request, +8 response). Not established for any particular motorcycle. Synthetic integration tests only. Read-only services only: DiagnosticSessionControl default/extended, ReadDataByIdentifier (0x22), ReadDTCInformation (0x19), TesterPresent; every write, clear, security, routine, memory and programming service is refused before transmission. Requires a correct CAN adapter and the physical ECU ID pair.",
+  "session": {
+    "protocol": "generic-uds-can",
+    "physical_supported": true,
+    "simulator_supported": false,
+    "physical_evidence_note": "Standard ISO 14229 read-only services only; no model-specific fitment is claimed. This integration is synthetic-tested only."
+  },
+  "identification": {
+    "available": true,
+    "note": "UDS ReadDataByIdentifier DID F190 (VIN), reported as an unverified response - not confirmed ECU hardware identity or any programming authorization."
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "The generic UDS profile exposes no memory read and no write path; ReadMemoryByAddress (0x23) and the transfer services are not in the read-only allowlist."
+  },
+  "capabilities": [
+    "identify",
+    "dtc_read"
+  ],
+  "sources": [
+    "ISO 14229-1 (UDS application layer) service tables",
+    "https://github.com/mdabrowski1990/uds (python-uds reference implementation)",
+    "https://github.com/RyoheiHashimoto/obd2 (ISO-TP/UDS-over-CAN reference)"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": [],
+  "kline": {
+    "init": "can"
+  },
+  "can": {
+    "bitrate": 500000,
+    "tx_id": 2016,
+    "rx_id": 2024,
+    "interface": "socketcan"
+  }
+}

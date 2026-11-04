@@ -1,0 +1,321 @@
+"""Tests for the decoders written from docs/CAPTURE_SEARCH_2026-11-03.md sources.
+
+Every module here is passive/source-reported research: none of them grants a
+physical session or identifies a vehicle.
+"""
+import pytest
+
+from guzzionboard.canlog import CanFrame
+from guzzionboard import yamaha_mt07_can, marelli_iaw59m_can, energica_bms_can
+from guzzionboard import honda_cbr1000rr_kline as honda_kline
+from guzzionboard import kawasaki_w230
+
+
+def frame(fid, data, direction='Rx'):
+    return CanFrame(timestamp=0.0, id=fid, extended=False, data=bytes(data), direction=direction)
+
+
+# ------------------------------------------------------------- MT-07 CAN
+def test_mt07_decodes_all_four_source_ids():
+    frames = [frame(0x236, [0x40] + [0] * 7),          # gear 2
+              frame(0x216, [0x80] + [0] * 7),          # TPS 128
+              frame(0x23E, [0x90, 0x50] + [0] * 6),    # motor/air temps
+              frame(0x20A, [0, 0, 0x4B, 0x2C] + [0] * 4),  # rpm 0x4B*100+0x2C
+              frame(0x20A, [0, 0, 0, 0] + [0] * 4, direction='Tx')]
+    out = yamaha_mt07_can.decode_capture(frames)
+    assert out['recognized_frames'] == 4 and out['ignored_tx_frames'] == 1
+    values = [e['values'] for e in out['events']]
+    assert values[0]['gear_candidate'] == '2'
+    assert values[1]['tps_percent_candidate'] == round(128 / 255 * 100, 2)
+    assert values[2]['motor_temp_c_candidate'] == round((0x90 - 0x70) * 0.625 + 40, 2)
+    assert values[3]['rpm_candidate'] == 0x4B * 100 + 0x2C
+    assert values[3]['speed_kmh_candidate'] == round(0x4B * 0.75, 2)
+
+
+def test_mt07_rejects_extended_and_short_frames():
+    bad = CanFrame(0.0, 0x236, True, bytes(8))
+    short = frame(0x216, [1, 2, 3])
+    out = yamaha_mt07_can.decode_capture([bad, short])
+    assert out['recognized_frames'] == 0 and out['invalid_length_frames'] == 1
+
+
+# ------------------------------------------------------------ 59M CAN
+def test_59m_broadcast_decodes_dbc_signals():
+    frames = [frame(0x020, [0x46] + [0] * 7),                    # IAT 70-40=30 C
+              frame(0x100, [0, 0xC8, 0x00, 0, 0x2A, 0, 0, 0]),    # speed/rpm/oil
+              frame(0x200, [0x5A, 0x5E] + [0] * 6)]              # water 90-40=50, 94*100 mV
+    out = marelli_iaw59m_can.decode_capture(frames)
+    assert out['recognized_frames'] == 3
+    iat, mid, low = (e['values'] for e in out['events'])
+    assert iat['intake_air_temp_c_candidate'] == 30
+    # speed bits 8-18: bytes 1-2 -> 0xC8 0x00 little-endian field = 0xC8 = 200 -> 50 km/h
+    assert mid['speed_kmh_candidate'] == 50.0
+    # rpm bits 32-47: bytes 4-5 = 0x2A 0x00 -> 0x2A00 = 10752
+    assert mid['rpm_candidate'] == 0x2A  # bits 32-47 little-endian: byte4 | byte5<<8
+    assert mid['oil_light_raw_candidate'] == 0
+    assert low['water_temp_c_candidate'] == 50
+    assert low['vbatt_mv_candidate'] == 9400
+
+
+# ------------------------------------------------------------ Energica BMS
+def test_energica_bms_core_frames():
+    frames = [frame(0x200, [0x1E, 43, 98, 0x21, 0x0C, 0xE4, 0xFF, 0x9C]),
+              frame(0x201, [0x11, 0, 0, 0, 2, 0, 0, 0x01]),
+              frame(0x202, [0xD6, 0xDC, 0, 0xE0, 0x07, 0xD0, 0x00, 0x64]),
+              frame(0x203, [0x0D, 0xBB, 3, 7, 0x0D, 0x9A, 0x0E, 0x01]),
+              frame(0x205, [0x03, 0xC4, 0, 9, 0, 0, 0, 0]),
+              frame(0x661, [0] * 8)]
+    out = energica_bms_can.decode_capture(frames)
+    assert out['recognized_frames'] == 6
+    soc = out['events'][0]['values']
+    assert soc['soc_percent'] == 43 and soc['pack_v'] == 330.0 and soc['pack_a'] == -10.0
+    state = out['events'][1]['values']
+    assert state['bms_discharge'] == 1 and state['bms_idle'] == 1
+    assert state['err_cell_undervoltage'] == 1 and state['warn_low_soc'] == 0
+    limits = out['events'][2]['values']
+    assert limits['allowed_discharge_a'] == 200.0 and limits['allowed_regen_a'] == 10.0
+    cells = out['events'][3]['values']
+    assert cells['cell_min_mv'] == 3482 and cells['cell_max_mv'] == 3585
+    assert cells['cell_spread_mv'] == 103
+    assert out['events'][5]['values'] == {'extended_config_frame': True}
+
+
+def test_energica_rejects_unknown_ids_and_lengths():
+    out = energica_bms_can.decode_capture([frame(0x123, bytes(8)), frame(0x200, bytes(4))])
+    assert out['recognized_frames'] == 0 and out['invalid_length_frames'] == 1
+
+
+# ------------------------------------------------------------ Honda K-Line
+def test_honda_info_reply_decodes_the_captured_example():
+    out = honda_kline.decode_info_reply(honda_kline.EXAMPLE_INFO_REPLY)
+    assert out['rpm_candidate'] == 0
+    assert out['tps_raw'] == 0x1800  # bytes 7-8 = 18 00, big-endian word
+    assert out['ect_raw'] == 0xB534 and out['iat_raw'] == 0xAF36
+    assert out['raw'].startswith('021A721100')
+
+
+def test_honda_info_reply_rejects_wrong_shape():
+    with pytest.raises(ValueError):
+        honda_kline.decode_info_reply(bytes.fromhex('02 04 00 FA'))
+    with pytest.raises(ValueError):
+        honda_kline.decode_info_reply(bytes(20))
+
+
+def test_honda_handshake_constants_match_the_thread():
+    assert honda_kline.HANDSHAKE_RESPONSE == bytes.fromhex('02 04 00 FA')
+    assert honda_kline.INFO_REQUEST == bytes.fromhex('72 07 72 11 00 14 F0')
+
+
+# ------------------------------------------------------------ W230 KDS
+def test_w230_register_table():
+    assert kawasaki_w230.decode_register(0x09, bytes([0x10, 0x00])) == {
+        'register': 0x09, 'key': 'rpm', 'value': 4096 * 0.25, 'unit': 'rpm', 'raw': '1000'}
+    assert kawasaki_w230.decode_register(0x0C, bytes([0x5A]))['value'] == 90.0
+    with pytest.raises(KeyError):
+        kawasaki_w230.decode_register(0x21, b'\x00')
+    assert kawasaki_w230.WAKE_PULSE_BYTE == 0x00 and kawasaki_w230.COMM_BAUD == 10400
+
+
+# ------------------------------------------------------------ Zero CAN
+def test_zero_decoder_uses_the_library_id_table_and_offsets():
+    from guzzionboard import zero_can
+    frames = [frame(0x281, [0, 0, 0, 0, 0x10, 0x27, 0, 0]),   # throttle u16le @4
+              frame(0x408, [0, 0, 0, 0xE8, 0x03, 0, 0, 0]),   # amps u16le @3
+              frame(0x388, [0, 0, 0, 0x30, 0x75, 0x00, 0x00, 0]),  # voltage u32le @3
+              frame(0x288, [0x64, 0x00, 0, 0, 0, 0, 0, 0]),   # sag adjust u16le @0
+              frame(0x1C0, [1, 2, 3, 4, 5, 6, 7, 8]),          # dash status (no fields)
+              frame(0x999, [0] * 8),                          # unknown id
+              frame(0x281, [0] * 8, direction='Tx')]
+    out = zero_can.decode_capture(frames)
+    assert out['recognized_frames'] == 5 and out['ignored_tx_frames'] == 1
+    v = [e['values'] for e in out['events']]
+    assert v[0]['throttle_raw_candidate'] == 0x2710 and v[0]['message'] == 'CONTROLLER_RPM_THROTTLE_MOT_TEMP'
+    assert v[1]['amps_raw_candidate'] == 1000
+    assert v[2]['voltage_raw_candidate'] == 0x00007530
+    assert v[3]['sag_adjust_raw_candidate'] == 100
+    assert v[4]['message'] == 'DASH_STATUS' and len(v[4]) == 1
+    assert len(zero_can.MESSAGES) == 31
+
+
+# ------------------------------------------------------- Suzuki SDS K-Line
+def test_suzuki_sds_captured_session_decodes():
+    from guzzionboard import suzuki_sds_kline as sds
+    # framing: fmt low-bits length vs separate length byte, checksum, direction
+    init = sds.parse_frame(sds.INIT_REQUEST)
+    assert init['direction'] == 'to_ecu' and init['service'] == 0x81
+    assert sds.parse_frame(sds.INIT_RESPONSE)['direction'] == 'from_ecu'
+    assert sds.checksum(sds.INIT_REQUEST) == 0x05
+    assert sds.checksum(sds.EXAMPLE_MODEL_REPLY) == sds.EXAMPLE_MODEL_REPLY[-1]
+    assert sds.checksum(sds.EXAMPLE_SENSOR_REPLY) == sds.EXAMPLE_SENSOR_REPLY[-1]
+    with pytest.raises(ValueError):
+        sds.parse_frame(sds.INIT_REQUEST[:-1] + bytes([0x00]))   # bad checksum
+    with pytest.raises(ValueError):
+        sds.parse_frame(bytes.fromhex('80 99 F1 02 1A 91 00'))     # bad addresses
+    # captured ECU-model reply decodes to ASCII 32920-17G2
+    model = sds.decode_model_reply(sds.EXAMPLE_MODEL_REPLY)
+    assert model['ecu_model'] == '32920-17G2*' and model['local_id'] == 0x91
+    # verbatim captured sensor line: checksum valid over all 58 bytes even
+    # though its length byte implies 57 (source log inconsistency)
+    assert sds.checksum(sds.EXAMPLE_SENSOR_REPLY) == 0x4A and len(sds.EXAMPLE_SENSOR_REPLY) == 58
+    # length-normalized copy decodes: 53-byte payload with 61 08 prefix
+    blk = sds.decode_sensor_block(sds.SENSOR_REPLY_NORMALIZED)
+    assert blk['data_len'] == 51
+    assert blk['fields']['rpm']['a'] == sds.SENSOR_REPLY_NORMALIZED[24]
+    assert blk['fields']['gear']['a'] == sds.SENSOR_REPLY_NORMALIZED[33]
+    assert all(f['verified'] is False for f in blk['fields'].values())
+    # whole-capture passive summary
+    out = sds.decode_capture([sds.INIT_REQUEST, sds.INIT_RESPONSE, sds.MODEL_REQUEST,
+                              sds.EXAMPLE_MODEL_REPLY, sds.SENSOR_REQUEST,
+                              sds.SENSOR_REPLY_NORMALIZED, b'\x00\x01\x02'])
+    assert out['recognized'] == 6 and out['invalid'] == 1
+    assert out['ecu_model'] == '32920-17G2*'
+    assert out['services'] == {'0x1A': 1, '0x21': 1, '0x5A': 1, '0x61': 1, '0x81': 1, '0xC1': 1}
+    assert out['last_sensor_block']['data_len'] == 51
+
+
+# ------------------------------------------- Honda Keihin K25 K-Line (AC)
+def test_honda_keihin_k25_capture_decodes():
+    from guzzionboard import honda_keihin_kline as hk
+    # checksum rule + captured constants
+    assert hk.checksum(bytes.fromhex('72 05 71 13')) == 0x05      # README example
+    assert hk.checksum(hk.EXAMPLE_TABLE17_REPLY[:-1]) == hk.EXAMPLE_TABLE17_REPLY[-1]
+    assert hk.checksum(hk.EXAMPLE_ECM_ID_REPLY[:-1]) == hk.EXAMPLE_ECM_ID_REPLY[-1]
+    assert hk.checksum(hk.EXAMPLE_DTC_REPLY[:-1]) == hk.EXAMPLE_DTC_REPLY[-1]
+    assert hk.make_request(0x71, 0x17) == hk.TABLE17_REQUEST
+    assert hk.make_request(0x71, 0x00) == hk.ECM_ID_REQUEST
+    # captured table-17 reply -> ScantoolHonda field offsets
+    t = hk.decode_table17(hk.EXAMPLE_TABLE17_REPLY)
+    assert t['rpm'] == (0x0A << 8) | 0xFF
+    assert t['battery_v_candidate'] == round(hk.EXAMPLE_TABLE17_REPLY[19] / 10.0, 2)
+    assert t['speed_kmh_candidate'] is None  # captured K25 reply is 24 bytes; speed @24 absent
+    # captured ECM-ID reply -> part code bytes [9:14]
+    e = hk.decode_ecm_id_reply(hk.EXAMPLE_ECM_ID_REPLY)
+    assert e['part_code_hex'] == hk.EXAMPLE_ECM_ID_REPLY[4:9].hex().upper()
+    assert e['part_number'] is None or e['part_number'].startswith('30400-')
+    with pytest.raises(ValueError):
+        hk.decode_table17(bytes.fromhex('02 04 00 FA'))
+    # passive whole-capture summary over the K25 transcript head
+    out = hk.decode_capture([hk.WAKEUP, hk.ECM_ID_REQUEST, hk.EXAMPLE_ECM_ID_REPLY,
+                             hk.TABLE17_REQUEST, hk.EXAMPLE_TABLE17_REPLY,
+                             hk.make_request(0x74, 0x01), hk.EXAMPLE_DTC_REPLY,
+                             b'\x00\x01'])
+    assert out['recognized'] == 6 and out['invalid'] == 2  # wake burst + junk are not 0x02/0x72 frames
+    assert out['last_table17']['rpm'] == t['rpm']
+    assert out['ecm_id']['part_code_hex'] == e['part_code_hex']
+    assert out['requests']['0x71/0x00'] == 1 and out['requests']['0x74/0x01'] == 1
+
+
+def test_honda_keihin_poster_table_map():
+    from guzzionboard import honda_keihin_kline as hk
+    # poster table map: 0x17 alias 0x67, params at D-offsets, all candidate
+    t = hk.decode_table(hk.EXAMPLE_TABLE17_REPLY, 0x17)
+    assert t['table'] == '0x17'
+    assert t['params']['rpm']['raw'] == 0x0A and t['params']['rpm']['formula'] == 'D9*256+D10'
+    assert t['params']['speed_kmh']['raw'] is None or t['params']['speed_kmh']['raw'] == 0
+    assert all(v['verified'] is False for v in t['params'].values())
+    t67 = hk.decode_table(hk.EXAMPLE_TABLE17_REPLY, 0x67)   # alias resolves to same spec
+    assert t67['params']['rpm']['raw'] == 0x0A
+    with pytest.raises(ValueError):
+        hk.decode_table(hk.EXAMPLE_TABLE17_REPLY, 0x99)
+    # clear-DTC query 0x60 exists in the source but is a write: not implemented
+    assert hk.CLEAR_DTC_QUERY == 0x60
+    assert not hasattr(hk, 'clear_dtc')
+
+
+# ------------------------------------------- Buell XB12X DDFI-2 serial PDU
+def _ddfi2_pdu(src, dst, payload):
+    from guzzionboard import buell_ddfi2_serial as ddfi
+    frame = bytes([ddfi.SOH, src, dst, len(payload) + 1, ddfi.EOH, ddfi.SOT]) + bytes(payload) + bytes([ddfi.EOT])
+    cs = 0
+    for b in frame[1:]:      # XOR from SRC through EOT
+        cs ^= b
+    return frame + bytes([cs])
+
+
+def test_buell_ddfi2_pdu_and_rt_decode():
+    from guzzionboard import buell_ddfi2_serial as ddfi
+    # doc example: read 4 bytes page 1 offset 0
+    req = _ddfi2_pdu(ddfi.TESTER_ID, ddfi.ECM_ID, [0x52, 0x00, 0x01, 0x04])
+    assert req[:11] == bytes.fromhex('01 00 42 05 FF 02 52 00 01 04 03') and req[-1] == ddfi.checksum(req)
+    p = ddfi.parse_pdu(req)
+    assert p['direction'] == 'to_ecu' and p['payload'][0] == 0x52
+    # ACK response carrying 4 EEPROM bytes
+    resp = _ddfi2_pdu(ddfi.ECM_ID, ddfi.TESTER_ID, [0x06, 0xDE, 0xAD, 0xBE, 0xEF])
+    g = ddfi.decode_get_response(resp)
+    assert g['eeprom_bytes'] == [0xDE, 0xAD, 0xBE, 0xEF] and g['count'] == 4
+    # synthetic RT_DATA response (104 bytes): RPM=3000 at offset 11 LE
+    body = bytearray(ddfi.RT_RESPONSE_SIZE - 6)   # payload after the 6-byte header
+    body[0] = 0x06                                # ACK at frame offset 6
+    body[11 - 6] = 0xB8; body[12 - 6] = 0x0B      # RPM=3000 at frame offset 11
+    body[30 - 6] = 0x64; body[31 - 6] = 0x00      # CLT raw 100 -> -30 C at frame offset 30
+    rt = bytes([0x01, 0x42, 0x00, len(body) + 1, 0xFF, 0x02]) + bytes(body) + bytes([0x03])
+    cs = 0
+    for b in rt[1:]:
+        cs ^= b
+    rt += bytes([cs])
+    out = ddfi.decode_rt_response(rt)
+    assert out['vars']['RPM'] == 3000 and out['vars']['CLT'] == -30.0
+    assert len(ddfi.RT_VARS) == 74
+    with pytest.raises(ValueError):
+        ddfi.parse_pdu(req[:-1] + bytes([0x00]))          # bad checksum
+    with pytest.raises(ValueError):
+        ddfi.parse_pdu(bytes.fromhex('01 00 42 05 FF 02 52 00 01 04 03 00'))  # wrong len? actually len ok; force bad marker
+    # write command is rejected in passive summaries, never decoded
+    out2 = ddfi.decode_capture([req, resp, rt, _ddfi2_pdu(0x00, 0x42, [0x57, 0x08, 0x01, 0x5A, 0x3C])])
+    assert out2['commands'].get('0x57-SET-WRITE-REJECTED') == 1
+    assert out2['last_rt']['vars']['RPM'] == 3000
+    assert out2['last_eeprom']['count'] == 4
+
+
+# -------------------------------------- Yamaha CAN_2015 (AiM DBC, R1 2015+)
+def test_yamaha_can2015_aim_dbc_signals():
+    from guzzionboard import yamaha_can2015_aim as aim
+    # 0x209: RPM bits 8|16 LE x0.4, tcs 25|4, gear 29|3, pow 38|2
+    f209 = frame(0x209, [0x00, 0x10, 0x27, 0x24, 0x40, 0x00, 0x00, 0x00])
+    v = aim.decode_frame(f209)['values']
+    assert v['rpm_candidate'] == round(0x2710 * 0.4, 1)
+    assert v['tcs_mode_raw_candidate'] == 2 and v['gear_raw_candidate'] == 1
+    assert v['gear_candidate'] == '1' and v['pow_mode_raw_candidate'] == 1
+    # 0x23E: ECT byte0, AAT byte1, raw*0.66-36
+    v = aim.decode_frame(frame(0x23E, [0x64, 0x5A, 0, 0, 0, 0, 0, 0]))['values']
+    assert v['coolant_c_candidate'] == round(0x64 * 0.66 - 36, 2)
+    assert v['air_temp_c_candidate'] == round(0x5A * 0.66 - 36, 2)
+    # 0x215: throttle 8|10 x0.15, flags byte 7
+    f215 = frame(0x215, [0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x72])
+    v = aim.decode_frame(f215)['values']
+    assert v['throttle_valve_deg_candidate'] == round(0x64 * 0.15, 2)
+    assert v['tcs_intervene'] == 1 and v['scs_intervene'] == 1 and v['f_abs_intervene'] == 1
+    # 0x254 gyro bytes 5-6: 300 - raw*0.01
+    v = aim.decode_frame(frame(0x254, [0, 0, 0, 0, 0, 0x30, 0x75, 0]))['values']
+    assert v['gyro_degs_candidate'] == round(0x7530 * -0.01 + 300, 2)
+    # 0x260 accepts 8 or 9 bytes (DBC declares impossible 9)
+    out = aim.decode_capture([frame(0x260, [0, 0x0A, 0, 0x14, 0, 0x1E, 0, 0]),
+                              frame(0x260, [0] * 9), frame(0x205, [0, 0x10, 0x27, 0, 0, 0, 0, 0]),
+                              frame(0x999, [0] * 8), frame(0x209, [0] * 8, direction='Tx')])
+    assert out['recognized_frames'] == 3 and out['invalid_frames'] == 0 and out['ignored_tx_frames'] == 1
+    assert out['events'][1]['values']['declared_9byte_caveat'] is True
+    out_bad = aim.decode_capture([frame(0x205, [0] * 7)])   # wrong length -> invalid, not raised
+    assert out_bad['invalid_frames'] == 1 and out_bad['recognized_frames'] == 0
+
+
+# ------------------------------------------- Yamaha YDS K-Line broadcast
+def test_yamaha_yds_broadcast_frames():
+    from guzzionboard import yamaha_yds_kline as yds
+    # emulator frame: [rpm_raw, speed_raw, error, coolant, csum]
+    f = bytes([0x64, 0x1E, 0x00, 0x4B, (0x64 + 0x1E + 0x00 + 0x4B) & 0xFF])
+    out = yds.parse_frame(f)
+    assert out['rpm_candidate'] == 0x64 * 50 and out['speed_kmh_candidate'] == 30
+    assert out['coolant_c_candidate'] == 0x4B - 30 and out['error_code_raw_candidate'] == 0
+    with pytest.raises(ValueError):
+        yds.parse_frame(f[:-1] + bytes([0x00]))     # bad checksum
+    with pytest.raises(ValueError):
+        yds.parse_frame(bytes(4))                     # wrong length
+    # startup bursts
+    assert yds.classify_startup(bytes([0x3E] + [0x00] * 59 + [0xFE])) == 'normal'
+    assert yds.classify_startup(bytes([0x3E] + [0x00] * 59 + [0xCD])) == 'diag_menu'
+    with pytest.raises(ValueError):
+        yds.classify_startup(bytes([0x00, 0xFE]))
+    cap = yds.decode_capture([bytes([0x3E] + [0x00] * 59 + [0xFE]), f, f, bytes([1, 0, 0, 0, 0])])
+    assert cap['startup_mode'] == 'normal' and cap['recognized'] == 3 and cap['invalid'] == 1
+    assert cap['last_frame']['rpm_candidate'] == 5000
+    assert yds.ELM_PID_MAP['010C'].startswith('rpm')

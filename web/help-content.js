@@ -2876,6 +2876,9 @@ def verify(image: bytes, context: dict) -&gt; bool:
     'harley_j1850_harleydroid': 'J1850 VPW read-only research through a VPW-capable ELM327. No memory access.',
     'honda_pgmfi_research': 'Keihin PGM-FI K-Line identification and live data. Pair it with the offline decoder and the Honda checksum tools.',
     'generic_obd_can_11bit': 'Standard OBD-II requests over 11-bit CAN, opt-in. Live PIDs and stored DTCs only — no memory, no programming.',
+    'generic_obd_iso9141_kline': 'Standard OBD-II over ISO 9141-2 K-Line (5-baud init, key bytes 08 08 / 94 94), opt-in. Live PIDs and stored DTCs only — no memory, no programming.',
+    'generic_kwp2000_kline': 'Standard KWP2000 (ISO 14230) read-only over K-Line (fast or 5-baud init), opt-in. Identification, local-identifier reads and stored DTCs only — every mutating service is refused.',
+    'generic_uds_can_11bit': 'Standard UDS (ISO 14229) read-only over 11-bit CAN at 500 kbit/s, opt-in. Session control, ReadDataByIdentifier, ReadDTCInformation and TesterPresent only — no writes, clears, routines or programming.',
     'suzuki_sds_gsxr_research': 'A raw SDS request/response snapshot from separate sources. Candidates only; no identity, faults or memory.',
     'triumph_bonneville_865_2009': 'ISO 9141-2 OBD read-only. SAE gauge formulas, not dash-verified. No clears, memory or tuning.',
   };

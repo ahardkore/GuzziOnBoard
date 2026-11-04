@@ -412,7 +412,7 @@ class Workstation:
                 bitrate=spec["bitrate"],
                 tx_id=spec["tx_id"],
                 rx_id=spec["rx_id"],
-                padding=0 if profile.session.get("protocol") in ("kawasaki-ninja7-can", "generic-obd-can-11bit", "harley-delphi-can-identity") else 0xAA,
+                padding=0 if profile.session.get("protocol") in ("kawasaki-ninja7-can", "generic-obd-can-11bit", "harley-delphi-can-identity", "generic-uds-can") else 0xAA,
             )
         raise ValueError(f"unknown transport {kind!r}")
 
@@ -529,6 +529,10 @@ class Workstation:
                         or type(tx) is not int or not 0x7E0 <= tx <= 0x7E7
                         or spec.get("rx_id") != tx + 8):
                     raise TransportUnavailable("Generic OBD requires ECU-only selection, read-only CAN and an 11-bit physical OBD ID pair at 500 kbit/s")
+            if profile.session.get("protocol") == "generic-obd-iso9141-kline":
+                if (self.selection.entry is not None or self.selection.transport_kind != "kline"
+                        or mode != "read_only" or not self.selection.device.strip()):
+                    raise TransportUnavailable("Generic OBD over ISO 9141-2 requires an ECU-only selection, an explicit K-Line device and read-only mode")
             if profile.session.get("protocol") == "harley-j1850-harleydroid":
                 if (self.selection.entry is not None and (self.selection.make.casefold() != "harley-davidson"
                         or self.selection.entry.ecu != profile.id)):

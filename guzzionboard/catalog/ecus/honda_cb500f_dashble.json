@@ -47,7 +47,11 @@
     "https://github.com/atoid/DashBle/tree/9c65818d13dde39b8d8203736b43109eb84a9651",
     "https://github.com/atoid/Dash/tree/532d0f4fef1b2e11a15f1c6663fb5351757f87b8",
     "https://github.com/WiseNoodle/honda-moto-ecu-suite/tree/85431bd831b2c50a640fac35dccf36c09df20c07",
-    "https://github.com/PhatDatPQ/eculib/tree/7921cc46551fd26d487ec778e8822ace4777899e"
+    "https://github.com/PhatDatPQ/eculib/tree/7921cc46551fd26d487ec778e8822ace4777899e",
+    "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+    "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+    "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+    "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
   ],
   "parameters": [
     {

@@ -31,7 +31,9 @@
   "sources": [
     "Moto Guzzi V7/V9 Euro 5 service-station manual 2Q000466: MIU G4 application and diagnostic-tool procedures",
     "ASW-NEXT MIUG4 technical user manual: CAN connection and supported operations (no wire identifiers/payloads)",
-    "Diagcode Piaggio Group coverage: MIU G4 Euro 5 CAN operation existence only"
+    "Diagcode Piaggio Group coverage: MIU G4 Euro 5 CAN operation existence only",
+    "https://www.immo-tools.lt/site/files/failai/ASW-NEXT/MIUG4_UM.pdf (written internals: EEPROM M95640, flash 0x20000-0x7FFFF, DTC/TPS/adaptive services)",
+    "https://www.diagcode.com/products/diagnostics-for-piaggio-group/ (written service list, Euro5 CAN; commercial claims only)"
   ],
   "parameters": [],
   "actuators": [],

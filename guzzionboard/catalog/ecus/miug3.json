@@ -209,7 +209,9 @@
   "sources": [
     "Piaggio Group / Moto Guzzi ECU MIU G3 Technical Training presentation: published RLI, IOLI and RELI tables",
     "IAWDiag V0.52 and IAWMIUG3 Reader/Writer binaries: implementation existence only; no unpublished constants promoted",
-    "Moto Guzzi V7 II service-station manual: application, DTC descriptions and service conditions"
+    "Moto Guzzi V7 II service-station manual: application, DTC descriptions and service conditions",
+    "https://www.guzzitek.org/documents/injection/ECU_MIU-G3_Training.pdf (OEM training doc: Alpha-n, 10x10 self-adaptive matrices, adaptive fuel correction readable by diagnostic tool)",
+    "https://www.griso.org/GuzziDiag%20for%20V7-V9.pdf (written GuzziDiag manual: reader log, per-model throttle references, no TPS reset on MIU G3)"
   ],
   "dtc_descriptions": {}
 }

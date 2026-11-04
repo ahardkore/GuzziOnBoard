@@ -833,7 +833,15 @@ test('hosted BikeStudio reference searches locally without enabling new ECU sess
   await expect(page.locator('#bikeStudioResults')).toContainText('BDJ0');
   await expect(page.locator('#bikeStudioResults')).toContainText('BK60');
   await expect(page.locator('#bikeStudioResults')).not.toContainText('2PK0');
-  await expect(page.locator('#bikeStudioResults button')).toHaveCount(0);
+  // The hosted garage dropdown now encompasses every catalogued bike, so the
+  // YZF-R15 result offers a garage-choose button; it only fills the dropdowns
+  // and must not enable a session (the entry is reference-only).
+  await expect(page.locator('#bikeStudioResults button')).toHaveCount(1);
+  await page.locator('#bikeStudioResults button').click();
+  await expect(page.locator('#makeSelect')).toHaveValue('Yamaha');
+  await expect(page.locator('#modelSelect')).toHaveValue('YZF-R15');
+  await expect(page.locator('#yearSelect')).toHaveValue('2021');
+  await expect(page.locator('#connectBtn')).toBeDisabled();
   await page.locator('#bikeStudioQuery').fill('CBR 250 R');
   await page.locator('#bikeStudioYear').fill('2014');
   await page.locator('#bikeStudioMarket').fill('Indonesia');

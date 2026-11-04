@@ -216,7 +216,7 @@ def test_unknown_vehicle_raises_rather_than_guessing(catalog):
 
 
 def test_cross_brand_makes_are_present(catalog):
-    assert set(catalog.makes()) == {"Aprilia", "Ducati", "Harley-Davidson", "Honda", "Kawasaki", "Moto Guzzi", "Suzuki", "Triumph", "Yamaha"}
+    assert set(catalog.makes()) == {"Aprilia", "BMW Motorrad", "Ducati", "Harley-Davidson", "Honda", "Kawasaki", "Moto Guzzi", "Royal Enfield", "Suzuki", "Triumph", "Yamaha"}
 
 
 def test_every_cross_brand_entry_is_read_only_until_confirmed(catalog):
@@ -251,3 +251,44 @@ def test_the_59m_family_is_an_honest_placeholder(catalog):
     assert not profile.memory.get("read_supported")
     # Compatibility evidence is not enough to publish any operation.
     assert profile.capabilities == ()
+
+
+def test_common_motorcycle_coverage_2026_11(catalog):
+    """Royal Enfield 650 twins get the documented standard-OBD path; the common
+    Yamahas get an honest zero-capability research placeholder."""
+    for model in ("Interceptor 650", "Continental GT 650", "Super Meteor 650"):
+        entries = catalog.find(model, 2024, "Royal Enfield")
+        assert entries and entries[0].ecu == "generic_obd_can_11bit", model
+        assert entries[0].confidence == "unknown"
+    for model, year in (("MT-07", 2020), ("MT-09", 2019), ("MT-10", 2022),
+                        ("YZF-R1", 2022), ("YZF-R6", 2019), ("XSR700", 2018),
+                        ("Tracer 700", 2018), ("Tracer 900 GT", 2021), ("MT-03", 2018)):
+        entries = catalog.find(model, year, "Yamaha")
+        assert entries and entries[0].ecu == "yamaha_kline_research", model
+    placeholder = catalog.ecu("yamaha_kline_research")
+    assert placeholder.confidence == "unknown"
+    assert placeholder.capabilities == ()
+    assert placeholder.session["physical_supported"] is False
+    for model, year in (("R 1250 GS", 2021), ("R 1300 GS", 2024), ("S 1000 RR", 2022),
+                        ("R nineT", 2018), ("G 310 R", 2020)):
+        entries = catalog.find(model, year, "BMW Motorrad")
+        assert entries and entries[0].ecu == "bmw_can_research", model
+    bmw = catalog.ecu("bmw_can_research")
+    assert bmw.confidence == "unknown" and bmw.capabilities == ()
+    assert bmw.session["physical_supported"] is False
+    for model, year in (("V-Strom DL1000", 2015), ("GSX-S750", 2021),
+                        ("Bandit 650", 2010), ("Z900", 2019), ("Z400", 2019)):
+        make = "Suzuki" if model != "Z900" and model != "Z400" else "Kawasaki"
+        assert catalog.find(model, year, make), model
+
+
+def test_manufacturer_dtc_dictionary_loads_into_profiles():
+    from guzzionboard import catalog as catalog_mod
+    catalog_mod.load_catalog.cache_clear()
+    cat = catalog_mod.load_catalog()
+    mfr = catalog_mod._load_json(catalog_mod.CATALOG_DIR / "dtc_manufacturer.json")["codes"]
+    assert len(mfr) >= 50
+    assert mfr["HONDA:1-1"].startswith("Sensor MAP") and "P0107" in mfr["HONDA:1-1"]
+    assert mfr["YAMAHA:12"].startswith("Sensor CKP") and "P0335" in mfr["YAMAHA:12"]
+    profile = cat.ecu("7sm")   # has dtc_read capability -> descriptions merged
+    assert profile.dtc_descriptions.get("HONDA:1-1") == mfr["HONDA:1-1"]

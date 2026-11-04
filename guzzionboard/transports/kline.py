@@ -268,6 +268,7 @@ class KLineTransport(Transport):
             "suzuki-sv650-2003": "suzuki-sv650-2003",
             "suzuki-sv650ak7-2007": "suzuki-sv650ak7-2007",
             "triumph-daytona-2012": "triumph-daytona-2012",
+            "generic-obd-iso9141-kline": "generic-obd-iso9141-kline",
         }
         selected = aliases.get(str(method).strip().lower())
         if selected is None:
@@ -285,6 +286,10 @@ class KLineTransport(Transport):
                     break
             result.attempts = attempts
             return result
+        if selected == "generic-obd-iso9141-kline":
+            # Legislated OBD path: 5-baud address 0x33, then accept either
+            # ISO 9141-2 keyword pair (08 08 or 94 94) at 10400 baud.
+            return self._slow_init(connection, ADDRESS_OBD, allow_iso9141=True)
         if selected in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research", "honda-pgmfi-flash-research"):
             return self._honda_init(connection, selected)
         if selected in ("aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research"):
@@ -625,7 +630,7 @@ class KLineTransport(Transport):
                     f"{confirm.hex() or 'none'} (expected {expected:02X})"
                 ),
             )
-        if protocol != "iso14230" and not (allow_iso9141 and (kw1, kw2) == (0x08, 0x08)):
+        if protocol != "iso14230" and not (allow_iso9141 and (kw1, kw2) in _ISO9141_KEYWORDS):
             return InitResult(
                 ok=False,
                 method="slow",

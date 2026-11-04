@@ -5,7 +5,7 @@
   "transport": "kline",
   "confidence": "inferred",
   "years": "2007-2016",
-  "notes": "The Mana engine ECU is the shared IAW 5AM; this entry is the separate CVT controller. A published PADS K-Line capture proves KWP2000 physical addressing to target 0xEC from tester 0xF1 and records the two learning commands exactly: IOControl 30 02 08 (belt replacement) followed by 30 01 08 (pulley-potentiometer reset). ManaTCU V1.03 was built from those captures, includes SecurityAccess, and has been field tested. Identification, fault-request and live-data wire definitions were not published, so this workstation does not guess them. The two captured routines remain unavailable because they require security access plus motorcycle-specific conditions (engine running, rear wheel free, side stand up, ordered execution) that the current safety state cannot verify.",
+  "notes": "The Mana engine ECU is the shared IAW 5AM; this entry is the separate CVT controller. A published PADS K-Line capture proves KWP2000 physical addressing to target 0xEC from tester 0xF1 and records the two learning commands exactly: IOControl 30 02 08 (belt replacement) followed by 30 01 08 (pulley-potentiometer reset). ManaTCU V1.03 was built from those captures, includes SecurityAccess, and has been field tested. Identification, fault-request and live-data wire definitions were not published, so this workstation does not guess them. The two captured routines remain unavailable because they require security access plus motorcycle-specific conditions (engine running, rear wheel free, side stand up, ordered execution) that the current safety state cannot verify. 2026-11-03: written shop-manual evidence that the TCU exposes a K-Line diagnostic pin; still no session transcript, so physical stays blocked.",
   "kline": {
     "tester_address": 241,
     "ecu_address": 236,
@@ -31,7 +31,8 @@
   "sources": [
     "ApriliaForum Mana belt thread: PADS/K-Spy K-Line capture, 30 02 08 and 30 01 08 routine frames, field-test reports (September-October 2023)",
     "ManaTCU V1.03 executable mirrored in vendor/guzzidiag/tools/ (SHA-256 in MANIFEST.json)",
-    "Aprilia Mana 850 service-station manual: TCU K-Line pinout, required learning procedures and DTC descriptions"
+    "Aprilia Mana 850 service-station manual: TCU K-Line pinout, required learning procedures and DTC descriptions",
+    "Aprilia Mana 850 GT ABS shop manual (scribd 75501969): transmission ECU pin B2 = series K-Line for diagnosis; CAN links TCU/injection/dash (U1601 Mute Node)"
   ],
   "parameters": [],
   "actuators": [],

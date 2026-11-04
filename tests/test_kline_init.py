@@ -145,6 +145,37 @@ def test_iso9141_keywords_are_detected_but_not_misrepresented_as_kwp(monkeypatch
     assert keyword_protocol(0xEA, 0x8F) == "iso14230"
 
 
+@pytest.mark.parametrize("sync,kw2", [(bytes.fromhex("55 08 08 CC"), 0x08),
+                                      (bytes.fromhex("55 94 94 CC"), 0x94)])
+def test_generic_obd_iso9141_init_accepts_both_legislated_keyword_pairs(monkeypatch, sync, kw2):
+    _clock(monkeypatch)
+    port = FakePort(sync, queue_on_write=False)
+    result = KLineTransport().initialize(
+        KLineConnection(port=port, echo=False), method="generic-obd-iso9141-kline"
+    )
+
+    assert result.ok
+    assert result.method == "slow"
+    assert result.protocol == "iso9141-2"
+    assert result.key_bytes == (sync[1], sync[2])
+    assert result.handshake_complete
+    assert port.writes == [bytes([~kw2 & 0xFF])]
+
+
+def test_generic_obd_iso9141_init_does_not_claim_kwp_keyword_pair_is_iso9141(monkeypatch):
+    _clock(monkeypatch)
+    port = FakePort(bytes.fromhex("55 EA 8F CC"), queue_on_write=False)
+    result = KLineTransport().initialize(
+        KLineConnection(port=port, echo=False), method="generic-obd-iso9141-kline"
+    )
+
+    # The transport reports what the wire said; the session layer is what
+    # refuses to speak ISO 9141-2 OBD to a KWP2000 keyword pair.
+    assert result.ok
+    assert result.protocol == "iso14230"
+    assert result.key_bytes == (0xEA, 0x8F)
+
+
 def test_legacy_16m_init_receives_key_on_code_then_sends_0f_aa_cc(monkeypatch):
     clock = _clock(monkeypatch)
     wake = bytes.fromhex("55 B0 80 80 80 85")

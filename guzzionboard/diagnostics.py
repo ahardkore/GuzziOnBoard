@@ -23,6 +23,9 @@ from .protocol.kawasaki_ninja7 import KawasakiNinja7Session
 from .protocol.triumph_daytona import TriumphDaytonaSession
 from .protocol.harley_j1850 import HarleyJ1850Session
 from .protocol.obd_can import ObdCanSession
+from .protocol.iso9141 import Iso9141ObdSession
+from .protocol.uds import UdsSession
+from .protocol.generic_kwp import GenericKwp2000Session
 from .protocol.harley_delphi_can import HarleyDelphiCanSession
 from .protocol.kwp2000 import (
     KWP2000Session,
@@ -103,7 +106,7 @@ class DiagnosticsService:
         self.catalog = catalog or load_catalog()
 
         self.connection: Connection | None = None
-        self.session: KWP2000Session | LegacyIAWSession | None = None
+        self.session: KWP2000Session | LegacyIAWSession | Iso9141ObdSession | None = None
         self.init_result: InitResult | None = None
         self.identity: Identity | None = None
         self.last_samples: dict[str, Sample] = {}
@@ -146,7 +149,7 @@ class DiagnosticsService:
                 method = "can"
             if exact_method == "harley-j1850-harleydroid" and (self.transport.name != "elm_j1850" or not self.transport.is_physical or self.gate.mode.value != "read_only"):
                 raise TransportUnavailable("Harley J1850 requires the ELM serial transport and read-only mode")
-            if exact_method in ("kawasaki-er6n", "triumph-daytona-2012", "harley-j1850-harleydroid", "aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research", "honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research", "honda-pgmfi-flash-research") and method != exact_method:
+            if exact_method in ("kawasaki-er6n", "triumph-daytona-2012", "harley-j1850-harleydroid", "aster-versys-2012", "kawasaki-kds-research", "aster-gsxr600-2011", "suzuki-gsxr1000-2004", "suzuki-sv650ak7-2007", "suzuki-sv650-2003", "suzuki-sds-gsxr-research", "honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research", "honda-pgmfi-flash-research", "generic-obd-iso9141-kline") and method != exact_method:
                 raise TransportUnavailable(f"{self.profile.family} requires its profile-default initialization")
             if exact_method in ("honda-cbr600rr-2005", "honda-cb500f-dashble", "honda-ctx700-minidash", "honda-pgmfi-research", "honda-pgmfi-flash-research"):
                 expected = {"honda-cbr600rr-2005": "honda_cbr600rr_2005", "honda-cb500f-dashble": "honda_cb500f_dashble", "honda-ctx700-minidash": "honda_ctx700_minidash", "honda-pgmfi-research": "honda_pgmfi_research", "honda-pgmfi-flash-research": "honda_pgmfi_flash_research"}[exact_method]
@@ -175,6 +178,27 @@ class DiagnosticsService:
                         or getattr(self.transport, "rx_id", None) != tx + 8
                         or getattr(self.transport, "padding", None) != 0):
                     raise TransportUnavailable("Generic OBD requires 11-bit physical OBD CAN IDs, 500 kbit/s, zero padding and read-only mode")
+            if exact_method == "generic-obd-iso9141-kline":
+                if (self.profile.id != "generic_obd_iso9141_kline" or self.transport.name != "kline"
+                        or not self.transport.is_physical or self.gate.mode != Mode.READ_ONLY
+                        or init_method not in (None, "generic-obd-iso9141-kline")
+                        or getattr(self.transport, "baud", 10400) != 10400):
+                    raise TransportUnavailable("Generic OBD over ISO 9141-2 requires the physical K-Line transport at 10400 baud and read-only mode")
+            if exact_method == "generic-kwp2000-kline":
+                if (self.profile.id != "generic_kwp2000_kline" or self.transport.name != "kline"
+                        or not self.transport.is_physical or self.gate.mode != Mode.READ_ONLY
+                        or init_method not in (None, "fast", "slow")
+                        or getattr(self.transport, "baud", 10400) != 10400):
+                    raise TransportUnavailable("Generic KWP2000 requires the physical K-Line transport at 10400 baud and read-only mode")
+            if exact_method == "generic-uds-can":
+                tx = getattr(self.transport, "tx_id", None)
+                if (self.profile.id != "generic_uds_can_11bit" or self.transport.name != "can"
+                        or not self.transport.is_physical or self.gate.mode != Mode.READ_ONLY
+                        or init_method not in (None, "can") or getattr(self.transport, "bitrate", None) != 500000
+                        or type(tx) is not int or not 0x7E0 <= tx <= 0x7E7
+                        or getattr(self.transport, "rx_id", None) != tx + 8
+                        or getattr(self.transport, "padding", None) != 0):
+                    raise TransportUnavailable("Generic UDS requires 11-bit physical diagnostic CAN IDs, 500 kbit/s, zero padding and read-only mode")
             if exact_method == "harley-delphi-can-identity":
                 if (self.profile.id != "harley_delphi_can_uds" or self.transport.name != "can"
                         or not self.transport.is_physical or self.gate.mode != Mode.READ_ONLY
@@ -242,7 +266,7 @@ class DiagnosticsService:
             # inside ISO-TP would look plausible in a simulator but is not a
             # real protocol, so physical CAN remains explicitly unavailable.
             if (self.init_result.protocol == "isotp" and self.transport.is_physical
-                    and exact_method not in ("kawasaki-ninja7-can", "generic-obd-can-11bit", "harley-delphi-can-identity")):
+                    and exact_method not in ("kawasaki-ninja7-can", "generic-obd-can-11bit", "harley-delphi-can-identity", "generic-uds-can")):
                 self.connection.close()
                 self.connection = None
                 raise TransportUnavailable(
@@ -267,6 +291,49 @@ class DiagnosticsService:
                     if self.init_result.protocol != "isotp" or not self.init_result.handshake_complete:
                         raise ProtocolError("Generic OBD requires ISO-TP CAN transport")
                     self.session = ObdCanSession(self.connection, on_frame=self.log.frame)
+                    self.session.initialise()
+                except Exception:
+                    self.connection.close()
+                    self.connection = None
+                    self.session = None
+                    raise
+            elif exact_method == "generic-obd-iso9141-kline":
+                try:
+                    if (self.init_result.protocol != "iso9141-2" or not self.init_result.handshake_complete
+                            or self.init_result.key_bytes not in ((0x08, 0x08), (0x94, 0x94))):
+                        raise ProtocolError("Generic OBD over ISO 9141-2 requires a validated 5-baud handshake with key bytes 08 08 or 94 94")
+                    self.session = Iso9141ObdSession(self.connection, on_frame=self.log.frame)
+                    self.session.initialise()
+                except Exception:
+                    self.connection.close()
+                    self.connection = None
+                    self.session = None
+                    raise
+            elif exact_method == "generic-kwp2000-kline":
+                try:
+                    if self.init_result.protocol != "iso14230" or not self.init_result.handshake_complete:
+                        raise ProtocolError("Generic KWP2000 requires a validated ISO 14230 handshake")
+                    self.session = GenericKwp2000Session(
+                        connection=self.connection,
+                        timing=TimingParameters(
+                            tester_present_interval=self.profile.session.get("tester_present_interval", 2.0)
+                        ),
+                        target=self.profile.kline.get("ecu_address", self.profile.kline.get("address", 0x10)),
+                        source=self.profile.kline.get("tester_address", 0xF1),
+                        addressed=self.profile.kline.get("addressed", True),
+                        on_frame=self.log.frame,
+                        write_guard=lambda _: False,
+                    )
+                except Exception:
+                    self.connection.close()
+                    self.connection = None
+                    self.session = None
+                    raise
+            elif exact_method == "generic-uds-can":
+                try:
+                    if self.init_result.protocol != "isotp" or not self.init_result.handshake_complete:
+                        raise ProtocolError("Generic UDS requires ISO-TP CAN transport")
+                    self.session = UdsSession(self.connection, on_frame=self.log.frame)
                     self.session.initialise()
                 except Exception:
                     self.connection.close()
@@ -504,7 +571,7 @@ class DiagnosticsService:
                 self.identity = Identity(fields=fields, raw=raw, ecu_id="", family=self.profile.family)
                 self.log.action("identify", self.identity.as_dict())
                 return self.identity
-            if isinstance(session, ObdCanSession):
+            if isinstance(session, (ObdCanSession, Iso9141ObdSession, UdsSession)):
                 # VIN and calibration identifiers are not verified ECU hardware
                 # or permission to write. Drop stale evidence before re-reading.
                 self.identity = None
@@ -828,7 +895,7 @@ class DiagnosticsService:
                 self.log.action("read_dtcs", {"count": len(dtcs), "dtcs": dtcs, "format": "kawasaki-ninja7"})
                 return {"dtcs": dtcs, "format": "kawasaki-ninja7", "context": {},
                         "note": "Source confirmed a zero-DTC response; nonzero records and status interpretation remain candidates."}
-            if isinstance(session, (TriumphDaytonaSession, ObdCanSession)):
+            if isinstance(session, (TriumphDaytonaSession, ObdCanSession, Iso9141ObdSession, UdsSession)):
                 dtcs = session.read_stored_codes()
                 self._touch()
                 self.log.action("read_dtcs", {"count": len(dtcs), "dtcs": dtcs, "format": "obd-stored"})

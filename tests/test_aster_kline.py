@@ -304,7 +304,7 @@ def test_kds_research_bad_reply_stays_error(bad):
 
 def test_kds_all_vendor_models_select_synthetic_read_only(monkeypatch):
     models=[v for v in load_catalog().vehicles if v.ecu=='kawasaki_kds_research']
-    assert len({v.model for v in models})==39
+    assert len({v.model for v in models})==41
     for bike in models:
         for year in range(bike.year_from,bike.year_to + 1):
             w=Workstation(record=False)

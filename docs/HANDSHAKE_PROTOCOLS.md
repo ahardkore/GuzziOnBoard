@@ -19,9 +19,11 @@ protocols that happen to use the same wire:
    `55 KW1 KW2`; return `~KW2` after W4; require the ECU's `~address` reply.
 3. **ISO 9141-2 5-baud init** looks electrically identical but selects a
    different message protocol through keywords `08 08` or `94 94`. The
-   workstation now identifies and reports that result rather than treating it
-   as a valid KWP2000 link. Adding ISO 9141 PID/header support would be a
-   separate feature, and none of the catalogued Marelli profiles asks for it.
+   workstation identifies and reports that result rather than treating it as
+   a valid KWP2000 link, and a generic read-only OBD message layer now exists
+   for it (`guzzionboard/protocol/iso9141.py`, profile
+   `generic_obd_iso9141_kline`, opt-in, read-only mode only). None of the
+   catalogued Marelli profiles uses it.
 
 The old implementation had four concrete handshake defects:
 
@@ -106,13 +108,16 @@ newer IAW families, but now uses the safe 2.6-second fallback.
 ISO 9141-2 shares the K-Line and five-baud electrical sequence. Its keyword
 pairs (`08 08` or `94 94`) select ISO 9141 framing (for legislated OBD, the
 `68 6A F1 ...` header), not ISO 14230 framing. A valid electrical handshake is
-therefore not enough to claim the current application stack can talk to it.
-The new classifier returns `iso9141-2` and a clear unsupported-message-layer
-error.
+therefore not enough to claim the application stack can talk to it: the
+classifier returns `iso9141-2` and only the dedicated session layer speaks it.
 
-This is a future extension only if a supported motorcycle is demonstrated to
-need ISO 9141 services. It should then be a separate protocol module, not a
-special case in `kwp2000.py`.
+That layer now exists as a separate protocol module,
+`guzzionboard/protocol/iso9141.py` (generic read-only SAE OBD over the standard
+`68 6A F1` / `48 6B D1` headers, checksummed bursts read by inter-byte gap),
+wired to the opt-in `generic_obd_iso9141_kline` catalog profile through the
+`generic-obd-iso9141-kline` slow-init method. It is not a special case in
+`kwp2000.py`, it claims no motorcycle fitment, and it is gated to read-only
+mode on a physical K-Line transport at 10400 baud.
 
 ## Other protocols investigated
 
@@ -171,3 +176,16 @@ into a bench result. The first real-bike sessions should record:
 
 Until those captures exist, hardware remains labelled unvalidated and the
 existing confidence/safety gates continue to apply.
+
+## 2026-11-03 — generic KWP2000 K-Line and generic UDS CAN entries
+
+Two more opt-in, read-only generic standard protocols join the handshake
+matrix (see docs/PROTOCOL_NOTES.md for provenance):
+
+- `generic-kwp2000-kline` (profile `generic_kwp2000_kline`): fast init or
+  5-baud init at 10400 baud, ISO 14230 framing, then a
+  `GenericKwp2000Session` whose code-level allowlist permits only
+  0x10/0x1A/0x21/0x17/0x18/0x3E.
+- `generic-uds-can` (profile `generic_uds_can_11bit`): ISO-TP CAN handshake at
+  500 kbit/s on a physical 0x7E0–0x7E7/+8 pair, then a `UdsSession` whose
+  allowlist permits only 0x10 (01/03), 0x22, 0x19 and 0x3E.

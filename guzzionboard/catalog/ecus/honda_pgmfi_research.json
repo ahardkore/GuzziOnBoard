@@ -35,7 +35,17 @@
     "https://www.dynojet.com/power-vision-3-for-2019-2020-honda-crf110f-pv3-16-07/",
     "https://github.com/abyryn/AMQC-WRT-Diagnosis/tree/8b72c7d444c2171e14b9d1cbe6df4c016b0685dd",
     "https://www.aimtechnologies.com/aim-support/docs/SoloDL_HondaCRF-HDS_250dal2010+450dal2009_100_eng.pdf",
-    "https://www.honda.co.jp/HRC/products/racingkit/crf250r/settingtool/"
+    "https://www.honda.co.jp/HRC/products/racingkit/crf250r/settingtool/",
+    "https://github.com/AutotronicCommunity/Honda_Keihin_KLine_Protocol (main): README protocol doc + 'REQUEST - RESPONSE ECU HONDA K25 901.txt' captured K-Line session (wake FE 04 72 8C, init 72 05 00 F0 99, tables 71/73/74)",
+    "https://github.com/AutotronicCommunity/ScantoolHonda ScantoolHonda.ino: table-17 live-data field offsets (rpm b9-10 BE, tps/ect/iat/map/bat/inj/igt/speed)",
+    "https://github.com/AutotronicCommunity/READ-ECM-CODE-DAN-ECM-PART-DENGAN-ESP32 TES_WAKE_UP_READ_ECM_HONDA.ino: ECM part decode from 71 00 reply bytes [9:14] (0102E30F01 -> 30400-K81H-N52)",
+    "https://github.com/AutotronicCommunity/scantoolHondaEsp32 ESP32_SCANTOOL.ino: same Keihin K-Line protocol as ESP32 web scantool",
+    "https://github.com/AutotronicCommunity/dtc_honda + dtc-yamaha: manufacturer DTC <-> OBD2 P-code dictionaries",
+    "https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA: model/part-code -> K-Line vs CANBUS connection table",
+    "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+    "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+    "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+    "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
   ],
   "parameters": [
     {
@@ -60,7 +70,7 @@
       "key": "table_10_coolant",
       "name": "Table 10 Engine temperature (coolant/oil candidate)",
       "local_id": 16,
-      "unit": "\u00b0C",
+      "unit": "°C",
       "digits": 0,
       "default": false,
       "confidence": "inferred"
@@ -87,7 +97,7 @@
       "key": "table_11_coolant",
       "name": "Table 11 Engine temperature (coolant/oil candidate)",
       "local_id": 17,
-      "unit": "\u00b0C",
+      "unit": "°C",
       "digits": 0,
       "default": false,
       "confidence": "inferred"
@@ -114,7 +124,7 @@
       "key": "table_17_coolant",
       "name": "Table 17 Engine temperature (coolant/oil candidate)",
       "local_id": 23,
-      "unit": "\u00b0C",
+      "unit": "°C",
       "digits": 0,
       "default": false,
       "confidence": "inferred"

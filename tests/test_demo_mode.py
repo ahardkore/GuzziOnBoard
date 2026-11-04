@@ -250,7 +250,9 @@ def test_the_hosted_demo_is_virtual_only_but_connector_steps_are_runnable():
     assert "demo://virtual-kline" in lab_source
     assert "SIMULATED CONNECTOR" in lab_source
     assert "isHostedDemo" in app_source
-    assert "['5am', 'honda_cbr1000rr_2012_us', 'honda_cb500_mgz_a03'].includes(vehicle.ecu)" in app_source
+    # The hosted garage dropdown encompasses the whole catalog (no demo
+    # vehicle filter remains); connect is still gated per profile.
+    assert ".includes(vehicle.ecu)" not in app_source
     assert "demoWithoutSimulator" in app_source
     assert "Griso 1200 8V" in app_source
     # The stand-ins never request browser access to real hardware.

@@ -855,7 +855,7 @@
         </div>
         <div class="organizer-head-actions">
           <button type="button" class="btn small" id="toolsFocusModeBtn" title="Switch between 2-column grid bench and single-tool focus pane">2-Column Bench</button>
-          <span class="pill ghost" id="toolsCountBadge">44 of 44 tools</span>
+          <span class="pill ghost" id="toolsCountBadge">46 of 46 tools</span>
         </div>
       </div>
       <div class="organizer-bar" id="toolsOrganizer">
@@ -874,8 +874,10 @@
                 <option value="ducati">Ducati</option>
                 <option value="harley">Harley-Davidson</option>
                 <option value="honda">Honda</option>
+                <option value="husqvarna">Husqvarna</option>
                 <option value="indian">Indian</option>
                 <option value="kawasaki">Kawasaki</option>
+                <option value="ktm">KTM</option>
                 <option value="moto-guzzi">Moto Guzzi</option>
                 <option value="suzuki">Suzuki</option>
                 <option value="triumph">Triumph</option>
@@ -1708,6 +1710,78 @@
       </details>
     </article>
 
+        <article class="panel" id="ktmKmsk16" data-tool-cat="hardware-research" data-tool-brand="ktm">
+      <h2>KTM · Keihin KMSK16 K-Line capture decoder</h2>
+      <p class="tip">
+        <b>What it does:</b> decodes a K-Line capture from a Keihin <b>KMSK16</b> ECU: it checks the
+        KWP2000 frame (format byte, length, 8-bit sum), recognises the service, and turns a
+        <code>$22 ReadDataByCommonIdentifier</code> answer into the channel Keihin names for that
+        identifier, with the raw pair of bytes kept beside it. KMSK16 identifiers are not SAE PIDs —
+        each one carries its own range, and the panel says which parts of a value are stated by the
+        source and which are inferred.
+      </p>
+      <p class="muted small">Written against the ECU shared by the KTM 450/500 four-stroke generation, the Husqvarna 449/511 and the CCM 450 Adventure. One ECU, one job set — the KTM and Husqvarna panels are the same
+      decoder, because the Husqvarna 449/511 is reported to use this ECU. Paste capture lines, one frame
+      each: <code>85 F1 12 62 01 00 0B B8 AE</code>. Nothing is transmitted, no routine is started and
+      no fault is cleared. Source: <code>gobftald/CCM450-diag</code> at <code>43104d2</code>, which
+      carries <b>no licence file</b> — the identifiers, ranges and enumerations here are facts
+      reimplemented from its published description with attribution, not copied code. A decoded value
+      is a candidate for that ECU, not a fitment claim for a particular bike.</p>
+      <label class="field"><span>Frames</span>
+        <textarea id="ktmKmsk16Frames" class="mono-in" rows="6" spellcheck="false" placeholder="85 F1 12 62 01 00 0B B8 AE"></textarea>
+      </label>
+      <div class="toolbar">
+        <button class="btn primary" id="ktmKmsk16Decode">Decode locally</button>
+        <button class="btn" id="ktmKmsk16Clear">Clear</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="ktmKmsk16Meta"></span>
+      </div>
+      <pre id="ktmKmsk16Out" class="small" aria-live="polite"></pre>
+      <details class="advanced"><summary>Identifiers, value rules and declared ranges</summary>
+        <div id="ktmKmsk16Ref"></div>
+        <p class="muted small">Every row is rendered from the decoder's own table, so the panel cannot
+        advertise a rule the code does not implement. <b>(inferred)</b> marks a scale worked out from
+        the declared range or from an example capture in the source; anything without a scale is shown
+        as raw bytes rather than guessed at.</p>
+      </details>
+    </article>
+
+    <article class="panel" id="husqvarnaKmsk16" data-tool-cat="hardware-research" data-tool-brand="husqvarna">
+      <h2>Husqvarna · Keihin KMSK16 K-Line capture decoder</h2>
+      <p class="tip">
+        <b>What it does:</b> decodes a K-Line capture from a Keihin <b>KMSK16</b> ECU: it checks the
+        KWP2000 frame (format byte, length, 8-bit sum), recognises the service, and turns a
+        <code>$22 ReadDataByCommonIdentifier</code> answer into the channel Keihin names for that
+        identifier, with the raw pair of bytes kept beside it. KMSK16 identifiers are not SAE PIDs —
+        each one carries its own range, and the panel says which parts of a value are stated by the
+        source and which are inferred.
+      </p>
+      <p class="muted small">The 449 and 511 are reported to use the same KMSK16 ECU as the KTM four-strokes, so this is the same decoder under this brand. One ECU, one job set — the KTM and Husqvarna panels are the same
+      decoder, because the Husqvarna 449/511 is reported to use this ECU. Paste capture lines, one frame
+      each: <code>85 F1 12 62 01 00 0B B8 AE</code>. Nothing is transmitted, no routine is started and
+      no fault is cleared. Source: <code>gobftald/CCM450-diag</code> at <code>43104d2</code>, which
+      carries <b>no licence file</b> — the identifiers, ranges and enumerations here are facts
+      reimplemented from its published description with attribution, not copied code. A decoded value
+      is a candidate for that ECU, not a fitment claim for a particular bike.</p>
+      <label class="field"><span>Frames</span>
+        <textarea id="husqvarnaKmsk16Frames" class="mono-in" rows="6" spellcheck="false" placeholder="85 F1 12 62 01 00 0B B8 AE"></textarea>
+      </label>
+      <div class="toolbar">
+        <button class="btn primary" id="husqvarnaKmsk16Decode">Decode locally</button>
+        <button class="btn" id="husqvarnaKmsk16Clear">Clear</button>
+        <div class="spacer"></div>
+        <span class="muted small" id="husqvarnaKmsk16Meta"></span>
+      </div>
+      <pre id="husqvarnaKmsk16Out" class="small" aria-live="polite"></pre>
+      <details class="advanced"><summary>Identifiers, value rules and declared ranges</summary>
+        <div id="husqvarnaKmsk16Ref"></div>
+        <p class="muted small">Every row is rendered from the decoder's own table, so the panel cannot
+        advertise a rule the code does not implement. <b>(inferred)</b> marks a scale worked out from
+        the declared range or from an example capture in the source; anything without a scale is shown
+        as raw bytes rather than guessed at.</p>
+      </details>
+    </article>
+
     <article class="panel" id="suzukiSds" data-tool-cat="hardware-research" data-tool-brand="suzuki">
       <h2>Suzuki SDS · K-Line capture decoder</h2>
       <p class="tip">
@@ -2515,8 +2589,10 @@
               <option value="ducati">Ducati</option>
               <option value="harley">Harley-Davidson</option>
               <option value="honda">Honda</option>
+              <option value="husqvarna">Husqvarna</option>
               <option value="indian">Indian</option>
               <option value="kawasaki">Kawasaki</option>
+              <option value="ktm">KTM</option>
               <option value="moto-guzzi">Moto Guzzi</option>
               <option value="suzuki">Suzuki</option>
               <option value="triumph">Triumph</option>
@@ -2866,6 +2942,7 @@
 <script src="obd-explorer.js"></script>
 <script src="tune-diff.js"></script>
 <script src="brand-tools.js"></script>
+<script src="kmsk16.js"></script>
 <script src="iaw-layout.js"></script>
 <script src="bench-calculators.js"></script>
 <script src="speedo-math.js"></script>

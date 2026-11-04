@@ -336,7 +336,7 @@ def test_tools_bench_tags_every_panel_with_a_brand(index_html: str, content: str
     tools_section = index_html[index_html.index('id="tools"'):]
     tools_section = tools_section[:tools_section.index("</section>")]
     panels = re.findall(r"<article[^>]*data-tool-cat=\"[a-z-]+\"[^>]*>", tools_section)
-    assert len(panels) == 44, len(panels)
+    assert len(panels) == 46, len(panels)
     tagged = {}
     for panel in panels:
         pid = re.search(r'id="([^"]+)"', panel).group(1)
@@ -362,6 +362,9 @@ def test_tools_bench_tags_every_panel_with_a_brand(index_html: str, content: str
     assert tagged["indianJ1939"] == "indian"
     assert tagged["iawGuzziPanel"] == "moto-guzzi"
     assert tagged["iawApriliaPanel"] == "aprilia"
+    # Batch 5: the KMSK16 decoder, filed under both brands that use the ECU.
+    assert tagged["ktmKmsk16"] == "ktm"
+    assert tagged["husqvarnaKmsk16"] == "husqvarna"
     # Batch 4: general bench arithmetic, filed under General.
     assert tagged["injectorPanel"] == "general"
     assert tagged["dynoCorrectionPanel"] == "general"
@@ -391,13 +394,15 @@ def test_the_bench_and_help_lists_stay_in_step(content: str):
 def test_help_tool_entries_carry_the_brand_of_their_bench_panel(content: str):
     brands = set(_brand_ids(content))
     tagged = dict(re.findall(r"id: '([a-z0-9-]+)', name: '[^']+', category: '[a-z]+', brand: '([a-z0-9-]+)'", content))
-    assert len(tagged) == 21, sorted(tagged)
+    assert len(tagged) == 23, sorted(tagged)
     assert set(tagged.values()) <= brands
     assert tagged["harley-memory"] == "harley"
     assert tagged["honda-vfr-checksum"] == "honda"
     assert tagged["jetdrive-panel"] == "dynojet"
     assert tagged["juken-research"] == "britek"
     assert tagged["kawasaki-kds-decoder"] == "kawasaki"
+    assert tagged["ktm-kmsk16-decoder"] == "ktm"
+    assert tagged["husqvarna-kmsk16-decoder"] == "husqvarna"
     assert tagged["indian-j1939-decoder"] == "indian"
     assert tagged["iaw-image-layout"] == "moto-guzzi"
     # Everything without a brand is filed under General.
@@ -436,4 +441,4 @@ def test_every_tools_bench_panel_has_a_help_entry(index_html: str, content: str)
         pid = re.search(r'id="([^"]+)"', tag).group(1)
         described.append(pid)
         assert f"selector: '#{pid}'" in content, f"{pid} has no TOOLS entry in help-content.js"
-    assert len(described) >= 44, described
+    assert len(described) >= 46, described

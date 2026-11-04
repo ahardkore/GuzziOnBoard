@@ -27,7 +27,7 @@ const BRAND_PANELS = [
 ];
 
 test('the bench lists the brand decoders under their own manufacturers', async ({ page }) => {
-  await expect(page.locator('#toolsCountBadge')).toHaveText('44 of 44 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('46 of 46 tools');
   for (const [id, brand] of BRAND_PANELS) {
     await expect(page.locator(`#${id}`)).toHaveAttribute('data-tool-brand', brand);
     await expect(page.locator(`[data-brand-heading="${brand}"]`)).toBeAttached();

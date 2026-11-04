@@ -16,7 +16,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('the three bench calculators are filed under General', async ({ page }) => {
-  await expect(page.locator('#toolsCountBadge')).toHaveText('44 of 44 tools');
+  await expect(page.locator('#toolsCountBadge')).toHaveText('46 of 46 tools');
   await expect(page.locator('[data-brand-heading="general"] [data-brand-count]')).toContainText('23 tools');
   for (const id of ['injectorPanel', 'dynoCorrectionPanel', 'fuelBlendPanel']) {
     await expect(page.locator(`#${id}`)).toHaveAttribute('data-tool-brand', 'general');

@@ -44,8 +44,10 @@
     { id: 'ducati', label: 'Ducati', note: 'Panigale Mitsubishi CAN layout', oem: true },
     { id: 'harley', label: 'Harley-Davidson', note: 'Delphi J1850 / CAN, Power Vision and Centurion files', oem: true },
     { id: 'honda', label: 'Honda', note: 'Keihin PGM-FI frames and source-ID checksums', oem: true },
+    { id: 'husqvarna', label: 'Husqvarna', note: 'Keihin KMSK16 KWP2000 identifiers (shared with KTM)', oem: true },
     { id: 'indian', label: 'Indian', note: 'J1939 broadcast PGNs', oem: true },
     { id: 'kawasaki', label: 'Kawasaki', note: 'KDS K-Line identifiers and local IDs', oem: true },
+    { id: 'ktm', label: 'KTM', note: 'Keihin KMSK16 KWP2000 identifiers and routines', oem: true },
     { id: 'moto-guzzi', label: 'Moto Guzzi', note: 'IAW 5AM image geometry and definition fit', oem: true },
     { id: 'suzuki', label: 'Suzuki', note: 'SDS K-Line all-sensors answer', oem: true },
     { id: 'triumph', label: 'Triumph', note: 'K-Line ISO 9141 mode 01 frames', oem: true },
@@ -828,6 +830,32 @@
       tags: ['kawasaki', 'kds', 'k-line', 'er-6n', 'er6', 'kwp', 'local identifier', 'throttle', 'coolant'],
     },
     {
+      id: 'ktm-kmsk16-decoder', name: 'KTM · Keihin KMSK16 K-Line capture decoder', category: 'diagnostics', brand: 'ktm',
+      view: 'tools', selector: '#ktmKmsk16',
+      summary: 'Decodes a KWP2000 K-Line capture from a Keihin KMSK16 ECU and names the data identifier: engine speed, coolant, intake air, manifold pressure, throttle angles, injector on-time, ignition timing and dwell, lambda adaption, A/D voltages, switch states and the over-rev counters.',
+      steps: [
+        'Paste one captured frame per line — 85 F1 12 62 01 00 0B B8 AE is a $22 answer carrying engine speed. The panel checks the format byte, the length and the 8-bit sum before it reads anything.',
+        'Read the identifier line first. It names the channel, the source job and Keihin\'s own symbol (NE for engine speed, TW for coolant, PM1 for manifold pressure), so the value can be checked against a service manual instead of trusted.',
+        'Watch the word after Value. "stated" means the source gave the scale; "inferred" means it was worked out from the declared range or an example capture, and the line after it says which. A raw byte with no scale is shown as a raw byte.',
+        'For the second throttle, paste $22 0170, $22 0172 and $22 0173 together. The panel then computes the percentage across the three frames and labels it as rewritten, because the source\'s own expression divides by a ratio instead of by a span.',
+        'A refusal is information: 7F 22 31 means the ECU rejected the read as out of range, and the panel prints the negative-response code in words.',
+      ],
+      caution: 'Two identifiers in the source disagree with themselves: the over-rev counters carry one range in the job entry and another in the identifier summary, and the battery channel declares 0–5 V beside an example of 11.7 V. The panel shows both readings and derives no number from either. Reading live data may need security access on some paths, and this project neither ships the key nor transmits anything.',
+      tags: ['ktm', 'kmsk16', 'keihin', 'kwp2000', 'k-line', '450', '500', 'exc-f', 'sx-f', 'data identifier', 'rpm', 'over-rev'],
+    },
+    {
+      id: 'husqvarna-kmsk16-decoder', name: 'Husqvarna · Keihin KMSK16 K-Line capture decoder', category: 'diagnostics', brand: 'husqvarna',
+      view: 'tools', selector: '#husqvarnaKmsk16',
+      summary: 'The same Keihin KMSK16 decoder filed under Husqvarna, for the 449 and 511 that are reported to use this ECU: service decoding, identifier naming, and an explicit split between stated and inferred values.',
+      steps: [
+        'Paste a captured frame; the panel decodes it exactly as the KTM panel does, because it is the same decoder and the same identifier table.',
+        'Confirm the ECU really is a KMSK16 before reading anything into a value. A KWP2000 answer alone does not identify the controller.',
+        'Treat every number as a candidate for the source bike. The source reverse-engineered one CCM 450 Adventure and states that the Husqvarna 449/511 use the same ECU — that is a report, not a measurement on your machine.',
+      ],
+      caution: 'One ECU, one job set, one source with no licence file. Identifiers, ranges and enumerations were reimplemented from its published description with attribution; no code was copied, and the security-access key the source mentions is deliberately not reproduced here.',
+      tags: ['husqvarna', 'husky', '449', '511', 'kmsk16', 'keihin', 'kwp2000', 'k-line'],
+    },
+    {
       id: 'suzuki-sds-decoder', name: 'Suzuki SDS · K-Line capture decoder', category: 'diagnostics', brand: 'suzuki',
       view: 'tools', selector: '#suzukiSds',
       summary: 'Decodes the Suzuki SDS all-sensors answer: engine speed, throttle, manifold pressure, coolant, intake air, battery voltage and the gear/status byte.',
@@ -1097,6 +1125,54 @@
       workstation: ['Garage → transport K-Line', 'Garage → init method', 'Overview → Link', 'Firmware → Adapter pre-flight'],
       tags: ['kwp2000', 'iso 14230', 'kline', 'k-line', 'fast init', '5 baud', 'startcommunication', 'c1', 'checksum', 'session'],
       related: ['protocol-iso9141', 'protocol-legacy-iaw', 'howto-first-connection'],
+    },
+    {
+      id: 'kmsk16',
+      name: 'Keihin KMSK16 (KTM, Husqvarna 449/511, CCM 450)',
+      short: 'A Keihin ECU that speaks ordinary KWP2000 over K-Line at 10,400 baud, with Keihin\'s own data identifiers rather than SAE PIDs.',
+      transport: 'K-Line — one 12 V wire, driven through an L9637D transceiver in the reference implementation.',
+      baud: '10,400 baud, fixed in the published implementation.',
+      init: 'Fast init: a 25 ms low half-period, then StartCommunication. No 5-baud handshake is described.',
+      addressing: 'Physical addressing: format byte 0x80, target 0x12 (ECU), source 0xF1 (tester).',
+      framing: 'Format/length byte, target, source, service, data…, one-byte additive checksum — the same frame as the KWP2000 article.',
+      checksum: 'One-byte sum of every preceding byte. The ECU rejects a response whose sum does not match, and so does this program.',
+      body: `
+<h3>What makes it different from the IAW K-Line profiles</h3>
+<p>The wire and the framing are ordinary KWP2000. What is not ordinary is the <b>data identifier table</b>: Keihin numbers its own channels, so <code>0x0100</code> is engine speed and <code>0x0009</code> is coolant temperature, and none of them is an SAE PID. Reading live data therefore means knowing the table, not sending <code>01 0C</code>.</p>
+
+<h3>Services the published job set uses</h3>
+<table class="help-table"><thead><tr><th>Service</th><th>Name</th><th>What this program does with it</th></tr></thead><tbody>
+<tr><td><code>0x81</code></td><td>StartCommunication</td><td>decoded from a capture only</td></tr>
+<tr><td><code>0x10 / 0x11 / 0x14</code></td><td>session, ECU reset, clear faults</td><td>named, never sent</td></tr>
+<tr><td><code>0x18</code></td><td>ReadDTCByStatus</td><td>named, never sent</td></tr>
+<tr><td><code>0x22</code></td><td>ReadDataByCommonIdentifier</td><td><b>decoded</b> — this is the live-data path</td></tr>
+<tr><td><code>0x27</code></td><td>SecurityAccess</td><td>recognised; the key is not in this project</td></tr>
+<tr><td><code>0x31 / 0x32</code></td><td>start / stop routine</td><td>names and results decoded, nothing started</td></tr>
+<tr><td><code>0x3E</code></td><td>TesterPresent</td><td>recognised</td></tr>
+</tbody></table>
+
+<h3>The identifiers worth knowing</h3>
+<ul>
+  <li><b>Engine speed <code>0x0100</code></b> — a 16-bit value, high byte first, declared 0–16384 rpm. A quarter-rpm resolution follows from the range; the source does not state it, so the panel labels the number <b>inferred</b>.</li>
+  <li><b>Coolant and intake air <code>0x0009 / 0x0011</code></b> — declared −40…215 °C, which is a 255-count span, so the panel reports one degree per count with a −40 offset and says that the second received byte is unexplained.</li>
+  <li><b>Calculated load <code>0x0107</code></b> — the source gives a formula, not a scaling, and never says which identifier supplies PM1M. The panel prints the formula and refuses to invent the input.</li>
+  <li><b>Second throttle <code>0x0170</code></b> — needs <code>0x0172</code> and <code>0x0173</code> as well. Paste all three and the panel derives the percentage, labelled as a rewritten formula because the source divides by a ratio of two A/D values.</li>
+  <li><b>Over-rev counters <code>0x0500–0x0510</code></b> — the source gives one range in the job entry and another in its identifier summary. The panel shows the raw value and both readings.</li>
+</ul>
+
+<h3>Routines that answer a question without changing anything</h3>
+<p><code>$31</code> with local identifier <code>0x0102</code> (application code) or <code>0x0104</code> (calibration data) runs the ECU's own <b>CheckCodingChecksum</b>. That is the only read-only way this ECU offers to say whether a calibration is internally consistent, and it is why the routine names are in the decoder even though nothing here starts a routine.</p>
+
+<h3>What is deliberately absent</h3>
+<ul>
+  <li><b>The security-access key</b> — obtained in the source by brute force, supplier-specific, and not reproduced here. Reading may require it on some model years; this project does not attempt the read.</li>
+  <li><b>Any programming sequence</b> — the job set names erase, download, transfer and rewrite services. A name is not a verified sequence, and this repository implements none of them for this ECU.</li>
+  <li><b>Any physical validation</b> — the whole table comes from one reverse-engineered bike. It is evidence of what one ECU answered, not a fitment claim for a given machine.</li>
+</ul>`,
+      usedBy: ['KTM 450/500 four-stroke generation', 'Husqvarna 449 / 511', 'CCM 450 Adventure'],
+      workstation: ['Tools → KTM → KMSK16 capture decoder', 'Tools → Husqvarna → KMSK16 capture decoder'],
+      tags: ['kmsk16', 'keihin', 'ktm', 'husqvarna', 'ccm', 'kwp2000', 'k-line', '10400', 'data identifier', 'checksum'],
+      related: ['protocol-kwp2000', 'tool-ktm-kmsk16-decoder'],
     },
     {
       id: 'iso9141',

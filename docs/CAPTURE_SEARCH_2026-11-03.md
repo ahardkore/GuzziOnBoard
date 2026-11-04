@@ -572,6 +572,22 @@ queries).
 — keyless/immobilizer-defeat hardware; not a write-class *algorithm* and not
 added even experimentally.
 
+## Round 21 — experimental citations added for previously refused repos (2026-11-04)
+
+Owner clarification: experimental entries ARE allowed, provided they carry an
+`[experimental]` tag. The legitimate-looking but unproven write/unlock repos
+from the Round 17 refusal list are now added to
+`EXTERNAL_MOTORCYCLE_RESEARCH.md` as [experimental] citations: YamahaFlasher,
+YAMAHA-FLASH-TOOL-V6-DEMO-VERSION, YAHAMA-FLASH-VIA-KLINE---BACKDOOR,
+ShindengenFlasher, SoftwareHondaFlasher, SIMPLE-REMAP (PCX-160, MX King 2PV0),
+SoftwareHondaECU, CopyPaste24C02, ARDUINO_READ_ECU_MX_KING_V1,
+poozam/HondaKLineFlasherV1 (MIT), tientuk3/m32r-bootloader-protocol, plus
+keyless/immobilizer entries (hex2id_keihin_keyless, ID_TAG_PROGRAM_DEMO,
+NS200-ESP32-Keyless-Immobilizer-Strobe) with a **legal-use-only disclaimer**
+(research / off-road / track vehicles you own or are authorized to race).
+All are citation-only — no capability implemented, no payload vendored.
+Odometer / flash-count / license-crack repos remain excluded outright.
+
 ## Round 20 — scope policy update: research/off-road/track orientation (2026-11-04)
 
 Owner direction: the app is for research and off-road/track use. **Flashing

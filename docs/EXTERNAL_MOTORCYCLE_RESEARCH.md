@@ -578,3 +578,26 @@ Write-class sources are added only when the upstream author indicates success wi
 - [ludwig-v/psa-seedkey-algorithm](https://github.com/ludwig-v/psa-seedkey-algorithm/tree/5aef5117ac38) — GPL-3.0; UDS 0x27 seed/key extraction method (PSA cars) → [experimental] research reference; no unlock capability implemented.
 - [poozam/HondaKLineFlasherV1](https://github.com/poozam/HondaKLineFlasherV1/tree/3ec24c436234) — MIT; Honda K-Line flasher without documented success → [experimental] citation only, write path not adopted.
 
+## Round 21 additions — experimental citations (2026-11-04)
+
+Per owner direction, sources that look legitimate but lack documented success
+are added as `[experimental]` citations only — no capability implemented, no
+payload vendored. Keyless/immobilizer entries carry a **legal-use-only**
+disclaimer (research / off-road / track bikes you own or are authorized to
+race). Odometer / flash-count / license-crack repos remain excluded outright.
+
+- [AutotronicCommunity/YamahaFlasher](https://github.com/AutotronicCommunity/YamahaFlasher) — [experimental] Yamaha ECU flash tool, no license (open per policy), no documented success evidence.
+- [AutotronicCommunity/YAMAHA-FLASH-TOOL-V6-DEMO-VERSION](https://github.com/AutotronicCommunity/YAMAHA-FLASH-TOOL-V6-DEMO-VERSION) — [experimental] demo flasher (MX King 2PV0 / Exciter 2015-18 only), no license, no success evidence.
+- [AutotronicCommunity/YAHAMA-FLASH-VIA-KLINE---BACKDOOR](https://github.com/AutotronicCommunity/YAHAMA-FLASH-VIA-KLINE---BACKDOOR) — [experimental] K-Line flash path, no license, no success evidence.
+- [AutotronicCommunity/ShindengenFlasher](https://github.com/AutotronicCommunity/ShindengenFlasher) — [experimental] Shindengen ECU flasher, no license, no success evidence.
+- [AutotronicCommunity/SoftwareHondaFlasher](https://github.com/AutotronicCommunity/SoftwareHondaFlasher) — [experimental] Honda flasher, no license, no success evidence.
+- [AutotronicCommunity/SIMPLE-REMAP-K1ZG_N21_IN01_PCX-160](https://github.com/AutotronicCommunity/SIMPLE-REMAP-K1ZG_N21_IN01_PCX-160) and [AutotronicCommunity/SIMPLE-REMAP-MX-KING-2PV0](https://github.com/AutotronicCommunity/SIMPLE-REMAP-MX-KING-2PV0) — [experimental] remap tools, no license, no success evidence.
+- [AutotronicCommunity/SoftwareHondaECU](https://github.com/AutotronicCommunity/SoftwareHondaECU) — [experimental] commercial MCU flash installers, no license.
+- [AutotronicCommunity/CopyPaste24C02](https://github.com/AutotronicCommunity/CopyPaste24C02) — [experimental] EEPROM 24C02 copy tool (SCU Yamaha/Suzuki), no license.
+- [AutotronicCommunity/hex2id_keihin_keyless](https://github.com/AutotronicCommunity/hex2id_keihin_keyless) and [AutotronicCommunity/ID_TAG_PROGRAM_DEMO](https://github.com/AutotronicCommunity/ID_TAG_PROGRAM_DEMO) — [experimental] **legal-use-only disclaimer** (keyless/immobilizer ID programming; research/off-road/track vehicles you own or are authorized to race only), no license, no success evidence; cited, not implemented.
+- [AutotronicCommunity/ARDUINO_READ_ECU_MX_KING_V1](https://github.com/AutotronicCommunity/ARDUINO_READ_ECU_MX_KING_V1) — [experimental] MX King read via unlock-ID sequence, no license.
+- [poozam/HondaKLineFlasherV1](https://github.com/poozam/HondaKLineFlasherV1/tree/3ec24c436234) — [experimental] MIT-licensed Honda K-Line flasher, no documented success.
+- [tientuk3/m32r-bootloader-protocol](https://github.com/tientuk3/m32r-bootloader-protocol/tree/3bffab1ac370) — [experimental] Denso M32R bootloader flash read/write protocol docs, no license, no success evidence.
+- [AshanDilakshana/NS200-ESP32-Keyless-Immobilizer-Strobe](https://github.com/AshanDilakshana/NS200-ESP32-Keyless-Immobilizer-Strobe) — [experimental] **legal-use-only disclaimer** (keyless immobilizer; research/off-road/track only), no license; cited, not implemented.
+- Still excluded outright (fraud/cracking, not tuning): AutotronicCommunity ODOMETER-FILE-GENERATOR, APP-EDIT-FLASH-COUNT, License-Tuner-Pro-RT, licenseRFPv3.
+

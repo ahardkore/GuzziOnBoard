@@ -572,6 +572,20 @@ queries).
 — keyless/immobilizer-defeat hardware; not a write-class *algorithm* and not
 added even experimentally.
 
+## Round 20 — scope policy update: research/off-road/track orientation (2026-11-04)
+
+Owner direction: the app is for research and off-road/track use. **Flashing
+and unlock routines (UDS 0x27 seed/key for legitimate tuning of owned or
+authorized race vehicles) are in scope when legitimate**, ideally with
+author-indicated success. **Immobilizer-related material may be cited with an
+explicit legal-use-only disclaimer** (track/race immo-off conversions); no
+immobilizer-defeat payload is vendored or implemented. **Odometer rollback,
+flash-count editing and license cracks remain excluded outright** — fraud
+and cracking, not tuning. The Round 17 re-audit result stands: 0 of the
+previously refused repos had verifiable success evidence, so nothing new was
+added under the wider scope; the Buell DDFI-2 tune-write path (Round 19)
+remains the only implemented write capability (local images, token-gated).
+
 ## Round 19 — self-audit, experimental Buell DDFI-2 tune-write path, docs cleanup (2026-11-04)
 
 **Repo self-audit:** 921 files / 49 MB; docs 4.8 MB across 49 files. Removed the

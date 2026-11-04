@@ -246,6 +246,13 @@ test('multi-brand research decoders validate framing and remain local', async ({
   await expect(out).toContainText('sum checksum mismatch');
   await expect(out).toContainText('no diagnostic session, no write path');
 
+  await profile.selectOption('kmsk16_kline');
+  await input.fill('87 F1 10 05 62 10 01 1B 58 73\n84 F1 10 02 54 00 DB');
+  await page.locator('#multiResearchDecode').click();
+  await expect(out).toContainText('Data response DID 0x1001 (engine_rpm candidate)');
+  await expect(out).toContainText('u16 candidate: 7000');
+  await expect(out).toContainText('WRITE-CLASS');
+
   await profile.selectOption('bmw_r1300gs');
   await input.fill('10C#00003E\n2D2#2C\n2D0#00000000000000\n800#0102\n10C#00\n<script>alert(1)</script>');
   await page.locator('#multiResearchDecode').click();
@@ -278,7 +285,7 @@ test('multi-brand research decoders validate framing and remain local', async ({
 
   const triumph = await page.evaluate(async () => {
     const r = await fetch('/api/tools/canlog', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: '(1.0) can0 600#0000B45A3000340C\n(1.1) can0 540#62000000000000', decoder: 'triumph_can' }) });
+      body: JSON.stringify({ text: '(1.0) can0 600#0000B45A3000340C\n(1.1) can0 540#6200000000000000', decoder: 'triumph_can' }) });
     return r.json();
   });
   expect(triumph.decoder.profile).toBe('triumph_can_broadcast');

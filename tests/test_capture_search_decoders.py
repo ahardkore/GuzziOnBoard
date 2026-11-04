@@ -602,3 +602,22 @@ def test_ducati_service_reset_experimental():
         dsr.kwp_can_single_frame(0x7E3, b'\x00' * 8, confirm_token=TOK); assert False
     except ValueError:
         pass
+
+
+# ------------------------------------------- Keihin KMSK16 K-Line capture decoder
+def test_kmsk16_kline_research():
+    from guzzionboard import kmsk16_kline as km
+    from guzzionboard.klinelog import Frame
+    def rx(payload):
+        raw = bytes([0x80 | (len(payload) + 1), 0xF1, 0x10]) + payload
+        return Frame(t=1.0, direction='rx', raw=raw + bytes([sum(raw) & 0xFF]), payload=payload, source=0x10, target=0xF1)
+    r = km.decode_frame(rx(bytes([0x62, 0x10, 0x01, 0x1B, 0x58])))
+    assert r['kind'] == 'data' and r['values']['engine_rpm_candidate'] == 7000
+    d = km.decode_frame(rx(bytes([0x58, 0x00, 0x01, 0x05])))
+    assert d['kind'] == 'dtc' and d['values']['status'] == 0
+    w = km.decode_frame(Frame(t=0, direction='tx', raw=b'\x83\xF1\x10\x14\x00\x00', payload=bytes([0x14]), source=0xF1, target=0x10))
+    assert w is None  # tx frames not decoded as data
+    w2 = km.decode_frame(rx(bytes([0x54, 0x00])))
+    assert w2['kind'] == 'write_class'
+    cap = km.decode_capture([rx(bytes([0x62, 0x10, 0x01, 0x00, 0x64])), rx(bytes([0x54, 0x00]))])
+    assert cap['profile'] == 'kmsk16_kline_research' and len(cap['events']) == 1 and cap['write_class_frames'] == 1

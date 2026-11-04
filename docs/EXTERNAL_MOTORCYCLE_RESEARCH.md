@@ -612,3 +612,11 @@ Owner note applied: repos may name only the ECU (e.g. "IAW 5AM", "MT05"), not th
 - https://github.com/WadieBenabdouh/MT05-Terminal (no license = open) — [experimental] Delphi MT05 motorcycle CAN terminal app.
 - https://github.com/mookiedog/ApriliaGen1ECU (NOASSERTION) — [experimental] Aprilia Gen1 ECU schematics collection.
 
+## Round 24 additions — ECU-family sweep (2026-11-04), see docs/ECU_PROTOCOL_SWEEP_2026-11-04.md
+
+- [denandz/5am_util](https://github.com/denandz/5am_util/tree/73ba179513bf) (BSD-3-Clause; migrated to codeberg.org/DoI/5am_util) — IAW5AM KWP2000/UDS firmware reader/writer (Ducati 848/1098/1198), self-described proof-of-concept → [experimental].
+- [josapratama/SmartFI-Diag-Universal](https://github.com/josapratama/SmartFI-Diag-Universal/tree/3d365022ab91) (MIT) — ESP32 universal SmartFI KWP2000 fast-init scanner (Honda PGM-FI + Yamaha) → [verified-class tool] reference.
+- [phduc775-png/Honda-Winner-150-2016---K-Line-ECU-Telemetry-Protocol](https://github.com/phduc775-png/Honda-Winner-150-2016---K-Line-ECU-Telemetry-Protocol/tree/a7f56c11b4ae) (no license = open) — Keihin K-Line fast-init + live-table RE doc, Honda Winner 150 → [experimental].
+- [MarioLange1983/FanticAnalyzer](https://github.com/MarioLange1983/FanticAnalyzer) (no license = open) — UDS-over-BLE for Fantic e-shock module → [experimental].
+- [mattb97267-ai/iaw5am](https://github.com/mattb97267-ai/iaw5am/tree/889529331ea6) (no license = open) — "ducati immo off bin" payload: **legal-use-only citation, not vendored or implemented**.
+

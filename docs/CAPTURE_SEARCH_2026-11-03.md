@@ -663,3 +663,26 @@ Shindengen, SIMK43, Denso, ...). Motorcycle-relevant hits:
 - **mookiedog/ApriliaGen1ECU** (NOASSERTION) — Aprilia Gen1 ECU schematics. [experimental]
 - Remaining hits (VAGFlasher/ME17, SIMK43 Hyundai tools, ME7.9 Toyota) are
   car ECUs — noted, not adopted for motorcycle profiles.
+
+## Round 24 — exhaustive ECU-family/part-number sweep (2026-11-04)
+
+~50 authenticated GitHub repo-search queries by ECU family (Marelli IAW
+5AM–P8, Bosch ME/MG/MSE, Delphi MT, Keihin/Shindengen/Denso/SIMK) and by
+protocol×brand. Full results in `docs/ECU_PROTOCOL_SWEEP_2026-11-04.md`.
+
+**New motorcycle-relevant sources:** denandz/5am_util @ 73ba1795 (BSD-3-Clause,
+IAW5AM KWP2000/UDS firmware reader/writer — proof-of-concept, migrated to
+Codeberg) [experimental]; josapratama/SmartFI-Diag-Universal @ 3d365022ab91
+(MIT, ESP32 universal SmartFI KWP2000 scanner) [verified-class tool];
+phduc775-png Honda Winner 150 K-Line telemetry doc @ a7f56c11b4ae
+[experimental]; MarioLange1983/FanticAnalyzer (UDS-over-BLE e-shock)
+[experimental]; mattb97267-ai/iaw5am "ducati immo off bin" — legal-use-only
+citation, not vendored.
+
+**Confirmed gap:** most motorcycle ECU families (IAW 5SF/7SM/8GM/15M/15P/
+15RC/16M/18M/59M/11MP/P8, Bosch ME17/ME9 on bikes, Delphi MT80/86, Denso/
+SIMK on bikes) have **no public repo-level protocol docs** — knowledge sits in
+forums, XDF/BIN libraries and commercial tools. Public motorcycle protocol
+coverage is concentrated in Honda Keihin K-Line, Yamaha K-Line/CAN, Suzuki
+SDS, Marelli IAW 5AM/59M, Triumph K-Line and Buell DDFI. Findings documented
+first per owner instruction; app integration is a follow-up.

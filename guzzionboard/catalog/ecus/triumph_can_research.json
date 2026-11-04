@@ -1,0 +1,31 @@
+{
+  "id": "triumph_can_research",
+  "family": "Triumph CAN broadcast (research)",
+  "display_name": "Triumph CAN (candidate broadcast decode)",
+  "transport": "can",
+  "confidence": "unknown",
+  "years": "2013 Street Triple / 2017-2021 Tiger 1200 Gen 3 (source-observed)",
+  "notes": "Offline passive decoder of observed Triumph broadcast IDs: Tiger 1200 Gen 3 0x500 brake light, 0x567 handlebar buttons (2-bit crumbs), 0x600 TPMS (psi*5, temp+50, counters/faults), 0x210 ABS brake pressure (raw); Daytona 675/Street Triple 2013-era 0x518 RPM/4, 0x540 gear/neutral/CEL, 0x550 coolant bars, 0x570 coolant BE16/10. Sources: talss89/motorcycle-canbus-info (MIT, LICENSES/MotorcycleCanbusInfo-MIT.txt) + triumph675.net forum ID post cross-checked with triumphrat.net 2019 dash-eliminator thread. Candidate-grade sniffing notes; not verified captures. guzzionboard/triumph_can.py; synthetic tests only.",
+  "session": {
+    "protocol": "triumph-can-research",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Broadcast only; no ECU memory access."
+  },
+  "capabilities": [
+    "live"
+  ],
+  "sources": [
+    "https://github.com/talss89/motorcycle-canbus-info/blob/main/Motorcycles/triumph-tiger-1200-gen3.md (MIT)",
+    "https://www.triumph675.net/threads/ecu-to-dash-can-bus-message-ids.242889/ (2018 forum ID post)",
+    "https://www.triumphrat.net/threads/triumph-instrumentation-cluster-abs-adapter-eliminator-can-bus.948858/ (2019)"
+  ]
+}

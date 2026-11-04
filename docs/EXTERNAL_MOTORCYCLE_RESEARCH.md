@@ -451,12 +451,13 @@ hardware.
 * [SV650overlay](https://github.com/BananaJoh/sv650overlay/tree/cc80f0d35abd60255bbcd74cdddef515ed4945ce) reports an operating **2007 SV650AK7**, and provides the wake and sensor conversions used here (GPL-3.0; `LICENSES/SV650overlay-GPL-3.0.txt`). We use a six-second idle, 25/25 ms fast wake, `81 12 F1 81 05`, and the fixed `21 08` read. RPM, TPS, temperatures, battery and the gear/status byte are **candidates**, not verified measurements or safety inputs; the source itself cautions that some conversions are inaccurate. RPM uses only the high byte.
 * [synfinatic/sv650sds](https://github.com/synfinatic/sv650sds/tree/bacf803a9056241ef270acf0e7e31467961aeba5) describes communication with **2003–2005 SV650** and supplies a raw `21 08` capture from ECU 32920-17G2. Source is GPL-3.0 (`LICENSES/SV650SDS-GPL-3.0.txt`). The separate session returns only raw bytes and never uses the AK7 conversions. The documented model-year range is not a hardware test of every bike.
 * [aollin/racechrono-ble-diy-device](https://github.com/aollin/racechrono-ble-diy-device/tree/2b6bd28c6e0ad95c559d23033fd45df8cc8d4808) — RaceChrono BLE DIY transport API (service 0x1FF8, CAN char 0x0001 raw frames, filter char 0x0002, GPS chars 0x0003/0x0004) with reference firmware; **no bike-specific CAN IDs or captures** (KTM test bike mentioned, nothing decoded). Treated as open per the standing license policy; transport facts cited only. Not used for any decoder.
+* [NetworkDir/moto-ecu-checksum](https://github.com/NetworkDir/moto-ecu-checksum/tree/43ccc5f3663e2a175b7217f802bc302830e6862b) — ECU image checksum verify/repair tooling (Bosch MSE6/8/MG1, Yamaha MT, Honda Keihin, Dell'Orto, QH250, Italjet/Suzuki). No license stated, treated as open per project policy. Verify and author-confirmed repair algorithms reimplemented (`guzzionboard/ecu_image_checksums.py`); repair is opt-in per the write-class policy (usable when the author indicates success — here byte-identical vs. commercial tools / flashed-and-running); the app itself performs no ECU writes.
 * [pacdavid1/buell-xb12x-logger](https://github.com/pacdavid1/buell-xb12x-logger/tree/45a762442fb3018500f9dcc789725d4383de4332) — **MIT** (`LICENSES/Buell-XB12X-Logger-MIT.txt`) — documents the Buell XB12X IDS **DDFI-2** serial protocol end-to-end: PDU envelope `01 SRC DST LEN FF 02 payload 03 XOR-CS` at 9600 8N1 (tester 0x00 / ECM 0x42), commands GET 0x52 (EEPROM read, max 16 B/chunk), VERSION 0x56, RT_DATA 0x43, ACK 0x06; BUEIB 6-page/1206-byte EEPROM map; the full DDFI-2 real-time field table in `ecu_defs/rtdata.xml` (75 fields with offset/scale/translate). Used read-only: offline decoder `guzzionboard/buell_ddfi2_serial.py` (PDU parse, GET/RT decode, passive `decode_capture`) plus a multi-brand panel option. The upstream **CMD_SET 0x57 EEPROM write is NOT implemented** — write stays out of scope.
 * [AutotronicCommunity/Honda_Keihin_KLine_Protocol](https://github.com/AutotronicCommunity/Honda_Keihin_KLine_Protocol) documents the Honda Keihin K-Line diagnostic procedure (10400 8N1, wake `FE 04 72 8C`, init `72 05 00 F0 99`, `72 NN QQ ZZ CS` requests with two's-complement checksum) and ships a captured K25 request/response transcript (`REQUEST - RESPONSE ECU HONDA K25 901.txt`). Treated as open per the standing license policy (modifiable/removable later if the author advises otherwise); protocol facts and captured frames cited, decoder independently reimplemented. Read-only research; the clear-DTC query 0x60 is a write and is not implemented.
 * [AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike](https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike) (poster PNG) gives per-table live-data formulas (tables 10/11/13/17/20/21/D1 and aliases), used as candidate-grade field maps in `guzzionboard/honda_keihin_kline.py` and the multi-brand offline panel. [Protokol-Diagnostik-PGMFI-Honda-Bike](https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike) (poster PNG) gives the 73/74 DTC layouts and PC817 K-Line interface schematics. Treated as open per the standing license policy; cited only.
 * [AutotronicCommunity/dtc_honda](https://github.com/AutotronicCommunity/dtc_honda) and [dtc-yamaha](https://github.com/AutotronicCommunity/dtc-yamaha) are manufacturer DTC ↔ OBD2 P-code dictionaries; transcribed with citation into `guzzionboard/catalog/dtc_manufacturer.json`. Treated as open per the standing license policy.
 * [AutotronicCommunity/DATABASE_KONEKSI_YAMAHA](https://github.com/AutotronicCommunity/DATABASE_KONEKSI_YAMAHA) maps 101 Yamaha part codes to models/years and connection type (K-Line vs CANBUS). Cited on the Yamaha/Suzuki/Kawasaki research profiles; treated as open per the standing license policy.
-* [AutotronicCommunity/ScantoolHonda](https://github.com/AutotronicCommunity/ScantoolHonda) and [scantoolHondaEsp32](https://github.com/AutotronicCommunity/scantoolHondaEsp32) implement the same Keihin K-Line table-17 reads on ESP32; field offsets cross-checked against the poster. Treated as open per the standing license policy; cited only. Flash/keyless/remap tools under this account (YamahaFlasher, ShindengenFlasher, SIMPLE-REMAP, CopyPaste24C02, hex2id_keihin_keyless, ODOMETER-FILE-GENERATOR, APP-EDIT-FLASH-COUNT, license cracks) are **not** used: they perform write/programming operations outside this project's read-only scope.
+* [AutotronicCommunity/ScantoolHonda](https://github.com/AutotronicCommunity/ScantoolHonda) and [scantoolHondaEsp32](https://github.com/AutotronicCommunity/scantoolHondaEsp32) implement the same Keihin K-Line table-17 reads on ESP32; field offsets cross-checked against the poster. Treated as open per the standing license policy; cited only. Flash/unlock tools under this account (YamahaFlasher, ShindengenFlasher, SIMPLE-REMAP, CopyPaste24C02, hex2id_keihin_keyless, ARDUINO_READ_ECU_MX_KING_V1) remain citation-only: no author-verified success evidence (Round 17), and any future use would be experimental-flagged under the 2026-11-04 scope update. Odometer/flash-count/license-crack repos (ODOMETER-FILE-GENERATOR, APP-EDIT-FLASH-COUNT, License-Tuner-Pro-RT, licenseRFPv3) stay excluded outright.
 
 Both profiles accept only addressed, checksum-valid 57-byte all-sensors responses; are read-only and restricted to the selected source model/year; and expose neither DTC, ECU identification, memory, control, nor flashing. GuzziOnBoard adaptations have synthetic tests and **no physical validation**. A K-Line adapter, appropriate connector and correct wiring are required.
 
@@ -488,3 +489,151 @@ Dynojet’s Delphi CAN product list includes 2011–2013 Softail/Dyna fitments a
 ### BRT Juken 5 write-encoding lead (2026-10-31)
 
 [cfbird/juken5 `8585b947`](https://github.com/cfbird/juken5/tree/8585b94715e5db01eb37bdd81c7b0a0a91c1d739) is an MIT-licensed unofficial client for the aftermarket BRT Juken 5, not an OEM fitment list. Its author explicitly says it has **not been hardware-tested**, its map bulk encoding is a guess, and field order/scaling are unknown. Inspection of `juken5/client.py` shows `read_maps` assumes hex-per-record and the guarded `save_fuel_base` and `save_ignition` wrappers accept opaque caller-supplied strings rather than producing payloads from edited cells. The existence of save opcodes does not establish how to encode a tune or restore a read. No Juken write is integrated on this evidence. Resolving the encoding and safely identifying compatible controllers are leads for future work; no Juken vendor executable, firmware or map is bundled.
+
+## Source re-audit — 2026-11-04
+
+Every GitHub repo previously checked was re-audited via the GitHub API on 2026-11-04: license, default branch, latest commit vs. the pinned commit used in this project. Pins remain the audited snapshots; `== pin` means the repo has not moved since we pinned it. No license changes were detected on any live repo. Non-GitHub sources (ducati.ms forum, Mana 850 manual, guzzitek, griso.org, ASW-NEXT manuals, ApriliaForum, r1-forum, allureluoli negative-example repo now deleted) cannot be re-audited via API — their citations stand as of the original audit date.
+
+| Repo | License | Branch | Latest commit | Status |
+|---|---|---|---|---|
+| AutotronicCommunity/DATABASE_KONEKSI_YAMAHA | NONE | main | 504fa8a7ac45 (2026-01-04) | ok |
+| AutotronicCommunity/Honda_Keihin_KLine_Protocol | NONE | main | 9d55bbe597f9 (2021-12-27) | ok |
+| AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike | NONE | main | c5988212954d (2026-05-19) | ok |
+| AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike | NONE | main | 9535a9e36074 (2026-05-19) | ok |
+| AutotronicCommunity/ScantoolHonda | NONE | main | 2f77c6c2088c (2025-06-02) | ok |
+| AutotronicCommunity/dtc-yamaha | NONE | main | 19d23704545e (2025-07-28) | ok |
+| AutotronicCommunity/dtc_honda | NONE | main | 1e736f27b4f6 (2025-07-28) | ok |
+| AutotronicCommunity/scantoolHondaEsp32 | NONE | main | 6d3a8e06af9a (2025-06-09) | ok |
+| BananaJoh/sv650overlay | GPL-3.0 | master | cc80f0d35abd (2022-09-29) | ok |
+| EhrenTheMan/Ducati-Desmo-Shim-Calculator | NONE | main | 146d2e93261d (2026-09-04) | ok |
+| HagayBT/BMW-R1300GS-Smart-Backlight-Fog-Light-Controller | MIT | main | a4c37ceabeea (2026-05-23) | ok |
+| LeZed97/ZedSuite | GPL-3.0 | master | 77d75fb9e28d (2026-10-08) | ok |
+| MrAnnix/ecu-forge-app | AGPL-3.0 | main | 1099842e7088 (2026-03-19) | ok |
+| NetworkDir/moto-ecu-checksum | NONE | main | 43ccc5f3663e (2026-10-24) | == pin, no drift |
+| PCTestAdmin/ECU-Studio-AI | GPL-3.0 | main | 0cec5e866fc2 (2026-11-01) | ok |
+| PhatDatPQ/eculib | MIT | main | 7921cc46551f (2021-05-02) | ok |
+| QuickosssLabs/HarleyDroidEVO | GPL-3.0 | main | 668b63efc059 (2026-09-27) | ok |
+| RyoheiHashimoto/obd2 | MIT | main | eca0df8db665 (2026-09-12) | ok |
+| SRodriguezSpina/manual-rag-assistant | MIT | main | 972b8c7c2db2 (2026-10-07) | ok |
+| Snoman002/Engine-Tune-Repository-TunerPro-EFIlive-TunerCat | NONE | master | 61136c6d0d59 (2022-01-24) | ok |
+| WiseNoodle/honda-moto-ecu-suite | GPL-3.0 | master | 85431bd831b2 (2026-09-17) | ok |
+| aaronlumen/Performance-Harley-Davidson-Tuning | GPL-3.0 | main | a3250e460e17 (2024-12-28) | ok |
+| aeaphichart/HondaECU-1 | GPL-3.0 | master | b59ae98baf09 (2019-08-17) | ok |
+| andreibaw/Honda_K-Line_KWP2000 | GPL-3.0 | main | f3bd42ff438e (2025-12-13) | ok |
+| andrewwilke/daytona-kline | GPL-3.0 | main | d37e96718f5c (2026-10-08) | ok |
+| aollin/racechrono-ble-diy-device | NONE | master | 2b6bd28c6e0a (2026-08-21) | == pin, no drift |
+| aster94/Keyword-Protocol-2000 | GPL-3.0 | master | 94c4ff0675cc (2026-09-12) | ok |
+| atoid/Dash | MIT | master | 532d0f4fef1b (2018-06-02) | ok |
+| atoid/DashBle | MIT | master | 9c65818d13dd (2018-05-27) | ok |
+| bbutka/vpw-sniffer | MIT | main | 37aa6f974615 (2026-04-20) | ok |
+| brendan-w/python-OBD | GPL-2.0 | master | a378bdd81d58 (2025-04-07) | ok |
+| brendisurfs/OpenRaceTelemetry | GPL-3.0 | main | 3daf1322dee9 (2026-10-23) | ok |
+| cfbird/juken5 | MIT | main | 8585b94715e5 (2026-09-21) | ok |
+| f6hic/iBeatRedux | NONE | main | 01f4bade90f3 (2021-01-03) | ok |
+| gabrielerandazzo/iKawa | MIT | main | 79eb9049d130 (2026-07-28) | ok |
+| gobftald/CCM450-diag | NONE | main | 43104d2cfca9 (2026-08-06) | ok |
+| kelvinvalencio/cbr250rr-ecu-binary-definition | NONE | main | 8be351c71820 (2023-02-12) | ok |
+| ktmrc3902022/KTM-OBD | NONE | main | cc0e7a23802f (2026-10-22) | ok |
+| lostconsequently/Suzuki-SDL-Viewer | MIT | main | fcba84e18f0a (2026-10-29) | ok |
+| mgithens1/kawasaki-can-hack | MIT | main | 26820ddf88d6 (2026-06-14) | ok |
+| pacdavid1/buell-xb12x-logger | MIT | main | 45a762442fb3 (2026-09-20) | == pin, no drift |
+| ramblenride/motorcycle-service-db | CC-BY-SA-4.0 | main | 3d21b582720e (2025-07-16) | ok |
+| renatobo/DucatiPanigaleCanBus | MIT | main | 03e7127c69ee (2025-02-10) | ok |
+| rob9206/lawflo | NONE | main | 6255518dc911 (2026-02-26) | ok |
+| roccofz1/HondaECU | GPL-3.0 | master | dbb8d37bfb5d (2018-08-28) | ok |
+| slava-fm/moto-service-tool | MIT | main | ac39e456fdc9 (2026-06-07) | ok |
+| smiddelkoop/yamaha-kline-ubuntu | NOASSERTION | main | 0f7fef82d198 (2026-08-15) | ok |
+| synfinatic/sv650sds | GPL-3.0 | master | bacf803a9056 (2017-04-15) | == pin, no drift |
+| talss89/motorcycle-canbus-info | MIT | main | b65a4a8d58bb (2023-09-05) | ok |
+| tientuk3/DensoToXDF | NONE | main | 15fdf85a8c10 (2025-04-17) | ok |
+| tientuk3/m32r-bootloader-protocol | NONE | main | 3bffab1ac370 (2025-09-24) | ok |
+| uronour/suzuki-Kawasaki-ecu-tool | NONE | master | 4f92cc2adab2 (2026-09-28) | ok |
+| JackHat1/MT07 | RENAMED -> JackHat1/MT07_CAN_Project | MIT | master | (2025-09-10) | renamed; content matches pin |
+| danieltroger/cool-eva | AGPL-3.0 | main | 849ad29fe11a (2026-11-04) | ok |
+| RyanHope/HondaECU | GONE (not found; roccofz1/HondaECU GPL-3.0 is the pinned one) | — | — | — | gone; pin remains the audited snapshot |
+| digitwolf/w230 | MIT | main | c4e11d7dc54b (2026-09-23) | ok |
+| RIAEvangelist/zero-motorcycle-canbus | MIT | main | 2d9cac6d87b9 (2022-01-23) | ok |
+| DeziderMesko/motocan | NOASSERTION | main | acdb1464e327 (2026-10-23) | == pin, no drift |
+| drowland341/pwc-scan | RENAMED -> drowland341/pwc-scan-desktop | MIT | main | (2026-10-26) | renamed; ok |
+| terrafirma2021/Yamaha-DataLogger | NONE | main | d06a80aef95b (2024-07-27) | == pin, no drift |
+| billyjack2/CAN-DBC-Collection | NONE | main | 6e2f88fd6cd9 (2026-07-28) | == pin, no drift |
+
+Notes: `ducati.ms` and `allureluoli` resolve to no GitHub repo (forum / deleted) — recorded as non-GitHub or removed sources. `RyanHope/HondaECU` is gone; the equivalent pinned repo `roccofz1/HondaECU` (GPL-3.0) is unaffected. License policy unchanged: stated or not, sources are treated as open per project policy; write-class algorithms only with author-indicated success (Round 16).
+
+## Experimental-flag policy (2026-11-04)
+
+Write-class sources are added only when the upstream author indicates success with verifiable evidence (byte-identical vs. a commercial tool / flashed-and-running). Re-audit of all previously refused write-class repos (Round 17, CAPTURE_SEARCH_2026-11-03.md): none qualify — 0 added. Qualifying entries get an `[experimental]` tag and citation-only treatment; the app itself still performs no ECU writes.
+
+**Scope update (2026-11-04, owner direction):** this project is research / off-road / track-bike oriented. Flashing and unlock (UDS 0x27 seed/key for legitimate tuning of vehicles you own or are authorized to race) are IN SCOPE when legitimate and, where possible, author-confirmed. Immobilizer-related material may be cited with an explicit **legal-use-only** disclaimer (e.g. immo-off for track/race ECU conversions); no immobilizer-defeat payload is vendored or implemented. Odometer rollback, flash-count editing and license cracks remain excluded outright — those are fraud/cracking, not tuning.
+
+## Round 18 additions (2026-11-04, updated rules)
+
+- [kz6fittycent/XBTune](https://github.com/kz6fittycent/XBTune/tree/f474b9401bc4) — GPL-3.0; Buell DDFI-2/3 diagnostics + tuning, "Tested on a 2005 XB9SX" → [verified] reference; see LICENSES/XBTune-GPL3.txt. Read-only in this project.
+- [lab-vex/OBDuke](https://github.com/lab-vex/OBDuke/tree/cf51c6325fd5) — no license (open per policy); KTM 390 Duke gen1 CAN diagnostics, shipped releases → [verified].
+- [singular0/trecu](https://github.com/singular0/trecu/tree/2969212aa462) — GPL-3.0; Triumph K-Line ISO 9141-2 OBD-II, 415-code DTC dictionary, live data; confirmed on a real Triumph → [verified].
+- [lefaton/DDA_to_XML](https://github.com/lefaton/DDA_to_XML/tree/e90dc42f77cd) — NOASSERTION; Ducati DDA telemetry file parser, tested on a real bike → [verified].
+- [sunsided/suzuki-sds-obdii-gateway](https://github.com/sunsided/suzuki-sds-obdii-gateway/tree/20644c2e21ca) — no license (open); SDS/KWP2000 codec → OBD-II/CAN, host-tested → [verified].
+- [oJudgeStore/SmartGauge_for_Honda](https://github.com/oJudgeStore/SmartGauge_for_Honda/tree/2ce31f06ec53) — NOASSERTION; Honda PGM-FI K-Line live data + DTC → [verified].
+- [TanakonKetsakron/Motorcycle-ECU-Diagnostic-Monitoring-System](https://github.com/TanakonKetsakron/Motorcycle-ECU-Diagnostic-Monitoring-System/tree/dfad01639f2e) — no license (open); Honda/Yamaha K-Line monitoring, no documented success → [experimental].
+- [ludwig-v/psa-seedkey-algorithm](https://github.com/ludwig-v/psa-seedkey-algorithm/tree/5aef5117ac38) — GPL-3.0; UDS 0x27 seed/key extraction method (PSA cars) → [experimental] research reference; no unlock capability implemented.
+- [poozam/HondaKLineFlasherV1](https://github.com/poozam/HondaKLineFlasherV1/tree/3ec24c436234) — MIT; Honda K-Line flasher without documented success → [experimental] citation only, write path not adopted.
+
+## Round 21 additions — experimental citations (2026-11-04)
+
+Per owner direction, sources that look legitimate but lack documented success
+are added as `[experimental]` citations only — no capability implemented, no
+payload vendored. Keyless/immobilizer entries carry a **legal-use-only**
+disclaimer (research / off-road / track bikes you own or are authorized to
+race). Odometer / flash-count / license-crack repos remain excluded outright.
+
+- [AutotronicCommunity/YamahaFlasher](https://github.com/AutotronicCommunity/YamahaFlasher) — [experimental] Yamaha ECU flash tool, no license (open per policy), no documented success evidence.
+- [AutotronicCommunity/YAMAHA-FLASH-TOOL-V6-DEMO-VERSION](https://github.com/AutotronicCommunity/YAMAHA-FLASH-TOOL-V6-DEMO-VERSION) — [experimental] demo flasher (MX King 2PV0 / Exciter 2015-18 only), no license, no success evidence.
+- [AutotronicCommunity/YAHAMA-FLASH-VIA-KLINE---BACKDOOR](https://github.com/AutotronicCommunity/YAHAMA-FLASH-VIA-KLINE---BACKDOOR) — [experimental] K-Line flash path, no license, no success evidence.
+- [AutotronicCommunity/ShindengenFlasher](https://github.com/AutotronicCommunity/ShindengenFlasher) — [experimental] Shindengen ECU flasher, no license, no success evidence.
+- [AutotronicCommunity/SoftwareHondaFlasher](https://github.com/AutotronicCommunity/SoftwareHondaFlasher) — [experimental] Honda flasher, no license, no success evidence.
+- [AutotronicCommunity/SIMPLE-REMAP-K1ZG_N21_IN01_PCX-160](https://github.com/AutotronicCommunity/SIMPLE-REMAP-K1ZG_N21_IN01_PCX-160) and [AutotronicCommunity/SIMPLE-REMAP-MX-KING-2PV0](https://github.com/AutotronicCommunity/SIMPLE-REMAP-MX-KING-2PV0) — [experimental] remap tools, no license, no success evidence.
+- [AutotronicCommunity/SoftwareHondaECU](https://github.com/AutotronicCommunity/SoftwareHondaECU) — [experimental] commercial MCU flash installers, no license.
+- [AutotronicCommunity/CopyPaste24C02](https://github.com/AutotronicCommunity/CopyPaste24C02) — [experimental] EEPROM 24C02 copy tool (SCU Yamaha/Suzuki), no license.
+- [AutotronicCommunity/hex2id_keihin_keyless](https://github.com/AutotronicCommunity/hex2id_keihin_keyless) and [AutotronicCommunity/ID_TAG_PROGRAM_DEMO](https://github.com/AutotronicCommunity/ID_TAG_PROGRAM_DEMO) — [experimental] **legal-use-only disclaimer** (keyless/immobilizer ID programming; research/off-road/track vehicles you own or are authorized to race only), no license, no success evidence; cited, not implemented.
+- [AutotronicCommunity/ARDUINO_READ_ECU_MX_KING_V1](https://github.com/AutotronicCommunity/ARDUINO_READ_ECU_MX_KING_V1) — [experimental] MX King read via unlock-ID sequence, no license.
+- [poozam/HondaKLineFlasherV1](https://github.com/poozam/HondaKLineFlasherV1/tree/3ec24c436234) — [experimental] MIT-licensed Honda K-Line flasher, no documented success.
+- [tientuk3/m32r-bootloader-protocol](https://github.com/tientuk3/m32r-bootloader-protocol/tree/3bffab1ac370) — [experimental] Denso M32R bootloader flash read/write protocol docs, no license, no success evidence.
+- [AshanDilakshana/NS200-ESP32-Keyless-Immobilizer-Strobe](https://github.com/AshanDilakshana/NS200-ESP32-Keyless-Immobilizer-Strobe) — [experimental] **legal-use-only disclaimer** (keyless immobilizer; research/off-road/track only), no license; cited, not implemented.
+- Still excluded outright (fraud/cracking, not tuning): AutotronicCommunity ODOMETER-FILE-GENERATOR, APP-EDIT-FLASH-COUNT, License-Tuner-Pro-RT, licenseRFPv3.
+
+## Round 23 additions — ECU-part-number search (2026-11-04)
+
+Owner note applied: repos may name only the ECU (e.g. "IAW 5AM", "MT05"), not the motorcycle brand — searches now run by ECU part number. New findings:
+
+- https://github.com/Vasiy/onboard-logger/tree/7caf4e59ae2e (MIT) — on-board K-Line logger for a motorcycle Magneti Marelli IAW 5AM HW610 (Moto Guzzi); docs/PROTOCOL.md is a live-capture-verified KWP2000/ISO 14230 reference: 10400 8N1, addressed+short frames, fast init (25 ms BREAK) and 5-baud 0x33 slow init, TGT 0x10/SRC 0xF1, sum checksum. Corroborates the IAW 5AM profile.
+- https://github.com/Vasiy/ecu-map-viewer/tree/f454356b84c2 (no license = open per policy) — read-only IAW 5AM firmware (.bin/.xdf) map viewer for Ducati/Moto Morini calibrations.
+- https://github.com/ajfemia/ECUDelphiMT05/tree/525603936e89 (no license = open) — [experimental] Delphi MT05 ECU CAN reader (small Chinese motorbikes), Arduino.
+- https://github.com/Gabboxl/Ducati_HYM939_MY17 (no license = open) — [experimental] IAW 7SM.D0 HW210 ECU testing on a Ducati Hypermotard 939 MY17; may corroborate the 7SM profile.
+- https://github.com/WadieBenabdouh/MT05-Terminal (no license = open) — [experimental] Delphi MT05 motorcycle CAN terminal app.
+- https://github.com/mookiedog/ApriliaGen1ECU (NOASSERTION) — [experimental] Aprilia Gen1 ECU schematics collection.
+
+## Round 24 additions — ECU-family sweep (2026-11-04), see docs/ECU_PROTOCOL_SWEEP_2026-11-04.md
+
+- [denandz/5am_util](https://github.com/denandz/5am_util/tree/73ba179513bf) (BSD-3-Clause; migrated to codeberg.org/DoI/5am_util) — IAW5AM KWP2000/UDS firmware reader/writer (Ducati 848/1098/1198), self-described proof-of-concept → [experimental].
+- [josapratama/SmartFI-Diag-Universal](https://github.com/josapratama/SmartFI-Diag-Universal/tree/3d365022ab91) (MIT) — ESP32 universal SmartFI KWP2000 fast-init scanner (Honda PGM-FI + Yamaha) → [verified-class tool] reference.
+- [phduc775-png/Honda-Winner-150-2016---K-Line-ECU-Telemetry-Protocol](https://github.com/phduc775-png/Honda-Winner-150-2016---K-Line-ECU-Telemetry-Protocol/tree/a7f56c11b4ae) (no license = open) — Keihin K-Line fast-init + live-table RE doc, Honda Winner 150 → [experimental].
+- [MarioLange1983/FanticAnalyzer](https://github.com/MarioLange1983/FanticAnalyzer) (no license = open) — UDS-over-BLE for Fantic e-shock module → [experimental].
+- [mattb97267-ai/iaw5am](https://github.com/mattb97267-ai/iaw5am/tree/889529331ea6) (no license = open) — "ducati immo off bin" payload: **legal-use-only citation, not vendored or implemented**.
+
+## Round 25 additions — deep web search (2026-11-04)
+
+- [Njavris/m05.2](https://github.com/Njavris/m05.2) (MIT) — Delphi MT05.2 flash RE: K-Line KWP2000 addr 0x11/0xF1, CAN 0x7E0/0x7E4, documented fixed seed/key 0x1234→0x8474. Cited; no unlock implemented.
+- [HUD ECU Hacker docs](https://netcult.ch/elmue/HUD%20ECU%20Hacker/) — MT05/MT05.2 ISO14230 K-Line 10400 fast init, key bytes EF 8F, 6-pin plug; MT05.3 CAN ISO15765 0x7E0/0x7E8. Freeware docs, cited.
+- Arduino forum KDS3 CAN table (2026-08) — Kawasaki CAN IDs 0x100 RPM / 0x110 speed / 0x120 temp / 0x121 gear / 0x130 TPMS / 0x700-0x7FF diagnostic. Forum citation.
+- [danielbolsson/yamaha-data-logger](https://github.com/danielbolsson/yamaha-data-logger) — Yamaha outboard YDS K-Line incl. baud-switch unlock. [experimental]
+- [emanuelemerlo/marelli-iaw-ecu-studio](https://github.com/emanuelemerlo/marelli-iaw-ecu-studio) — pre-2001 IAW = FIAT protocol (1200-baud init, 7680-baud single-byte requests), 2001+ = KWP2000 OBD-II. Cross-family note.
+- diagcode.com bike release list — per-ECU service matrix (MIUG4/11MP/MIUG3/59M). Commercial tool docs, cited.
+- Eztys/SimpleKDS, Eztys/KDS, ahradnansky/GearIndicator, Ircama/ELM327-emulator (mt05 PID set) — KDS/SDS Arduino libraries, cited.
+
+- [blalor/ktm-can](https://github.com/blalor/ktm-can/tree/299b4e080168986ab535b81b81e2a9196f0c8c66) (2021, no license stated — open per policy) — 2020 KTM 690 Enduro R CAN broadcast IDs 0x120/0x129/0x12A/0x12B/0x290/0x450/0x540 with full byte maps (RPM BE16, gear nibbles, clutch, wheel speeds, tilt/lean signed12, brake, traction button, kickstand, coolant /10). Base credit Dan Plastina SuperDuke 1290 ADVrider. Reimplemented in `guzzionboard/ktm_690_can.py` (Round 27), candidate-grade.
+- [ChickenPoptart/KTMComputer](https://github.com/ChickenPoptart/KTMComputer) — 2020 690 Enduro R ESP32 dash/logging; confirms/extends blalor byte maps with ride-log captures.
+- BMW Motorrad ECUs: BMSK pre-2014 Bosch ME9 (KWP2000/serial, FLASH_0252); BMSX/DME/BMSMP 2014-17 S1000RR TriCore; BMS-O = Bosch ME17.2.4.2 TC1791/TC1793 on R1250/S1000RR MY18-19 (Dimsport plugins 1254/0136/0188); R1250 OBD-II ISO 15765; car-style diag CAN 0x6nn — note-only this round.
+- Harley-Davidson newer CAN (rusefi forum "Harley Requirements"; sofresh007/earnaz repos): 0x500 BCM state, 0x502, 0x540-0x548 (0x543 APP + crc8_j1850 checksum), 0x570 state, 0x541/0x542 — PIDs not published; possible future Harley CAN broadcast decoder.
+- [talss89/motorcycle-canbus-info](https://github.com/talss89/motorcycle-canbus-info) (MIT, `LICENSES/MotorcycleCanbusInfo-MIT.txt`) — 2017-2021 Triumph Tiger 1200 Gen 3 CAN sniffing notes: 0x500 brake light, 0x567 handlebar buttons (2-bit crumbs 1=inactive/2=pressed), 0x600 TPMS (byte1 tyre F/R, byte2 psi*5, byte3 temp+50, byte4 pressure/battery status nibbles, bytes6-7 counter, byte8 fault nibbles), 0x210 ABS brake pressure (bytes unresolved). Reimplemented in `guzzionboard/triumph_can.py` (Round 28), candidate-grade.
+- triumph675.net forum "ECU to DASH CAN bus Message IDs" (2018) + triumphrat.net 2019 Street Triple 2013 dash-eliminator thread — 2013-era Triumph ECU→dash IDs: 0x518 RPM/4, 0x519 TPS-ish, 0x540 gear bits 6..4 + neutral light B1 + CEL B2, 0x550 coolant bars bits 2..0 + warning B3, 0x570 coolant temp (256*b3+b2)/10. Forum citations, candidate-grade, same decoder.
+- [rscullin/beambreak](https://github.com/rscullin/beambreak/tree/master/CAN%20Bus) (no license stated — open per policy) — Zero SR/SR-F battery & ESC CAN at 250 kbit/s with 29-bit IDs; `SR_Battery.dbc` + notes give 0x0B57ED00 battery version, 0x0B57ED01 serial, 0x0B57ED0F ESC version/serial, 0x0B57ED10 lowest/highest cell V and pack V (LE, x0.001), 0x0B57ED14 SoC %, 0x0B57ED1F ESC power control (0 run / 2 off / 7 idle off), 0x0B57EDC0 button count + BLE pair. Passive decode reimplemented in `guzzionboard/zero_sr_battery_can.py` (Round 28); the upstream battery/ESC **emulator (TX) is not implemented** — read-only only.

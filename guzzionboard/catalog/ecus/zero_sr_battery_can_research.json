@@ -1,0 +1,29 @@
+{
+  "id": "zero_sr_battery_can_research",
+  "family": "Zero SR/SR-F battery & ESC CAN (research)",
+  "display_name": "Zero SR battery CAN (candidate broadcast decode)",
+  "transport": "can",
+  "confidence": "unknown",
+  "years": "Zero SR / SR-F (source-observed)",
+  "notes": "Offline passive decoder of Zero SR 29-bit extended-ID battery/ESC broadcasts at 250 kbit/s from the beambreak DBC + notes: 0x0B57ED00 battery version, 0x0B57ED01 serial, 0x0B57ED0F ESC version/serial, 0x0B57ED10 lowest/highest cell V + pack V (LE x0.001), 0x0B57ED14 SoC %, 0x0B57ED1F ESC power control, 0x0B57EDC0 button/BLE-pair; remaining IDs observed-undecoded. Source: rscullin/beambreak CAN Bus/SR_Battery.dbc (no license stated, open per policy; facts reimplemented+cited, DBC not vendored). The upstream battery/ESC EMULATOR (TX) is deliberately NOT implemented. guzzionboard/zero_sr_battery_can.py; synthetic tests only.",
+  "session": {
+    "protocol": "zero-sr-battery-can-research",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Broadcast only; no ECU memory access."
+  },
+  "capabilities": [
+    "live"
+  ],
+  "sources": [
+    "https://github.com/rscullin/beambreak/tree/master/CAN%20Bus (SR_Battery.dbc + SR Battery CAN Bus.md, no license stated)"
+  ]
+}

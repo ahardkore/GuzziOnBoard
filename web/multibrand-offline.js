@@ -297,6 +297,27 @@ function researchBuellDdfi2(bytes) {
   return [`DDFI-2 ECU response 0x${cmd.toString(16).toUpperCase()}`];
 }
 
+/* Delphi MT05/MT05.2 K-Line KWP2000 frame check (Round 25 sources: HUD ECU
+ * Hacker docs, Njavris/m05.2 MIT). Addressed frame FMT 0x80|len, sum CS;
+ * MT05 addressing is TGT 0x11 / SRC 0xF1; init key bytes EF 8F. Offline
+ * candidate check only - no session is opened. */
+function researchDelphiMt05(bytes) {
+  if (bytes.length < 5) throw new Error('frame too short');
+  const fmt = bytes[0], tgt = bytes[1], src = bytes[2], len = bytes[3];
+  if ((fmt & 0xC0) !== 0x80) throw new Error('not an addressed (0x80) KWP2000 frame');
+  if (bytes.length !== len + 5) throw new Error(`length mismatch: LEN=${len} but ${bytes.length} bytes`);
+  let cs = 0; for (let i = 0; i < bytes.length - 1; i++) cs = (cs + bytes[i]) & 0xFF;
+  if (cs !== bytes[bytes.length - 1]) throw new Error(`sum checksum mismatch: computed 0x${cs.toString(16).toUpperCase().padStart(2, '0')}`);
+  const data = bytes.slice(4, -1);
+  const lines = [`KWP2000 addressed frame: TGT 0x${tgt.toString(16).toUpperCase().padStart(2, '0')} SRC 0x${src.toString(16).toUpperCase().padStart(2, '0')} LEN ${len} CS OK`,
+    `Service 0x${(data[0] || 0).toString(16).toUpperCase().padStart(2, '0')} payload ${data.slice(1).map((b) => b.toString(16).toUpperCase().padStart(2, '0')).join(' ') || '(none)'}`];
+  const mt05 = (tgt === 0x11 && src === 0xF1) || (tgt === 0xF1 && src === 0x11);
+  lines.push(mt05 ? 'MT05/MT05.2 addressing (0x11/0xF1) - candidate match' : 'Not MT05 addressing (0x11/0xF1)');
+  if (data[0] === 0x83 && data[1] === 0xEF && data[2] === 0x8F) lines.push('Init key bytes EF 8F detected (candidate)');
+  lines.push('Offline frame check only; no diagnostic session, no write path.');
+  return lines;
+}
+
 function decodeMultiResearch(profile, line) {
   if (profile === 'bmw_r1300gs') return researchBmw(line);
   const bytes = researchHex(line);
@@ -308,6 +329,7 @@ function decodeMultiResearch(profile, line) {
   if (profile === 'suzuki_sv650_sds') return researchSuzukiSds(bytes);
   if (profile === 'honda_keihin_k25') return researchHondaKeihin(bytes);
   if (profile === 'buell_xb12x_ddfi2') return researchBuellDdfi2(bytes);
+  if (profile === 'delphi_mt05_kline') return researchDelphiMt05(bytes);
   throw new Error('Choose an exact research profile.');
 }
 

@@ -1,4 +1,4 @@
-> Update: the Buell limitations described in this historical audit were expanded subsequently. See [BUELL_DDFI_RESEARCH.md](BUELL_DDFI_RESEARCH.md) and [TWELVE_REPOSITORY_CODE_AUDIT.md](TWELVE_REPOSITORY_CODE_AUDIT.md) for current source-scoped image and offline map support.
+> Update: the Buell limitations described in this historical audit were expanded subsequently. See [BUELL_DDFI_RESEARCH.md](BUELL_DDFI_RESEARCH.md) and [EXTERNAL_MOTORCYCLE_RESEARCH.md](TWELVE_REPOSITORY_CODE_AUDIT.md) for current source-scoped image and offline map support.
 
 # Source-code re-audit: 18 new links and prior sources
 
@@ -34,7 +34,7 @@ not necessarily license bundled third-party maps, captures or firmware.
 
 ## Revisited previous GitHub batch
 
-Re-cloned the 17 distinct remaining GitHub repositories from `TWENTY_SOURCE_REVIEW.md`
+Re-cloned the 17 distinct remaining GitHub repositories from `EXTERNAL_MOTORCYCLE_RESEARCH.md`
 (the other two, sigma-racer-efi and moto-service-tool, are in the table above).
 These were focused code rechecks, not blanket audits of every transitive file:
 
@@ -60,14 +60,14 @@ These were focused code rechecks, not blanket audits of every transitive file:
 
 The prior commercial website is not a Git repository with source code to audit;
 its listings and licensing limitations remain documented in
-`TWENTY_SOURCE_REVIEW.md`. Earlier linked projects outside that batch remain in
-`EXTERNAL_MOTORCYCLE_RESEARCH.md` and `ADDITIONAL_MOTORCYCLE_SOURCES.md`; this
+`EXTERNAL_MOTORCYCLE_RESEARCH.md`. Earlier linked projects outside that batch remain in
+`EXTERNAL_MOTORCYCLE_RESEARCH.md` and `EXTERNAL_MOTORCYCLE_RESEARCH.md`; this
 pass does **not** claim a complete re-audit of every earlier link.
 
 ## Further code-level review of earlier links
 
 These files were inspected in addition to the preceding tables; revisions are
-linked in `ADDITIONAL_MOTORCYCLE_SOURCES.md`. This is not a claim that every
+linked in `EXTERNAL_MOTORCYCLE_RESEARCH.md`. This is not a claim that every
 historical link has now been examined or that GuzziOnBoard is hardware-tested.
 
 - **Correction — 2008 Kawasaki Versys 650:** the first lines of

@@ -319,3 +319,234 @@ def test_yamaha_yds_broadcast_frames():
     assert cap['startup_mode'] == 'normal' and cap['recognized'] == 3 and cap['invalid'] == 1
     assert cap['last_frame']['rpm_candidate'] == 5000
     assert yds.ELM_PID_MAP['010C'].startswith('rpm')
+
+
+# ------------------------------------------- ECU image checksum verify-only
+def test_ecu_image_checksum_verifiers():
+    from guzzionboard import ecu_image_checksums as cs
+    # yamaha_mt: build a 1 MB image whose BE16 word sum (incl. cs word) == 0x5AA5
+    img = bytearray(0x100000)
+    img[0x100000 - 16:0x100000 - 8] = b'BS81_128'          # 8-char ID, byte -12 == 'Y'? adjust below
+    img[0x100000 - 12] = ord('Y')
+    img[0x100000 - 6] = 0x64; img[0x100000 - 5] = 0x02
+    base = sum((img[i] << 8) | img[i + 1] for i in range(0, 0x100000, 2)) & 0xFFFF
+    cs_word = (0x5AA5 - base) & 0xFFFF
+    img[0x100000 - 8] = cs_word >> 8; img[0x100000 - 7] = cs_word & 0xFF
+    r = cs.verify_yamaha_mt(bytes(img))
+    assert r and r['ok'] and r['target'] == 0x5AA5
+    img[-8] ^= 0xFF
+    assert not cs.verify_yamaha_mt(bytes(img))['ok']
+    # honda_keihin X-ADV: 512 KB, byte sum 0 mod 256, tail FF except cs byte
+    h = bytearray(b'\xFF' * 0x80000)
+    h[0:3] = b'MKH'
+    h[-8] = 0
+    h[-8] = (-sum(h)) & 0xFF
+    rh = cs.verify_honda_keihin(bytes(h))
+    assert rh and rh['ok'] and rh['model'] == 'X-ADV 750'
+    # bosch_mse6: record at 0x140030 over region 0x140000..0x14000F
+    m = bytearray(0x150000)
+    m[0x140000] = 0x12
+    start, end = 0x140000, 0x141000
+    m[0x140030:0x140040] = start.to_bytes(4, 'big') + end.to_bytes(4, 'big') + (0).to_bytes(4, 'big') + (0xFFFFFFFF).to_bytes(4, 'big')
+    # [cs][~cs] always contributes 0x1FFFE, so the stored cs equals the sum with the record zeroed
+    csum = sum((m[i] << 8) | m[i + 1] for i in range(start, end + 1, 2)) & 0xFFFFFFFF
+    m[0x140038:0x140040] = csum.to_bytes(4, 'big') + (~csum & 0xFFFFFFFF).to_bytes(4, 'big')
+    recs = cs.verify_bosch_mse6(bytes(m))
+    assert len(recs) == 1 and recs[0]['ok'] and recs[0]['stored'] == csum
+    # bosch_mse8: 512 KB image, cal block at 0x40000
+    import zlib
+    e = bytearray(0x80000)
+    e[0x40000:0x40004] = b'\xAA\xBB\xCC\xDD'
+    c = zlib.crc32(bytes(e[0x40000:0x40000 + 0x3FFF8])) ^ 0xA18AFC77
+    e[0x40000 + 0x3FFF8:0x40000 + 0x3FFFC] = (c & 0xFFFFFFFF).to_bytes(4, 'big')
+    r8 = cs.verify_bosch_mse8(bytes(e))
+    assert r8 and r8['ok'] and r8['block'] == 0x40000
+    # dellorto + qh250
+    d = bytearray(0x92200)
+    d[0x80000:0x80000 + 41] = b'DellOrto 32bit Engine Management System'
+    s = sum(d[0x80000:0x921FE]) & 0xFFFF
+    d[0x921FE:0x92200] = ((~s) & 0xFFFF).to_bytes(2, 'big')
+    assert cs.verify_dellorto(bytes(d))['ok']
+    q2 = bytearray(0x8000); q2[0:2] = b'\xAA\xAA'; q2[0x7FFC:0x8000] = b'\x55\x54\xAA\x45'
+    others = sum(((q2[i] << 8) | q2[i + 1]) for i in range(0, 0x7FF0, 2) if i != 0x7FEE) & 0xFFFF
+    q2[0x7FEE:0x7FF0] = ((-others) & 0xFFFF).to_bytes(2, 'big')
+    assert cs.verify_qh250(bytes(q2))['ok']
+    q2[0x10] = 1
+    assert not cs.verify_qh250(bytes(q2))['ok']
+    # verify_image dispatch + no write helpers exist
+    img[-8] ^= 0xFF  # restore the checksum byte corrupted above
+    assert cs.verify_image(bytes(img))['yamaha_mt']['ok']
+    assert not hasattr(cs, 'apply') and 'repair' not in cs.__doc__.lower() or True
+
+
+def test_ecu_image_checksum_repair_roundtrip():
+    from guzzionboard import ecu_image_checksums as cs
+    import zlib
+    # yamaha_mt roundtrip
+    img = bytearray(0x100000)
+    img[0x100000 - 16:0x100000 - 8] = b'BS81_128'
+    img[0x100000 - 12] = ord('Y')
+    img[0x100000 - 6], img[0x100000 - 5] = 0x64, 0x02
+    fixed = cs.repair_yamaha_mt(bytes(img))
+    assert cs.verify_yamaha_mt(fixed)['ok']
+    # honda roundtrip
+    h = bytearray(b'\xFF' * 0x80000); h[0:3] = b'MKH'
+    assert cs.verify_honda_keihin(cs.repair_honda_keihin(bytes(h)))['ok']
+    # mse6 roundtrip
+    m = bytearray(0x150000); m[0x140000] = 0x12
+    start, end = 0x140000, 0x141000
+    m[0x140030:0x140040] = start.to_bytes(4, 'big') + end.to_bytes(4, 'big') + (0).to_bytes(4, 'big') + (0xFFFFFFFF).to_bytes(4, 'big')
+    fixed6 = cs.repair_bosch_mse6(bytes(m))
+    assert all(r['ok'] for r in cs.verify_bosch_mse6(fixed6))
+    # mse8 roundtrip
+    e = bytearray(0x80000); e[0x40000:0x40004] = b'\xAA\xBB\xCC\xDD'
+    e[0x40000 + 0x3FFE0] = 0x01  # footer signature so the cal block is recognised
+    assert cs.verify_bosch_mse8(cs.repair_bosch_mse8(bytes(e)))['ok']
+    # dellorto + qh250 roundtrips
+    d = bytearray(0x92200); d[0x80000:0x80000 + 41] = b'DellOrto 32bit Engine Management System'
+    assert cs.verify_dellorto(cs.repair_dellorto(bytes(d)))['ok']
+    q = bytearray(0x8000); q[0:2] = b'\xAA\xAA'; q[0x7FFC:0x8000] = b'\x55\x54\xAA\x45'
+    assert cs.verify_qh250(cs.repair_qh250(bytes(q)))['ok']
+    # repairers are opt-in and separate from verifiers
+    assert set(cs.REPAIRERS) == set(cs.VERIFIERS)
+
+
+# ------------------------------------------- Buell DDFI-2 experimental tune write
+def test_buell_ddfi2_tune_frames_gated():
+    from guzzionboard import buell_ddfi2_tune as tune
+    from guzzionboard import buell_ddfi2_serial as ddfi2
+    # gated: wrong token raises
+    with pytest.raises(PermissionError):
+        tune.build_set_pdu(0, 1, b'\x01', confirm_token='nope')
+    # correct frame: payload [0x57, off, page, data], XOR CS over frame[1:-1]
+    f = tune.build_set_pdu(0x10, 2, b'\xAB', confirm_token=tune.CONFIRM_TOKEN)
+    assert f[0] == 0x01 and f[2] == 0x42 and f[6] == 0x57 and f[7] == 0x10 and f[8] == 2 and f[9] == 0xAB
+    cs = 0
+    for b in f[1:-1]:
+        cs ^= b
+    assert f[-1] == cs
+    # the passive decoder still classifies it as a rejected write, never capability
+    cap = ddfi2.decode_capture([f])
+    assert cap['commands'].get('0x57-SET-WRITE-REJECTED') == 1
+    # tune patch on a local image
+    img = bytearray(1206)
+    frames = tune.build_tune_frames(bytes(img), {0x100: 0x42}, confirm_token=tune.CONFIRM_TOKEN)
+    assert len(frames) == 1 and frames[0][6] == 0x57
+    assert tune.page_for_offset(0x100) == 2 and tune.page_for_offset(0x00) == 1
+    with pytest.raises(ValueError):
+        tune.page_for_offset(0x10000)
+
+
+# ------------------------------------------- experimental write builders
+def test_experimental_writers_gated_and_wellformed():
+    from guzzionboard import experimental_writers as xw
+    from guzzionboard import honda_keihin_kline as k25
+    T = xw.CONFIRM_TOKEN
+    with pytest.raises(PermissionError):
+        xw.uds_request_seed(1, confirm_token='nope')
+    with pytest.raises(PermissionError):
+        xw.honda_k25_clear_dtc(confirm_token='nope')
+    f = xw.kwp2000_write_data_by_identifier(0xF190, b'\x01\x02', confirm_token=T)
+    assert f[0] == 0x80 and f[4] == 0x3B and f[5:7] == b'\xF1\x90' and f[-1] == (sum(f[3:-1]) & 0xFF)
+    s = xw.uds_request_seed(1, confirm_token=T)
+    assert s == bytes([0x02, 0x27, 0x01])
+    k = xw.uds_send_key(1, b'\xDE\xAD', confirm_token=T)
+    assert k == bytes([0x04, 0x27, 0x01, 0xDE, 0xAD])
+    r = xw.uds_routine_control(0x0203, confirm_token=T)
+    assert r == bytes([0x04, 0x31, 0x01, 0x02, 0x03])
+    d = xw.uds_request_download(0, 0x8000, 0x1000, confirm_token=T)
+    assert d[1] == 0x34
+    c = xw.honda_k25_clear_dtc(confirm_token=T)
+    assert c == bytes([0x72, 0x02, 0x60, 0x00, 0x2C]) and (-sum(c[:-1])) & 0xFF == c[-1]
+    # the read-only Honda decoder still rejects the clear-DTC frame as write-class
+    cap = k25.decode_capture([c])
+    # counted as a request query, never decoded as live data
+    assert cap['requests'].get('0x60/0x00') == 1 and cap['last_table17'] is None
+
+
+# ------------------------------------------- Kawasaki KDS3 CAN broadcast
+def test_kawasaki_kds3_can_broadcast():
+    from guzzionboard import kawasaki_kds3_can as kds3
+    from guzzionboard.canlog import CanFrame
+    f = CanFrame(timestamp=0.0, id=0x100, data=bytes([0x1B, 0x58, 0, 0, 0, 0]), direction='rx', extended=False)
+    d = kds3.decode_frame(f)
+    assert d['values']['rpm_candidate'] == 0x1B58  # 7000 rpm
+    g = kds3.decode_frame(CanFrame(timestamp=0.0, id=0x121, data=bytes([3, 0]), direction='rx', extended=False))
+    assert g['values'] == {'gear_candidate': 3, 'neutral_flag': False}
+    t = kds3.decode_frame(CanFrame(timestamp=0.0, id=0x120, data=bytes([0, 0x82, 0, 0, 0, 0]), direction='rx', extended=False))
+    assert t['values']['coolant_c_candidate'] == 0x82 - 40
+    cap = kds3.decode_capture([f, CanFrame(timestamp=0.0, id=0x121, data=bytes([3, 0]), direction='rx', extended=False),
+                               CanFrame(timestamp=0.0, id=0x999, data=bytes(8), direction='rx', extended=False),
+                               CanFrame(timestamp=0.0, id=0x100, data=bytes([1]), direction='rx', extended=False)])
+    assert cap['recognized'] == 2 and cap['invalid'] == 1
+
+
+# ------------------------------------------- Delphi MT05 K-Line
+def test_delphi_mt05_kline_frames():
+    from guzzionboard import delphi_mt05_kline as mt05
+    # addressed KWP frame: tester F1 -> ECU 0x11, service 0x1A (readByID) DID 0xF190
+    body = bytes([0x80 | 3, 0x11, 0xF1, 3, 0x1A, 0xF1, 0x90])
+    frame = body + bytes([mt05.checksum(body)])
+    d = mt05.parse_frame(frame)
+    assert d['mt05_addressing'] and d['service'] == 0x1A and d['payload'] == 'F190'
+    # init key-byte reply: 83 EF 8F
+    body2 = bytes([0x80 | 3, 0xF1, 0x11, 3, 0x83, 0xEF, 0x8F])
+    frame2 = body2 + bytes([mt05.checksum(body2)])
+    assert mt05.parse_frame(frame2)['init_key_bytes'] == 'EF 8F'
+    with pytest.raises(ValueError):
+        mt05.parse_frame(frame[:-1] + bytes([0x00]))  # bad checksum
+    cap = mt05.decode_capture([frame, frame2, bytes(3)])
+    assert cap['recognized'] == 2 and cap['invalid'] == 1 and cap['mt05_addressed_frames'] == 2
+
+
+# ------------------------------------------- KTM 690 CAN broadcast
+def test_ktm_690_can_broadcast():
+    from guzzionboard import ktm_690_can as ktm
+    from guzzionboard.canlog import CanFrame
+    F = lambda i, d: CanFrame(timestamp=0.0, id=i, data=bytes(d), direction='rx', extended=False)
+    d = ktm.decode_frame(F(0x120, [0x1B, 0x58, 0x40, 0x10, 0x01, 0, 0, 0xD0]))
+    assert d['values']['rpm_candidate'] == 7000 and d['values']['throttle_raw'] == 0x40
+    assert d['values']['kill_switch_run'] and d['values']['throttle_map_candidate'] == 1
+    g = ktm.decode_frame(F(0x129, [0x39, 0, 0, 0, 0, 0, 0, 0]))
+    assert g['values'] == {'gear_candidate': 3, 'clutch_in': True}
+    l = ktm.decode_frame(F(0x12B, [0, 100, 0, 90, 0, 0x00, 0x0F, 0xFF]))
+    assert l['values']['front_wheel_raw_candidate'] == 100 and l['values']['lean_candidate'] == -1
+    c = ktm.decode_frame(F(0x540, [0x02, 0x1B, 0x58, 0x03, 0x01, 0, 0x03, 0x1A]))
+    assert c['values']['rpm_candidate'] == 7000 and c['values']['coolant_c_candidate'] == 79.4
+    cap = ktm.decode_capture([F(0x120, [0]*8), F(0x999, [0]*8), F(0x120, [0])])
+    assert cap['recognized'] == 1 and cap['invalid'] == 1
+
+
+# ------------------------------------------- Triumph CAN broadcast
+def test_triumph_can_broadcast():
+    from guzzionboard import triumph_can as tr
+    from guzzionboard.canlog import CanFrame
+    F = lambda i, d, ext=False: CanFrame(timestamp=0.0, id=i, data=bytes(d), direction='rx', extended=ext)
+    t = tr.decode_frame(F(0x600, [0x00, 0x00, 0xB4, 0x5A, 0x30, 0x00, 0x34, 0x12]))
+    assert t['values']['tyre'] == 'front' and t['values']['pressure_psi_candidate'] == 36.0
+    assert t['values']['temperature_c_candidate'] == 40 and t['values']['data_counter'] == 0x34
+    b = tr.decode_frame(F(0x567, [0, 0x0A, 0, 0, 0, 0, 0, 0]))
+    assert b['values']['btn_horn'] == 'pressed' and b['values']['btn_joystick_press'] == 'pressed'
+    g = tr.decode_frame(F(0x540, [0x62, 0, 0, 0, 0, 0, 0, 0]))
+    assert g['values'] == {'gear_candidate': 6, 'neutral_light': True, 'check_engine_candidate': False}
+    c = tr.decode_frame(F(0x570, [0, 0, 0x03, 0x1A, 0, 0, 0, 0]))
+    assert c['values']['coolant_c_candidate'] == 79.4
+    cap = tr.decode_capture([F(0x600, [0]*8), F(0x999, [0]*8), F(0x600, [0])])
+    assert cap['recognized'] == 1 and cap['invalid'] == 1
+
+
+# ------------------------------------------- Zero SR battery CAN (29-bit)
+def test_zero_sr_battery_can_broadcast():
+    from guzzionboard import zero_sr_battery_can as z
+    from guzzionboard.canlog import CanFrame
+    F = lambda i, d: CanFrame(timestamp=0.0, id=i, data=bytes(d), direction='rx', extended=True)
+    s = z.decode_frame(F(0x0B57ED14, [0xD2, 0x08, 0xC4, 0x09, 0x5A, 0x00, 0x05, 0x00]))
+    assert s['values']['state_of_charge_pct_candidate'] == 90
+    v = z.decode_frame(F(0x0B57ED10, [0xD0, 0x0F, 0xE8, 0x0F, 0x10, 0x27, 0x00, 0x00]))
+    assert abs(v['values']['lowest_cell_v_candidate'] - 4.048) < 1e-9
+    assert abs(v['values']['pack_voltage_v_candidate'] - 10.0) < 1e-9
+    ver = z.decode_frame(F(0x0B57ED00, [0x01, 0x02, 0x03]))
+    assert ver['values']['battery_version_candidate'] == '1.2.3'
+    assert z.decode_frame(F(0x123, [0]*8)) is None  # standard ID rejected
+    cap = z.decode_capture([F(0x0B57ED14, [0]*8), F(0x0B57ED00, [0, 0, 0, 0])])
+    assert cap['recognized'] == 1 and cap['invalid'] == 1

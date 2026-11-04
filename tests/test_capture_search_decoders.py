@@ -409,3 +409,29 @@ def test_ecu_image_checksum_repair_roundtrip():
     assert cs.verify_qh250(cs.repair_qh250(bytes(q)))['ok']
     # repairers are opt-in and separate from verifiers
     assert set(cs.REPAIRERS) == set(cs.VERIFIERS)
+
+
+# ------------------------------------------- Buell DDFI-2 experimental tune write
+def test_buell_ddfi2_tune_frames_gated():
+    from guzzionboard import buell_ddfi2_tune as tune
+    from guzzionboard import buell_ddfi2_serial as ddfi2
+    # gated: wrong token raises
+    with pytest.raises(PermissionError):
+        tune.build_set_pdu(0, 1, b'\x01', confirm_token='nope')
+    # correct frame: payload [0x57, off, page, data], XOR CS over frame[1:-1]
+    f = tune.build_set_pdu(0x10, 2, b'\xAB', confirm_token=tune.CONFIRM_TOKEN)
+    assert f[0] == 0x01 and f[2] == 0x42 and f[6] == 0x57 and f[7] == 0x10 and f[8] == 2 and f[9] == 0xAB
+    cs = 0
+    for b in f[1:-1]:
+        cs ^= b
+    assert f[-1] == cs
+    # the passive decoder still classifies it as a rejected write, never capability
+    cap = ddfi2.decode_capture([f])
+    assert cap['commands'].get('0x57-SET-WRITE-REJECTED') == 1
+    # tune patch on a local image
+    img = bytearray(1206)
+    frames = tune.build_tune_frames(bytes(img), {0x100: 0x42}, confirm_token=tune.CONFIRM_TOKEN)
+    assert len(frames) == 1 and frames[0][6] == 0x57
+    assert tune.page_for_offset(0x100) == 2 and tune.page_for_offset(0x00) == 1
+    with pytest.raises(ValueError):
+        tune.page_for_offset(0x10000)

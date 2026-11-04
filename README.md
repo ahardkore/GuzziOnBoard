@@ -195,7 +195,7 @@ Run the two Playwright suites sequentially: they share the test-results
 folder. After changing catalog data, regenerate the hosted snapshot with
 `python3 scripts/build_demo_data.py`. See
 [architecture](docs/ARCHITECTURE.md), [desktop packaging](packaging/README.md)
-and the [source review](docs/USER_SOURCE_REVIEW.md).
+and the [source review](docs/EXTERNAL_MOTORCYCLE_RESEARCH.md).
 
 ## Documentation
 
@@ -207,7 +207,7 @@ and the [source review](docs/USER_SOURCE_REVIEW.md).
 | ECU number and vehicle research | [ECU number research](docs/ECU_NUMBER_RESEARCH.md) |
 | Harley diagnostics and Delphi research | [Harley tuning](docs/HARLEY_TUNING.md) |
 | Programming and recovery boundaries | [Programming](docs/PROGRAMMING.md) |
-| Workshop utilities and multi-brand sources | [Workshop tools](docs/WORKSHOP_REFERENCE_TOOLS.md) · [External research](docs/EXTERNAL_MOTORCYCLE_RESEARCH.md) · [Source review](docs/USER_SOURCE_REVIEW.md) |
+| Workshop utilities and multi-brand sources | [Workshop tools](docs/WORKSHOP_REFERENCE_TOOLS.md) · [External research](docs/EXTERNAL_MOTORCYCLE_RESEARCH.md) · [Source review](docs/EXTERNAL_MOTORCYCLE_RESEARCH.md) |
 | Candidate tools, brand and general | [Tool expansion research](docs/TOOL_EXPANSION_RESEARCH.md) |
 | Checksum and decoder evidence, with sources and pins | [Checksum & decoder evidence](docs/CHECKSUM_AND_DECODER_EVIDENCE.md) |
 | Offline analysis tools (checksums, ROM map, XDF finder, wideband, frames) | [Offline toolkit](docs/OFFLINE_TOOLKIT.md) |

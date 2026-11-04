@@ -571,3 +571,24 @@ queries).
 **Excluded outright:** `AshanDilakshana/NS200-ESP32-Keyless-Immobilizer-Strobe`
 — keyless/immobilizer-defeat hardware; not a write-class *algorithm* and not
 added even experimentally.
+
+## Round 19 — self-audit, experimental Buell DDFI-2 tune-write path, docs cleanup (2026-11-04)
+
+**Repo self-audit:** 921 files / 49 MB; docs 4.8 MB across 49 files. Removed the
+four successive source-review docs superseded by `EXTERNAL_MOTORCYCLE_RESEARCH.md`
+(`ADDITIONAL_MOTORCYCLE_SOURCES.md`, `TWENTY_SOURCE_REVIEW.md`,
+`USER_SOURCE_REVIEW.md`, `TWELVE_REPOSITORY_CODE_AUDIT.md`); references repointed.
+Research binaries in docs/ are intentional — `test_static_site_assets.py`
+asserts they stay off the CDN.
+
+**Tune capability under the updated write-class rule (author-indicated
+success):** `pacdavid1/buell-xb12x-logger` @ 45a7624 (MIT) documents
+`CMD_SET 0x57` payload `[0x57, offset, page] + data` as "confirmed 2026-05-31:
+write EEPROM page", and `kz6fittycent/XBTune` @ f474b9401bc4 (GPL-3.0) writes
+tunes to DDFI-2/3 ECMs, "Tested on a 2005 XB9SX". New module
+`guzzionboard/buell_ddfi2_tune.py` (EXPERIMENTAL): builds CMD_SET PDUs with
+the correct XOR checksum and patches **local EEPROM images only** — every
+function requires an explicit confirmation token, no transport is opened,
+and the passive decoder still reports such frames as
+`0x57-SET-WRITE-REJECTED`. 19/19 decoder tests pass. No other brand has an
+author-confirmed write path, so no other tune capability was added.

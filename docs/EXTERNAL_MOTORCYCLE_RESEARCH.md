@@ -601,3 +601,14 @@ race). Odometer / flash-count / license-crack repos remain excluded outright.
 - [AshanDilakshana/NS200-ESP32-Keyless-Immobilizer-Strobe](https://github.com/AshanDilakshana/NS200-ESP32-Keyless-Immobilizer-Strobe) — [experimental] **legal-use-only disclaimer** (keyless immobilizer; research/off-road/track only), no license; cited, not implemented.
 - Still excluded outright (fraud/cracking, not tuning): AutotronicCommunity ODOMETER-FILE-GENERATOR, APP-EDIT-FLASH-COUNT, License-Tuner-Pro-RT, licenseRFPv3.
 
+## Round 23 additions — ECU-part-number search (2026-11-04)
+
+Owner note applied: repos may name only the ECU (e.g. "IAW 5AM", "MT05"), not the motorcycle brand — searches now run by ECU part number. New findings:
+
+- https://github.com/Vasiy/onboard-logger/tree/7caf4e59ae2e (MIT) — on-board K-Line logger for a motorcycle Magneti Marelli IAW 5AM HW610 (Moto Guzzi); docs/PROTOCOL.md is a live-capture-verified KWP2000/ISO 14230 reference: 10400 8N1, addressed+short frames, fast init (25 ms BREAK) and 5-baud 0x33 slow init, TGT 0x10/SRC 0xF1, sum checksum. Corroborates the IAW 5AM profile.
+- https://github.com/Vasiy/ecu-map-viewer/tree/f454356b84c2 (no license = open per policy) — read-only IAW 5AM firmware (.bin/.xdf) map viewer for Ducati/Moto Morini calibrations.
+- https://github.com/ajfemia/ECUDelphiMT05/tree/525603936e89 (no license = open) — [experimental] Delphi MT05 ECU CAN reader (small Chinese motorbikes), Arduino.
+- https://github.com/Gabboxl/Ducati_HYM939_MY17 (no license = open) — [experimental] IAW 7SM.D0 HW210 ECU testing on a Ducati Hypermotard 939 MY17; may corroborate the 7SM profile.
+- https://github.com/WadieBenabdouh/MT05-Terminal (no license = open) — [experimental] Delphi MT05 motorcycle CAN terminal app.
+- https://github.com/mookiedog/ApriliaGen1ECU (NOASSERTION) — [experimental] Aprilia Gen1 ECU schematics collection.
+

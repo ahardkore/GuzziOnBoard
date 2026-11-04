@@ -641,3 +641,25 @@ Every function raises without the explicit confirmation token
 authorized). Passive decoders still classify these frames as write-class
 (Buell 0x57-SET-WRITE-REJECTED; Honda 0x60 counted as request, never data).
 20/20 decoder tests pass.
+
+## Round 23 — search by ECU part number instead of brand (2026-11-04)
+
+Owner note: GitHub repos often name only the ECU ("Bosch ME17", "IAW 5AM",
+"Delphi MT05"), not the motorcycle brand. Re-ran the deep dive by ECU part
+numbers from the catalog (IAW 5AM/15P/7SM, ME17/ME7/MG1, Delphi MT05,
+Shindengen, SIMK43, Denso, ...). Motorcycle-relevant hits:
+
+- **Vasiy/onboard-logger** @ `7caf4e59ae2e` (MIT) — K-Line logger for a
+  motorcycle **IAW 5AM HW610** (Moto Guzzi); `docs/PROTOCOL.md` is verified
+  against a live capture: KWP2000/ISO 14230, 10400 8N1, addressed (TGT 0x10 /
+  SRC 0xF1) and short frames, fast init 25 ms BREAK, 5-baud 0x33 slow init,
+  sum checksum. [verified] — corroborates `catalog/ecus/5am.json`.
+- **Vasiy/ecu-map-viewer** @ `f454356b84c2` (open by policy) — read-only
+  IAW 5AM .bin/.xdf calibration viewer (Ducati / Moto Morini). [verified-class read tool]
+- **ajfemia/ECUDelphiMT05** @ `525603936e89`, **WadieBenabdouh/MT05-Terminal** —
+  Delphi MT05 CAN readers for small Chinese motorbikes. [experimental]
+- **Gabboxl/Ducati_HYM939_MY17** — IAW 7SM.D0 HW210 testing on a Hypermotard
+  939; may corroborate the 7SM profile. [experimental]
+- **mookiedog/ApriliaGen1ECU** (NOASSERTION) — Aprilia Gen1 ECU schematics. [experimental]
+- Remaining hits (VAGFlasher/ME17, SIMK43 Hyundai tools, ME7.9 Toyota) are
+  car ECUs — noted, not adopted for motorcycle profiles.

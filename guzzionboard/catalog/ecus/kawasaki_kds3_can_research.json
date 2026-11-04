@@ -1,0 +1,29 @@
+{
+  "id": "kawasaki_kds3_can_research",
+  "family": "Kawasaki KDS3-era CAN broadcast (research)",
+  "display_name": "Kawasaki KDS3 CAN (candidate broadcast decode)",
+  "transport": "can",
+  "confidence": "unknown",
+  "years": "2018+ Euro5 CAN models (source-observed)",
+  "notes": "Offline passive decoder of observed KDS3-era CAN broadcast IDs (0x100 RPM, 0x110 speed, 0x120 coolant, 0x121 gear, 0x130/0x695/0x696 TPMS, buttons/status). Source: Arduino forum KDS3 CAN table (ec2021, 2026-08), cited Round 25. Candidate-grade single-observation decode; diagnostic range 0x700-0x7FF not decoded. guzzionboard/kawasaki_kds3_can.py; synthetic tests only.",
+  "session": {
+    "protocol": "kawasaki-kds3-can-research",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Broadcast only; no ECU memory access."
+  },
+  "capabilities": [
+    "live"
+  ],
+  "sources": [
+    "https://forum.arduino.cc/t/kawasaki-kds3-can-protocol-looking-for-request-response-ids-and-frame-format/1455097 (ec2021 table, 2026-08)"
+  ]
+}

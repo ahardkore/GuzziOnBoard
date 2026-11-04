@@ -15,7 +15,7 @@
     "applied": false,
     "status": {}
    },
-   "ecu_count": 44,
+   "ecu_count": 46,
    "vehicle_count": 555,
    "model_count": 461,
    "year_range": [
@@ -785,6 +785,43 @@
      "field_confirmation": {}
     },
     {
+     "id": "delphi_mt05_kline_research",
+     "family": "Delphi MT05/MT05.2 K-Line KWP2000 (research)",
+     "display_name": "Delphi MT05 K-Line (candidate)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "small-displacement EFI bikes/ATVs using Delphi MT05 family",
+     "notes": "MT05/MT05.2: ISO 14230 KWP2000 over K-Line, 10400 8N1 fast init, ECU addr 0x11 / tester 0xF1, init key bytes EF 8F, 6-pin under-seat plug; MT05.3: CAN ISO 15765 0x7E0/0x7E8 (covered by generic UDS CAN). MT05.2 CAN diag 0x7E0/0x7E4; fixed seed 0x1234->key 0x8474 documented (cited only, NOT implemented). guzzionboard/delphi_mt05_kline.py parses addressed KWP frames with MT05 addressing. Synthetic tests only.",
+     "capabilities": [
+      "live"
+     ],
+     "effective_capabilities": [
+      "live"
+     ],
+     "sources": [
+      "https://netcult.ch/elmue/HUD%20ECU%20Hacker/ (MT05 K-Line facts, key bytes EF 8F)",
+      "https://github.com/Njavris/m05.2 (MIT; MT05.2 flash RE, K-Line 0x11/0xF1, CAN 0x7E0/0x7E4, seed 0x1234->key 0x8474)",
+      "https://github.com/ajfemia/ECUDelphiMT05/tree/525603936e89"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "No memory access; seed/key fact cited only, not implemented."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "delphi-mt05-kline-research",
+      "physical_supported": false,
+      "simulator_supported": false,
+      "physical_evidence_note": "Addressing/init facts from public docs; no verified session."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "generic_kwp2000_kline",
      "family": "Generic KWP2000 / ISO 14230 K-Line (opt-in)",
      "display_name": "Generic KWP2000 K-Line (read-only, ECU-only)",
@@ -1460,6 +1497,41 @@
       "simulator_supported": false,
       "tester_present_interval": 2.0,
       "physical_evidence_note": "iKawa reports testing one 2006 ER-6n; this implementation has only synthetic protocol tests."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "kawasaki_kds3_can_research",
+     "family": "Kawasaki KDS3-era CAN broadcast (research)",
+     "display_name": "Kawasaki KDS3 CAN (candidate broadcast decode)",
+     "transport": "can",
+     "confidence": "unknown",
+     "years": "2018+ Euro5 CAN models (source-observed)",
+     "notes": "Offline passive decoder of observed KDS3-era CAN broadcast IDs (0x100 RPM, 0x110 speed, 0x120 coolant, 0x121 gear, 0x130/0x695/0x696 TPMS, buttons/status). Source: Arduino forum KDS3 CAN table (ec2021, 2026-08), cited Round 25. Candidate-grade single-observation decode; diagnostic range 0x700-0x7FF not decoded. guzzionboard/kawasaki_kds3_can.py; synthetic tests only.",
+     "capabilities": [
+      "live"
+     ],
+     "effective_capabilities": [
+      "live"
+     ],
+     "sources": [
+      "https://forum.arduino.cc/t/kawasaki-kds3-can-protocol-looking-for-request-response-ids-and-frame-format/1455097 (ec2021 table, 2026-08)"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Broadcast only; no ECU memory access."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "kawasaki-kds3-can-research",
+      "physical_supported": false,
+      "simulator_supported": false,
+      "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
      },
      "actuators": [],
      "routines": [],
@@ -17274,6 +17346,44 @@
     "parameters": []
    },
    {
+    "id": "delphi_mt05_kline_research",
+    "family": "Delphi MT05/MT05.2 K-Line KWP2000 (research)",
+    "display_name": "Delphi MT05 K-Line (candidate)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "small-displacement EFI bikes/ATVs using Delphi MT05 family",
+    "notes": "MT05/MT05.2: ISO 14230 KWP2000 over K-Line, 10400 8N1 fast init, ECU addr 0x11 / tester 0xF1, init key bytes EF 8F, 6-pin under-seat plug; MT05.3: CAN ISO 15765 0x7E0/0x7E8 (covered by generic UDS CAN). MT05.2 CAN diag 0x7E0/0x7E4; fixed seed 0x1234->key 0x8474 documented (cited only, NOT implemented). guzzionboard/delphi_mt05_kline.py parses addressed KWP frames with MT05 addressing. Synthetic tests only.",
+    "capabilities": [
+     "live"
+    ],
+    "effective_capabilities": [
+     "live"
+    ],
+    "sources": [
+     "https://netcult.ch/elmue/HUD%20ECU%20Hacker/ (MT05 K-Line facts, key bytes EF 8F)",
+     "https://github.com/Njavris/m05.2 (MIT; MT05.2 flash RE, K-Line 0x11/0xF1, CAN 0x7E0/0x7E4, seed 0x1234->key 0x8474)",
+     "https://github.com/ajfemia/ECUDelphiMT05/tree/525603936e89"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "No memory access; seed/key fact cited only, not implemented."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "delphi-mt05-kline-research",
+     "physical_supported": false,
+     "simulator_supported": false,
+     "physical_evidence_note": "Addressing/init facts from public docs; no verified session."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
     "id": "generic_kwp2000_kline",
     "family": "Generic KWP2000 / ISO 14230 K-Line (opt-in)",
     "display_name": "Generic KWP2000 K-Line (read-only, ECU-only)",
@@ -19307,6 +19417,42 @@
       "confidence": "inferred"
      }
     ]
+   },
+   {
+    "id": "kawasaki_kds3_can_research",
+    "family": "Kawasaki KDS3-era CAN broadcast (research)",
+    "display_name": "Kawasaki KDS3 CAN (candidate broadcast decode)",
+    "transport": "can",
+    "confidence": "unknown",
+    "years": "2018+ Euro5 CAN models (source-observed)",
+    "notes": "Offline passive decoder of observed KDS3-era CAN broadcast IDs (0x100 RPM, 0x110 speed, 0x120 coolant, 0x121 gear, 0x130/0x695/0x696 TPMS, buttons/status). Source: Arduino forum KDS3 CAN table (ec2021, 2026-08), cited Round 25. Candidate-grade single-observation decode; diagnostic range 0x700-0x7FF not decoded. guzzionboard/kawasaki_kds3_can.py; synthetic tests only.",
+    "capabilities": [
+     "live"
+    ],
+    "effective_capabilities": [
+     "live"
+    ],
+    "sources": [
+     "https://forum.arduino.cc/t/kawasaki-kds3-can-protocol-looking-for-request-response-ids-and-frame-format/1455097 (ec2021 table, 2026-08)"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Broadcast only; no ECU memory access."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "kawasaki-kds3-can-research",
+     "physical_supported": false,
+     "simulator_supported": false,
+     "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
    },
    {
     "id": "kawasaki_kds_generic_research",
@@ -30224,6 +30370,28 @@
    },
    "identification": {}
   },
+  "delphi_mt05_kline_research": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "DelphiMT05/MT05.2K-LineKWP2000(research)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "delphi-mt05-kline-research",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_evidence_note": "Addressing/init facts from public docs; no verified session."
+   },
+   "identification": {
+    "available": false
+   }
+  },
   "generic_kwp2000_kline": {
    "parameters": {},
    "actuators": {},
@@ -31788,6 +31956,28 @@
     "simulator_supported": false,
     "tester_present_interval": 2.0,
     "physical_evidence_note": "iKawa reports testing one 2006 ER-6n; this implementation has only synthetic protocol tests."
+   },
+   "identification": {
+    "available": false
+   }
+  },
+  "kawasaki_kds3_can_research": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "KawasakiKDS3-eraCANbroadcast(research)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "kawasaki-kds3-can-research",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
    },
    "identification": {
     "available": false

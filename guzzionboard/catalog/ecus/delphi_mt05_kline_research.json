@@ -1,0 +1,31 @@
+{
+  "id": "delphi_mt05_kline_research",
+  "family": "Delphi MT05/MT05.2 K-Line KWP2000 (research)",
+  "display_name": "Delphi MT05 K-Line (candidate)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "small-displacement EFI bikes/ATVs using Delphi MT05 family",
+  "notes": "MT05/MT05.2: ISO 14230 KWP2000 over K-Line, 10400 8N1 fast init, ECU addr 0x11 / tester 0xF1, init key bytes EF 8F, 6-pin under-seat plug; MT05.3: CAN ISO 15765 0x7E0/0x7E8 (covered by generic UDS CAN). MT05.2 CAN diag 0x7E0/0x7E4; fixed seed 0x1234->key 0x8474 documented (cited only, NOT implemented). guzzionboard/delphi_mt05_kline.py parses addressed KWP frames with MT05 addressing. Synthetic tests only.",
+  "session": {
+    "protocol": "delphi-mt05-kline-research",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_evidence_note": "Addressing/init facts from public docs; no verified session."
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No memory access; seed/key fact cited only, not implemented."
+  },
+  "capabilities": [
+    "live"
+  ],
+  "sources": [
+    "https://netcult.ch/elmue/HUD%20ECU%20Hacker/ (MT05 K-Line facts, key bytes EF 8F)",
+    "https://github.com/Njavris/m05.2 (MIT; MT05.2 flash RE, K-Line 0x11/0xF1, CAN 0x7E0/0x7E4, seed 0x1234->key 0x8474)",
+    "https://github.com/ajfemia/ECUDelphiMT05/tree/525603936e89"
+  ]
+}

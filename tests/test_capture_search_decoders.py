@@ -462,3 +462,38 @@ def test_experimental_writers_gated_and_wellformed():
     cap = k25.decode_capture([c])
     # counted as a request query, never decoded as live data
     assert cap['requests'].get('0x60/0x00') == 1 and cap['last_table17'] is None
+
+
+# ------------------------------------------- Kawasaki KDS3 CAN broadcast
+def test_kawasaki_kds3_can_broadcast():
+    from guzzionboard import kawasaki_kds3_can as kds3
+    from guzzionboard.canlog import CanFrame
+    f = CanFrame(timestamp=0.0, id=0x100, data=bytes([0x1B, 0x58, 0, 0, 0, 0]), direction='rx', extended=False)
+    d = kds3.decode_frame(f)
+    assert d['values']['rpm_candidate'] == 0x1B58  # 7000 rpm
+    g = kds3.decode_frame(CanFrame(timestamp=0.0, id=0x121, data=bytes([3, 0]), direction='rx', extended=False))
+    assert g['values'] == {'gear_candidate': 3, 'neutral_flag': False}
+    t = kds3.decode_frame(CanFrame(timestamp=0.0, id=0x120, data=bytes([0, 0x82, 0, 0, 0, 0]), direction='rx', extended=False))
+    assert t['values']['coolant_c_candidate'] == 0x82 - 40
+    cap = kds3.decode_capture([f, CanFrame(timestamp=0.0, id=0x121, data=bytes([3, 0]), direction='rx', extended=False),
+                               CanFrame(timestamp=0.0, id=0x999, data=bytes(8), direction='rx', extended=False),
+                               CanFrame(timestamp=0.0, id=0x100, data=bytes([1]), direction='rx', extended=False)])
+    assert cap['recognized'] == 2 and cap['invalid'] == 1
+
+
+# ------------------------------------------- Delphi MT05 K-Line
+def test_delphi_mt05_kline_frames():
+    from guzzionboard import delphi_mt05_kline as mt05
+    # addressed KWP frame: tester F1 -> ECU 0x11, service 0x1A (readByID) DID 0xF190
+    body = bytes([0x80 | 3, 0x11, 0xF1, 3, 0x1A, 0xF1, 0x90])
+    frame = body + bytes([mt05.checksum(body)])
+    d = mt05.parse_frame(frame)
+    assert d['mt05_addressing'] and d['service'] == 0x1A and d['payload'] == 'F190'
+    # init key-byte reply: 83 EF 8F
+    body2 = bytes([0x80 | 3, 0xF1, 0x11, 3, 0x83, 0xEF, 0x8F])
+    frame2 = body2 + bytes([mt05.checksum(body2)])
+    assert mt05.parse_frame(frame2)['init_key_bytes'] == 'EF 8F'
+    with pytest.raises(ValueError):
+        mt05.parse_frame(frame[:-1] + bytes([0x00]))  # bad checksum
+    cap = mt05.decode_capture([frame, frame2, bytes(3)])
+    assert cap['recognized'] == 2 and cap['invalid'] == 1 and cap['mt05_addressed_frames'] == 2

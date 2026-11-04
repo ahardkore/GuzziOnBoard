@@ -720,3 +720,18 @@ families. New citable findings:
 - Confirmed again: gixxer.com SDS thread (channel map 0x0B RPM / 0x0D TPS…)
   and the Arduino bike-interface thread (YDS 5-byte stream = AiM stream;
   KWP fast-init patterns) match what we already integrated.
+
+## Round 26 — protocol builds from Rounds 24/25 findings (2026-11-04)
+
+Built into the app (all offline, passive, candidate-labelled):
+
+- **`guzzionboard/kawasaki_kds3_can.py`** — KDS3-era CAN broadcast decoder
+  from the forum ID table: 0x100 RPM (BE16), 0x110 speed, 0x120 coolant
+  (raw-40), 0x121 gear/neutral, 0x130 + 0x695/0x696 TPMS (0.2 PSI units),
+  0x018 brake, 0x220-0x227 statuses, 0x321 engine state, buttons
+  0x050/0x058/0x060. Catalog profile `kawasaki_kds3_can_research`.
+- **`guzzionboard/delphi_mt05_kline.py`** — KWP2000 frame parser with MT05
+  addressing (TGT 0x11 / SRC 0xF1, FMT 0x80, sum checksum) and EF 8F
+  key-byte init detection; MT05.2 seed/key 0x1234→0x8474 remains a citation,
+  not implemented. Catalog profile `delphi_mt05_kline_research`.
+- 22/22 decoder tests pass. Demo data + cloudflare catalog regenerated.

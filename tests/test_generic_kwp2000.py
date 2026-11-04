@@ -8,7 +8,7 @@ from guzzionboard.protocol.kwp2000 import (
     KWP2000Session, NegativeResponse, ProtocolError, encode_request,
 )
 from guzzionboard.safety import Mode, SafetyGate
-from guzzionboard.transports.base import Connection, InitResult, Transport, TransportUnavailable
+from guzzionboard.transports.base import Connection, InitResult, Transport, TransportError, TransportUnavailable
 from guzzionboard.workstation import Workstation
 
 
@@ -113,4 +113,6 @@ def test_profile_only_mode_and_selection_boundaries():
     ws.select(ecu='generic_kwp2000_kline', transport='simulator')
     with pytest.raises(TransportUnavailable): ws.connect()
     ws.select(ecu='generic_kwp2000_kline', transport='kline')
-    with pytest.raises(TransportUnavailable): ws.connect(mode='read_only')
+    # Real K-Line transport: TransportUnavailable without pyserial, TransportError
+    # with pyserial when no serial device exists — both mean "no physical link".
+    with pytest.raises((TransportUnavailable, TransportError)): ws.connect(mode='read_only')

@@ -6315,6 +6315,37 @@
       ignored_tx_frames: ignoredTx, omitted_events: Math.max(0, recognized - events.length)};
   }
 
+
+  /* KTM 690 LC4 broadcast candidates, cited from blalor/ktm-can @
+   * 299b4e08 (no license stated, open per policy) + ChickenPoptart/KTMComputer;
+   * Round 27. Candidate-grade single-model, offline only. */
+  function decodeKtm690CanCapture(frames) {
+    var events = [], recognized = 0, invalid = 0, ignoredTx = 0;
+    var ids = [0x120, 0x129, 0x12A, 0x12B, 0x290, 0x450, 0x540];
+    function s12(v) { return -(v & 0x800) | (v & 0x7FF); }
+    frames.forEach(function (frame) {
+      if (frame.extended || ids.indexOf(frame.id) === -1) return;
+      if (String(frame.direction || '').toLowerCase().startsWith('t')) { ignoredTx++; return; }
+      var d = frame.data;
+      if (d.length !== 8 || d.some(function (n) { return !Number.isInteger(n) || n < 0 || n > 255; })) { invalid++; return; }
+      var id = frame.id, values;
+      if (id === 0x120) values = {rpm_candidate: (d[0] << 8) | d[1], throttle_raw: d[2], kill_switch_run: !!((d[3] >> 4) & 1), throttle_map_candidate: d[4] & 1};
+      else if (id === 0x129) values = {gear_candidate: (d[0] >> 4) & 0xF, clutch_in: !!((d[0] >> 3) & 1)};
+      else if (id === 0x12A) values = {throttle_open: ((d[0] >> 1) & 1) === 0, requested_map_candidate: (d[1] >> 6) & 1};
+      else if (id === 0x12B) values = {front_wheel_raw_candidate: (d[0] << 8) | d[1], rear_wheel_raw_candidate: (d[2] << 8) | d[3],
+        tilt_candidate: s12((d[5] << 4) | (d[6] >> 4)), lean_candidate: s12(((d[6] & 0xF) << 8) | d[7])};
+      else if (id === 0x290) values = {front_brake_raw_candidate: (d[0] << 8) | d[1]};
+      else if (id === 0x450) values = {traction_button_candidate: d[2] & 1};
+      else values = {rpm_candidate: (d[1] << 8) | d[2], gear_candidate: d[3] & 0xF, kickstand_up: !!(d[4] & 1),
+        kickstand_err: !!((d[4] >> 7) & 1), coolant_c_candidate: (((d[6] << 8) | d[7]) / 10)};
+      recognized++;
+      if (events.length < 200) events.push({timestamp: frame.timestamp, id: '0x' + id.toString(16).toUpperCase(),
+        direction: frame.direction || 'unknown', raw: d.map(function (v) { return v.toString(16).padStart(2, '0').toUpperCase(); }).join(''), values: values});
+    });
+    return {profile: 'ktm_690_can_broadcast', events: events, recognized_frames: recognized, invalid_length_frames: invalid,
+      ignored_tx_frames: ignoredTx, omitted_events: Math.max(0, recognized - events.length)};
+  }
+
   // Raw per-byte observations only: not a vehicle profile or signal decoder.
   function summarizeCanBytes(frames) {
     var groups = {};
@@ -6353,7 +6384,7 @@
         + 'of giving a path (the local workstation reads candump, SavvyCAN '
         + 'CSV and CRTD files).');
     }
-    if (body.decoder !== undefined && body.decoder !== '' && body.decoder !== 'ducati_panigale_mitsubishi' && body.decoder !== 'harley_hdlan_community' && body.decoder !== 'yamaha_r9_2026' && body.decoder !== 'kawasaki_kds3_can') throw bad('unknown offline telemetry decoder');
+    if (body.decoder !== undefined && body.decoder !== '' && body.decoder !== 'ducati_panigale_mitsubishi' && body.decoder !== 'harley_hdlan_community' && body.decoder !== 'yamaha_r9_2026' && body.decoder !== 'kawasaki_kds3_can' && body.decoder !== 'ktm_690_can') throw bad('unknown offline telemetry decoder');
     if (body.byte_stats !== undefined && typeof body.byte_stats !== 'boolean') throw bad('byte statistics setting must be true or false');
     if (body.byte_stats && (typeof body.filter_ids !== 'string' || !body.filter_ids.trim())) throw bad('byte statistics require an explicit CAN ID filter');
     var parsed = parseCanText(String(body.text || ''));
@@ -6380,6 +6411,7 @@
     if (body.decoder === 'harley_hdlan_community') result.decoder = decodeHarleyHdlanCapture(parsed.frames);
     if (body.decoder === 'yamaha_r9_2026') result.decoder = decodeYamahaR9Capture(parsed.frames);
     if (body.decoder === 'kawasaki_kds3_can') result.decoder = decodeKds3CanCapture(parsed.frames);
+    if (body.decoder === 'ktm_690_can') result.decoder = decodeKtm690CanCapture(parsed.frames);
     if (body.byte_stats) result.byte_stats = summarizeCanBytes(parsed.frames);
     result.format = parsed.format;
     result.notes = parsed.warnings.concat(result.notes);

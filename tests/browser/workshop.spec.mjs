@@ -265,6 +265,16 @@ test('multi-brand research decoders validate framing and remain local', async ({
   expect(kds3.decoder.recognized_frames).toBe(2);
   expect(kds3.decoder.events[0].values.rpm_candidate).toBe(7000);
   expect(kds3.decoder.events[1].values.gear_candidate).toBe(3);
+
+  const ktm = await page.evaluate(async () => {
+    const r = await fetch('/api/tools/canlog', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: '(1.0) can0 120#1B58401001000000\n(1.1) can0 540#021B58030100031A', decoder: 'ktm_690_can' }) });
+    return r.json();
+  });
+  expect(ktm.decoder.profile).toBe('ktm_690_can_broadcast');
+  expect(ktm.decoder.recognized_frames).toBe(2);
+  expect(ktm.decoder.events[0].values.rpm_candidate).toBe(7000);
+  expect(ktm.decoder.events[1].values.coolant_c_candidate).toBe(79.4);
   expect(posts).toEqual([]);
   await page.locator('#multiResearchClear').click();
   await expect(out).toBeEmpty();

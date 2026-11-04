@@ -735,3 +735,11 @@ Built into the app (all offline, passive, candidate-labelled):
   key-byte init detection; MT05.2 seed/key 0x1234→0x8474 remains a citation,
   not implemented. Catalog profile `delphi_mt05_kline_research`.
 - 22/22 decoder tests pass. Demo data + cloudflare catalog regenerated.
+
+## Round 27 — KTM 690 LC4 CAN broadcast decoder (2026-11-04)
+
+Research sweep (KTM / BMW Motorrad / Harley newer CAN) then build:
+
+- **Sources**: [blalor/ktm-can](https://github.com/blalor/ktm-can/tree/299b4e080168986ab535b81b81e2a9196f0c8c66) (2021, 2020 KTM 690 Enduro R; repo license field empty — treated as open per standing policy; reimplemented + cited, not vendored), extended by [ChickenPoptart/KTMComputer](https://github.com/ChickenPoptart/KTMComputer) ride logs; base credit Dan Plastina SuperDuke 1290 ADVrider work. Also noted: lab-vex/OBDuke (Gen1 Duke 390 ESP32 diag, already covered Round 18), BMW Motorrad BMSK/BMSX/BMS-O (Bosch ME9/ME17.2.4.2 TC1791; R1250 OBD ISO 15765; car-style 0x6nn diag IDs — note-only), Harley CAN 0x500/0x502/0x540-0x548/0x570/0x542-0x543 with crc8_j1850 (rusefi forum; possible future decoder).
+- **Built**: `guzzionboard/ktm_690_can.py` — passive broadcast decoder for IDs 0x120 (RPM BE16, throttle, kill, map), 0x129 (gear hi-nibble, clutch), 0x12A (throttle_open, requested map), 0x12B (wheel speeds BE16, tilt/lean signed12), 0x290 (front brake), 0x450 (traction button), 0x540 (RPM, gear lo-nibble, kickstand up/err, coolant °C BE16/10). Catalog profile `ktm_690_can_research` (confidence `unknown`). Web canlog decoder option `ktm_690_can` wired in index.html/app.js/demo-lab.js with browser test assertions.
+- 23/23 decoder tests pass; demo data + cloudflare catalog regenerated.

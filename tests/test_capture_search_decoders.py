@@ -497,3 +497,21 @@ def test_delphi_mt05_kline_frames():
         mt05.parse_frame(frame[:-1] + bytes([0x00]))  # bad checksum
     cap = mt05.decode_capture([frame, frame2, bytes(3)])
     assert cap['recognized'] == 2 and cap['invalid'] == 1 and cap['mt05_addressed_frames'] == 2
+
+
+# ------------------------------------------- KTM 690 CAN broadcast
+def test_ktm_690_can_broadcast():
+    from guzzionboard import ktm_690_can as ktm
+    from guzzionboard.canlog import CanFrame
+    F = lambda i, d: CanFrame(timestamp=0.0, id=i, data=bytes(d), direction='rx', extended=False)
+    d = ktm.decode_frame(F(0x120, [0x1B, 0x58, 0x40, 0x10, 0x01, 0, 0, 0xD0]))
+    assert d['values']['rpm_candidate'] == 7000 and d['values']['throttle_raw'] == 0x40
+    assert d['values']['kill_switch_run'] and d['values']['throttle_map_candidate'] == 1
+    g = ktm.decode_frame(F(0x129, [0x39, 0, 0, 0, 0, 0, 0, 0]))
+    assert g['values'] == {'gear_candidate': 3, 'clutch_in': True}
+    l = ktm.decode_frame(F(0x12B, [0, 100, 0, 90, 0, 0x00, 0x0F, 0xFF]))
+    assert l['values']['front_wheel_raw_candidate'] == 100 and l['values']['lean_candidate'] == -1
+    c = ktm.decode_frame(F(0x540, [0x02, 0x1B, 0x58, 0x03, 0x01, 0, 0x03, 0x1A]))
+    assert c['values']['rpm_candidate'] == 7000 and c['values']['coolant_c_candidate'] == 79.4
+    cap = ktm.decode_capture([F(0x120, [0]*8), F(0x999, [0]*8), F(0x120, [0])])
+    assert cap['recognized'] == 1 and cap['invalid'] == 1

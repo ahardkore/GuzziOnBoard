@@ -630,3 +630,7 @@ Owner note applied: repos may name only the ECU (e.g. "IAW 5AM", "MT05"), not th
 - diagcode.com bike release list — per-ECU service matrix (MIUG4/11MP/MIUG3/59M). Commercial tool docs, cited.
 - Eztys/SimpleKDS, Eztys/KDS, ahradnansky/GearIndicator, Ircama/ELM327-emulator (mt05 PID set) — KDS/SDS Arduino libraries, cited.
 
+- [blalor/ktm-can](https://github.com/blalor/ktm-can/tree/299b4e080168986ab535b81b81e2a9196f0c8c66) (2021, no license stated — open per policy) — 2020 KTM 690 Enduro R CAN broadcast IDs 0x120/0x129/0x12A/0x12B/0x290/0x450/0x540 with full byte maps (RPM BE16, gear nibbles, clutch, wheel speeds, tilt/lean signed12, brake, traction button, kickstand, coolant /10). Base credit Dan Plastina SuperDuke 1290 ADVrider. Reimplemented in `guzzionboard/ktm_690_can.py` (Round 27), candidate-grade.
+- [ChickenPoptart/KTMComputer](https://github.com/ChickenPoptart/KTMComputer) — 2020 690 Enduro R ESP32 dash/logging; confirms/extends blalor byte maps with ride-log captures.
+- BMW Motorrad ECUs: BMSK pre-2014 Bosch ME9 (KWP2000/serial, FLASH_0252); BMSX/DME/BMSMP 2014-17 S1000RR TriCore; BMS-O = Bosch ME17.2.4.2 TC1791/TC1793 on R1250/S1000RR MY18-19 (Dimsport plugins 1254/0136/0188); R1250 OBD-II ISO 15765; car-style diag CAN 0x6nn — note-only this round.
+- Harley-Davidson newer CAN (rusefi forum "Harley Requirements"; sofresh007/earnaz repos): 0x500 BCM state, 0x502, 0x540-0x548 (0x543 APP + crc8_j1850 checksum), 0x570 state, 0x541/0x542 — PIDs not published; possible future Harley CAN broadcast decoder.

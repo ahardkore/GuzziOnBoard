@@ -15,7 +15,7 @@
     "applied": false,
     "status": {}
    },
-   "ecu_count": 46,
+   "ecu_count": 47,
    "vehicle_count": 555,
    "model_count": 461,
    "year_range": [
@@ -1802,6 +1802,42 @@
       "physical_supported": false,
       "simulator_supported": false,
       "physical_blocked_reason": "The exact ECU diagnostic and programming application is not implemented; no physical requests are permitted."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "ktm_690_can_research",
+     "family": "KTM 690 LC4 CAN broadcast (research)",
+     "display_name": "KTM 690 CAN (candidate broadcast decode)",
+     "transport": "can",
+     "confidence": "unknown",
+     "years": "2020 KTM 690 Enduro R (source-observed)",
+     "notes": "Offline passive decoder of observed 2020 KTM 690 Enduro R broadcast IDs 0x120/0x129/0x12A/0x12B/0x290/0x450/0x540 (rpm, gear, clutch, wheel speeds, tilt/lean, brake, traction button, kickstand, coolant). Source: blalor/ktm-can @ 299b4e08 (no license stated, open per policy), extended by ChickenPoptart/KTMComputer ride logs; base credit Dan Plastina SuperDuke 1290 ADVrider. Candidate-grade single-model observation; not verified for other KTM models. guzzionboard/ktm_690_can.py; synthetic tests only.",
+     "capabilities": [
+      "live"
+     ],
+     "effective_capabilities": [
+      "live"
+     ],
+     "sources": [
+      "https://github.com/blalor/ktm-can/tree/299b4e080168986ab535b81b81e2a9196f0c8c66 (2021, no license stated)",
+      "https://github.com/ChickenPoptart/KTMComputer (2020 690 Enduro R ride logs)"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Broadcast only; no ECU memory access."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "ktm-690-can-research",
+      "physical_supported": false,
+      "simulator_supported": false,
+      "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
      },
      "actuators": [],
      "routines": [],
@@ -20156,6 +20192,43 @@
     "parameters": []
    },
    {
+    "id": "ktm_690_can_research",
+    "family": "KTM 690 LC4 CAN broadcast (research)",
+    "display_name": "KTM 690 CAN (candidate broadcast decode)",
+    "transport": "can",
+    "confidence": "unknown",
+    "years": "2020 KTM 690 Enduro R (source-observed)",
+    "notes": "Offline passive decoder of observed 2020 KTM 690 Enduro R broadcast IDs 0x120/0x129/0x12A/0x12B/0x290/0x450/0x540 (rpm, gear, clutch, wheel speeds, tilt/lean, brake, traction button, kickstand, coolant). Source: blalor/ktm-can @ 299b4e08 (no license stated, open per policy), extended by ChickenPoptart/KTMComputer ride logs; base credit Dan Plastina SuperDuke 1290 ADVrider. Candidate-grade single-model observation; not verified for other KTM models. guzzionboard/ktm_690_can.py; synthetic tests only.",
+    "capabilities": [
+     "live"
+    ],
+    "effective_capabilities": [
+     "live"
+    ],
+    "sources": [
+     "https://github.com/blalor/ktm-can/tree/299b4e080168986ab535b81b81e2a9196f0c8c66 (2021, no license stated)",
+     "https://github.com/ChickenPoptart/KTMComputer (2020 690 Enduro R ride logs)"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Broadcast only; no ECU memory access."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "ktm-690-can-research",
+     "physical_supported": false,
+     "simulator_supported": false,
+     "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
     "id": "mana_tcu",
     "family": "Aprilia Mana CVT TCU",
     "display_name": "Aprilia Mana 850 CVT transmission controller",
@@ -32531,6 +32604,28 @@
     "physical_supported": false,
     "simulator_supported": false,
     "physical_blocked_reason": "The exact ECU diagnostic and programming application is not implemented; no physical requests are permitted."
+   },
+   "identification": {
+    "available": false
+   }
+  },
+  "ktm_690_can_research": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "KTM690LC4CANbroadcast(research)HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "ktm-690-can-research",
+    "physical_supported": false,
+    "simulator_supported": false,
+    "physical_evidence_note": "Broadcast observation only; no diagnostic session implemented."
    },
    "identification": {
     "available": false

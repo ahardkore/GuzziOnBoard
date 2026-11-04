@@ -219,6 +219,35 @@ def test_cross_brand_makes_are_present(catalog):
     assert set(catalog.makes()) == {"Aprilia", "BMW Motorrad", "Ducati", "Harley-Davidson", "Honda", "Kawasaki", "Moto Guzzi", "Royal Enfield", "Suzuki", "Triumph", "Yamaha"}
 
 
+def test_brand_year_model_selection_cascade(catalog):
+    """Garage search is brand first, then year, then that year's models."""
+    # Second step: a brand only offers years it has catalogued models for.
+    # Triumph has explicit 2009 and 2012 entries and nothing in between.
+    assert catalog.years("Triumph") == [2009, 2012]
+    assert 2012 in catalog.years("Moto Guzzi")
+    assert 2012 in catalog.years("honda")  # make matching is case-insensitive
+    assert catalog.years("No Such Brand") == []
+    # Kawasaki has no catalogued model for 2021/2022, so those gap years
+    # must not be offered even though neighbouring years are.
+    kawasaki_years = catalog.years("Kawasaki")
+    assert 2020 in kawasaki_years and 2023 in kawasaki_years
+    assert 2021 not in kawasaki_years and 2022 not in kawasaki_years
+
+    # Third step: only the models catalogued for the chosen brand + year.
+    assert "Griso 1200 8V" in catalog.models("Moto Guzzi", 2012)
+    assert "Griso 1200 8V" not in catalog.models("Moto Guzzi", 1992)
+    assert "Griso 1200 8V" not in catalog.models("Honda", 2012)
+    # A model with a year gap disappears for the gap years and returns after.
+    assert "ADV 160" in catalog.models("Honda", 2026)
+    assert "ADV 160" not in catalog.models("Honda", 2024)
+    # Every model offered for a year resolves for that brand + year.
+    for make, year in (("Moto Guzzi", 2012), ("Honda", 2014), ("Triumph", 2012)):
+        for model in catalog.models(make, year):
+            assert catalog.find(model, year, make), (make, model, year)
+    # Without a year the historical brand-wide listing is unchanged.
+    assert "Griso 1200 8V" in catalog.models("Moto Guzzi")
+
+
 def test_every_cross_brand_entry_is_read_only_until_confirmed(catalog):
     """Shared ECU hardware is not shared protocol knowledge.
 

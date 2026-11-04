@@ -399,8 +399,8 @@ test('CFMoto MSE6 inspection reports synthetic records without writing images', 
 test('hosted garage offers the Honda XDF for offline research, not a Honda simulator', async ({ page }) => {
   await page.goto('/web/index.html');
   await page.selectOption('#makeSelect', 'Honda');
-  await page.selectOption('#modelSelect', 'CBR1000RR (US)');
   await page.selectOption('#yearSelect', '2012');
+  await page.selectOption('#modelSelect', 'CBR1000RR (US)');
   await expect(page.locator('#selectOfflineBtn')).toBeEnabled();
   await page.locator('#selectOfflineBtn').click();
   await expect(page.locator('#firmware')).toBeVisible();
@@ -558,8 +558,8 @@ test('Harley research calibration copy replaces only the explicitly selected reg
 test('hosted MGZ-A03 selection stays offline and raw Honda definitions are research-only', async ({ page }) => {
   await page.goto('/web/index.html');
   await page.selectOption('#makeSelect', 'Honda');
-  await page.selectOption('#modelSelect', 'CBR500R');
   await page.selectOption('#yearSelect', '2014');
+  await page.selectOption('#modelSelect', 'CBR500R');
   await page.locator('#selectOfflineBtn').click();
   await expect(page.locator('#xdfSelect')).toHaveValue('CB500_MGZ_A03_gob.xdf');
   await expect(page.locator('#xdfFitNote')).toContainText('ECU identity not established');

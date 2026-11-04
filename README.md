@@ -122,7 +122,7 @@ python3 run_server.py
 ```
 
 Open `http://127.0.0.1:8000`, choose a simulator-supported motorcycle such as
-**Moto Guzzi → Griso 1200 8V → 2012**, and connect in simulator mode. The
+**Moto Guzzi → 2012 → Griso 1200 8V**, and connect in simulator mode. The
 server binds to localhost by default.
 
 For the desktop shell or optional hardware transport dependencies:

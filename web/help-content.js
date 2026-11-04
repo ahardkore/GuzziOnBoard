@@ -1575,7 +1575,7 @@
 
 <h3>Shortest safe path</h3>
 <ol>
-  <li><b>Garage</b> → pick make/model/year, transport <i>Simulator</i> for practice, work the checklist, Connect.</li>
+  <li><b>Garage</b> → pick brand/year/model, transport <i>Simulator</i> for practice, work the checklist, Connect.</li>
   <li><b>Overview</b> → Identify ECU, read What this ECU supports.</li>
   <li><b>Live data</b> → poll, pick channels, read the findings and the raw bytes.</li>
   <li><b>ECU memory</b> → adapter pre-flight, Backup (dual read), confirm the base map is vaulted.</li>
@@ -1605,8 +1605,8 @@
 
 <h3>Select the vehicle</h3>
 <ol>
-  <li>Open <b>Garage</b> → <b>1 · Motorcycle</b>. Choose make, model and year; the coverage line shows how many ECU profiles and model variants matched.</li>
-  <li>If two ECU fitments exist for the year, use the <b>ECU override</b> dropdown — the choice is validated against the catalog and refused if it is not cataloged for that make/model/year.</li>
+  <li>Open <b>Garage</b> → <b>1 · Motorcycle</b>. Choose the brand first, then the year, then one of the models catalogued for that year; the coverage line shows how many ECU profiles and model variants matched.</li>
+  <li>If two ECU fitments exist for the year, use the <b>ECU override</b> dropdown — the choice is validated against the catalog and refused if it is not cataloged for that brand/year/model.</li>
 </ol>
 
 <h3>Select the connection</h3>
@@ -1896,7 +1896,7 @@
       body: `
 <h3>Harley-Davidson Delphi</h3>
 <ol>
-  <li><b>Garage</b>: choose the model/year. Delphi CAN identity profiles use 500 kbit/s and 0x7E0/0x7E8; older bikes use J1850 VPW through an ELM327 that explicitly supports VPW.</li>
+  <li><b>Garage</b>: choose the brand, year and model. Delphi CAN identity profiles use 500 kbit/s and 0x7E0/0x7E8; older bikes use J1850 VPW through an ELM327 that explicitly supports VPW.</li>
   <li><b>Identity/DTC/live</b>: research-grade. Delphi CAN live mapping is source-derived; treat values as candidates.</li>
   <li><b>Offline calibration region workspace</b> (Tools): inspect a 160 KiB calibration or 16 KiB tune, compare regions, export the 16 KiB region.</li>
   <li><b>Centurion header research</b>: compare candidate header fields across up to two files.</li>

@@ -465,18 +465,18 @@
     <div class="grid-2">
       <article class="panel">
         <h2>1 · Motorcycle</h2>
-        <p class="muted">Pick the make, model and year; the workstation resolves the ECU and the protocol it speaks. Some models have overlapping ECU fitments within a model year. Verify the label and evidence for the exact motorcycle; a research entry does not enable diagnostics.</p>
+        <p class="muted">Pick the brand first, then the year, then one of the models catalogued for that year; the workstation resolves the ECU and the protocol it speaks. Some models have overlapping ECU fitments within a model year. Verify the label and evidence for the exact motorcycle; a research entry does not enable diagnostics.</p>
         <label class="field">
-          <span>Make</span>
+          <span>Brand</span>
           <select id="makeSelect"></select>
-        </label>
-        <label class="field">
-          <span>Model</span>
-          <select id="modelSelect"></select>
         </label>
         <label class="field">
           <span>Year</span>
           <select id="yearSelect"></select>
+        </label>
+        <label class="field">
+          <span>Model</span>
+          <select id="modelSelect" disabled></select>
         </label>
         <div id="bikeStudioGarage" class="small" aria-live="polite">BikeStudio reference candidates load locally.</div>
         <details class="advanced" id="bikeStudioLookup">
@@ -503,7 +503,7 @@
         <p class="muted small">Selects the vehicle without opening a diagnostic session. Disconnect any active session first.</p>
         <details class="advanced">
           <summary>Override: pick an ECU family directly</summary>
-          <p class="muted small">With a selected model and year, only a cataloged matching ECU is accepted and the vehicle confidence still applies. Clear the model for an ECU-only bench selection. The generic OBD-II CAN option is always ECU-only, not a vehicle match.</p>
+          <p class="muted small">With a selected year and model, only a cataloged matching ECU is accepted and the vehicle confidence still applies. Clear the model for an ECU-only bench selection. The generic OBD-II CAN option is always ECU-only, not a vehicle match.</p>
           <select id="ecuOverride"><option value="">— use the model lookup —</option></select>
         </details>
       </article>

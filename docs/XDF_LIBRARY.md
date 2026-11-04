@@ -221,8 +221,8 @@ and its full-image byte sum is zero. `Top Speed Limit` has an unsupported
 example changed the selected data byte and checksum byte as expected; this
 is not a hardware test or validation of every definition or tune.
 
-To use the new workstation/desktop path: select **Honda → CBR1000RR (US) →
-2012**, click **Select for offline maps**, render your own full original 256 KiB image with this XDF, select
+To use the new workstation/desktop path: select **Honda → 2012 →
+CBR1000RR (US)**, click **Select for offline maps**, render your own full original 256 KiB image with this XDF, select
 **Honda CBR1000RR 2012 US / A01 checksum**, stage edits and follow the normal
 preview/evidence/acknowledgement/build workflow. The original must have SHA-256
 `c0fb37e60fbf38a8479166a5ef9ca0fdcc8b4f7c37de97f9dadaab1db0da0764`

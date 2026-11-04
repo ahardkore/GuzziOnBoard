@@ -686,3 +686,37 @@ forums, XDF/BIN libraries and commercial tools. Public motorcycle protocol
 coverage is concentrated in Honda Keihin K-Line, Yamaha K-Line/CAN, Suzuki
 SDS, Marelli IAW 5AM/59M, Triumph K-Line and Buell DDFI. Findings documented
 first per owner instruction; app integration is a follow-up.
+
+## Round 25 — deep internet search beyond GitHub (2026-11-04)
+
+Web-wide search (forums, StackExchange, vendor docs, PDFs) on the gap
+families. New citable findings:
+
+- **Njavris/m05.2** (MIT) — static RE of Delphi **MT05.2** flash (Infineon
+  XC164CS-32, 256 KB, Mash Black Seven 125): K-Line KWP2000 with ECU addr
+  **0x11** / tester 0xF1, CAN diag pair **0x7E0/0x7E4**, and a **fixed
+  security seed/key 0x1234 → 0x8474** documented from bus logs. Seed/key
+  fact cited; no unlock capability implemented. [verified doc]
+- **HUD ECU Hacker** (netcult.ch/elmue, freeware docs) — Delphi **MT05/MT05.2**:
+  ISO 14230 K-Line 10400 baud fast init, addr 0x11/0xF1, key bytes **EF 8F**,
+  6-pin under-seat plug; **MT05.3**: CAN ISO 15765 (0x7E0 req / 0x7E8 resp);
+  real MT05 does not respond on CAN. HiSun MT05 = same CAN commands.
+- **Arduino forum (ec2021, 2026-08)** — Kawasaki **KDS3 CAN** message table:
+  0x100 RPM, 0x110 speed, 0x120 water temp, 0x121 gear, 0x130 TPMS display,
+  0x050/0x058/0x060 button status, 0x220-0x227 ignition/lock/modes,
+  0x695/0x696 TPMS sensors, diagnostic requests 0x700-0x7FF.
+- **danielbolsson/yamaha-data-logger** — Yamaha **outboard** YDS over ISO 9141
+  K-Line incl. baud-rate-switch unlock sequence (marine F150 et al.).
+- **emanuelemerlo/marelli-iaw-ecu-studio** — IAW family studio: pre-2001 IAW
+  (P8/16M/15M...) use a **FIAT-specific protocol: 1200-baud init, single-byte
+  requests at 7680 baud** (not KWP); 2001+ speak OBD-II KWP2000. Cross-family
+  note for our Marelli profiles.
+- **diagcode.com/bike/release-22** — per-ECU service capability matrix
+  (MIUG4, 11MP, MIUG3, 59M...): which services each ECU family supports.
+- **Eztys/SimpleKDS, Eztys/KDS, ahradnansky/GearIndicator** — Kawasaki KDS /
+  Suzuki ISO9141 Arduino libraries; **Ircama/ELM327-emulator** ships an mt05
+  PID set; **ecutools BitBox** (commercial) documents MT05.2 flash R/W and
+  Harley Delphi MT05 CAN (MC9S12XEP768, FID 30/43).
+- Confirmed again: gixxer.com SDS thread (channel map 0x0B RPM / 0x0D TPS…)
+  and the Arduino bike-interface thread (YDS 5-byte stream = AiM stream;
+  KWP fast-init patterns) match what we already integrated.

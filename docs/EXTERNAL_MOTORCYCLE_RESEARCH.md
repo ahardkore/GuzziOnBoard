@@ -620,3 +620,13 @@ Owner note applied: repos may name only the ECU (e.g. "IAW 5AM", "MT05"), not th
 - [MarioLange1983/FanticAnalyzer](https://github.com/MarioLange1983/FanticAnalyzer) (no license = open) — UDS-over-BLE for Fantic e-shock module → [experimental].
 - [mattb97267-ai/iaw5am](https://github.com/mattb97267-ai/iaw5am/tree/889529331ea6) (no license = open) — "ducati immo off bin" payload: **legal-use-only citation, not vendored or implemented**.
 
+## Round 25 additions — deep web search (2026-11-04)
+
+- [Njavris/m05.2](https://github.com/Njavris/m05.2) (MIT) — Delphi MT05.2 flash RE: K-Line KWP2000 addr 0x11/0xF1, CAN 0x7E0/0x7E4, documented fixed seed/key 0x1234→0x8474. Cited; no unlock implemented.
+- [HUD ECU Hacker docs](https://netcult.ch/elmue/HUD%20ECU%20Hacker/) — MT05/MT05.2 ISO14230 K-Line 10400 fast init, key bytes EF 8F, 6-pin plug; MT05.3 CAN ISO15765 0x7E0/0x7E8. Freeware docs, cited.
+- Arduino forum KDS3 CAN table (2026-08) — Kawasaki CAN IDs 0x100 RPM / 0x110 speed / 0x120 temp / 0x121 gear / 0x130 TPMS / 0x700-0x7FF diagnostic. Forum citation.
+- [danielbolsson/yamaha-data-logger](https://github.com/danielbolsson/yamaha-data-logger) — Yamaha outboard YDS K-Line incl. baud-switch unlock. [experimental]
+- [emanuelemerlo/marelli-iaw-ecu-studio](https://github.com/emanuelemerlo/marelli-iaw-ecu-studio) — pre-2001 IAW = FIAT protocol (1200-baud init, 7680-baud single-byte requests), 2001+ = KWP2000 OBD-II. Cross-family note.
+- diagcode.com bike release list — per-ECU service matrix (MIUG4/11MP/MIUG3/59M). Commercial tool docs, cited.
+- Eztys/SimpleKDS, Eztys/KDS, ahradnansky/GearIndicator, Ircama/ELM327-emulator (mt05 PID set) — KDS/SDS Arduino libraries, cited.
+

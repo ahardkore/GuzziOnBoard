@@ -239,7 +239,7 @@
      "transport": "kline",
      "confidence": "verified-capture",
      "years": "2005-2016",
-     "notes": "Fitted to every CARC-framed Moto Guzzi (Breva 850/1100/1200, Griso, Norge, 1200 Sport, Stelvio). Parameter scalings below were decoded from a live K-Line capture of an IAW 5AM HW610 on a Moto Guzzi. 38 of the 79 answerable identifiers are served from shared zero slots and are marked dead. PF1C and PF2C throttle bodies support the electronic TPS reset; PF3C does not and must be set manually with a voltmeter. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Fast initialisation only. The service interval is reset from the dashboard, not over diagnostics, and the stepper test needs the engine running.",
+     "notes": "Fitted to every CARC-framed Moto Guzzi (Breva 850/1100/1200, Griso, Norge, 1200 Sport, Stelvio). Parameter scalings below were decoded from a live K-Line capture of an IAW 5AM HW610 on a Moto Guzzi. 38 of the 79 answerable identifiers are served from shared zero slots and are marked dead. PF1C and PF2C throttle bodies support the electronic TPS reset; PF3C does not and must be set manually with a voltmeter. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Fast initialisation only. The service interval is reset from the dashboard, not over diagnostics, and the stepper test needs the engine running. EXPERIMENTAL bytes-only write builders (token-gated, no transport) for the documented sequence are in guzzionboard/iaw_5am_write.py (added 2026-11-04); write_supported stays false against hardware.",
      "capabilities": [
       "actuators",
       "discover",
@@ -16314,7 +16314,7 @@
     "transport": "kline",
     "confidence": "verified-capture",
     "years": "2005-2016",
-    "notes": "Fitted to every CARC-framed Moto Guzzi (Breva 850/1100/1200, Griso, Norge, 1200 Sport, Stelvio). Parameter scalings below were decoded from a live K-Line capture of an IAW 5AM HW610 on a Moto Guzzi. 38 of the 79 answerable identifiers are served from shared zero slots and are marked dead. PF1C and PF2C throttle bodies support the electronic TPS reset; PF3C does not and must be set manually with a voltmeter. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Fast initialisation only. The service interval is reset from the dashboard, not over diagnostics, and the stepper test needs the engine running.",
+    "notes": "Fitted to every CARC-framed Moto Guzzi (Breva 850/1100/1200, Griso, Norge, 1200 Sport, Stelvio). Parameter scalings below were decoded from a live K-Line capture of an IAW 5AM HW610 on a Moto Guzzi. 38 of the 79 answerable identifiers are served from shared zero slots and are marked dead. PF1C and PF2C throttle bodies support the electronic TPS reset; PF3C does not and must be set manually with a voltmeter. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Fast initialisation only. The service interval is reset from the dashboard, not over diagnostics, and the stepper test needs the engine running. EXPERIMENTAL bytes-only write builders (token-gated, no transport) for the documented sequence are in guzzionboard/iaw_5am_write.py (added 2026-11-04); write_supported stays false against hardware.",
     "capabilities": [
      "actuators",
      "discover",

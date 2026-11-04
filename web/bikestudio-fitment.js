@@ -46,7 +46,7 @@
   }
   function renderGarage() {
     garage.replaceChildren();
-    if (!model.value || !year.value) { add(garage, 'p', 'Select a model and year to see any curated BikeStudio reference candidates.'); return; }
+    if (!model.value || !year.value) { add(garage, 'p', 'Select a brand, year and model to see any curated BikeStudio reference candidates.'); return; }
     const relevant = groups.filter(g => g.make === make.value && g.garage_models.includes(model.value));
     if (!relevant.length) { const p = add(garage, 'p', 'No curated BikeStudio model match here. '); link(p, 'https://bikestudio.io/ecu?lang=en', 'Open the full source database'); return; }
     add(garage, 'p', 'BikeStudio part candidates, not ECU identification or proof of protocol support. Source years/cc may contain errors; compare the ECU label and market.');
@@ -60,12 +60,14 @@
     }
   }
   function selectBike(group, name, y) {
+    // Garage selection runs brand -> year -> model: the model list only
+    // offers models catalogued for the chosen year, so set the year first.
     if (state.connected || ![...make.options].some(o => o.value === group.make)) return;
     make.value = group.make; make.dispatchEvent(new Event('change', {bubbles:true}));
-    if (![...model.options].some(o => o.value === name)) return;
-    model.value = name; model.dispatchEvent(new Event('change', {bubbles:true}));
     if (![...year.options].some(o => o.value === String(y))) return;
     year.value = String(y); year.dispatchEvent(new Event('change', {bubbles:true}));
+    if (![...model.options].some(o => o.value === name)) return;
+    model.value = name; model.dispatchEvent(new Event('change', {bubbles:true}));
     renderGarage();
   }
   function renderSearch() {

@@ -59,7 +59,9 @@ test('the installed app serves the real UI, marked as desktop-hosted', async ({ 
   expect(['window', 'browser']).toContain(descriptor.backend);
   expect(descriptor.port).toBeGreaterThan(0);
 
-  // the workstation works: pick a bike, connect to the simulator, read it
+  // the workstation works: pick a bike (brand -> year -> model), connect to
+  // the simulator, read it
+  await page.selectOption('#yearSelect', { index: 1 }).catch(() => {});
   await page.selectOption('#modelSelect', { index: 1 }).catch(() => {});
   await expect(page.locator('#connTitle')).toBeVisible();
   expect(page.failures).toEqual([]);
@@ -188,9 +190,9 @@ test('a page in a browser tab sees none of this', async ({ page }) => {
 
 test('desktop host shares the refreshed layout and real simulator timeline', async ({ page }) => {
   await page.goto('/');
+  await page.locator('#yearSelect').selectOption('2012');
   await expect(page.locator('#modelSelect option[value="Griso 1200 8V"]')).toHaveCount(1);
   await page.locator('#modelSelect').selectOption('Griso 1200 8V');
-  await page.locator('#yearSelect').selectOption('2012');
   await expect(page.locator('#connectBtn')).toBeEnabled();
   await page.locator('#layoutDensity').selectOption('compact');
   await expect(page.locator('body')).toHaveAttribute('data-density', 'compact');
@@ -256,14 +258,49 @@ test('desktop host provides local manual search and a source-aware service works
   expect(page.failures).toEqual([]);
 });
 
+test('garage motorcycle search runs brand, then year, then that year\'s models', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
+
+  // DOM order is Brand, Year, Model, and the model list stays locked until a
+  // year is chosen.
+  const fieldOrder = await page.evaluate(() => [...document.querySelectorAll('#makeSelect, #yearSelect, #modelSelect')].map((el) => el.id));
+  expect(fieldOrder).toEqual(['makeSelect', 'yearSelect', 'modelSelect']);
+  await expect(page.locator('#modelSelect')).toBeDisabled();
+
+  // A brand only offers years it has models for: Triumph has 2009 and 2012
+  // entries, with no catalogued model for 2010/2011.
+  await page.selectOption('#makeSelect', 'Triumph');
+  const triumphYears = await page.locator('#yearSelect option').allTextContents();
+  expect(triumphYears).toContain('2012');
+  expect(triumphYears).not.toContain('2010');
+  await expect(page.locator('#modelSelect')).toBeDisabled();
+
+  // Choosing the year offers only that year's models for the brand.
+  await page.selectOption('#yearSelect', '2012');
+  await expect(page.locator('#modelSelect')).toBeEnabled();
+  expect(await page.locator('#modelSelect option').allTextContents()).toContain('Daytona 675');
+  expect(await page.locator('#modelSelect option').allTextContents()).not.toContain('Bonneville 865 EFI');
+  await page.selectOption('#modelSelect', 'Daytona 675');
+  await expect(page.locator('#resolveResult')).toContainText('read-only OBD');
+
+  // Switching brand restarts the cascade: year and model are cleared rather
+  // than silently keeping a combination the new brand does not catalogue.
+  await page.selectOption('#makeSelect', 'Honda');
+  await expect(page.locator('#yearSelect')).toHaveValue('');
+  await expect(page.locator('#modelSelect')).toHaveValue('');
+  await expect(page.locator('#modelSelect')).toBeDisabled();
+  expect(page.failures).toEqual([]);
+});
+
 test('Honda live profile is selectable but cannot use service or simulator sessions', async ({ page }) => {
   await page.goto('/');
   // Earlier desktop tests share the workstation; start with no active session.
   await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
   await expect(page.locator('#makeSelect option[value="Honda"]')).toHaveCount(1);
   await page.selectOption('#makeSelect', 'Honda');
-  await page.selectOption('#modelSelect', 'CBR600RR');
   await page.selectOption('#yearSelect', '2005');
+  await page.selectOption('#modelSelect', 'CBR600RR');
   await expect(page.locator('#resolveResult')).toContainText('read-only K-Line');
   const result = await page.evaluate(async () => {
     const post = async (url, body) => {
@@ -310,8 +347,8 @@ test('desktop exposes multi-brand offline research and blocks hardware sessions'
   await expect(page.locator('#makeSelect option[value="Kawasaki"]')).toHaveCount(1);
   await expect(page.locator('#makeSelect option[value="Triumph"]')).toHaveCount(1);
   await page.selectOption('#makeSelect', 'Kawasaki');
-  await page.selectOption('#modelSelect', 'ER-6n');
   await page.selectOption('#yearSelect', '2006');
+  await page.selectOption('#modelSelect', 'ER-6n');
   await expect(page.locator('#resolveResult')).toContainText('read-only KDS');
   const result = await page.evaluate(async () => {
     const post = async (url, body) => {
@@ -396,8 +433,8 @@ test('desktop exposes Triumph read-only OBD without inventing status bytes', asy
   await page.goto('/');
   await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
   await page.selectOption('#makeSelect', 'Triumph');
-  await page.selectOption('#modelSelect', 'Daytona 675');
   await page.selectOption('#yearSelect', '2012');
+  await page.selectOption('#modelSelect', 'Daytona 675');
   await expect(page.locator('#resolveResult')).toContainText('read-only OBD');
   const selected = await page.evaluate(async () => {
     const r = await fetch('/api/select', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ make: 'Triumph', model: 'Daytona 675', year: 2012, transport: 'simulator' }) });
@@ -466,8 +503,8 @@ test('desktop selects the 2012 US Honda for offline maps without opening a sessi
   await page.goto('/');
   await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
   await page.selectOption('#makeSelect', 'Honda');
-  await page.selectOption('#modelSelect', 'CBR1000RR (US)');
   await page.selectOption('#yearSelect', '2012');
+  await page.selectOption('#modelSelect', 'CBR1000RR (US)');
   await expect(page.locator('#selectOfflineBtn')).toBeEnabled();
   await page.locator('#selectOfflineBtn').click();
   await expect(page.locator('#firmware')).toBeVisible();
@@ -536,7 +573,8 @@ test('desktop Harley capture profiles and research calibration copy', async ({ p
 test('Harley J1850 setup and missing fault replies are shown honestly', async ({ page }) => {
   await page.goto('/');
   await page.waitForSelector('#ecuOverride option[value="harley_j1850_harleydroid"]', {state: 'attached'});
-  await page.selectOption('#modelSelect', '');
+  // No year picked, so no model is selected: this is an ECU-only selection.
+  await expect(page.locator('#modelSelect')).toHaveValue('');
   await page.getByText('Override: pick an ECU family directly').click();
   await page.selectOption('#ecuOverride', 'harley_j1850_harleydroid');
   const elm = page.locator('input[name="transport"][value="elm_j1850"]');
@@ -562,8 +600,8 @@ test('desktop selects scoped Honda MGZ-A03 offline builder and flags source XDFs
   await page.goto('/');
   await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
   await page.selectOption('#makeSelect', 'Honda');
-  await page.selectOption('#modelSelect', 'CBR500R');
   await page.selectOption('#yearSelect', '2014');
+  await page.selectOption('#modelSelect', 'CBR500R');
   await page.locator('#selectOfflineBtn').click();
   await expect(page.locator('#xdfSelect')).toHaveValue('CB500_MGZ_A03_gob.xdf');
   await expect(page.locator('#xdfFitNote')).toContainText('ECU identity not established');
@@ -644,8 +682,8 @@ test('desktop exposes Ninja 7 Hybrid read-only CAN and refuses address overrides
   await page.goto('/');
   await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
   await page.selectOption('#makeSelect', 'Kawasaki');
-  await page.selectOption('#modelSelect', 'Ninja 7 Hybrid');
   await page.selectOption('#yearSelect', '2024');
+  await page.selectOption('#modelSelect', 'Ninja 7 Hybrid');
   await expect(page.locator('#resolveResult')).toContainText('read-only CAN');
   const result = await page.evaluate(async () => {
     const post = async (url, body) => {
@@ -689,8 +727,8 @@ test('desktop exposes separate research-only 2026 Kawasaki ZX-6R and 650 models'
   await page.evaluate(() => fetch('/api/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
   await page.selectOption('#makeSelect', 'Kawasaki');
   for (const model of ['Ninja ZX-6R (636)', 'Ninja 650 / EX650', 'Z650']) {
-    await page.selectOption('#modelSelect', model);
     await page.selectOption('#yearSelect', '2026');
+    await page.selectOption('#modelSelect', model);
     await expect(page.locator('#resolveResult')).toContainText('research only');
     await expect(page.locator('#resolveResult')).toContainText('No physical diagnostics');
   }
@@ -722,8 +760,8 @@ test('desktop exposes scoped Versys and GSX-R live profiles without memory or si
     ['Suzuki', 'GSX-R600', '2011', 'read-only SDS', 'suzuki_gsxr600_2011'],
   ]) {
     await page.selectOption('#makeSelect', make);
-    await page.selectOption('#modelSelect', model);
     await page.selectOption('#yearSelect', year);
+    await page.selectOption('#modelSelect', model);
     await expect(page.locator('#resolveResult')).toContainText(name);
     const selected = await page.evaluate(async ({ make, model, year }) => {
       const r = await fetch('/api/select', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -928,8 +966,8 @@ test('Honda PGM-FI and GSX-R1000 appear as read-only source-scoped attempts', as
     ['Kawasaki','Ninja 300',2014,'kawasaki_kds_research'],
   ]) {
     await page.selectOption('#makeSelect',make);
-    await page.selectOption('#modelSelect',model);
     await page.selectOption('#yearSelect',String(year));
+    await page.selectOption('#modelSelect',model);
     await expect(page.locator('#resolveResult')).toContainText('synthetic');
     const select = await page.evaluate(async ({make,model,year}) => {
       const res=await fetch('/api/select',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({make,model,year,transport:'kline'})});
@@ -1361,8 +1399,8 @@ test('Bonneville source-scoped live OBD is selectable with programming blocked',
   await page.goto('/');
   await page.evaluate(() => fetch('/api/disconnect', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}));
   await page.selectOption('#makeSelect','Triumph');
-  await page.selectOption('#modelSelect','Bonneville 865 EFI');
   await page.selectOption('#yearSelect','2009');
+  await page.selectOption('#modelSelect','Bonneville 865 EFI');
   await expect(page.locator('#resolveResult')).toContainText('synthetic');
   const result = await page.evaluate(async () => {
     const post=async (path, body)=>{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return {status:r.status,body:await r.json()}};
@@ -1435,8 +1473,8 @@ test('2017 V-Strom source-unverified SDS attempt is selectable, without programm
   await page.goto('/');
   await page.evaluate(() => fetch('/api/disconnect', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}));
   await page.selectOption('#makeSelect','Suzuki');
-  await page.selectOption('#modelSelect','V-Strom DL650XAL7');
   await page.selectOption('#yearSelect','2017');
+  await page.selectOption('#modelSelect','V-Strom DL650XAL7');
   await expect(page.locator('#resolveResult')).toContainText('synthetic');
   const result = await page.evaluate(async () => {
     const post=async (path, body)=>{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return {status:r.status,body:await r.json()}};
@@ -1710,7 +1748,10 @@ test('additional BikeStudio source candidates retain anomalies and year gaps', a
   await expect(page.locator('#bikeStudioGarage')).toContainText('30400-K0WW-ND2');
   await expect(page.locator('#bikeStudioGarage')).not.toContainText('30400-K0WL-NA1');
   await expect(page.locator('#connectBtn')).toBeDisabled();
-  expect(await page.locator('#yearSelect option').allTextContents()).not.toContain('2024');
+  // Brand -> year -> model: Honda has other 2024 models, but the ADV 160's
+  // 2024 gap is preserved because it is not offered for that year.
+  await page.selectOption('#yearSelect', '2024');
+  expect(await page.locator('#modelSelect option').allTextContents()).not.toContain('ADV 160');
   expect(page.failures).toEqual([]);
 });
 
@@ -1722,7 +1763,9 @@ test('BikeStudio new PCX and XMAX selections keep gaps and unknown data', async 
   await page.getByRole('button', {name:'Choose Honda PCX 160 2025 in Garage'}).click();
   await expect(page.locator('#bikeStudioGarage')).toContainText('30400-K1ZH-B11');
   await expect(page.locator('#connectBtn')).toBeDisabled();
-  expect(await page.locator('#yearSelect option').allTextContents()).not.toContain('2024');
+  // The PCX 160 has no 2024 catalog entry, so it is not offered for 2024.
+  await page.selectOption('#yearSelect', '2024');
+  expect(await page.locator('#modelSelect option').allTextContents()).not.toContain('PCX 160');
   await page.locator('#bikeStudioQuery').fill('XMAX');
   await page.locator('#bikeStudioYear').fill('2023');
   await expect(page.locator('#bikeStudioResults')).toContainText('B741 · source years: not stated (year unknown)');
@@ -2278,9 +2321,9 @@ test('desktop File menu, Save/Load presets, and ZT-2 DIF export write through de
 
 test('desktop attests a 320 KiB full 5AM dump, unlocks hardware writers, toggles XDF flags, and builds a custom tune on disk', async ({ page }) => {
   await page.goto('/');
+  await page.locator('#yearSelect').selectOption('2012');
   await expect(page.locator('#modelSelect option[value="Griso 1200 8V"]')).toHaveCount(1);
   await page.locator('#modelSelect').selectOption('Griso 1200 8V');
-  await page.locator('#yearSelect').selectOption('2012');
   await page.locator('input[name="transport"][value="simulator"]').check();
   await expect(page.locator('#connectBtn')).toBeEnabled();
   await page.locator('#connectBtn').click();

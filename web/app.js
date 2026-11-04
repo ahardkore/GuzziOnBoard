@@ -658,17 +658,19 @@ async function loadCatalog() {
   make.value = (savedMake && availableMakes.includes(savedMake))
     ? savedMake
     : (availableMakes.includes('Moto Guzzi') ? 'Moto Guzzi' : availableMakes[0]);
-  make.onchange = () => { Prefs.set('make', make.value); fillModels(); resolveVehicle(); };
-  fillModels();
+  make.onchange = () => { Prefs.set('make', make.value); fillYears(); resolveVehicle(); };
+  fillYears();
 
-  // last time's bike, if it still exists in the catalog
+  // last time's bike, if it still exists in the catalog. Selection runs
+  // brand -> year -> model, so the year has to be restored first: only the
+  // models catalogued for that year are offered afterwards.
   const savedModel = Prefs.get('model');
   const savedYear = Prefs.get('year');
-  if (savedModel && [...$('#modelSelect').options].some((o) => o.value === savedModel)) {
-    $('#modelSelect').value = savedModel;
-    fillYears();
-    if (savedYear && [...$('#yearSelect').options].some((o) => o.value === savedYear)) {
-      $('#yearSelect').value = savedYear;
+  if (savedYear && [...$('#yearSelect').options].some((o) => o.value === savedYear)) {
+    $('#yearSelect').value = savedYear;
+    fillModels();
+    if (savedModel && [...$('#modelSelect').options].some((o) => o.value === savedModel)) {
+      $('#modelSelect').value = savedModel;
       await resolveVehicle();
     }
   }
@@ -677,10 +679,10 @@ async function loadCatalog() {
   // preferences and the full garage remain untouched in the installed app.
   if (isHostedDemo()) {
     make.value = 'Moto Guzzi';
-    fillModels();
-    $('#modelSelect').value = 'Griso 1200 8V';
     fillYears();
     $('#yearSelect').value = '2012';
+    fillModels();
+    $('#modelSelect').value = 'Griso 1200 8V';
     await resolveVehicle();
     $('#modeSelect').value = 'simulator';
   }
@@ -724,30 +726,51 @@ function vehiclesOf(make) {
   return (state.catalog.vehicles || []).filter((vehicle) => vehicle.make === make);
 }
 
-function fillModels() {
-  const make = $('#makeSelect').value || (state.catalog.makes || ['Moto Guzzi'])[0];
-  const models = [...new Set(vehiclesOf(make).map((v) => v.model))].sort();
-  $('#modelSelect').innerHTML = '<option value="">— pick a model —</option>'
-    + models.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
-  $('#modelSelect').onchange = () => {
-    Prefs.set('model', $('#modelSelect').value);
-    fillYears(); resolveVehicle();
-  };
-  fillYears();
+function vehicleCoversYear(vehicle, year) {
+  return vehicle.year_from <= year && (!vehicle.year_to || year <= vehicle.year_to);
 }
 
+// Garage selection is a brand -> year -> model cascade: the year list holds
+// only years the chosen brand has catalogued models for (gap years with no
+// model are skipped), and the model list then holds only the models
+// catalogued for the chosen year.
 function fillYears() {
-  const make = $('#makeSelect').value;
-  const model = $('#modelSelect').value;
-  const entries = vehiclesOf(make).filter((v) => v.model === model);
+  const make = $('#makeSelect').value || (state.catalog.makes || ['Moto Guzzi'])[0];
+  const thisYear = new Date().getFullYear();
   const years = new Set();
-  entries.forEach((v) => {
-    const end = Math.min(v.year_to || new Date().getFullYear(), new Date().getFullYear() + 1);
+  vehiclesOf(make).forEach((v) => {
+    const end = Math.min(v.year_to || thisYear, thisYear + 1);
     for (let y = v.year_from; y <= end; y++) years.add(y);
   });
   const sorted = [...years].sort((a, b) => b - a);
   $('#yearSelect').innerHTML = '<option value="">— pick a year —</option>'
     + sorted.map((y) => `<option value="${y}">${y}</option>`).join('');
+  $('#yearSelect').onchange = () => {
+    Prefs.set('year', $('#yearSelect').value);
+    fillModels(); resolveVehicle();
+  };
+  fillModels();
+}
+
+function fillModels() {
+  const make = $('#makeSelect').value;
+  const year = parseInt($('#yearSelect').value, 10);
+  const select = $('#modelSelect');
+  select.onchange = () => {
+    Prefs.set('model', select.value);
+    resolveVehicle();
+  };
+  if (!year) {
+    select.innerHTML = '<option value="">— pick a year first —</option>';
+    select.disabled = true;
+    return;
+  }
+  const models = [...new Set(
+    vehiclesOf(make).filter((v) => vehicleCoversYear(v, year)).map((v) => v.model),
+  )].sort();
+  select.innerHTML = '<option value="">— pick a model —</option>'
+    + models.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  select.disabled = false;
 }
 
 let resolveRequest = 0;
@@ -765,7 +788,7 @@ async function resolveVehicle() {
   if (request !== resolveRequest) return;
   if (!data.matches.length) {
     box.innerHTML = `<div class="resolve-card bad">No catalog entry for <b>${esc(make)} ${esc(model)} ${year}</b>.
-      Pick another year, or use the ECU override below if you know the family.</div>`;
+      Pick another model for this year, or use the ECU override below if you know the family.</div>`;
     state.resolved = null; updateConnectEnabled(); return;
   }
 
@@ -2193,8 +2216,8 @@ async function buildReport() {
 }
 
 /* ----------------------------------------------------------------- wire */
+/* Brand/year/model onchange handlers are wired in fillYears/fillModels. */
 
-$('#yearSelect').onchange = resolveVehicle;
 $('#printBtn').onclick = () => printView();
 $('#tempUnit').onchange = (e) => {
   Temp.setUnit(e.target.value);

@@ -377,11 +377,40 @@ class Catalog:
     def makes(self) -> list[str]:
         return sorted({v.make for v in self.vehicles})
 
-    def models(self, make: str = "") -> list[str]:
+    def years(self, make: str = "") -> list[int]:
+        """Model years that have at least one catalogued vehicle.
+
+        Garage selection is brand -> year -> model, so this is the middle
+        step: with a make it returns only that make's years, and gap years
+        with no catalogued model are not invented. Open-ended entries
+        (``year_to`` is None, i.e. "from this year on") are enumerated up
+        to the current calendar year.
+        """
+        from datetime import date
+
         if make:
-            return sorted({v.model for v in self.vehicles
-                           if v.make.lower() == make.lower()})
-        return sorted({v.model for v in self.vehicles})
+            vehicles = [v for v in self.vehicles
+                        if v.make.lower() == make.lower()]
+        else:
+            vehicles = self.vehicles
+        years: set[int] = set()
+        for vehicle in vehicles:
+            end = vehicle.year_to or date.today().year
+            years.update(range(vehicle.year_from, end + 1))
+        return sorted(years)
+
+    def models(self, make: str = "", year: int | None = None) -> list[str]:
+        """Model names, optionally narrowed to one make and one model year.
+
+        With ``year`` given, only models catalogued for that year are
+        returned — the last step of the brand -> year -> model selection.
+        """
+        vehicles = self.vehicles
+        if make:
+            vehicles = [v for v in vehicles if v.make.lower() == make.lower()]
+        if year is not None:
+            vehicles = [v for v in vehicles if v.covers(year)]
+        return sorted({v.model for v in vehicles})
 
     def find(
         self, model: str, year: int | None = None, make: str = ""

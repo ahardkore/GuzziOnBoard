@@ -447,3 +447,24 @@ region alongside safety preconditions, and does not mint a confirmation token
 if either is unavailable. Previously the standalone gate could report all
 policy checks satisfied even when the separate writer flag still blocked the
 operation; the final write path nevertheless checked the flag.
+
+## IAW 5AM experimental write builders (2026-11-04)
+
+`guzzionboard/iaw_5am_write.py` builds the full documented 5AM write sequence
+as frame BYTES only — every function requires the CONFIRM_TOKEN and nothing
+opens a transport or touches an ECU (owner direction: writes = experimental
+frame builders / local image patches only):
+
+- `iaw5am_key_from_seed` — SecurityAccess key via the cited `iaw5am-kwp-divmod`
+  provider (reproduces both published 5am_util seed/key pairs; `documented`,
+  not bench-verified here).
+- `write_session_frames` / `security_access_frames` / `identification_frames`
+  / `erase_frames` / `download_frame` / `transfer_data_frames` (252-byte
+  chunks to fit the KWP length byte) / `program_frames` / `full_write_plan`.
+- `patch_local_image` — patches bytes into a local 5AM image copy and returns
+  the re-encoded upload blob + checksum16 (`firmware.iaw5am_upload_blob`).
+
+The immobilizer is not in this ECU (it lives in the 5AM-era Guzzi dash) and is
+not touched; immobilizer material remains citation-only, legal-use-only.
+`write_supported` in the catalog stays `false` against hardware: no verified
+complete backup/recovery path exists yet.

@@ -5,7 +5,7 @@
   "transport": "kline",
   "confidence": "verified-capture",
   "years": "2005-2016",
-  "notes": "Fitted to every CARC-framed Moto Guzzi (Breva 850/1100/1200, Griso, Norge, 1200 Sport, Stelvio). Parameter scalings below were decoded from a live K-Line capture of an IAW 5AM HW610 on a Moto Guzzi. 38 of the 79 answerable identifiers are served from shared zero slots and are marked dead. PF1C and PF2C throttle bodies support the electronic TPS reset; PF3C does not and must be set manually with a voltmeter. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md §8), not from a capture: Fast initialisation only. The service interval is reset from the dashboard, not over diagnostics, and the stepper test needs the engine running.",
+  "notes": "Fitted to every CARC-framed Moto Guzzi (Breva 850/1100/1200, Griso, Norge, 1200 Sport, Stelvio). Parameter scalings below were decoded from a live K-Line capture of an IAW 5AM HW610 on a Moto Guzzi. 38 of the 79 answerable identifiers are served from shared zero slots and are marked dead. PF1C and PF2C throttle bodies support the electronic TPS reset; PF3C does not and must be set manually with a voltmeter. Established from the published GuzziDiag/IAWDiag changelogs (see docs/PRIOR_ART.md \u00a78), not from a capture: Fast initialisation only. The service interval is reset from the dashboard, not over diagnostics, and the stepper test needs the engine running. EXPERIMENTAL bytes-only write builders (token-gated, no transport) for the documented sequence are in guzzionboard/iaw_5am_write.py (added 2026-11-04); write_supported stays false against hardware.",
   "kline": {
     "baud": 10400,
     "init": "fast",
@@ -248,7 +248,7 @@
       "key": "air_temp",
       "name": "Intake air temperature",
       "local_id": 50,
-      "unit": "°C",
+      "unit": "\u00b0C",
       "bias": -40,
       "digits": 0,
       "default": true,
@@ -261,7 +261,7 @@
       "key": "coolant_temp",
       "name": "Head/oil temperature",
       "local_id": 51,
-      "unit": "°C",
+      "unit": "\u00b0C",
       "bias": -40,
       "digits": 0,
       "default": true,
@@ -274,7 +274,7 @@
       "key": "throttle",
       "name": "Throttle angle",
       "local_id": 52,
-      "unit": "°",
+      "unit": "\u00b0",
       "scale": 0.1,
       "digits": 1,
       "default": true,
@@ -287,7 +287,7 @@
       "key": "advance_latched",
       "name": "Ignition advance (latched)",
       "local_id": 53,
-      "unit": "°",
+      "unit": "\u00b0",
       "scale": 0.1,
       "digits": 1,
       "group": "ignition",
@@ -304,7 +304,7 @@
       "key": "advance",
       "name": "Ignition advance",
       "local_id": 55,
-      "unit": "°",
+      "unit": "\u00b0",
       "scale": 0.1,
       "digits": 1,
       "default": true,
@@ -1120,7 +1120,7 @@
     "Live K-Line capture of an IAW 5AM HW610 on a Moto Guzzi (Vasiy/onboard-logger docs/PROTOCOL.md)",
     "GuzziDiag / IAWDiag changelogs (von-der-salierburg.de) for parameter corrections and the actuator map",
     "ISO 14230-2 and ISO 14230-3",
-    "https://github.com/Vasiy/onboard-logger/tree/7caf4e59ae2e (MIT) — on-board K-Line logger for a motorcycle Magneti Marelli IAW 5AM HW610 (Moto Guzzi); docs/PROTOCOL.md is a live-capture-verified KWP2000/ISO 14230 reference: 10400 8N1, addressed+short frames, fast init (25 ms BREAK) and 5-baud 0x33 slow init, TGT 0x10/SRC 0xF1, sum checksum. Corroborates the IAW 5AM profile.",
-    "https://github.com/Vasiy/ecu-map-viewer/tree/f454356b84c2 (no license = open per policy) — read-only IAW 5AM firmware (.bin/.xdf) map viewer for Ducati/Moto Morini calibrations."
+    "https://github.com/Vasiy/onboard-logger/tree/7caf4e59ae2e (MIT) \u2014 on-board K-Line logger for a motorcycle Magneti Marelli IAW 5AM HW610 (Moto Guzzi); docs/PROTOCOL.md is a live-capture-verified KWP2000/ISO 14230 reference: 10400 8N1, addressed+short frames, fast init (25 ms BREAK) and 5-baud 0x33 slow init, TGT 0x10/SRC 0xF1, sum checksum. Corroborates the IAW 5AM profile.",
+    "https://github.com/Vasiy/ecu-map-viewer/tree/f454356b84c2 (no license = open per policy) \u2014 read-only IAW 5AM firmware (.bin/.xdf) map viewer for Ducati/Moto Morini calibrations."
   ]
 }

@@ -550,3 +550,34 @@ def test_zero_sr_battery_can_broadcast():
     assert z.decode_frame(F(0x123, [0]*8)) is None  # standard ID rejected
     cap = z.decode_capture([F(0x0B57ED14, [0]*8), F(0x0B57ED00, [0, 0, 0, 0])])
     assert cap['recognized'] == 1 and cap['invalid'] == 1
+
+
+# ------------------------------------------- IAW 5AM experimental write builders
+def test_iaw_5am_experimental_write_builders():
+    from guzzionboard import iaw_5am_write as w
+    from guzzionboard.experimental_writers import CONFIRM_TOKEN as TOK
+    # token gate
+    for fn in (w.write_session_frames, w.erase_frames):
+        try:
+            fn(confirm_token='wrong'); assert False
+        except PermissionError:
+            pass
+    # key algorithm reproduces both published 5am_util pairs
+    assert w.iaw5am_key_from_seed(bytes.fromhex('27882789'), confirm_token=TOK).hex().upper() == 'DA78692 7'.replace(' ', '')
+    assert w.iaw5am_key_from_seed(bytes.fromhex('3CA93CAA'), confirm_token=TOK).hex().upper() == '0E816927'
+    sess = w.write_session_frames(confirm_token=TOK)
+    assert sess[0][1:5] == bytes([0x10, 0xF1, 0x02, 0x85])  # tgt 10, src F1, len, sid 85
+    sec = w.security_access_frames(bytes.fromhex('27882789'), confirm_token=TOK)
+    assert sec[0][4] == 0x27 and sec[1][4] == 0x27 and sec[1][5] == 0x02 and sec[1][6:-1] == bytes.fromhex('DA786927')
+    image = bytearray(0x50000); image[0x4000:0x4002] = b'\xAA\xBB'
+    plan = w.full_write_plan(bytes(image), bytes.fromhex('3CA93CAA'), confirm_token=TOK)
+    sids = [f[4] for f in plan]
+    assert sids[:4] == [0x85, 0x83, 0x27, 0x27] and 0x34 in sids and 0x36 in sids and sids[-2:] == [0x31, 0x33]
+    chunks = [f for f in plan if f[4] == 0x36]
+    assert all(len(f) - 6 <= 254 for f in chunks) and len(chunks) > 1
+    patched = w.patch_local_image(bytes(image), 0x4000, b'\x01\x02', confirm_token=TOK)
+    assert patched['image'][0x4000:0x4002] == b'\x01\x02' and patched['checksum16'] >= 0
+    try:
+        w.patch_local_image(b'\x00' * 100, 0, b'\x00', confirm_token=TOK); assert False
+    except ValueError:
+        pass

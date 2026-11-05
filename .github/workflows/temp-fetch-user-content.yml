@@ -1,17 +1,9 @@
 name: Temporary user content fetch
 
 on:
-  workflow_dispatch:
-    inputs:
-      url:
-        description: Direct download URL to fetch
-        required: true
-        type: string
-      dest:
-        description: Destination directory inside the repo
-        required: true
-        type: string
-        default: usercontent/incoming
+  push:
+    paths:
+      - ".fetch-trigger"
 
 permissions:
   contents: write
@@ -26,11 +18,10 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download
-        env:
-          URL: ${{ inputs.url }}
-          DEST: ${{ inputs.dest }}
         run: |
           set -euo pipefail
+          URL="$(sed -n '1p' .fetch-trigger)"
+          DEST="$(sed -n '2p' .fetch-trigger)"
           mkdir -p "$DEST"
           name="$(basename "${URL%%\?*}")"
           curl -fsSL --retry 3 -o "$DEST/$name" "$URL"
@@ -41,13 +32,12 @@ jobs:
           find "$DEST" -type f -printf '%s\t%p\n'
 
       - name: Commit
-        env:
-          DEST: ${{ inputs.dest }}
         run: |
           set -euo pipefail
+          DEST="$(sed -n '2p' .fetch-trigger)"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f "$DEST"
+          git add -f "$DEST" .fetch-trigger
           if git diff --cached --quiet; then
             echo "nothing to commit"
             exit 0

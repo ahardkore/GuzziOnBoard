@@ -34,6 +34,7 @@ from . import rusefi_read
 from . import rusefi_tune
 from . import buell_ddfi
 from . import buell_burn
+from . import buell_epr
 from . import harley_memory
 from . import honda_checksum_research
 from . import bikestudio
@@ -2230,6 +2231,14 @@ class Api:
 
     def post_tools_buell_ddfi(self, body: dict) -> tuple[int, dict]:
         """Explicit TTL serial Buell version, runtime or bounded EEPROM GET."""
+        if body.get("action") == "import":
+            # Offline file import: no port, no confirmation, no ECU contact.
+            try:
+                read = buell_epr.load_read(body.get("path"), body.get("ecm_id") or None)
+                saved = buell_epr.save_import(read)
+            except (OSError, ValueError) as exc:
+                return 400, {"error": str(exc)}
+            return 200, buell_epr.describe(read, saved_path=saved)
         if body.get("confirm") is not True:
             return 400, {"error": "Confirm the Buell ECM, compatible TTL adapter and wiring first."}
         if not self._buell_lock.acquire(blocking=False):

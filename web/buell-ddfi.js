@@ -196,4 +196,33 @@
     } catch (error) { if (token === generation) output.textContent += `\nSave failed: ${error.message}`; }
     finally { if (token === generation && lastImage === savedImage) saveImage.disabled = false; }
   };
+
+  // Offline import of a read the operator already has. No port, no confirm.
+  const importPath = document.getElementById('buellImportPath');
+  const importEcm = document.getElementById('buellImportEcm');
+  const importRun = document.getElementById('buellImportRun');
+  const importOut = document.getElementById('buellImportOut');
+  if (importRun) {
+    importRun.onclick = async () => {
+      if (isHostedDemo()) { importOut.textContent = 'The hosted demo cannot read local files.'; return; }
+      const path = importPath.value.trim();
+      if (!path) { importOut.textContent = 'Enter the absolute path of an .epr or hex-dump file.'; return; }
+      const ecm = importEcm.value.trim().toUpperCase();
+      importRun.disabled = true;
+      importOut.textContent = 'Checking the file against the source page layouts…';
+      try {
+        const result = await api('/api/tools/buell-ddfi', {method: 'POST', body: {
+          action: 'import', path, ...(ecm ? {ecm_id: ecm} : {}),
+        }});
+        importOut.textContent =
+          `Imported ${result.kind} as ${result.ecm_id}; ${result.size} bytes; SHA-256 ${result.sha256}.\n` +
+          (result.header ? `Header: ${result.header}\n` : '') +
+          `Pages present: ${result.pages.map((entry) => `${entry.page} (${entry.size} B)`).join(', ')}\n` +
+          (result.missing_page_zero ? `Page zero (${result.page_zero_size} bytes) is absent; the write review needs it.\n` : '') +
+          `Research copy: ${result.saved_path}\nOpen that path in Maps with ${result.map_xdf} and address base ${result.address_base}. It is not flash-ready.\n` +
+          result.warnings.map((warning) => `- ${warning}`).join('\n');
+      } catch (error) { importOut.textContent = `Import failed: ${error.message}`; }
+      finally { importRun.disabled = false; }
+    };
+  }
 }

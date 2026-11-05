@@ -1101,6 +1101,14 @@
       <div class="toolbar"><button class="btn" id="buellIdentify">Identify ECM</button><button class="btn" id="buellRuntime">Read runtime snapshot</button><button class="btn" id="buellRead">Read EEPROM range</button><button class="btn" id="buellImage">Read source-layout EEPROM image</button><button class="btn" id="buellSaveImage" disabled>Save EEPROM XPR</button></div>
       <p class="muted small">Full source-described EEPROM layouts are available for 19 identified DDFI ECM IDs. This integration is synthetic-tested, not hardware-tested; responses do not echo addresses. A saved image is not independently verified. The comparison checkbox can repeat an image read. A successful single image read automatically saves an original for editable Maps input and write review; writing still requires explicit review and confirmation.</p>
       <pre id="buellOut" class="small" aria-live="polite">Not connected.</pre>
+      <details id="buellImportPanel">
+        <summary>Import an EcmSpy .epr read or <code>Reihe:</code> hex dump (offline)</summary>
+        <p class="small">Checks a read you already have against the bundled source page layouts and saves a research copy for Maps. An EcmSpy read normally omits page zero, so it can be inspected but not used for the experimental write review. No port is opened and no ECU command is sent.</p>
+        <label class="field"><span>Absolute path of the .epr or hex-dump .txt</span><input id="buellImportPath" maxlength="4096" placeholder="C:\Buell\BUEIB-XB9-RACEMAPS.epr"></label>
+        <label class="field"><span>ECM ID (only when a binary read's name and byte count are ambiguous)</span><input id="buellImportEcm" maxlength="5" placeholder="BUEIB"></label>
+        <div class="toolbar"><button class="btn" id="buellImportRun">Import research copy</button></div>
+        <pre id="buellImportOut" class="small" aria-live="polite">No import.</pre>
+      </details>
       <p class="muted small">Each read action reconnects and identifies the ECM. Range reads exclude page 0 and pages 32+; image reads use the source-described geometry including page 0 where present. A range is not a complete backup. Runtime layouts vary by ECM; a 100-byte BUEIA frame also shows source-described candidate values. Read actions never send SET, fault-clear, actuator or reset commands. <a href="https://github.com/bkp123/ecmdroid/tree/2f17d29f5b08f67fb357ee8f2ec21e7ae930343e" target="_blank" rel="noopener noreferrer">EcmDroid source</a> · <a href="https://www.ecmspy.com/eeprom_info.shtml" target="_blank" rel="noopener noreferrer">EcmSpy protocol and wiring notes</a>.</p>
       <details class="danger-zone" id="buellWritePanel">
         <summary>Experimental Buell fuel / spark EEPROM write</summary>

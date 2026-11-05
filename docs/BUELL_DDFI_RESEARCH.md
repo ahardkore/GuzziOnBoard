@@ -162,8 +162,23 @@ binary `.epr` plus a `Reihe:` text dump of the same 1206 bytes (pages 1–6, no
 page zero). Both shapes imported to the identical image, matched the bundled
 BUEIB geometry, and rendered all four source-derived fuel and spark tables
 inside their declared ranges — one format/geometry observation, not evidence of
-ECM identity, fitment or tune safety. The file itself is not redistributed with
-the project.
+ECM identity, fitment or tune safety.
+
+A second pair of user-supplied reads (`BUEKA210 01-21-00`, 1072 bytes, pages
+1–5, no page zero) behaved the same way: each binary `.epr` and its `Reihe:`
+dump agreed byte for byte and rendered with the shared BUEJA/BUEKA source
+definition. 1072 bytes is the size of both the BUEJA and BUEKA layouts, so the
+binary files needed the ECM ID entered by hand; only the text header supplied
+it. That is the ambiguity rule working as intended instead of guessing. Diffing
+the X1 race read against the S3T factory read showed changed spark cells (for
+example 25° → 45° at high load) and changed fuel cells. Those are observations
+about two external calibration files, not a recommendation or a fitment claim,
+and neither file is redistributed with the project.
+
+The same archives also contained an EcmSpy `.msq` file: an XML file holding a
+handful of named constants with no image addresses, plus vendor setup binaries
+and documentation. A `.msq` is not a flat EEPROM read, so it cannot be imported
+as an image; nothing in the app executes or unpacks those vendor binaries.
 
 ## Sources, attribution and limitations
 

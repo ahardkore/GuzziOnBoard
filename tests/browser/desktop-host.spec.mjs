@@ -1632,7 +1632,7 @@ test('desktop Buell write requires review and confirmation and invalidates stale
   await page.locator('#buellPort').fill('/dev/ttyUSB0');
   await page.locator('#buellConfirm').check(); await page.locator('#buellIdentify').click();
   await expect(page.locator('#buellVersion')).toHaveValue('BUEIB310 12-11-03');
-  await page.locator('#buellDdfi details > summary').click();
+  await page.locator('#buellWritePanel > summary').click();
   await page.locator('#buellWriteOriginal').fill('/tmp/BUEIB-original.xpr');
   await page.locator('#buellWriteEdited').fill('/tmp/edited.bin');
   await page.locator('#buellWriteConfirm').check(); await page.locator('#buellConfirm').check();

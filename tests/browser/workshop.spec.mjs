@@ -829,10 +829,14 @@ test('hosted Buell reader refuses access to serial hardware', async ({ page }) =
   await page.locator('#buellConfirm').check();
   await page.locator('#buellIdentify').click();
   await expect(page.locator('#buellOut')).toContainText('hosted demo cannot access serial hardware');
-  await page.locator('#buellDdfi details > summary').click();
+  await page.locator('#buellWritePanel > summary').click();
   await page.locator('#buellWritePrepare').click();
   await expect(page.locator('#buellWriteOut')).toContainText('Hosted demo cannot access serial hardware');
   await expect(page.locator('#buellWriteExecute')).toBeDisabled();
+  await page.locator('#buellImportPanel > summary').click();
+  await page.locator('#buellImportPath').fill('/home/me/BUEIB-XB9-RACEMAPS.epr');
+  await page.locator('#buellImportRun').click();
+  await expect(page.locator('#buellImportOut')).toContainText('hosted demo cannot read local files');
 });
 
 test('hosted JetDrive capture cannot access the dyno network', async ({ page }) => {

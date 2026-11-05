@@ -574,14 +574,15 @@
     {
       id: 'buell-ddfi', name: 'Buell DDFI · live serial research', category: 'hardware', brand: 'buell',
       view: 'tools', selector: '#buellDdfi',
-      summary: 'Live serial read and experimental fuel/spark EEPROM write for compatible Buell DDFI/DDFI-2/DDFI-3 ECMs over a TTL serial adapter.',
+      summary: 'Live serial read and experimental fuel/spark EEPROM write for compatible Buell DDFI/DDFI-2/DDFI-3 ECMs over a TTL serial adapter, plus offline import of an existing EcmSpy .epr or Reihe: hex dump.',
       steps: [
         'Enter the TTL serial port and confirm the wiring/voltage.',
         'Identify the ECM to confirm the DDFI generation.',
         'Read live data; the experimental write panel stays locked until its own preconditions are met.',
+        'Or import an EcmSpy .epr / Reihe: text read offline; the geometry is checked and a research copy is saved for Maps.',
       ],
-      caution: '5 V TTL maximum. Not ELM327/J1850, OBD or RS-232.',
-      tags: ['buell', 'ddfi', 'ttl', 'serial', 'eeprom', 'harley'],
+      caution: '5 V TTL maximum. Not ELM327/J1850, OBD or RS-232. An import without page zero can be inspected but not written.',
+      tags: ['buell', 'ddfi', 'ttl', 'serial', 'eeprom', 'harley', 'epr', 'import'],
     },
     {
       id: 'rusefi-research', name: 'rusEFI aftermarket · live serial research', category: 'hardware', brand: 'rusefi',
@@ -1909,6 +1910,7 @@
   <li>Use a <b>5 V TTL</b> Buell cable or paired Bluetooth serial adapter — never RS-232, K-Line or J1850.</li>
   <li>Identify the ECM to confirm DDFI/DDFI-2/DDFI-3, then read live data.</li>
   <li>Inspect the EEPROM offline with the bundled Buell XDFs before considering the experimental fuel/spark write.</li>
+  <li>Already have a read? <b>Import an EcmSpy .epr read or Reihe: hex dump</b> in the same panel. The importer checks pages against the source layout and saves a research copy for Maps; an EcmSpy read has no page zero, so it cannot prepare the experimental write.</li>
 </ol>
 
 <h3>Honda</h3>

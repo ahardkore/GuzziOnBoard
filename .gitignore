@@ -30,3 +30,6 @@ packaging/windows_version_info.txt
 .dev.vars*
 cloudflare/wrangler.deploy.toml
 .wrangler-dryrun/
+
+# Local, user-supplied reads and captures (never committed).
+usercontent/

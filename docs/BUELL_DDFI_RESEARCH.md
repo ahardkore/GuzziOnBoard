@@ -123,6 +123,63 @@ not an actual motorcycle or adapter. Rebuilding the 12 additional XDFs requires 
 XBTune TOML: `scripts/build_buell_xdfs.py`; the earlier BUEIB adaptation is
 maintained separately. The full upstream database is not bundled.
 
+## Importing an existing EcmSpy read
+
+Reads that were saved by EcmSpy (or a tool that writes the same formats) can be
+checked and prepared for **Maps** without touching an ECU: Tools → Buell DDFI →
+**Import an EcmSpy .epr read or `Reihe:` hex dump**. The import accepts two
+shapes:
+
+* a binary `.epr` holding the normal pages in ascending order, and
+* a text dump whose first line names the ECM ID/version and a date
+  (`BUEIB310 12-11-03`), followed by `Reihe: <page>` sections of two-digit hex
+  bytes, sixteen per line, as EcmSpy exports them.
+
+Both forms are converted to the same flat image. The text header selects the
+layout by ECM ID; a binary read carries no ID, so the filename is used when it
+begins with a known ID, otherwise an unambiguous byte count decides, and
+anything still ambiguous is refused until the operator enters the ECM ID. Every
+page must match the bundled source geometry exactly, duplicates and extra pages
+are rejected, and a dump missing any normal page is refused. Nothing is padded
+or extrapolated.
+
+An EcmSpy read normally has **no page zero**. Such a file is saved as
+`<ID>-epr-import-<timestamp>-<token>.bin` (0600, in the app data directory's
+`buell-imports/`) for viewing in Maps with the ID's source-derived XDF at
+address base 0. It is deliberately **not** named or sized like a complete XPR:
+the experimental write review needs the full layout including page zero, so an
+import without it cannot prepare a write. A dump or image that does include
+page zero is assembled with page zero last, matching the XPR layout, and is
+saved as `.xpr`.
+
+A geometry match is only a byte-count check. It does not authenticate the ECM
+ID, fitment, calibration, checksum or the origin of the file, and an imported
+third-party race map is not a verified backup. The importer sends no serial
+traffic and changes no ECU.
+
+A user-supplied 2003 XB9 race-map file (`BUEIB310 12-11-03`) arrived as a
+binary `.epr` plus a `Reihe:` text dump of the same 1206 bytes (pages 1–6, no
+page zero). Both shapes imported to the identical image, matched the bundled
+BUEIB geometry, and rendered all four source-derived fuel and spark tables
+inside their declared ranges — one format/geometry observation, not evidence of
+ECM identity, fitment or tune safety.
+
+A second pair of user-supplied reads (`BUEKA210 01-21-00`, 1072 bytes, pages
+1–5, no page zero) behaved the same way: each binary `.epr` and its `Reihe:`
+dump agreed byte for byte and rendered with the shared BUEJA/BUEKA source
+definition. 1072 bytes is the size of both the BUEJA and BUEKA layouts, so the
+binary files needed the ECM ID entered by hand; only the text header supplied
+it. That is the ambiguity rule working as intended instead of guessing. Diffing
+the X1 race read against the S3T factory read showed changed spark cells (for
+example 25° → 45° at high load) and changed fuel cells. Those are observations
+about two external calibration files, not a recommendation or a fitment claim,
+and neither file is redistributed with the project.
+
+The same archives also contained an EcmSpy `.msq` file: an XML file holding a
+handful of named constants with no image addresses, plus vendor setup binaries
+and documentation. A `.msq` is not a flat EEPROM read, so it cannot be imported
+as an image; nothing in the app executes or unpacks those vendor binaries.
+
 ## Sources, attribution and limitations
 
 * [EcmDroid `2f17d29`](https://github.com/bkp123/ecmdroid/tree/2f17d29f5b08f67fb357ee8f2ec21e7ae930343e)

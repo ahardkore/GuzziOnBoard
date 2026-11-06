@@ -1,6 +1,6 @@
 """GuzziOnBoard - a diagnostic workstation for Moto Guzzi motorcycles."""
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 
 from .catalog import Catalog, EcuProfile, load_catalog
 from .diagnostics import DiagnosticsService

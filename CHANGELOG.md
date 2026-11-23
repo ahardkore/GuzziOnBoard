@@ -70,6 +70,18 @@ minor bump may include a breaking change; it is always called out here.
 - CI: Python 3.11/3.12/3.13, `ruff`, coverage, the desktop Playwright gate and a
   demo-parity job.
 
+### Fixed
+
+- **Four of the seven offered offline CAN decoders failed on use.** The capture
+  panel listed Kawasaki KDS3, KTM 690, Triumph and Zero SR battery decoders, but
+  the server's decoder allowlist only named Ducati, Harley and Yamaha, so picking
+  one answered "unknown offline telemetry decoder". The allowlist is now an
+  `OFFLINE_DECODERS` table that both validates and dispatches, and a test pins it
+  against the `<option>` list so the two cannot drift again.
+- **A client that disconnects mid-response no longer logs a traceback.** Writing
+  to a closed socket raised `BrokenPipeError` out of the handler; it is now
+  treated as the end of that connection.
+
 ## [0.4.2]
 
 The previously released state. See the git history and the release notes.

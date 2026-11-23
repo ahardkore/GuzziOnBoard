@@ -386,6 +386,8 @@ test('desktop exposes multi-brand offline research and blocks hardware sessions'
   await page.locator('#multiResearchFrames').fill('83 11 F1 03 1A F1 90 23');
   await page.locator('#multiResearchDecode').click();
   await expect(page.locator('#multiResearchOut')).toContainText('MT05/MT05.2 addressing (0x11/0xF1) - candidate match');
+  // The paste box lives in the Discovery panel, so leave the Tools view before using it.
+  await page.locator('[data-view="discovery"]').click();
   await page.locator('#canlogText').locator('..').locator('summary').click();
   await page.locator('#canlogText').fill('(1.0) can0 100#1B5800000000');
   await page.locator('#canlogDecoder').selectOption('kawasaki_kds3_can');
@@ -399,6 +401,7 @@ test('desktop exposes multi-brand offline research and blocks hardware sessions'
   let sum = 0;
   for (let i = 0; i < synthetic.length; i += 2) sum = (sum + synthetic.readUInt16BE(i)) & 0xffff;
   synthetic.writeUInt16BE((0x5aa5 - sum) & 0xffff, synthetic.length - 8);
+  await page.locator('[data-view="tools"]').click();
   await page.selectOption('#yamahaVariant', 'mt_1m');
   await page.locator('#yamahaImage').setInputFiles({ name: 'synthetic.bin', mimeType: 'application/octet-stream', buffer: synthetic });
   await page.locator('#yamahaInspect').click();

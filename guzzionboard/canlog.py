@@ -35,6 +35,7 @@ labels, not defaults or Piaggio-family protocol claims.
 """
 from __future__ import annotations
 
+import importlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -659,9 +660,23 @@ def summarize_payload_bytes(frames: list[CanFrame], limit: int = 100) -> dict:
     return {"groups": result, "omitted_groups": max(0, len(groups) - limit)}
 
 
+#: Offline decoder key -> module that supplies ``decode_capture(frames)``.
+#: Adding a decoder means adding one line here and one ``<option>`` to the UI;
+#: the option list and this table must agree (tests/test_canlog.py pins both).
+OFFLINE_DECODERS = {
+    "ducati_panigale_mitsubishi": "ducati_panigale_can",
+    "harley_hdlan_community": "harley_hdlan_can",
+    "kawasaki_kds3_can": "kawasaki_kds3_can",
+    "ktm_690_can": "ktm_690_can",
+    "triumph_can": "triumph_can",
+    "yamaha_r9_2026": "yamaha_r9_can",
+    "zero_sr_battery_can": "zero_sr_battery_can",
+}
+
+
 def _capture_report(frames: list[CanFrame], fmt: str, warnings: list[str], ids: str,
                     decoder: str = "", byte_stats: bool = False) -> dict:
-    if decoder not in ("", "ducati_panigale_mitsubishi", "harley_hdlan_community", "yamaha_r9_2026"):
+    if decoder not in ("", *OFFLINE_DECODERS):
         raise CanLogError("unknown offline telemetry decoder")
     if not isinstance(byte_stats, bool):
         raise CanLogError("byte statistics setting must be true or false")
@@ -676,15 +691,9 @@ def _capture_report(frames: list[CanFrame], fmt: str, warnings: list[str], ids: 
     result["traffic"] = summarize_traffic(frames)
     if byte_stats:
         result["byte_stats"] = summarize_payload_bytes(frames)
-    if decoder == "ducati_panigale_mitsubishi":
-        from .ducati_panigale_can import decode_capture
-        result["decoder"] = decode_capture(frames)
-    elif decoder == "harley_hdlan_community":
-        from .harley_hdlan_can import decode_capture
-        result["decoder"] = decode_capture(frames)
-    elif decoder == "yamaha_r9_2026":
-        from .yamaha_r9_can import decode_capture
-        result["decoder"] = decode_capture(frames)
+    if decoder:
+        module = importlib.import_module(f".{OFFLINE_DECODERS[decoder]}", __package__)
+        result["decoder"] = module.decode_capture(frames)
     if ids.strip():
         warnings.append("ID filter applied before analysis; omitted traffic may change or invalidate candidate pairs. IDs match either frame format.")
     if warnings:

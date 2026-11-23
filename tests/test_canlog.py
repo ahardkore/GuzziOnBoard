@@ -8,9 +8,12 @@ confirmation. A pair nobody can prove is not reported, per project policy.
 """
 from __future__ import annotations
 
+import importlib
+
 import pytest
 
 from guzzionboard.canlog import (
+    OFFLINE_DECODERS,
     CanFrame,
     CanLogError,
     analyze_capture_text,
@@ -411,3 +414,26 @@ def test_yamaha_r9_source_decoder_is_opt_in_and_uses_exact_frames():
     assert result['events'][0]['values'] == {'rpm_candidate': 1250, 'gear_raw_candidate': 3,
                                              'tcs_setting_candidate': 5, 'pwr_setting_candidate': 3}
     assert result['events'][1]['values'] == {'coolant_c_candidate': 70, 'air_c_candidate': 20}
+
+
+def test_every_offered_decoder_dispatches_and_every_decoder_is_offered():
+    """The UI <option> list and OFFLINE_DECODERS must not drift apart.
+
+    Regression: the panel offered Kawasaki, KTM, Triumph and Zero decoders that
+    _capture_report rejected outright with "unknown offline telemetry decoder",
+    so picking one of them failed instead of decoding.
+    """
+    import re
+    from pathlib import Path
+    html = (Path(__file__).resolve().parent.parent / "web" / "index.html").read_text()
+    select = re.search(r'<select id="canlogDecoder">(.*?)</select>', html, re.S)
+    assert select, "the offline decoder select is missing from web/index.html"
+    offered = set(re.findall(r'<option value="([^"]*)"', select.group(1))) - {""}
+    assert offered == set(OFFLINE_DECODERS), offered ^ set(OFFLINE_DECODERS)
+
+    capture = "1.0 R11 100 1B 58 00 00 00 00\n"
+    for key, module_name in OFFLINE_DECODERS.items():
+        module = importlib.import_module(f"guzzionboard.{module_name}")
+        assert callable(module.decode_capture), module_name
+        result = analyze_capture_text(capture, decoder=key)
+        assert result["decoder"]["profile"] == module.PROFILE

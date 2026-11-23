@@ -2745,8 +2745,14 @@ def make_handler(workstation: Workstation, *, guard: RequestGuard | None = None,
             # Local tool: no third-party origins, no framing surprises.
             self.send_header("X-Content-Type-Options", "nosniff")
             self.end_headers()
-            if self.command != "HEAD":
+            if self.command == "HEAD":
+                return
+            try:
                 self.wfile.write(body)
+            except (BrokenPipeError, ConnectionResetError):
+                # The page navigated or closed the tab mid-response; nothing to
+                # answer and no request to fail, so do not log a traceback.
+                self.close_connection = True
 
         def _json(self, status: int, payload) -> None:
             self._send(

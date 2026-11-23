@@ -13,7 +13,7 @@ reset, NOT an ECU flash, and touches nothing immobilizer/odometer related.
 """
 from __future__ import annotations
 
-from .experimental_writers import CONFIRM_TOKEN, _gate
+from .experimental_writers import _gate
 
 PROFILE = 'ducati_panigale_v2_service_reset_experimental'
 

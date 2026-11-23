@@ -7,7 +7,6 @@ import pytest
 
 from guzzionboard import adapter, tools
 
-
 # -- adapter ---------------------------------------------------------------
 
 

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from guzzionboard.maps import XdfError, XdfFile
+from guzzionboard.maps import XdfFile
 
 
 def definition(flags, *, signed=1, lsbfirst=1, float_default=0, major=0, minor=0):

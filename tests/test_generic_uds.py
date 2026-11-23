@@ -6,7 +6,12 @@ from guzzionboard.diagnostics import DiagnosticsService
 from guzzionboard.protocol.kwp2000 import NegativeResponse, ProtocolError
 from guzzionboard.protocol.uds import UdsSession
 from guzzionboard.safety import Mode, SafetyGate
-from guzzionboard.transports.base import Connection, InitResult, Transport, TransportUnavailable
+from guzzionboard.transports.base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportUnavailable,
+)
 from guzzionboard.workstation import Workstation
 
 

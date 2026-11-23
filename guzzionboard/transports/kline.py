@@ -38,7 +38,13 @@ import time
 from dataclasses import dataclass, field
 
 from ..protocol.kwp2000 import ProtocolError, decode_frame, frame_length
-from .base import Connection, InitResult, Transport, TransportError, TransportUnavailable
+from .base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportError,
+    TransportUnavailable,
+)
 
 #: Baud rates worth probing when a vehicle's rate is not known from the catalog.
 CANDIDATE_BAUDS = (10400, 9600, 15625, 19200, 4800)

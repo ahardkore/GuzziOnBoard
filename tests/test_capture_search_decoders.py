@@ -5,10 +5,14 @@ physical session or identifies a vehicle.
 """
 import pytest
 
-from guzzionboard.canlog import CanFrame
-from guzzionboard import yamaha_mt07_can, marelli_iaw59m_can, energica_bms_can
+from guzzionboard import (
+    energica_bms_can,
+    kawasaki_w230,
+    marelli_iaw59m_can,
+    yamaha_mt07_can,
+)
 from guzzionboard import honda_cbr1000rr_kline as honda_kline
-from guzzionboard import kawasaki_w230
+from guzzionboard.canlog import CanFrame
 
 
 def frame(fid, data, direction='Rx'):
@@ -381,7 +385,6 @@ def test_ecu_image_checksum_verifiers():
 
 def test_ecu_image_checksum_repair_roundtrip():
     from guzzionboard import ecu_image_checksums as cs
-    import zlib
     # yamaha_mt roundtrip
     img = bytearray(0x100000)
     img[0x100000 - 16:0x100000 - 8] = b'BS81_128'
@@ -413,8 +416,8 @@ def test_ecu_image_checksum_repair_roundtrip():
 
 # ------------------------------------------- Buell DDFI-2 experimental tune write
 def test_buell_ddfi2_tune_frames_gated():
-    from guzzionboard import buell_ddfi2_tune as tune
     from guzzionboard import buell_ddfi2_serial as ddfi2
+    from guzzionboard import buell_ddfi2_tune as tune
     # gated: wrong token raises
     with pytest.raises(PermissionError):
         tune.build_set_pdu(0, 1, b'\x01', confirm_token='nope')

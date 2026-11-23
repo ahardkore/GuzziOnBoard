@@ -35,6 +35,10 @@ DATA_DIR_NAME = ".guzzionboard"
 HOME_ENV = "GUZZIONBOARD_HOME"
 WEB_ENV = "GUZZIONBOARD_WEB"
 VENDOR_ENV = "GUZZIONBOARD_VENDOR"
+#: Where an installed build's helper executables live. Set for portable
+#: installs and tests, which cannot put a file next to the interpreter (a
+#: system Python's ``bin`` directory is usually read-only).
+WORKER_ENV = "GUZZIONBOARD_WORKER_DIR"
 
 #: The name the installer and the build give the application.
 APP_NAME = "GuzziOnBoard"
@@ -109,10 +113,18 @@ def driver_bundle_zip() -> Path | None:
 
 
 def worker_executable() -> Path | None:
-    """The bundled console helper that isolates checksum plugins, if built."""
+    """The bundled console helper that isolates plugins, if built.
+
+    Looked for in ``GUZZIONBOARD_WORKER_DIR`` first, then beside the running
+    interpreter (the normal PyInstaller layout), then in the bundle root.
+    """
     if not frozen():
         return None
     suffix = ".exe" if os.name == "nt" else ""
+    override = os.environ.get(WORKER_ENV)
+    if override:
+        candidate = Path(override) / (WORKER_EXECUTABLE + suffix)
+        return candidate if candidate.is_file() else None
     candidate = Path(sys.executable).with_name(WORKER_EXECUTABLE + suffix)
     if candidate.is_file():
         return candidate

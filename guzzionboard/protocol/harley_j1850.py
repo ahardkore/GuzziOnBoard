@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import re
 
-from .kwp2000 import ProtocolError
 from ..harley_dtc_descriptions import DESCRIPTIONS
+from .kwp2000 import ProtocolError
 
 
 def _crc(payload: bytes) -> int:

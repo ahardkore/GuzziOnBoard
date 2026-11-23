@@ -1,7 +1,8 @@
 """Synthetic HTML and network tests; no BikeStudio live retrieval in sandbox."""
 import email.message
-from types import SimpleNamespace
+
 import pytest
+
 from guzzionboard import bikestudio as bs
 from guzzionboard.server import Api
 from guzzionboard.workstation import Workstation

@@ -21,19 +21,18 @@ that has been truncated, moved or edited is not a restore map.
 """
 from __future__ import annotations
 
-from . import resources
-
 import hashlib
 import json
 import shutil
-import time
 import threading
+import time
 import uuid
-from functools import wraps
-
-from .storage import atomic_write
 from dataclasses import dataclass
+from functools import wraps
 from pathlib import Path
+
+from . import resources
+from .storage import atomic_write
 
 #: Where base maps live. Deliberately not the working image directory.
 DEFAULT_BASEMAP_DIR = resources.data_root() / "basemaps"

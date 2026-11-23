@@ -239,7 +239,7 @@ def check_adapter(port: str = "", *, loopback: bool = False) -> AdapterReport:
 
     # -- pyserial present -------------------------------------------------
     try:
-        import serial  # noqa: F401
+        import serial
 
         add(Check("pyserial", "ok", "pyserial is installed"))
     except ImportError:

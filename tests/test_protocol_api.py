@@ -10,7 +10,6 @@ definition to everyone who asks for it.
 from __future__ import annotations
 
 import json
-import time
 from pathlib import Path
 
 import pytest
@@ -18,7 +17,6 @@ import pytest
 from guzzionboard import confirmations, protocol_updates
 from guzzionboard.catalog import load_catalog
 from guzzionboard.server import Api
-from guzzionboard.sessionlog import SessionLog
 from guzzionboard.workstation import Workstation
 
 SEED = "5a" * 32

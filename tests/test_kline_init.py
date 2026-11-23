@@ -1,7 +1,6 @@
 """K-Line handshake negotiation and the standards-derived edge cases."""
 from __future__ import annotations
 
-
 import pytest
 
 from guzzionboard.catalog import load_catalog

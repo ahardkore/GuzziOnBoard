@@ -1,15 +1,14 @@
 """Synthetic tests only: no aftermarket ECU or motorcycle was connected."""
-import struct
 import sys
-from types import SimpleNamespace
 import zlib
+from types import SimpleNamespace
 
 import pytest
 
 from guzzionboard import rusefi_read as mod
 from guzzionboard.server import Api
-from guzzionboard.workstation import Workstation
 from guzzionboard.transports.base import TransportError
+from guzzionboard.workstation import Workstation
 
 SIGNATURE = 'rusEFI synthetic.test.board.1234'
 

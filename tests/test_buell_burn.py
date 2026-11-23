@@ -388,6 +388,7 @@ def test_all_single_read_handoff_definitions_are_packaged():
 def test_synthetic_one_read_map_export_review_write_full_stack(files, monkeypatch):
     """Single synthetic read -> source map export -> review -> serial SET/readback."""
     from pathlib import Path
+
     from guzzionboard.maps import BUNDLED_XDF_DIR
     _, _, data, _ = files
     connections = []

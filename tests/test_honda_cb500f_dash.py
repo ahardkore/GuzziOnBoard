@@ -1,10 +1,16 @@
 """Dash/DashBle source captures plus synthetic integration tests, not bike tests."""
 import pytest
+
 from guzzionboard.catalog import load_catalog
 from guzzionboard.diagnostics import DiagnosticsService
 from guzzionboard.protocol.honda_cbr600rr import HondaCB500FDashSession
 from guzzionboard.safety import Mode, SafetyGate
-from guzzionboard.transports.base import Connection, InitResult, Transport, TransportUnavailable
+from guzzionboard.transports.base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportUnavailable,
+)
 from guzzionboard.workstation import Workstation
 
 # Attributed source examples: atoid/Dash README, MIT. These both pass checksum.

@@ -137,3 +137,33 @@ def test_a_session_outside_the_session_directory_is_refused(tmp_path):
     assert api.get_export({"name": ["../../etc/passwd"]})[0] == 404
     assert api.get_export({"name": ["x.jsonl"], "format": ["xml"]})[0] == 400
     assert api.get_session_replay({"name": ["nope.jsonl"]})[0] == 404
+
+
+def test_a_symlink_inside_the_session_directory_cannot_read_outside_it(tmp_path):
+    """Lexical ``..`` checks are not enough: a symlink resolves elsewhere.
+
+    The session routes used to compare unresolved parents, so a link placed in
+    the session directory would happily read any file the process can read.
+    """
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    secret = outside / "secret.jsonl"
+    secret.write_text('{"t": 1, "kind": "session_start", "meta": {}}\n')
+    sessions = tmp_path / "sessions"
+    sessions.mkdir()
+    (sessions / "linked.jsonl").symlink_to(secret)
+
+    api = Api(Workstation(session_dir=sessions, record=False))
+    assert api._session_path("linked.jsonl") is None
+    assert api.get_session_replay({"name": ["linked.jsonl"]})[0] == 404
+    assert api.get_session_events({"name": ["linked.jsonl"]})[0] == 404
+    assert api.post_sessions_compare({"a": "linked.jsonl", "b": "linked.jsonl"})[0] == 400
+
+
+def test_a_session_that_is_really_inside_still_resolves(tmp_path):
+    api = Api(Workstation(session_dir=tmp_path, record=False))
+    real = tmp_path / "real.jsonl"
+    real.write_text('{"t": 1, "kind": "session_start", "meta": {}}\n')
+    assert api._session_path("real.jsonl") == real.resolve()
+    assert api._session_path("missing.jsonl") is None
+    assert api._session_path("") is None

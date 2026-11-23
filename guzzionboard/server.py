@@ -22,34 +22,53 @@ import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit, urlparse
-
-from . import resources
+from urllib.parse import parse_qs, urlparse
 
 from . import adapter as adapter_mod
-from . import canlog
-from . import harley_hdlan_listen
-from . import yamaha_mt03_listen
-from . import rusefi_read
-from . import rusefi_tune
-from . import buell_ddfi
-from . import buell_burn
-from . import buell_epr
-from . import harley_memory
-from . import honda_checksum_research
-from . import bikestudio
-from . import jetdrive
-from . import j2534
-from . import klinelog
-from . import logconvert
-from . import rpmsignal
-from . import tools
+from . import (
+    bikestudio,
+    buell_burn,
+    buell_ddfi,
+    buell_epr,
+    canlog,
+    harley_hdlan_listen,
+    harley_memory,
+    honda_checksum_research,
+    honda_mgz,
+    honda_tuning,
+    j2534,
+    jetdrive,
+    klinelog,
+    logconvert,
+    procedures,
+    replay,
+    resources,
+    rpmsignal,
+    rusefi_read,
+    rusefi_tune,
+    sessiondiff,
+    tools,
+    yamaha_mt03_listen,
+)
+from . import confirmations as confirmations_mod
+from . import preferences as preferences_mod
+from . import protocol_updates as protocol_updates_mod
 from .basemap import BaseMapError
 from .catalog import CatalogError
-from .derived import CHANNELS as DERIVED_CHANNELS, Analyzer
-from .transports.simulator import FAULTS as SIM_FAULTS, FAULTS_BY_KEY as SIM_FAULTS_BY_KEY
+from .checksums import (
+    PLUGIN_DIR as CHECKSUM_PLUGIN_DIR,
+)
+from .checksums import (
+    ChecksumUnavailable,
+)
+from .checksums import (
+    load_providers as load_local_checksum_providers,
+)
+from .derived import CHANNELS as DERIVED_CHANNELS
+from .derived import Analyzer
 from .diagnostics import NotConnected
-from .firmware import FirmwareImage, FirmwareError
+from .firmware import FirmwareError, FirmwareImage
+from .map_analysis import LogAnalysisError, analyze_fuel_log
 from .maps import (
     BUNDLED_XDF_DIR,
     XDF_DIR,
@@ -61,28 +80,38 @@ from .maps import (
     library_payload,
     read_xdf_bytes,
 )
-from .checksums import (
-    PLUGIN_DIR as CHECKSUM_PLUGIN_DIR,
-    ChecksumUnavailable,
-    load_providers as load_local_checksum_providers,
-)
-from . import honda_tuning, honda_mgz
-from .map_analysis import LogAnalysisError, analyze_fuel_log
-from .programming import ProgrammingError, ProgrammingService
-from . import confirmations as confirmations_mod
-from . import protocol_updates as protocol_updates_mod
 from .physical_validation import (
     VALIDATION_DIR as PHYSICAL_VALIDATION_DIR,
+)
+from .physical_validation import (
     PhysicalValidationError,
+)
+from .physical_validation import (
     load_manifests as load_physical_validation,
+)
+from .physical_validation import (
     validate_manifest as validate_physical_manifest,
 )
+from .programming import ProgrammingError, ProgrammingService
+from .protocol.kwp2000 import ProtocolError
 from .recommendations import (
     PACKAGE_DIR as RECOMMENDATION_PACKAGE_DIR,
+)
+from .recommendations import (
     RecommendationPackageError,
+)
+from .recommendations import (
     load_packages as load_recommendation_packages,
+)
+from .recommendations import (
     validate_package as validate_recommendation_package,
 )
+from .safety import SafetyViolation, TokenError
+from .security import SecurityUnavailable, describe_all, load_plugins
+from .sessionlog import SessionLog
+from .transports.base import TransportError, TransportUnavailable
+from .transports.simulator import FAULTS as SIM_FAULTS
+from .transports.simulator import FAULTS_BY_KEY as SIM_FAULTS_BY_KEY
 from .tuning import (
     CUSTOM_RECOMMENDATION_MODES,
     TUNING_ACKNOWLEDGEMENT,
@@ -90,15 +119,6 @@ from .tuning import (
     build_tune,
     prepare_tune,
 )
-from .safety import SafetyViolation, TokenError
-from .security import SecurityUnavailable, describe_all, load_plugins
-from . import preferences as preferences_mod
-from . import procedures
-from . import replay
-from . import sessiondiff
-from .sessionlog import SessionLog
-from .transports.base import TransportError, TransportUnavailable
-from .protocol.kwp2000 import ProtocolError
 from .workstation import Workstation
 
 
@@ -146,125 +166,16 @@ CONTENT_TYPES = {
     ".svg": "image/svg+xml",
 }
 
-#: Host names the workstation answers to. Anything else is refused: the API
-#: can energise actuators, so it must not be reachable through a name that a
-#: remote page could make resolve here (DNS rebinding).
-LOOPBACK_HOST_NAMES = {"127.0.0.1", "localhost", "::1"}
-
-#: Header the desktop window's bridge uses to prove it was handed this
-#: launch's token (the name lives in :mod:`guzzionboard.resources` because the
-#: shell has to send it too). A query parameter is accepted as well, for the
-#: one API call a page cannot attach headers to (``navigator.sendBeacon`` on
-#: unload).
-TOKEN_HEADER = resources.TOKEN_HEADER
-TOKEN_QUERY = "token"
-
-
-class RequestGuard:
-    """The loopback request policy of a locally running workstation.
-
-    Three checks, in order: the ``Host`` header must name loopback (a browser
-    talking to a rebound DNS name sends the attacker's name, not ours), any
-    ``Origin`` must be this same workstation (browsers send one on every
-    cross-origin request, so this is what stops another page you have open
-    from talking to a connected motorcycle), and - inside the desktop shell -
-    every ``/api/`` call must carry the token that launch generated.
-
-    Requests with no ``Origin`` at all (curl, the app's own test suite, the
-    Python client in ``--selftest``) are allowed: this policy exists to stop
-    browsers, not to lock the operator out of their own tool.
-    """
-
-    def __init__(self, *, token: str | None = None,
-                 hosts=LOOPBACK_HOST_NAMES) -> None:
-        self.token = token or None
-        #: ``None`` means "any name this server is reached by", which is only
-        #: right when the operator explicitly bound a non-loopback address.
-        self.hosts = None if hosts is None else {h.lower() for h in hosts}
-
-    # -- pieces ----------------------------------------------------------
-    @staticmethod
-    def host_name(host: str | None) -> str | None:
-        if not host:
-            return None
-        try:
-            name = urlsplit(f"//{host}").hostname
-        except ValueError:
-            return None
-        return name.lower() if name else None
-
-    def origin_allowed(self, origin: str, host: str | None) -> bool:
-        if origin.lower() == "null":       # file://, sandboxed frames
-            return False
-        try:
-            parts = urlsplit(origin)
-        except ValueError:
-            return False
-        if parts.scheme not in ("http", "https") or not parts.netloc:
-            return False
-        if parts.netloc.lower() == (host or "").lower():
-            return True
-        # `localhost:8080` posting to a window opened as `127.0.0.1:8080` is
-        # the same workstation; a different port is a different origin.
-        return (
-            (parts.hostname or "").lower() in (self.hosts or set())
-            and self._port(parts) == self._port(urlsplit(f"//{host or ''}"))
-        )
-
-    @staticmethod
-    def _port(parts) -> int:
-        if parts.port:
-            return parts.port
-        return 443 if parts.scheme == "https" else 80
-
-    def check(self, *, command: str, path: str, host: str | None, origin: str | None,
-              header_token: str | None = None, query_token: str | None = None):
-        """``None`` when the request may proceed, else ``(status, message)``."""
-        name = self.host_name(host)
-        if name is None:
-            return 403, "missing Host header"
-        if self.hosts is not None and name not in self.hosts:
-            return 403, (
-                f"this workstation answers loopback names only; {name!r} is not "
-                "one of them (open http://127.0.0.1/... instead)"
-            )
-        if origin and not self.origin_allowed(origin, host):
-            return 403, (
-                f"refused a request from origin {origin!r}: this API drives "
-                "hardware and only answers the window it serves"
-            )
-        if self.token and path.startswith("/api/"):
-            supplied = header_token or query_token or ""
-            if not secrets.compare_digest(str(supplied), self.token):
-                return 403, (
-                    "this launch's session token is missing or wrong; reload the "
-                    "window it opened"
-                )
-        return None
-
-
-def loopback_guard(*, token: str | None = None) -> RequestGuard:
-    """The guard used by both the console server and the desktop shell."""
-    return RequestGuard(token=token)
-
-
-def _binds_loopback(host: str) -> bool:
-    return RequestGuard.host_name(host) in LOOPBACK_HOST_NAMES
-
-
-def guard_for_bind(host: str, *, token: str | None = None) -> RequestGuard:
-    """A guard that matches the address the operator asked us to bind.
-
-    Loopback binds get the strict host list. An explicit non-loopback bind is
-    a decision the operator already made (a workshop laptop on the LAN), so
-    the host check is relaxed there - but a request from *another web origin*
-    is still refused, because that is the check that keeps a random page in a
-    browser from pulsing relays on a connected motorcycle.
-    """
-    if _binds_loopback(host):
-        return RequestGuard(token=token)
-    return RequestGuard(token=token, hosts=None)
-
+#: The request policy (Host, Origin, desktop token) lives in its own module so
+#: it can be read without importing the whole API. Re-exported here because
+#: this is the name the rest of the app and its tests already use.
+from .http_policy import (  # noqa: E402  (after the module docstring block)
+    TOKEN_HEADER,
+    TOKEN_QUERY,
+    RequestGuard,
+    _binds_loopback,
+    guard_for_bind,
+)
 
 #: The workstation page ships with ``web/demo-api.js``, an in-browser stand-in
 #: for this server used when the page is hosted statically (GitHub Pages).
@@ -307,6 +218,9 @@ class JobRunner:
     """
 
     def __init__(self):
+        #: Guards both the thread handle and every mutation of ``_state`` so
+        #: the job thread's progress writes are visible to ``status()`` reads
+        #: without a torn dict (a job thread and the HTTP handler race here).
         self._lock = threading.Lock()
         self._thread: threading.Thread | None = None
         self._state: dict = {"name": None, "state": "idle"}
@@ -324,26 +238,36 @@ class JobRunner:
             }
 
         def report(progress):
-            self._state["progress"] = progress.as_dict()
+            with self._lock:
+                self._state["progress"] = progress.as_dict()
 
         def target():
             try:
                 result = fn(report)
-                self._state["result"] = result
-                self._state["state"] = "done"
+                with self._lock:
+                    self._state["result"] = result
+                    self._state["state"] = "done"
             except BaseException as exc:
-                self._state["error"] = f"{type(exc).__name__}: {exc}"
-                self._state["state"] = "failed"
+                with self._lock:
+                    self._state["error"] = f"{type(exc).__name__}: {exc}"
+                    self._state["state"] = "failed"
             finally:
-                self._state["finished"] = time.time()
+                with self._lock:
+                    self._state["finished"] = time.time()
 
-        self._thread = threading.Thread(target=target, daemon=True, name=name)
-        self._thread.start()
-        return self.status()
+        # The thread handle is published under the same lock ``start`` held, so
+        # two concurrent starts cannot both believe they claimed the slot.
+        with self._lock:
+            self._thread = threading.Thread(target=target, daemon=True, name=name)
+            self._thread.start()
+            state = dict(self._state)
+            state["running"] = True
+        return state
 
     def status(self) -> dict:
-        state = dict(self._state)
-        state["running"] = bool(self._thread and self._thread.is_alive())
+        with self._lock:
+            state = dict(self._state)
+            state["running"] = bool(self._thread and self._thread.is_alive())
         return state
 
 
@@ -795,9 +719,8 @@ class Api:
             return 400, {"error": "pick two different sessions"}
         paths = {}
         for name in (a, b):
-            candidate = Path(self.ws.session_dir) / name
-            if not name or not candidate.is_file() or \
-                    candidate.parent != Path(self.ws.session_dir):
+            candidate = self._session_path(name)
+            if candidate is None:
                 return 404, {"error": f"no such session: {name!r}"}
             paths[name] = candidate
         try:
@@ -807,16 +730,24 @@ class Api:
 
     def get_session_events(self, query: dict) -> tuple[int, dict]:
         name = (query.get("name") or [""])[0]
-        path = Path(self.ws.session_dir) / name
-        if not name or not path.is_file() or path.parent != Path(self.ws.session_dir):
+        path = self._session_path(name)
+        if path is None:
             return 404, {"error": "no such session"}
         limit = int((query.get("limit") or ["500"])[0])
         events = list(SessionLog.read(path))
         return 200, {"name": name, "total": len(events), "events": events[-limit:]}
 
     def _session_path(self, name: str):
-        path = Path(self.ws.session_dir) / name
-        if not name or not path.is_file() or path.parent != Path(self.ws.session_dir):
+        """Resolve a session name inside the session directory, or None.
+
+        The comparison is done on resolved paths so a symlink inside the
+        directory that points outside it is refused, not just ``..`` names.
+        """
+        if not name:
+            return None
+        base = Path(self.ws.session_dir).resolve()
+        path = (base / name).resolve()
+        if path.parent != base or not path.is_file():
             return None
         return path
 
@@ -2851,9 +2782,14 @@ def make_handler(workstation: Workstation, *, guard: RequestGuard | None = None,
                 status, payload = 501, {"error": str(exc), "code": "no_key_provider"}
             except (ProgrammingError, FirmwareError) as exc:
                 status, payload = 409, {"error": str(exc), "code": "programming"}
-            except Exception as exc:  # pragma: no cover - last resort
+            except Exception:  # pragma: no cover - last resort
+                # Log the traceback server-side; never echo internal detail
+                # (paths, library messages) back to the caller.
                 traceback.print_exc()
-                status, payload = 500, {"error": str(exc), "code": "internal"}
+                status, payload = 500, {
+                    "error": "internal error; see the server log",
+                    "code": "internal",
+                }
             self._json(status, payload)
 
         # -- verbs --------------------------------------------------------
@@ -2970,7 +2906,7 @@ def make_handler(workstation: Workstation, *, guard: RequestGuard | None = None,
     return Handler
 
 
-def serve(host: str = "0.0.0.0", port: int = 8000, *, record: bool = True,
+def serve(host: str = "127.0.0.1", port: int = 8000, *, record: bool = True,
           guard: RequestGuard | None = None) -> None:
     workstation = Workstation(record=record)
     summary = workstation.catalog.summary()
@@ -2991,7 +2927,9 @@ def serve(host: str = "0.0.0.0", port: int = 8000, *, record: bool = True,
     else:
         print(
             f"  note: bound to {host} - other machines can reach this page, and "
-            "requests from other web origins are still refused."
+            "any non-browser client on the network can call the API directly "
+            "(the Origin check only stops browser pages). Only bind a "
+            "non-loopback address on a trusted network."
         )
     handler = make_handler(workstation, guard=guard)
     server = ThreadingHTTPServer((host, port), handler)

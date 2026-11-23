@@ -26,6 +26,7 @@ Frames (8-byte, 11-bit):
 from __future__ import annotations
 
 from collections.abc import Iterable
+
 from .canlog import CanFrame
 
 PROFILE = 'energica_eva_bms'

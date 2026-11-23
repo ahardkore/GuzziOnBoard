@@ -5,11 +5,44 @@ on:
   pull_request:
 
 jobs:
+  # One fast gate, so a lint or type error is reported in a minute rather than
+  # after the four-minute suite.
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install lint tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+
+      - name: Lint
+        # Correctness rules only (see ruff.toml): every rule selected passes
+        # on the tree today, so a failure here is a new bug. A whole-tree
+        # ``ruff format`` is deliberately not a gate yet - it would reformat
+        # 200 files that nothing else is changing.
+        run: ruff check .
+
+      - name: Check the checked-in demo snapshot is current
+        run: |
+          pip install -e . --no-deps
+          python3 scripts/build_demo_data.py --check
+
   tests:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python: [3.11]
+        # 3.11 is the floor in pyproject.toml; 3.12 and 3.13 are what most
+        # installs actually run. A C-extension-free project should pass both.
+        python: ['3.11', '3.12', '3.13']
 
     steps:
       - name: Check out repo
@@ -24,14 +57,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+          key: ${{ runner.os }}-pip-${{ matrix.python }}-${{ hashFiles('**/pyproject.toml') }}
           restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python }}-
             ${{ runner.os }}-pip-
 
       - name: Install Python build/test deps
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install -e '.[dev,hardware]'
+          pip install -e '.[dev,hardware]' pytest-cov pytest-xdist
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -46,8 +80,59 @@ jobs:
       - name: Run built-in self-test
         run: python -m guzzionboard --selftest
 
+      # The desktop-host gate drives the page behind `guzzionboard-desktop
+      # --no-window`, which needs no display. Exclude it from the plain
+      # pytest run only if a spec needs one; today none do.
       - name: Run pytest
-        run: pytest -q
+        run: >-
+          pytest -q -n auto --dist loadgroup
+          --cov=guzzionboard --cov-report=term-missing:skip-covered
+          --cov-report=xml
 
-      - name: Run Playwright browser tests
+      - name: Run Playwright browser tests (static/demo host)
         run: npx playwright test --reporter=list
+
+      - name: Run Playwright browser tests (desktop host)
+        run: npm run test:browser:desktop
+
+      - name: Upload coverage
+        if: matrix.python == '3.11'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+          if-no-files-found: ignore
+
+  # A browser test that is only run by hand is a browser test that is broken.
+  # This is the hosted-demo path: the page served statically, demo-api.js
+  # answering /api inside it.
+  demo-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . pytest
+          npm ci
+
+      - name: Demo data is in sync with the catalog
+        run: python3 scripts/build_demo_data.py --check
+
+      - name: Every API route answered or explicitly refused by the demo
+        run: pytest -q tests/test_demo_mode.py
+
+      - name: Run the demo through a whole simulated session
+        run: node tests/demo_browser_check.mjs

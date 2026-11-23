@@ -25,7 +25,8 @@ as decodable events. The brute-forced supplier access code is NOT shipped.
 """
 from __future__ import annotations
 
-from .klinelog import Frame, parse as parse_klinelog
+from .klinelog import Frame
+from .klinelog import parse as parse_klinelog
 
 PROFILE = 'kmsk16_kline_research'
 

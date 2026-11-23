@@ -39,7 +39,13 @@
   /* ------------------------------------------------------------- data */
 
   var DATA = null;
-  var dataPromise = fetch('demo-data.json', { cache: 'no-cache' })
+  /* The snapshot is content-addressed by the generator (``_generated_by``
+   * and the catalog version), so a stale copy is only ever a stale catalog
+   * that a reload replaces. ``no-cache`` used to force a full 1.2 MB refetch
+   * on every visit, including every back-navigation, which made the hosted
+   * demo feel broken on a slow connection. ``force-cache`` is wrong in the
+   * other direction: it pins the first copy forever. */
+  var dataPromise = fetch('demo-data.json', { cache: 'default' })
     .then(function (r) {
       if (!r.ok) throw new Error('demo-data.json: HTTP ' + r.status);
       return r.json();
@@ -1672,6 +1678,29 @@
     '/api/tools/klinelog': 'K-Line capture analysis',
     '/api/tools/z2dif': 'Zeitronix log conversion',
     '/api/tools/rpmsignal': 'The bench RPM signal generator',
+    '/api/adapter/j2534': 'J2534 device inventory',
+    /* Desktop host routes: there is no native shell behind a hosted page. */
+    '/api/desktop': 'The desktop shell',
+    '/api/desktop/ping': 'The desktop shell',
+    '/api/desktop/raise': 'The desktop shell',
+    '/api/desktop/save': 'The desktop shell',
+    '/api/desktop/save-binary': 'The desktop shell',
+    '/api/desktop/print': 'The desktop shell',
+    '/api/desktop/quit': 'The desktop shell',
+    '/api/desktop/open-external': 'The desktop shell',
+    '/api/desktop/open-folder': 'The desktop shell',
+    /* Workshop tools that need a physical bus or a local serial port. */
+    '/api/tools/harley-hdlan-listen': 'Harley-Davidson H-DLAN capture',
+    '/api/tools/harley-memory': 'Harley-Davidson memory read',
+    '/api/tools/jetdrive': 'Dynojet Power Vision capture',
+    '/api/tools/bikestudio': 'BikeStudio capture',
+    '/api/tools/buell-ddfi': 'Buell DDFI tool',
+    '/api/tools/rusefi-read': 'rusEFI read',
+    '/api/tools/yamaha-mt03-listen': 'Yamaha MT-03 capture',
+    /* Research exports write files next to the XDF library on disk. */
+    '/api/maps/research-preview': 'Offline research export',
+    '/api/maps/research-export': 'Offline research export',
+    '/api/maps/harley-research-export': 'Offline research export',
   };
 
   /* ------------------------------------------------------------ dispatch */

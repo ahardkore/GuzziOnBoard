@@ -1,5 +1,6 @@
 """Synthetic ISO-TP flow-control and malformed-input tests, not motorcycle tests."""
 from types import SimpleNamespace
+
 import pytest
 
 import guzzionboard.transports.can as transport

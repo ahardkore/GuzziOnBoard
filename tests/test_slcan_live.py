@@ -1,5 +1,6 @@
 """Synthetic SLCAN serial emulation; no adapter or motorcycle was tested."""
 import pytest
+
 from guzzionboard.transports.base import TransportUnavailable
 from guzzionboard.transports.can import CanTransport, validate_slcan_selection
 from guzzionboard.workstation import Workstation

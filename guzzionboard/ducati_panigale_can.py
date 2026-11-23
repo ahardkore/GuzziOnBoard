@@ -10,6 +10,7 @@ Values are research leads; this is not a Moto Guzzi profile.
 from __future__ import annotations
 
 from collections.abc import Iterable
+
 from .canlog import CanFrame
 
 PROFILE = "ducati_panigale_mitsubishi"

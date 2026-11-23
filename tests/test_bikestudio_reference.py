@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 
 from guzzionboard.catalog import load_catalog
-from guzzionboard.workstation import Workstation
 from guzzionboard.transports.base import TransportUnavailable
+from guzzionboard.workstation import Workstation
 
 DATA = json.loads(Path('web/bikestudio-fitment.json').read_text())
 

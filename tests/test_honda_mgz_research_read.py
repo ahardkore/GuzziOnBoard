@@ -1,14 +1,29 @@
 """Synthetic MGZ read exchanges. No physical ECU was tested."""
 import pytest
+
 from guzzionboard.catalog import load_catalog
 from guzzionboard.diagnostics import DiagnosticsService
-from guzzionboard.programming import ProgrammingService, ProgrammingError
+from guzzionboard.programming import ProgrammingError, ProgrammingService
 from guzzionboard.protocol.honda_cbr600rr import (
-    MGZ_A03_ECM_ID, MGZ_A03_ECM_ID_OFFSET, MGZ_A03_IMAGE_SIZE, MGZ_ECM_IDS,
-    HONDA_RESEARCH_LAYOUTS, HONDA_EXAMPLE_INFERRED_IDS, HONDA_RESEARCH_IMAGE_SIZES,
-    HONDA_RESEARCH_STARTS, HONDA_RESEARCH_MAX_END, HONDA_RESEARCH_EXAMPLE_PARTS,
-    HONDA_RESEARCH_COMMENTED_IDS, HONDA_TABLE_ONLY_IDS, HONDA_EXAMPLE_ONLY_IDS, HONDA_FAMILY_INFERRED_IDS, HONDA_SOURCE_CONFLICTS, HONDA_VFR_RESEARCH_IDS, HondaCB500FDashSession, _honda_read_block,
-    read_honda_research_image, read_mgz_research_image,
+    HONDA_EXAMPLE_INFERRED_IDS,
+    HONDA_EXAMPLE_ONLY_IDS,
+    HONDA_FAMILY_INFERRED_IDS,
+    HONDA_RESEARCH_COMMENTED_IDS,
+    HONDA_RESEARCH_EXAMPLE_PARTS,
+    HONDA_RESEARCH_IMAGE_SIZES,
+    HONDA_RESEARCH_LAYOUTS,
+    HONDA_RESEARCH_MAX_END,
+    HONDA_RESEARCH_STARTS,
+    HONDA_SOURCE_CONFLICTS,
+    HONDA_TABLE_ONLY_IDS,
+    HONDA_VFR_RESEARCH_IDS,
+    MGZ_A03_ECM_ID,
+    MGZ_A03_ECM_ID_OFFSET,
+    MGZ_A03_IMAGE_SIZE,
+    MGZ_ECM_IDS,
+    _honda_read_block,
+    read_honda_research_image,
+    read_mgz_research_image,
 )
 from guzzionboard.protocol.kwp2000 import ProtocolError
 from guzzionboard.safety import Mode, SafetyGate

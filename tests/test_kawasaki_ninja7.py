@@ -5,11 +5,16 @@ import pytest
 
 from guzzionboard.catalog import load_catalog
 from guzzionboard.diagnostics import DiagnosticsService
+from guzzionboard.protocol.isotp import segment
 from guzzionboard.protocol.kawasaki_ninja7 import KawasakiNinja7Session
 from guzzionboard.protocol.kwp2000 import NegativeResponse, ProtocolError
-from guzzionboard.protocol.isotp import segment
 from guzzionboard.safety import Mode, SafetyGate
-from guzzionboard.transports.base import Connection, InitResult, Transport, TransportUnavailable
+from guzzionboard.transports.base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportUnavailable,
+)
 from guzzionboard.transports.can import CanConnection
 from guzzionboard.workstation import Workstation
 

@@ -5,10 +5,10 @@ import wave
 import pytest
 
 from guzzionboard.rpmsignal import (
+    DEFAULT_SAMPLE_RATE,
     PRESETS,
     SignalError,
     TriggerWheel,
-    DEFAULT_SAMPLE_RATE,
     generate,
     parse_events,
     render_samples,

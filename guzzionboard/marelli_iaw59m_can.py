@@ -19,6 +19,7 @@ DBC messages (8-byte frames, 11-bit IDs):
 from __future__ import annotations
 
 from collections.abc import Iterable
+
 from .canlog import CanFrame
 
 PROFILE = 'marelli_iaw59m_can_broadcast'

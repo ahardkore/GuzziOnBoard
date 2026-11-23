@@ -35,7 +35,7 @@ CATALOG_PATH = XDF_ROOT / "catalog.json"
 PROVENANCE_PATH = XDF_ROOT / "PROVENANCE.json"
 
 sys.path.insert(0, str(REPO_ROOT))
-from guzzionboard.maps import XdfError, XdfFile  # noqa: E402
+from guzzionboard.maps import XdfError, XdfFile
 
 
 def load_json(path: Path, default):

@@ -192,13 +192,20 @@ npm run test:browser
 npm run test:browser:desktop
 ```
 
+The suite runs in parallel by default; `-p no:xdist` forces a serial run. Lint
+with `ruff check .` (the rules in `ruff.toml` are a correctness gate, not a
+style one).
+
 Run the two Playwright suites sequentially: they share the test-results
 folder. After changing catalog data, regenerate the hosted snapshot with
 `python3 scripts/build_demo_data.py`. See
+[contributing](CONTRIBUTING.md) for what CI checks and why,
 [architecture](docs/ARCHITECTURE.md), [desktop packaging](packaging/README.md)
 and the [source review](docs/EXTERNAL_MOTORCYCLE_RESEARCH.md).
 
 ## Documentation
+
+The full index is [docs/README.md](docs/README.md). The most-used guides:
 
 | Topic | Guide |
 | --- | --- |
@@ -217,7 +224,8 @@ and the [source review](docs/EXTERNAL_MOTORCYCLE_RESEARCH.md).
 | KTM / Husqvarna Keihin KMSK16 K-Line decoder, and what its source actually says | [KMSK16 on K-Line](docs/KMSK16_KLINE.md) |
 | Injector sizing, dyno correction, fuel blend and lambda | [Bench calculators](docs/BENCH_CALCULATORS.md) |
 | In-app help, guides and global search | [Help module](docs/HELP_MODULE.md) |
-| Project design and contributions | [Architecture](docs/ARCHITECTURE.md) · [Prior art](docs/PRIOR_ART.md) |
+| Project design and contributions | [Architecture](docs/ARCHITECTURE.md) · [Prior art](docs/PRIOR_ART.md) · [Contributing](CONTRIBUTING.md) · [Code of conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md) · [Changelog](CHANGELOG.md) |
+| The HTTP API, route by route | [API reference](docs/API.md) |
 
 ## License and acknowledgements
 

@@ -2,9 +2,9 @@
 import hashlib
 import struct
 import sys
+import zlib
 from pathlib import Path
 from types import SimpleNamespace
-import zlib
 
 import pytest
 

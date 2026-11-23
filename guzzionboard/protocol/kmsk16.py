@@ -31,8 +31,8 @@ names only, because a name in a job file is not a verified write sequence.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Iterable, Mapping, Sequence
+from dataclasses import dataclass
+from typing import Mapping
 
 from . import kwp2000
 

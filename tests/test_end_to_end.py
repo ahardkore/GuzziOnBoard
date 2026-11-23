@@ -12,7 +12,11 @@ from guzzionboard.protocol.kwp2000 import ProtocolError
 from guzzionboard.safety import Mode, SafetyGate, VehicleState
 from guzzionboard.sessionlog import SessionLog
 from guzzionboard.transports.base import TransportUnavailable
-from guzzionboard.transports.simulator import EngineModel, SimulatedEcu, SimulatorTransport
+from guzzionboard.transports.simulator import (
+    EngineModel,
+    SimulatedEcu,
+    SimulatorTransport,
+)
 from guzzionboard.workstation import Workstation
 
 
@@ -315,6 +319,58 @@ def test_session_log_captures_frames_samples_and_decisions(catalog, tmp_path):
 
     samples = [e for e in events if e["kind"] == "sample"]
     assert all(e["raw"] for e in samples)   # raw bytes kept next to every value
+
+
+def test_concurrent_writers_never_lose_or_tear_an_event(catalog, tmp_path):
+    """Diagnostics, job and HTTP threads all record into one SessionLog.
+
+    Without a lock the ring buffer, the counters and the file handle are three
+    unsynchronised mutations: counts lose increments and a flush from one
+    thread can interleave inside another thread's write.
+    """
+    import threading
+
+    log = SessionLog(directory=tmp_path, meta={"test": "threads"})
+    per_thread, threads = 250, 4
+
+    def hammer(index):
+        for i in range(per_thread):
+            log.write("action", {"name": "tick", "detail": {"t": index, "i": i}})
+
+    workers = [threading.Thread(target=hammer, args=(n,)) for n in range(threads)]
+    for worker in workers:
+        worker.start()
+    for worker in workers:
+        worker.join()
+    log.close()
+
+    events = list(SessionLog.read(log.path))
+    ours = [e for e in events if e["kind"] == "action"]
+    assert len(ours) == threads * per_thread
+    # The counter agrees with the file, including the end-of-session record.
+    end = next(e for e in events if e["kind"] == "session_end")
+    assert end["counts"]["action"] == threads * per_thread
+    assert log.counts["action"] == threads * per_thread
+    # The in-memory ring holds the same events (nothing was dropped: it is
+    # under ring_size, so a lost increment would show up here as well).
+    assert len(log.recent) == len(events)
+
+
+def test_retention_prunes_old_sessions_but_never_the_live_one(tmp_path):
+    import os
+    import time
+
+    stale = tmp_path / "20000101-000000-old.jsonl"
+    stale.write_text('{"kind": "session_start", "meta": {}}\n')
+    long_ago = time.time() - 400 * 86400
+    os.utime(stale, (long_ago, long_ago))
+
+    log = SessionLog(directory=tmp_path, meta={"test": "retention"})
+    try:
+        assert not stale.exists()
+        assert log.path.exists()
+    finally:
+        log.close()
 
 
 def test_listing_sessions_reads_back_the_metadata(catalog, tmp_path):

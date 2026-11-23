@@ -155,7 +155,7 @@ skips the question entirely.
 | `~/.guzzionboard/sessions/` | Recorded sessions (raw frames + decoded samples) |
 | `~/.guzzionboard/images/`, `basemaps/` | ECU reads and the protected base maps |
 | `~/.guzzionboard/xdfs/`, `checksums/`, `keys/` | Your additions: XDFs, checksum plugins, key providers |
-| `~/.guzzionboard/logs/desktop.log` | Window/shell log — a windowed build has no console, so this is where a startup failure is explained |
+| `~/.guzzionboard/logs/desktop.log` | Window/shell log — a windowed build has no console, so this is where a startup failure is explained. Rotated to `desktop.log.1` at 2 MiB, so it cannot grow without bound |
 | `~/.guzzionboard/desktop-instance.json` | The running instance (pid, port, token) |
 | Your Downloads folder | Everything you save from the UI |
 
@@ -335,9 +335,19 @@ downloads; that difference is the point.
 
 **The port.** Normally the OS picks a free one. `--port 8000` fixes it, which
 is useful when you want the page on another device on the same network
-(`--host 0.0.0.0`); the origin check still refuses requests from other web
-origins, and only loopback names are accepted unless you bind a LAN address
-explicitly.
+(`--host 0.0.0.0`). Binding a LAN address is a real decision, not a
+convenience:
+
+* the desktop shell keeps its per-launch token, so a browser still has to be
+  handed one - but that token is in the page it serves, so a browser on the
+  LAN that can read the URL can call the API;
+* the console server (`python -m guzzionboard`, `run_server.py`) has **no**
+  token, and its origin check only stops browser pages. Anything on the
+  network can call it directly. It therefore binds `127.0.0.1` unless you pass
+  `--host`, and the startup banner says what that exposes.
+
+On an untrusted network, use a tunnel or a firewall rule rather than a wide
+bind.
 
 **Starting over.** Uninstalling removes the program. Your session logs,
 backups and base maps are deliberately left in `~/.guzzionboard` (the

@@ -997,3 +997,32 @@ def test_revoking_bundled_key_and_repinning_controls_applied_overlay(tmp_path, h
     (directory / "revoked-keys.json").write_text("not json")
     with pytest.raises(protocol_updates.ProtocolUpdateError, match="revocation"):
         protocol_updates.keyring(directory)
+
+
+def test_apply_and_revoke_publish_atomically(tmp_path, monkeypatch):
+    """Neither applied.json nor the revocation list may be seen half-written.
+
+    They used to be plain ``write_text`` calls, so a crash (or a full disk)
+    during the write left a truncated overlay that then failed to load on
+    every later start.
+    """
+    from guzzionboard import storage
+
+    calls: list[str] = []
+    real = storage.atomic_write
+
+    def spy(path, data):
+        calls.append(str(path))
+        return real(path, data)
+
+    monkeypatch.setattr(protocol_updates, "atomic_write", spy)
+    directory = tmp_path / "protocol"
+    protocol_updates.pin_key("release", signing.public_key("11" * 32),
+                             directory=directory)
+    # Revoking a *bundled* key is what writes the revocation list.
+    bundled = next(iter(signing.load_keyring(protocol_updates.BUNDLED_KEYRING)))
+    protocol_updates.unpin_key(bundled, directory=directory)
+    assert any(path.endswith("keys.json") for path in calls)
+    assert any(path.endswith("revoked-keys.json") for path in calls)
+    # No temporary files are left behind by the helper.
+    assert not list(directory.glob(".*.json.*"))

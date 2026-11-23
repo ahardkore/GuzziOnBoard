@@ -37,8 +37,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from guzzionboard import confirmations, protocol_updates, signing   # noqa: E402
-from guzzionboard.catalog import ECU_DIR                            # noqa: E402
+from guzzionboard import confirmations, protocol_updates, signing
+from guzzionboard.catalog import ECU_DIR
 
 
 def _load_confirmations(directory: Path) -> list[tuple[dict, bytes]]:

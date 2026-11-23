@@ -6,7 +6,13 @@ LICENSES/Kawasaki-CAN-Hack-MIT.txt. GuzziOnBoard hardware has not been tested.
 """
 from __future__ import annotations
 
-from .kwp2000 import Frame, KWP2000Session, NegativeResponse, ProtocolError, decode_dtc_number
+from .kwp2000 import (
+    Frame,
+    KWP2000Session,
+    NegativeResponse,
+    ProtocolError,
+    decode_dtc_number,
+)
 
 
 class KawasakiNinja7Session(KWP2000Session):

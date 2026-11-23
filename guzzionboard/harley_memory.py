@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import resources
-from .protocol.isotp import Reassembler, IsoTpError
+from .protocol.isotp import IsoTpError, Reassembler
 from .transports.base import TransportError
 from .transports.can import CanConnection, CanTransport, validate_slcan_selection
 

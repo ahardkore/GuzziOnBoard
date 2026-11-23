@@ -2,7 +2,12 @@
 import pytest
 
 from guzzionboard.protocol.isotp import (
-    FlowStatus, IsoTpError, Reassembler, encode_single, flow_control, segment,
+    FlowStatus,
+    IsoTpError,
+    Reassembler,
+    encode_single,
+    flow_control,
+    segment,
 )
 
 

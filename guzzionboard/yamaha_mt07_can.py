@@ -12,6 +12,7 @@ nor decoding identifies a vehicle, and nothing here is a diagnostic session.
 from __future__ import annotations
 
 from collections.abc import Iterable
+
 from .canlog import CanFrame
 
 PROFILE = 'yamaha_mt07_2014'

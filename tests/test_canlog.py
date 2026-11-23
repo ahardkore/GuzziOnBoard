@@ -262,8 +262,9 @@ def test_offline_capture_filter_and_traffic_breakdown():
 
 
 def test_offline_capture_filter_rejects_bad_ids_and_empty_result():
-    from guzzionboard.canlog import CanLogError, analyze_capture_text
     import pytest
+
+    from guzzionboard.canlog import CanLogError, analyze_capture_text
     text = '(1.0) can0 7E0#023E00'
     for ids in ('-1', '0x20000000', '7e0,,7e8', 'zzz', '123'):
         with pytest.raises(CanLogError):

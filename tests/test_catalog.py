@@ -2,7 +2,11 @@
 import pytest
 
 from guzzionboard.catalog import (
-    CONFIDENCE_LEVELS, CatalogError, confidence_rank, load_catalog, meets,
+    CONFIDENCE_LEVELS,
+    CatalogError,
+    confidence_rank,
+    load_catalog,
+    meets,
 )
 
 

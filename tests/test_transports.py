@@ -6,10 +6,15 @@ from guzzionboard.diagnostics import DiagnosticsService
 from guzzionboard.protocol.kwp2000 import ProtocolError, decode_frame, encode_request
 from guzzionboard.safety import Mode, SafetyGate
 from guzzionboard.transports.base import (
-    Connection, InitResult, Transport, TransportUnavailable,
+    Connection,
+    InitResult,
+    Transport,
+    TransportUnavailable,
 )
 from guzzionboard.transports.simulator import (
-    EngineModel, SimulatedEcu, SimulatorTransport,
+    EngineModel,
+    SimulatedEcu,
+    SimulatorTransport,
 )
 
 

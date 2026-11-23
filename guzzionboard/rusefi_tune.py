@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-from pathlib import Path
 import re
 import secrets
 import struct
@@ -17,8 +16,10 @@ import time
 import zlib
 from contextlib import contextmanager
 from dataclasses import dataclass
+from pathlib import Path
 
-from . import resources, rusefi_read as wire
+from . import resources
+from . import rusefi_read as wire
 from .transports.base import TransportError, TransportUnavailable
 
 MAX_INI = 2 * 1024 * 1024

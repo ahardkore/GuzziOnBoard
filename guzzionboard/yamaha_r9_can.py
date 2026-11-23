@@ -9,6 +9,7 @@ all Yamaha motorcycles. Neither ID match nor decoding identifies a vehicle.
 from __future__ import annotations
 
 from collections.abc import Iterable
+
 from .canlog import CanFrame
 
 PROFILE = 'yamaha_r9_2026'

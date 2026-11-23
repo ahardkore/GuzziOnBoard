@@ -5,8 +5,8 @@ import pytest
 
 from guzzionboard import harley_hdlan_listen as listen
 from guzzionboard.server import Api
-from guzzionboard.workstation import Workstation
 from guzzionboard.transports.base import TransportError
+from guzzionboard.workstation import Workstation
 
 
 class Bus:

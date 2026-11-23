@@ -1,5 +1,5 @@
 from guzzionboard.j2534 import inventory
-from guzzionboard.server import Api, ROUTES_GET
+from guzzionboard.server import ROUTES_GET, Api
 from guzzionboard.workstation import Workstation
 
 

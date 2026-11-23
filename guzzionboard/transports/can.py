@@ -8,13 +8,18 @@ the toolchain works without it.
 """
 from __future__ import annotations
 
-import time
 import re
+import time
 from dataclasses import dataclass, field
 
 from ..protocol.isotp import IsoTpError, Reassembler, segment
-from .base import Connection, InitResult, Transport, TransportError, TransportUnavailable
-
+from .base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportError,
+    TransportUnavailable,
+)
 
 # Network identifiers from the pinned Intrepid icsnVC40.h. Reject ISO9141,
 # J1850, LIN, Ethernet and device-control network IDs before opening hardware.

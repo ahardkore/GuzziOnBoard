@@ -1,14 +1,15 @@
 """Synthetic serial fixtures only; no Buell hardware was used."""
 import sys
-from types import SimpleNamespace
 from functools import reduce
 from operator import xor
+from types import SimpleNamespace
 
 import pytest
+
 from guzzionboard import buell_ddfi as buell
 from guzzionboard.server import Api
-from guzzionboard.workstation import Workstation
 from guzzionboard.transports.base import TransportError
+from guzzionboard.workstation import Workstation
 
 VERSION = 'BUEIB310 12-11-03'  # public EcmDroid unit-test example
 

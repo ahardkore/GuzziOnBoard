@@ -13,10 +13,10 @@ from pathlib import Path
 
 from . import __version__
 from .catalog import Catalog, EcuProfile, VehicleEntry, load_catalog
+from .derived import Analyzer
 from .diagnostics import DiagnosticsService, NotConnected
 from .safety import Mode, SafetyGate, VehicleState
 from .sessionlog import DEFAULT_DIR, SessionLog
-from .derived import Analyzer
 from .transports.base import Transport, TransportUnavailable
 from .transports.simulator import EngineModel, SimulatedEcu, SimulatorTransport
 
@@ -445,14 +445,14 @@ class Workstation:
                  "detail": str(exc).splitlines()[0]}
             )
         try:
-            import serial  # noqa: F401
+            import serial
             found.append({"id": "elm_j1850", "name": "Harley J1850 (ELM327 serial)",
                           "available": True, "detail": "ELM327 serial at 38400 baud; read-only HarleyDroid profile only."})
         except ImportError:
             found.append({"id": "elm_j1850", "name": "Harley J1850 (ELM327 serial)",
                           "available": False, "detail": "pyserial is not installed (pip install -e '.[hardware]')."})
         try:
-            import can  # noqa: F401
+            import can
 
             found.append(
                 {"id": "can", "name": "CAN (ISO-TP)", "available": True,

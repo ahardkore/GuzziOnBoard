@@ -14,19 +14,33 @@ import time
 from dataclasses import dataclass, field
 
 from .catalog import Catalog, EcuProfile, Parameter, load_catalog
-from .protocol.legacy_iaw import LegacyIAWSession
-from .protocol.kawasaki_er6n import KawasakiER6nSession, decode_kawasaki_value
-from .protocol.aster_kline import AsterKLineSession, Versys2012Session, KawasakiKdsResearchSession, Gsxr6002011Session, Gsxr10002004Session, SuzukiGsxrResearchSession, Sv6502003Session, Sv650Ak7Session, decode_versys, decode_gsxr, decode_sv650ak7
-from .protocol.honda_cbr600rr import HondaCBR600RRSession, HondaCB500FDashSession, HondaCTX700Session, decode_honda, decode_honda_ctx
-from .protocol.honda_pgmfi import HondaPgmfiSession, HondaPgmfiFlashResearchSession
-from .protocol.kawasaki_ninja7 import KawasakiNinja7Session
-from .protocol.triumph_daytona import TriumphDaytonaSession
-from .protocol.harley_j1850 import HarleyJ1850Session
-from .protocol.obd_can import ObdCanSession
-from .protocol.iso9141 import Iso9141ObdSession
-from .protocol.uds import UdsSession
+from .protocol.aster_kline import (
+    AsterKLineSession,
+    Gsxr6002011Session,
+    Gsxr10002004Session,
+    KawasakiKdsResearchSession,
+    SuzukiGsxrResearchSession,
+    Sv650Ak7Session,
+    Sv6502003Session,
+    Versys2012Session,
+    decode_gsxr,
+    decode_sv650ak7,
+    decode_versys,
+)
 from .protocol.generic_kwp import GenericKwp2000Session
 from .protocol.harley_delphi_can import HarleyDelphiCanSession
+from .protocol.harley_j1850 import HarleyJ1850Session
+from .protocol.honda_cbr600rr import (
+    HondaCB500FDashSession,
+    HondaCBR600RRSession,
+    HondaCTX700Session,
+    decode_honda,
+    decode_honda_ctx,
+)
+from .protocol.honda_pgmfi import HondaPgmfiFlashResearchSession, HondaPgmfiSession
+from .protocol.iso9141 import Iso9141ObdSession
+from .protocol.kawasaki_er6n import KawasakiER6nSession, decode_kawasaki_value
+from .protocol.kawasaki_ninja7 import KawasakiNinja7Session
 from .protocol.kwp2000 import (
     KWP2000Session,
     NegativeResponse,
@@ -36,6 +50,10 @@ from .protocol.kwp2000 import (
     apply_scaling,
     decode_raw_value,
 )
+from .protocol.legacy_iaw import LegacyIAWSession
+from .protocol.obd_can import ObdCanSession
+from .protocol.triumph_daytona import TriumphDaytonaSession
+from .protocol.uds import UdsSession
 from .safety import Check, Decision, Mode, Risk, SafetyGate, SafetyViolation
 from .sessionlog import NullSessionLog, SessionLog
 from .transports.base import (

@@ -275,7 +275,13 @@ pre code { background: none; padding: 0; }
   gap: 10px;
 }
 .menu-item:hover:not(:disabled),
-.menu-item:focus-visible { background: var(--panel-2); outline: none; }
+.menu-item:focus-visible { background: var(--panel-2); }
+.menu-item:focus-visible {
+  /* A keyboard user has to be able to see where they are: background alone
+     is not a focus indicator on a menu that is already highlighted. */
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 .menu-item kbd {
   font: 600 .65rem/1 var(--mono);
   color: var(--muted);
@@ -482,7 +488,11 @@ pre code { background: none; padding: 0; }
   font: 600 .74rem/1.2 var(--mono);
   cursor: pointer;
 }
-.unit-pick select:focus { outline: none; }
+.unit-pick select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
 
 /* ==========================================================================
    4. ROW 3 LEFT — DOCKED EXPLORER & XDF PARAMETER TREE (.sidebar)
@@ -531,8 +541,8 @@ pre code { background: none; padding: 0; }
   font: 500 .76rem/1.2 var(--sans);
 }
 .explorer-filter input:focus {
-  outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 /* TunerPro RT-style Active XDF Calibration Tree */
@@ -1064,9 +1074,20 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  outline: none;
   border-color: var(--accent);
+  /* The ring is the focus indicator; do not remove it without replacing it. */
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+/* Keyboard focus is stronger still: a 2px ring, so a cell or a select is
+   locatable in a dense grid without hunting for a 1px colour shift. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .form-grid {
@@ -1774,11 +1795,20 @@ b.warn { color: var(--warn); }
   padding: 4px 6px;
   cursor: cell;
 }
-.map-value:hover,
+.map-value:hover {
+  border-color: #e2eef7;
+  filter: brightness(1.16);
+}
 .map-value:focus {
   border-color: #e2eef7;
   filter: brightness(1.16);
-  outline: none;
+}
+.map-value:focus-visible {
+  /* A map cell is the keyboard's unit of navigation; the ring has to survive
+     the heat-map background it sits on. */
+  outline: 2px solid #ffffff;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 3px #0d131a;
 }
 .map-value.selected {
   border-color: #ffffff;
@@ -3008,4 +3038,45 @@ html[data-theme="light"] .help-spotlight-card { background: var(--panel); }
 @media print {
   .rom-strip { border-color: #999; }
   #frameLabPanel, #romMapPanel, #xdfFinderPanel, #checksumWorkbench, #widebandLab { break-inside: avoid; }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY — motion and forced colours
+   ========================================================================== */
+
+/* A user who asks the operating system for less motion should not get the
+   live-trace pulses, the spinner or the toast slide. Nothing here removes
+   information: every state that moves is also stated in text. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Windows High Contrast and similar modes drop background colours, which is
+   exactly what the heat map and the selected/modified cell states use. Keep
+   the borders, which survive forced colours. */
+@media (forced-colors: active) {
+  .map-value,
+  .map-value.selected,
+  .map-value.modified,
+  .map-value.live-trace-weight,
+  .badge,
+  .chip {
+    border: 1px solid CanvasText;
+    outline-color: Highlight;
+  }
+  .map-value:focus-visible,
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid Highlight;
+  }
 }

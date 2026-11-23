@@ -86,7 +86,6 @@ def test_decoding_rejects_encodings_that_are_not_points_on_the_curve():
 
     # A y coordinate with no matching x, and a y >= 2**255-19, must not decode.
     assert s._decode_point(bytes([0x02] + [0x00] * 31)) is None
-    assert s._decode_point(bytes([0x00] * 32)) is not None      # y=0 is a point
     assert s._decode_point(b"\xff" * 32) is None
     assert s._decode_point(b"\x00" * 31) is None                # wrong length
     # An R that does not decode is a refusal, not an exception.
@@ -119,3 +118,48 @@ def test_keyrings_hold_public_keys_only(tmp_path):
     path.write_text("{not json")
     with pytest.raises(signing.SignatureError, match="unreadable"):
         signing.load_keyring(path)
+
+
+# --------------------------------------------------- small-order point refusal
+
+
+SMALL_ORDER_ENCODINGS = {
+    "identity": "0100000000000000000000000000000000000000000000000000000000000000",
+    "order 2": "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+    "order 4": "0000000000000000000000000000000000000000000000000000000000000000",
+    "order 8": "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac03fa",
+}
+
+
+def test_small_order_points_are_not_keys():
+    from guzzionboard import signing as s
+
+    for label, encoded in SMALL_ORDER_ENCODINGS.items():
+        assert s._decode_point(bytes.fromhex(encoded)) is None, label
+        assert signing.is_public_key(encoded) is False, label
+
+
+def test_a_signature_cannot_be_forged_under_the_identity_key():
+    """With A = identity the check collapses to s*B == R for any message."""
+    from guzzionboard import signing as s
+
+    scalar = 12345
+    r = s._encode_point(s._scalar_mult(s._BASE, scalar))
+    forged = (r + scalar.to_bytes(32, "little")).hex()
+    for label in ("identity", "order 2", "order 4", "order 8"):
+        assert signing.verify(b"anything at all", forged,
+                              SMALL_ORDER_ENCODINGS[label]) is False, label
+
+
+def test_pinning_refuses_a_degenerate_key():
+    # Pinning is a caller of is_public_key, so it inherits the refusal.
+    assert signing.is_public_key(SMALL_ORDER_ENCODINGS["identity"]) is False
+    assert signing.is_public_key(SMALL_ORDER_ENCODINGS["order 8"]) is False
+
+
+def test_genuine_keys_and_signatures_still_work():
+    key = signing.public_key("11" * 32)
+    assert signing.is_public_key(key) is True
+    signature = signing.sign(b"message", "11" * 32)
+    assert signing.verify(b"message", signature, key) is True
+    assert signing.verify(b"message!", signature, key) is False

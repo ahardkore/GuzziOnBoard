@@ -9,6 +9,7 @@ best-effort and states layouts vary across models and years.
 from __future__ import annotations
 
 from collections.abc import Iterable
+
 from .canlog import CanFrame
 
 PROFILE = "harley_hdlan_community"

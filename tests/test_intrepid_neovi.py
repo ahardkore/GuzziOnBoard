@@ -4,9 +4,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from guzzionboard.workstation import Workstation
-from guzzionboard.transports.base import TransportUnavailable, TransportError
+from guzzionboard.transports.base import TransportError, TransportUnavailable
 from guzzionboard.transports.can import CanTransport
+from guzzionboard.workstation import Workstation
 
 
 def kwargs(**extra):

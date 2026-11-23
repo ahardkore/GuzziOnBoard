@@ -11,8 +11,8 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from pathlib import Path
 import re
+from pathlib import Path
 from urllib.parse import urlparse
 
 PACKAGE_DIR = Path.home() / ".guzzionboard" / "recommendations"

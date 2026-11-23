@@ -28,6 +28,7 @@ def test_bueib_four_map_layout_and_research_edit():
 def test_bundled_buell_definition_can_export_reviewed_research_copy(tmp_path, monkeypatch):
     import hashlib
     import json
+
     from guzzionboard.server import Api
     from guzzionboard.workstation import Workstation
     monkeypatch.setenv('GUZZIONBOARD_HOME', str(tmp_path / 'data'))

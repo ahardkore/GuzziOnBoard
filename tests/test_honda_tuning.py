@@ -6,11 +6,17 @@ from pathlib import Path
 
 import pytest
 
-from guzzionboard import honda_tuning as honda, server
+from guzzionboard import honda_tuning as honda
+from guzzionboard import server
 from guzzionboard.checksums import ChecksumUnavailable
 from guzzionboard.firmware import FirmwareImage
 from guzzionboard.maps import XdfFile
-from guzzionboard.tuning import TUNING_ACKNOWLEDGEMENT, TuningError, _xdf_sha256, build_tune
+from guzzionboard.tuning import (
+    TUNING_ACKNOWLEDGEMENT,
+    TuningError,
+    _xdf_sha256,
+    build_tune,
+)
 from guzzionboard.workstation import Workstation
 
 XDF = Path('guzzionboard/xdfs/honda/CBR1000RR_2012_US.xdf')

@@ -7,6 +7,8 @@ describes what is implemented, not what is planned.
 web/                               UI — no framework, no build step
   │  fetch() JSON
   ▼
+guzzionboard/http_policy.py        Host / Origin / desktop-token policy
+  ▼
 guzzionboard/server.py             local HTTP API + static files
   ▼
 guzzionboard/workstation.py        selection, session lifecycle, reports
@@ -20,6 +22,38 @@ guzzionboard/diagnostics.py        identify / live / DTC / actuators / discovery
 ```
 
 ---
+
+## The request policy
+
+Three checks decide whether a request reaches the API, and they live in one
+short module (`http_policy.py`) rather than inside the 2,900-line server:
+
+1. **Host** must be a name this process was bound to. Loopback binds answer
+   only `127.0.0.1`, `localhost` and `::1`; a request arriving as
+   `workshop-laptop:8000` on a loopback bind is a DNS-rebinding attempt.
+2. **Origin**, when a browser sends one, must be this same workstation (same
+   host alias, same port). This is the check that stops another page you have
+   open from pulsing an actuator. A *malformed* Origin is a refusal — reading
+   `.port` out of `http://host:abc/` raises, and that exception used to escape
+   the guard as a 500.
+3. **Token**, inside the desktop shell only: every `/api/` call must carry the
+   token that launch generated.
+
+No Origin at all (curl, the self-test, the test suite) is allowed on purpose:
+the policy exists to stop browsers, not to lock the operator out. The console
+server therefore relies on binding loopback, which is why `serve()` defaults to
+`127.0.0.1` and a wider bind is an explicit, warned-about choice.
+
+Plugin code is the other place where "who is allowed to do what" is decided:
+
+| Plugin kind | Runs | Containment |
+| --- | --- | --- |
+| Calibration checksum (`~/.guzzionboard/checksums`) | `checksum_worker.py` | fresh `python -I -S -B`, rlimits, audit hook, 4 s timeout, deterministic double-run |
+| SecurityAccess key (`~/.guzzionboard/keys`) | `key_worker.py` | the same worker harness, plus a SHA-256 re-check before every use |
+
+Both send one JSON request over a pipe and get one JSON answer back. The key
+worker is deliberately narrower: a key function takes a seed (≤ 8 bytes) and
+returns ≤ 16 bytes, so nothing else crosses the boundary.
 
 ## Transports
 

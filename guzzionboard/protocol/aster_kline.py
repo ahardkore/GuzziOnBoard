@@ -10,7 +10,14 @@ has synthetic tests only; sensor conversions are source-reported candidates.
 from __future__ import annotations
 
 import time
-from .kwp2000 import KWP2000Session, ProtocolError, NegativeResponse, checksum, decode_frame
+
+from .kwp2000 import (
+    KWP2000Session,
+    NegativeResponse,
+    ProtocolError,
+    checksum,
+    decode_frame,
+)
 
 
 class AsterKLineSession(KWP2000Session):

@@ -1,5 +1,7 @@
 """Synthetic CTX700 table tests, not a test on a physical motorcycle."""
 import pytest
+from test_honda_cb500f_dash import FakeConnection, FakeTransport
+
 from guzzionboard.catalog import load_catalog
 from guzzionboard.diagnostics import DiagnosticsService
 from guzzionboard.protocol.honda_cbr600rr import HondaCTX700Session
@@ -7,7 +9,6 @@ from guzzionboard.protocol.kwp2000 import ProtocolError
 from guzzionboard.safety import Mode, SafetyGate
 from guzzionboard.transports.base import TransportUnavailable
 from guzzionboard.workstation import Workstation
-from test_honda_cb500f_dash import FakeConnection, FakeTransport
 
 
 def frame(table, data):

@@ -19,8 +19,8 @@ Documented write sequence (5AM, KWP2000, ECU 0x10 / tester 0xF1):
 """
 from __future__ import annotations
 
-from .experimental_writers import CONFIRM_TOKEN, _gate, _kwp2000_frame
 from . import firmware, security
+from .experimental_writers import _gate, _kwp2000_frame
 
 PROFILE = 'iaw_5am_experimental_write'
 

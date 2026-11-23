@@ -29,12 +29,13 @@ Concretely:
 ```bash
 python3 -m pip install -e '.[hardware,dev]'
 python3 -m guzzionboard --selftest      # does the install actually work?
-python3 -m pytest -q                    # ~2 minutes on four cores
+python3 -m pytest -q -n auto --dist loadfile   # ~2 minutes on four cores
 ruff check .                            # the lint gate
 ```
 
-The test suite runs in parallel by default (`pytest-xdist`). To run a single
-file serially, `python3 -m pytest -q -p no:xdist tests/test_maps.py`.
+Parallelism is opt-in (`pytest-xdist`), so a plain `python3 -m pytest -q` works
+with nothing extra installed and runs serially. To run one file,
+`python3 -m pytest -q tests/test_maps.py`.
 
 Browser tests need Node 22:
 

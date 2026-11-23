@@ -65,7 +65,7 @@ jobs:
       - name: Install Python build/test deps
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install -e '.[dev,hardware]' pytest-cov pytest-xdist
+          pip install -e '.[dev,hardware]' pytest-cov
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -80,12 +80,9 @@ jobs:
       - name: Run built-in self-test
         run: python -m guzzionboard --selftest
 
-      # The desktop-host gate drives the page behind `guzzionboard-desktop
-      # --no-window`, which needs no display. Exclude it from the plain
-      # pytest run only if a spec needs one; today none do.
       - name: Run pytest
         run: >-
-          pytest -q -n auto --dist loadgroup
+          pytest -q -n auto --dist loadfile
           --cov=guzzionboard --cov-report=term-missing:skip-covered
           --cov-report=xml
 
@@ -125,14 +122,14 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install -e . pytest
+          pip install -e '.[dev]' 
           npm ci
 
       - name: Demo data is in sync with the catalog
         run: python3 scripts/build_demo_data.py --check
 
       - name: Every API route answered or explicitly refused by the demo
-        run: pytest -q tests/test_demo_mode.py
+        run: pytest -q -n auto --dist loadfile tests/test_demo_mode.py
 
       - name: Run the demo through a whole simulated session
         run: node tests/demo_browser_check.mjs

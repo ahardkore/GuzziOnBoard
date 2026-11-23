@@ -184,7 +184,7 @@ See [XDF library and Honda limitations](docs/XDF_LIBRARY.md),
 
 ```bash
 python3 -m pip install -e '.[hardware,dev]'
-python3 -m pytest -q
+python3 -m pytest -q -n auto --dist loadfile
 python3 scripts/build_demo_data.py --check
 
 npm ci
@@ -192,9 +192,10 @@ npm run test:browser
 npm run test:browser:desktop
 ```
 
-The suite runs in parallel by default; `-p no:xdist` forces a serial run. Lint
-with `ruff check .` (the rules in `ruff.toml` are a correctness gate, not a
-style one).
+`-n auto --dist loadfile` runs the suite in parallel (about two minutes
+instead of four); plain `pytest -q` also works and runs serially. Lint with
+`ruff check .` (the rules in `ruff.toml` are a correctness gate, not a style
+one).
 
 Run the two Playwright suites sequentially: they share the test-results
 folder. After changing catalog data, regenerate the hosted snapshot with

@@ -46,10 +46,10 @@ packages = ["guzzionboard", "guzzionboard.protocol", "guzzionboard.transports", 
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# The suite is dominated by independent files (protocol, maps, server, desktop),
-# so the default is a parallel run with file-level distribution. ``-p no:xdist``
-# or running a single file still works serially.
-addopts = ["-n", "auto", "--dist", "loadfile"]
+# Deliberately empty: a plain ``pytest`` must work without any extra installed.
+# Parallelism is opt-in with ``pytest -n auto --dist loadfile`` (and is what CI
+# and the README run); see "Development and tests" in the README.
+addopts = []
 # Broadcast/relay tests bind loopback sockets and compare wall-clock behaviour;
 # grouping them keeps them on one worker.
 markers = [

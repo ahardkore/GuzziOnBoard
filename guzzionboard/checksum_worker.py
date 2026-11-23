@@ -11,9 +11,9 @@ import base64
 import importlib.util
 import json
 import os
-from pathlib import Path
 import sys
 import sysconfig
+from pathlib import Path
 
 
 def _limits() -> None:
@@ -114,6 +114,16 @@ def _describe(module) -> dict:
     }
 
 
+def _describe_key(module) -> dict:
+    return {
+        "ecu_id": str(getattr(module, "ECU_ID", "")),
+        "name": str(getattr(module, "NAME", "")),
+        "verified": bool(getattr(module, "VERIFIED", False)),
+        "note": str(getattr(module, "NOTE", "")),
+        "has_key": callable(getattr(module, "key", None)),
+    }
+
+
 def main() -> int:
     result_fd = os.dup(1)
     null_fd = os.open(os.devnull, os.O_WRONLY)
@@ -127,8 +137,26 @@ def main() -> int:
         os.dup2(null_fd, 2)
         module = _load(plugin)
         operation = request.get("operation")
+        # One bundled helper serves both plugin families, because a frozen
+        # build can only ship one PyInstaller console entry. ``describe`` is
+        # shared; the operation name selects which contract applies.
         if operation == "describe":
             response = {"ok": True, "metadata": _describe(module)}
+        elif operation == "describe-key":
+            response = {"ok": True, "metadata": _describe_key(module)}
+        elif operation == "key":
+            function = getattr(module, "key", None)
+            if not callable(function):
+                raise ValueError("a callable key(seed) is required")
+            seed = bytes.fromhex(str(request["seed"]))
+            if not seed or len(seed) > 8:
+                raise ValueError("seed must be 1 to 8 bytes of hex")
+            answer = function(seed)
+            if not isinstance(answer, (bytes, bytearray)):
+                raise TypeError("key() must return bytes")
+            if len(answer) > 16:
+                raise ValueError("key() returned more than 16 bytes")
+            response = {"ok": True, "key": bytes(answer).hex()}
         elif operation == "apply":
             update = getattr(module, "update", None)
             verify = getattr(module, "verify", None)

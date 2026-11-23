@@ -633,6 +633,7 @@ def test_programming_transfer_read_rejects_invalid_blocks(service, monkeypatch, 
 def test_read_succeeds_when_optional_report_thread_cannot_start(service, monkeypatch):
     """A synthetic read result must survive failure to start the optional reporter."""
     import threading
+
     from guzzionboard import read_sharing
 
     monkeypatch.setattr(read_sharing, 'configured', lambda: True)
@@ -714,6 +715,7 @@ def test_5am_source_block_read_uses_selected_windows_and_labels_gaps(service, mo
 
 def test_5am_source_read_rejects_short_or_wrong_subfunction(service, monkeypatch):
     from types import SimpleNamespace
+
     from guzzionboard.protocol.kwp2000 import ProtocolError
 
     class BadSession:
@@ -850,6 +852,7 @@ def test_5am_write_session_baud_failure_stops_before_timing(service, monkeypatch
 def test_5am_extra_blocks_are_read_not_placeholder_and_mismatches_abort(service, monkeypatch):
     """Synthetic ECU; real access to the four skipped blocks is unknown."""
     from types import SimpleNamespace
+
     from guzzionboard.protocol.kwp2000 import ProtocolError
     calls = []
     class Session:
@@ -899,8 +902,9 @@ def test_5am_extra_block_attempt_requires_confirmation_and_stays_research(servic
 
 
 def test_5am_extra_block_api_saves_only_confirmed_research_image(service, monkeypatch, tmp_path):
-    from guzzionboard.server import Api
     from pathlib import Path
+
+    from guzzionboard.server import Api
     monkeypatch.setattr(service.diag.transport, "is_physical", True)
     monkeypatch.setattr(service, "enter_programming_session", lambda: {})
     unlock_calls = []
@@ -998,6 +1002,7 @@ def test_5am_erase_arm_failure_marks_erase_as_uncertain(service, monkeypatch):
 
 def test_5am_writer_record_response_mismatch_stops_before_erase(service, monkeypatch):
     from types import SimpleNamespace
+
     from guzzionboard.protocol.kwp2000 import ProtocolError
     sent = []
     class Synthetic:

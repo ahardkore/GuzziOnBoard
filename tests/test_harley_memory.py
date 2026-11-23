@@ -1,5 +1,6 @@
 """Synthetic Delphi memory protocol tests; no physical ECU has been tested."""
 from pathlib import Path
+
 import pytest
 
 from guzzionboard import harley_memory as hm

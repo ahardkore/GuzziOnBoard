@@ -210,7 +210,7 @@ def test_saving_writes_a_sidecar_with_provenance(tmp_path):
 # buffers, so a pass here means "byte-identical to the C tool", not merely
 # self-consistent.
 
-from guzzionboard.firmware import (  # noqa: E402
+from guzzionboard.firmware import (
     IAW5AM_CHECKSUM_LEN,
     IAW5AM_FLASH_SIZE,
     IAW5AM_UPLOAD_MAGIC,

@@ -85,7 +85,7 @@ def _webview2_build() -> str | None:
     if sys.platform != "win32":              # pragma: no cover - win32 only
         return None
     try:
-        import winreg                        # noqa: PLC0415 - win32 only
+        import winreg  # win32 only
     except ImportError:                      # pragma: no cover - defensive
         return None
     clients = (
@@ -124,7 +124,12 @@ def _hook_dotnet_unhandled() -> None:
     if sys.platform != "win32":              # pragma: no cover - win32 only
         return
     try:
-        import clr                           # noqa: F401,PLC0415 - present if the engine loaded
+        # `import System` only resolves once pythonnet's `clr` module has been
+        # loaded by the webview engine; importing it is the precondition, not
+        # an unused import.
+        import clr
+
+        assert clr
         import System
 
         def on_unhandled(sender, args) -> None:
@@ -180,7 +185,7 @@ class Backend:
 def load_webview():
     """Import pywebview, or explain why the browser fallback is in use."""
     try:
-        import webview  # noqa: PLC0415 - optional dependency, probed at runtime
+        import webview  # optional, probed at runtime
     except Exception as exc:              # pragma: no cover - depends on install
         return None, f"{type(exc).__name__}: {exc}"
     return webview, ""
@@ -684,13 +689,22 @@ class DesktopApp:
         self._setup_logging()
         self._start_server()
 
+    #: Rotate the desktop log at this size into ``desktop.log.1``. The log
+    #: carries a line per start plus any traceback, so an install used daily
+    #: would otherwise grow without bound on a machine nobody administers.
+    LOG_MAX_BYTES = 2 * 1024 * 1024
+
     def _setup_logging(self) -> None:
         """A windowed build has no console, so keep a log the user can send."""
         try:
             resources.logs_dir().mkdir(parents=True, exist_ok=True)
-            self._log_handle = open(
-                resources.logs_dir() / "desktop.log", "a", encoding="utf-8", buffering=1
-            )
+            path = resources.logs_dir() / "desktop.log"
+            try:
+                if path.is_file() and path.stat().st_size > self.LOG_MAX_BYTES:
+                    path.replace(path.with_name("desktop.log.1"))
+            except OSError:
+                pass        # a log we cannot rotate is still better than none
+            self._log_handle = open(path, "a", encoding="utf-8", buffering=1)
         except OSError:
             return
         self._orig_stdout = sys.stdout

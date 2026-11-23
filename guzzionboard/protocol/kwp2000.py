@@ -23,9 +23,9 @@ inserted after SRC and the low bits of FMT are zero.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import math
 import time
+from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import Callable, Iterable, Sequence
 

@@ -1,7 +1,14 @@
 """Untrusted XDF limits; all fixtures are synthetic."""
 import pytest
-from guzzionboard.maps import (Embedded, MAX_XDF_BYTES, XdfError, XdfFile,
-                               eval_math, read_xdf_bytes)
+
+from guzzionboard.maps import (
+    MAX_XDF_BYTES,
+    Embedded,
+    XdfError,
+    XdfFile,
+    eval_math,
+    read_xdf_bytes,
+)
 
 
 def test_xdf_forbids_entity_declarations_and_external_dtd():
@@ -44,3 +51,31 @@ def test_unsupported_math_never_crashes_or_uses_python_only_syntax(equation):
 def test_nonfinite_math_result_is_rejected():
     with pytest.raises(XdfError, match='non-finite'):
         eval_math('X*' + '9'*120 + '.0', 1e200)
+
+
+def test_the_equation_is_not_evaluated_as_python():
+    """A regression guard for the sandbox, not just for the allowlist.
+
+    ``eval_math`` used ``eval`` behind a regex allowlist. Even with the
+    allowlist in place, one regex hole would have been arbitrary code
+    execution inside the server, so the evaluator now walks a parsed tree
+    against a fixed arithmetic table and never calls ``eval`` at all.
+    """
+    import inspect
+
+    source = inspect.getsource(__import__('guzzionboard.maps', fromlist=['eval_math']))
+    assert 'eval(' not in source.replace('eval_math(', '')
+
+    for attempt in ("__import__('os').system('true')", 'X.__class__',
+                    '(lambda: 1)()', '[x for x in (1,)]', 'globals()',
+                    'X if 1 else 2', 'X and 1', 'X or 1', 'not X'):
+        with pytest.raises(XdfError):
+            eval_math(attempt, 1)
+
+
+def test_the_documented_arithmetic_still_works():
+    assert eval_math('X/4096', 8192) == 2.0
+    assert eval_math('(X-100)*0.1', 300) == pytest.approx(20.0)
+    assert eval_math('X>>4', 256) == 16.0
+    assert eval_math('0x1000/16', 0) == 256.0
+    assert eval_math('-X+10', 4) == 6.0

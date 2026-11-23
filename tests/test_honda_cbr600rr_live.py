@@ -1,11 +1,17 @@
 """Synthetic frames and transport only; no real Honda has been tested."""
 import pytest
+
 from guzzionboard.catalog import load_catalog
 from guzzionboard.diagnostics import DiagnosticsService
 from guzzionboard.protocol.honda_cbr600rr import HondaCBR600RRSession
 from guzzionboard.protocol.kwp2000 import ProtocolError
 from guzzionboard.safety import Mode, SafetyGate
-from guzzionboard.transports.base import Connection, InitResult, Transport, TransportUnavailable
+from guzzionboard.transports.base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportUnavailable,
+)
 from guzzionboard.workstation import Workstation
 
 

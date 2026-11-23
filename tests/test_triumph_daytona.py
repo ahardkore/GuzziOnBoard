@@ -1,11 +1,17 @@
 """Synthetic protocol regression tests; these do not validate real hardware."""
 import pytest
+
 from guzzionboard.catalog import load_catalog
 from guzzionboard.diagnostics import DiagnosticsService
 from guzzionboard.protocol.kwp2000 import ProtocolError
 from guzzionboard.protocol.triumph_daytona import TriumphDaytonaSession, parse_iso_burst
 from guzzionboard.safety import Mode, SafetyGate
-from guzzionboard.transports.base import Connection, InitResult, Transport, TransportUnavailable
+from guzzionboard.transports.base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportUnavailable,
+)
 from guzzionboard.transports.kline import KLineTransport
 from guzzionboard.workstation import Workstation
 

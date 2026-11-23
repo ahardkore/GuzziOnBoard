@@ -4,9 +4,11 @@ from __future__ import annotations
 import hashlib
 from functools import partial
 from pathlib import Path
+
 import pytest
 
-from guzzionboard import honda_mgz as mgz, server
+from guzzionboard import honda_mgz as mgz
+from guzzionboard import server
 from guzzionboard.checksums import ChecksumUnavailable
 from guzzionboard.firmware import FirmwareImage
 from guzzionboard.maps import XdfFile, fitment

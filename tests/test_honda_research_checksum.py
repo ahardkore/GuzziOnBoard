@@ -1,10 +1,14 @@
 """Synthetic-only candidate/checksum geometry; not ECU or fitment validation."""
-from pathlib import Path
 import runpy
+from pathlib import Path
+
 from guzzionboard.protocol.honda_cbr600rr import (
-    HONDA_RESEARCH_LAYOUTS, HONDA_RESEARCH_IMAGE_SIZES, HONDA_RESEARCH_CHECKSUM_OFFSETS,
+    HONDA_RESEARCH_CHECKSUM_OFFSETS,
+    HONDA_RESEARCH_IMAGE_SIZES,
+    HONDA_RESEARCH_LAYOUTS,
     HONDA_TABLE_ONLY_IDS,
 )
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -26,6 +30,7 @@ def test_candidate_export_is_current_and_limited_to_known_file_offsets():
 def test_synthetic_honda_review_and_checksum_export(tmp_path, monkeypatch):
     import hashlib
     import json
+
     from guzzionboard.server import Api
     from guzzionboard.workstation import Workstation
     monkeypatch.setenv('GUZZIONBOARD_HOME', str(tmp_path / 'data'))
@@ -90,8 +95,12 @@ def test_checksum_proposals_reject_wrong_id_size_or_original_sum():
 
 
 def test_example_only_associations_never_inherit_guessed_checksum_locations():
-    from guzzionboard.protocol.honda_cbr600rr import (HONDA_EXAMPLE_ONLY_IDS,
-        HONDA_EXAMPLE_INFERRED_IDS, HONDA_FAMILY_INFERRED_IDS, HONDA_SOURCE_CONFLICTS)
+    from guzzionboard.protocol.honda_cbr600rr import (
+        HONDA_EXAMPLE_INFERRED_IDS,
+        HONDA_EXAMPLE_ONLY_IDS,
+        HONDA_FAMILY_INFERRED_IDS,
+        HONDA_SOURCE_CONFLICTS,
+    )
     expected = {
         '0100b00401':('38770-MFL-691',0x2880a), '0100b00501':('38770-MFL-861',0x2880a),
         '0100b00801':('38770-MFL-871',0x2880a), '0100b70301':('38770-MFL-F21',0x2880a),
@@ -116,6 +125,7 @@ def test_example_only_associations_never_inherit_guessed_checksum_locations():
 
 def test_every_synthetic_python_candidate_matches_generated_browser_source_data():
     import json
+
     from guzzionboard.honda_checksum_research import proposals
     text = (ROOT / 'web/honda-checksum-candidates.js').read_text()
     data = json.loads(text.split('const HONDA_CHECKSUM_CANDIDATES = ', 1)[1].split(';\n', 1)[0])

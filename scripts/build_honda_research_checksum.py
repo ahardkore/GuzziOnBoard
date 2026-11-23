@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Export source-scoped Honda checksum candidates for the offline browser tool."""
 from __future__ import annotations
+
 import argparse
 import json
 import sys
@@ -8,12 +9,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from guzzionboard.protocol.honda_cbr600rr import (  # noqa: E402
-    HONDA_EXAMPLE_INFERRED_IDS, HONDA_RESEARCH_CHECKSUM_OFFSETS,
-    HONDA_RESEARCH_COMMENTED_IDS, HONDA_RESEARCH_IMAGE_SIZES,
-    HONDA_RESEARCH_LAYOUTS, HONDA_RESEARCH_STARTS, HONDA_TABLE_ONLY_IDS,
-    HONDA_FAMILY_INFERRED_IDS, HONDA_SOURCE_CONFLICTS, HONDA_VFR_RESEARCH_IDS,
+from guzzionboard.protocol.honda_cbr600rr import (
+    HONDA_EXAMPLE_INFERRED_IDS,
+    HONDA_FAMILY_INFERRED_IDS,
+    HONDA_RESEARCH_CHECKSUM_OFFSETS,
+    HONDA_RESEARCH_COMMENTED_IDS,
     HONDA_RESEARCH_EXAMPLE_PARTS,
+    HONDA_RESEARCH_IMAGE_SIZES,
+    HONDA_RESEARCH_LAYOUTS,
+    HONDA_RESEARCH_STARTS,
+    HONDA_SOURCE_CONFLICTS,
+    HONDA_TABLE_ONLY_IDS,
+    HONDA_VFR_RESEARCH_IDS,
 )
 
 

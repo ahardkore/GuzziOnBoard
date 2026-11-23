@@ -2,11 +2,11 @@
 import pytest
 
 from guzzionboard.protocol.kwp2000 import (
+    ChecksumError,
     DTCStatus,
     KWP2000Session,
     NegativeResponse,
     ProtocolError,
-    ChecksumError,
     Service,
     TimingParameters,
     apply_scaling,

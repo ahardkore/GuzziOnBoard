@@ -8,10 +8,10 @@ liability gates in :mod:`guzzionboard.tuning`.
 
 from __future__ import annotations
 
-from bisect import bisect_left
-from collections import defaultdict
 import math
 import statistics
+from bisect import bisect_left
+from collections import defaultdict
 from typing import Any
 
 

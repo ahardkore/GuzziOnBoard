@@ -6772,6 +6772,92 @@
     }
   }
 
+  /* ------------------------------------------- hosted-only honest answers
+   *
+   * Three families of server route used to fall through to "no route" in the
+   * hosted demo, which reads as a broken build rather than "this page has no
+   * native shell". They are answered here instead, with the same shapes the
+   * real handlers return and an explicit statement of the difference.
+   */
+  D.register('GET', '/api/desktop', function () {
+    return [200, {
+      available: false,
+      host: 'browser',
+      app: 'GuzziOnBoard',
+      reason: 'This page is a hosted demo, so there is no desktop shell to ask: '
+        + 'no window to raise, no folder to open and no question to answer. '
+        + 'Run the desktop app for those routes.',
+      demo: true,
+    }];
+  });
+
+  D.register('GET', '/api/desktop/ping', function () {
+    return [200, { ok: false, host: 'browser', desktop: false, demo: true,
+      note: 'No desktop shell is listening; this page is the hosted demo.' }];
+  });
+
+  /* The shell routes cannot exist here. Each one says so, in the refusal
+   * shape app.js already renders, rather than 404ing. */
+  ['/api/desktop/raise', '/api/desktop/save', '/api/desktop/save-binary',
+    '/api/desktop/print', '/api/desktop/quit', '/api/desktop/open-external',
+    '/api/desktop/open-folder'].forEach(function (path) {
+    D.register('POST', path, function () {
+      throw httpError(501,
+        "This needs the desktop app's own process - there is no shell behind a "
+        + "hosted page to raise, save to, print from or open a folder with. "
+        + "Downloads here use the browser's own folder.",
+        'demo_local_only');
+    });
+  });
+
+  /* A J2534 pass-thru is a Windows DLL on this machine; a page cannot see it. */
+  D.register('GET', '/api/adapter/j2534', function () {
+    return [200, {
+      demo: true,
+      available: false,
+      simulated: true,
+      devices: [],
+      note: 'Nothing here can connect to real hardware. J2534 devices are DLLs '
+        + 'on a local Windows install; the hosted demo can only show the '
+        + 'virtual adapter.',
+    }];
+  });
+
+  /* The bus-sniffing tools need a physical interface and a capture file.
+   * Refused with a reason, not faked, because their output would be
+   * indistinguishable from a real recording of someone's motorcycle. */
+  var physicalTools = {
+    '/api/tools/harley-hdlan-listen': 'Harley-Davidson H-DLAN capture',
+    '/api/tools/jetdrive': 'Dynojet Power Vision capture',
+    '/api/tools/bikestudio': 'BikeStudio capture',
+    '/api/tools/buell-ddfi': 'Buell DDFI tool',
+    '/api/tools/rusefi-read': 'rusEFI read',
+    '/api/tools/yamaha-mt03-listen': 'Yamaha MT-03 capture',
+    '/api/tools/harley-memory': 'Harley-Davidson memory read',
+  };
+  Object.keys(physicalTools).forEach(function (path) {
+    D.register('POST', path, function () {
+      throw httpError(501,
+        physicalTools[path] + ' needs a physical adapter attached to a real '
+        + 'motorcycle; the hosted demo has neither, and inventing a capture '
+        + 'would be indistinguishable from a real one. Run the local '
+        + 'workstation with the bike connected.',
+        'demo_local_only');
+    });
+  });
+
+  /* Research *exports* write files beside the XDF library on disk, which
+   * /api/maps/research-preview above deliberately does not do. */
+  ['/api/maps/research-export', '/api/maps/harley-research-export'].forEach(function (path) {
+    D.register('POST', path, function () {
+      throw httpError(501,
+        'A research export writes files next to the XDF library on this '
+        + 'machine, and the hosted demo has no disk. Preview and build maps '
+        + 'here; run the local workstation to export.',
+        'demo_local_only');
+    });
+  });
+
   if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', decorateLab);

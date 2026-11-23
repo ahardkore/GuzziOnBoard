@@ -1,5 +1,11 @@
 """Transports: simulator, K-Line serial, CAN."""
-from .base import Connection, InitResult, Transport, TransportError, TransportUnavailable
+from .base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportError,
+    TransportUnavailable,
+)
 from .simulator import EngineModel, SimulatedEcu, SimulatorTransport
 
 __all__ = [

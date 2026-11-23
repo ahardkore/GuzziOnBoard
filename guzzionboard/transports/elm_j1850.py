@@ -11,7 +11,13 @@ import os
 import re
 import time
 
-from .base import Connection, InitResult, Transport, TransportError, TransportUnavailable
+from .base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportError,
+    TransportUnavailable,
+)
 
 # Deliberately no arbitrary AT, raw-frame or ECU-command interface.
 _ALLOWED = frozenset({"ATWS", "ATE1", "ATH1", "ATAL", "ATS0", "ATSP2", "ATMA",

@@ -10,12 +10,15 @@ import re
 import time
 
 from .canlog import CanFrame
-from .harley_hdlan_can import MIN_LENGTH, decode_capture
 from .ducati_panigale_can import decode_capture as decode_ducati
-from .yamaha_r9_can import FRAME_LENGTHS as R9_LENGTH, decode_capture as decode_r9
-from .indian_springfield_can import FILTER_IDS as INDIAN_IDS, MASK as INDIAN_MASK, decode_capture as decode_indian
-from .transports.can import _require_can
+from .harley_hdlan_can import MIN_LENGTH, decode_capture
+from .indian_springfield_can import FILTER_IDS as INDIAN_IDS
+from .indian_springfield_can import MASK as INDIAN_MASK
+from .indian_springfield_can import decode_capture as decode_indian
 from .transports.base import TransportError
+from .transports.can import _require_can
+from .yamaha_r9_can import FRAME_LENGTHS as R9_LENGTH
+from .yamaha_r9_can import decode_capture as decode_r9
 
 DURATION = 2.0
 MAX_FRAMES = 10000

@@ -1,15 +1,13 @@
 """Synthetic Worker-to-desktop compatibility; no Cloudflare or ECU contacted."""
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 
 from guzzionboard import protocol_updates, read_sharing, signing
-from guzzionboard.catalog import load_catalog
-from test_read_sharing import shared  # noqa: F401 - shared test fixture
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -64,3 +62,48 @@ def test_workers_build_configuration_deploys_relay_not_website():
     }]
     assert str(UUID(config['d1_databases'][0]['database_id'])) == config['d1_databases'][0]['database_id']
     assert not (set(config.get('vars', {})) & {'GOB_SIGNING_SEED', 'GOB_VALIDATION_TOKEN'})
+
+
+# ------------------------------------------------- relay parity contract
+#
+# There are two relay implementations and both are wanted: the Cloudflare
+# Worker is what actually runs at the edge, and validation_service.py is what
+# an operator can run on their own network. They must not quietly disagree
+# about what is accepted, so the constants and the accept/refuse decisions are
+# pinned here rather than assumed.
+
+def _worker_source() -> str:
+    return (ROOT / 'cloudflare' / 'worker.mjs').read_text(encoding='utf-8')
+
+
+def test_the_two_relays_agree_on_their_size_limits():
+    from guzzionboard import validation_service
+    source = _worker_source()
+    assert 'MAX_REQUEST = 65536' in source
+    assert 'MAX_CAPTURE = 32768' in source
+    assert validation_service.MAX_REQUEST == 65536
+    assert 'len(text.encode()) > 32768' in (ROOT / 'guzzionboard' / 'validation_service.py').read_text(
+        encoding='utf-8')
+
+
+def test_the_worker_and_the_relay_accept_the_same_claim_shape():
+    """Only a completed memory-read is promotable, in both implementations."""
+    relay = (ROOT / 'guzzionboard' / 'validation_service.py').read_text(encoding='utf-8')
+    worker = _worker_source()
+    assert "set(bundle[\"claims\"]) != {\"memory_read\"}" in relay
+    assert "hasKeys(b.claims, ['memory_read'])" in worker
+    assert 'b.verdict === \'ok\'' in worker and 'bundle.get("verdict") != "ok"' in relay
+
+
+def test_neither_relay_signs_an_unvalidated_report():
+    """A report must be verified against its capture before anything is signed."""
+    worker = _worker_source()
+    assert 'capture_sha256' in worker
+    relay = (ROOT / 'guzzionboard' / 'validation_service.py').read_text(encoding='utf-8')
+    assert 'confirmations.verify_confirmation(bundle, capture)' in relay
+
+
+def test_both_relays_refuse_personal_data_fields():
+    worker = _worker_source()
+    for field in ('vin', 'serial', 'plate', 'owner', 'email', 'address'):
+        assert field in worker, field

@@ -3664,6 +3664,7 @@ function mapAxisValueHtml(t, axisName, index, label) {
     data-map-kind="axis" data-map-id="${esc(t.id)}" data-map-title="${esc(t.title)}"
     data-map-axis="${axisName}" data-map-row="${index}" data-map-col="0"
     data-map-raw="${esc(axis.raw_values[index])}" data-map-value="${esc(value)}"
+    aria-label="Editable ${axisName.toUpperCase()} axis, ${esc(t.title)}, entry ${index + 1}: ${esc(fmtValue(value))} ${esc(axis.units)}"
     title="Editable ${axisName.toUpperCase()} axis · ${esc(axis.units)}">${esc(fmtValue(value))}</button>`;
 }
 
@@ -3725,6 +3726,7 @@ function mapsTableHtml(t) {
         data-map-kind="table" data-map-id="${esc(t.id)}" data-map-title="${esc(t.title)}"
         data-map-row="${r}" data-map-col="${c}" data-map-raw="${esc(raw)}"
         data-map-value="${esc(shown)}" style="--map-heat:${heat.toFixed(1)}%"
+        aria-label="${esc(t.title)}, ${esc(t.y[r] ?? r)} by ${esc(t.x[c] ?? c)}: ${esc(fmtValue(shown))}${staged ? ', modified' : ''}"
         title="Select ${esc(t.title)}, ${esc(t.y[r] ?? r)} × ${esc(t.x[c] ?? c)}; double-click to edit">
         ${esc(fmtValue(shown))}</button></td>`;
     }).join('') + '</tr>').join('');
@@ -4770,6 +4772,7 @@ function renderMapsResult(render) {
                 data-map-id="${esc(c.id)}" data-map-title="${esc(c.title)}"
                 data-map-row="0" data-map-col="0"
                 data-map-raw="${esc(c.raw)}" data-map-value="${esc(c.value)}"
+                aria-label="${esc(c.title)}: ${esc(fmtValue(c.value))} ${esc(c.units)}"
                 title="Stage a sourced change to ${esc(c.title)}">${esc(fmtValue(c.value))}</button>
                 ${esc(c.units)}</td>
               <td><code>${esc(c.address)}</code></td></tr>`).join('')}
@@ -4784,6 +4787,7 @@ function renderMapsResult(render) {
               <td><button class="map-value flag-toggle-btn" type="button"
                 data-flag-id="${esc(f.id)}" data-flag-original="${f.value ? 'true' : 'false'}"
                 aria-pressed="${f.value ? 'true' : 'false'}"
+                aria-label="Toggle ${esc(f.title)}"
                 title="Toggle ${esc(f.title)}">${f.value ? 'ON (1)' : 'OFF (0)'}</button></td>
               <td><code>${esc(f.mask)}</code> @ <code>${esc(f.address)}</code></td></tr>`).join('')}
         </tbody></table></div></details>` : '';

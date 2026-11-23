@@ -30,6 +30,7 @@ of 0x388/0x389; sag adjust = u16le at b0-1 of 0x288/0x289.
 from __future__ import annotations
 
 from collections.abc import Iterable
+
 from .canlog import CanFrame
 
 PROFILE = 'zero_broadcast'

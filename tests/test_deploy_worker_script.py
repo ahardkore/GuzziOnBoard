@@ -9,8 +9,8 @@ Cloudflare: a stub stands in for wrangler and records the arguments it was given
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 import pytest
 

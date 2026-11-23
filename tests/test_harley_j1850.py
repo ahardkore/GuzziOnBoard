@@ -8,7 +8,13 @@ from guzzionboard.diagnostics import DiagnosticsService, NotConnected
 from guzzionboard.protocol.harley_j1850 import HarleyJ1850Session, _crc
 from guzzionboard.protocol.kwp2000 import ProtocolError
 from guzzionboard.safety import Mode, SafetyGate
-from guzzionboard.transports.base import Connection, InitResult, Transport, TransportError, TransportUnavailable
+from guzzionboard.transports.base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportError,
+    TransportUnavailable,
+)
 from guzzionboard.transports.elm_j1850 import ElmJ1850Connection, ElmJ1850Transport
 from guzzionboard.workstation import Workstation
 
@@ -167,8 +173,8 @@ def test_connection_drops_after_elms_prompt_timeout(monkeypatch):
 
 
 def test_workstation_api_flow_is_live_read_only(monkeypatch):
-    from guzzionboard.server import Api
     from guzzionboard.programming import ProgrammingError
+    from guzzionboard.server import Api
     t = FakeTransport()
     monkeypatch.setattr(Workstation, '_build_transport', lambda self: t)
     ws = Workstation(record=False)

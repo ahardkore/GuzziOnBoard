@@ -1,13 +1,12 @@
 """JetDrive tests use synthetic packets and sockets, not a physical dyno."""
 import socket
-import struct
-from types import SimpleNamespace
 
 import pytest
+
 from guzzionboard import jetdrive as jd
 from guzzionboard.server import Api
-from guzzionboard.workstation import Workstation
 from guzzionboard.transports.base import TransportError
+from guzzionboard.workstation import Workstation
 
 
 def wire(key, payload, host=0x1234, seq=1):

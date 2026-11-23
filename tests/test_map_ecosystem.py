@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import hashlib
-import json
 
 import pytest
+from test_maps import DEVICE_SIZE, build_xdf
 
 from guzzionboard.checksums import (
     ChecksumProvider,
@@ -12,14 +12,13 @@ from guzzionboard.checksums import (
 )
 from guzzionboard.firmware import FirmwareImage
 from guzzionboard.map_analysis import LogAnalysisError, analyze_fuel_log
+from guzzionboard.maps import XdfFile
 from guzzionboard.physical_validation import validate_manifest
 from guzzionboard.recommendations import (
     RecommendationPackageError,
     validate_package,
 )
 from guzzionboard.tuning import TuningError, preview_tune
-from guzzionboard.maps import XdfFile
-from test_maps import DEVICE_SIZE, build_xdf
 
 
 def rendered_fuel_table() -> dict:

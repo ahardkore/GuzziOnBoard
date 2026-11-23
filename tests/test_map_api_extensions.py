@@ -3,14 +3,14 @@ from __future__ import annotations
 import hashlib
 
 import pytest
+from test_maps import DEVICE_SIZE, build_xdf
 
 from guzzionboard import server
 from guzzionboard.firmware import FirmwareImage
-from guzzionboard.server import Api, ROUTES_GET, ROUTES_POST
+from guzzionboard.maps import XdfFile
+from guzzionboard.server import ROUTES_GET, ROUTES_POST, Api
 from guzzionboard.tuning import TuningError
 from guzzionboard.workstation import Workstation
-from guzzionboard.maps import XdfFile
-from test_maps import DEVICE_SIZE, build_xdf
 
 
 def test_professional_map_endpoints_are_registered():

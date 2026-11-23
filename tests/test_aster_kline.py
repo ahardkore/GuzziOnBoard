@@ -1,11 +1,17 @@
 """Synthetic wire tests only; no physical ECU was tested."""
 import pytest
+
 from guzzionboard.catalog import load_catalog
 from guzzionboard.diagnostics import DiagnosticsService
-from guzzionboard.protocol.aster_kline import Versys2012Session, Gsxr6002011Session
+from guzzionboard.protocol.aster_kline import Gsxr6002011Session, Versys2012Session
 from guzzionboard.protocol.kwp2000 import ProtocolError, checksum, encode_request
 from guzzionboard.safety import Mode, SafetyGate
-from guzzionboard.transports.base import Connection, InitResult, Transport, TransportUnavailable
+from guzzionboard.transports.base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportUnavailable,
+)
 from guzzionboard.workstation import Workstation
 
 

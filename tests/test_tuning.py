@@ -16,7 +16,6 @@ from guzzionboard.tuning import (
     preview_tune,
 )
 
-
 XDF_TEXT = """<?xml version="1.0"?>
 <XDFFORMAT version="1.60">
   <XDFHEADER>
@@ -315,6 +314,7 @@ def test_overlapping_items_cannot_silently_overwrite_edits(xdf, source):
 
 def test_research_preview_supports_unrecognized_xdf_without_creating_files(tmp_path, monkeypatch, source):
     import hashlib
+
     from guzzionboard import server
     from guzzionboard.workstation import Workstation
     xdf_path = tmp_path / 'user_honda_definition.xdf'
@@ -348,6 +348,7 @@ def test_research_preview_supports_unrecognized_xdf_without_creating_files(tmp_p
 @pytest.mark.parametrize('model', ['Ninja ZX-6R (636)', 'Ninja 650 / EX650', 'Z650'])
 def test_2026_kawasaki_user_definition_research_preview_never_builds(tmp_path, monkeypatch, source, model):
     import hashlib
+
     from guzzionboard import server
     from guzzionboard.workstation import Workstation
     xdf_path = tmp_path / 'user_kawasaki_research.xdf'

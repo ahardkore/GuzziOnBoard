@@ -266,7 +266,6 @@ def test_iu_geometry_matches_the_catalog(content: str):
     """The 5AM numbers quoted in the guides must match the profile on disk."""
     import json
 
-    from guzzionboard.catalog import load_catalog  # noqa: F401 - presence check only
 
     profile = json.loads(
         (Path(__file__).resolve().parent.parent / "guzzionboard" / "catalog" / "ecus" / "5am.json").read_text()

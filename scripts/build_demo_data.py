@@ -26,16 +26,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from guzzionboard import __version__                       # noqa: E402
-from guzzionboard import procedures as procedures_mod      # noqa: E402
-from guzzionboard import rpmsignal                         # noqa: E402
-from guzzionboard import tools as tools_mod                # noqa: E402
-from guzzionboard.catalog import CATALOG_DIR, ECU_DIR, load_catalog  # noqa: E402
-from guzzionboard.derived import CHANNELS as DERIVED_CHANNELS        # noqa: E402
-from guzzionboard.maps import BUNDLED_XDF_DIR, library_payload, load_bundled_xdfs  # noqa: E402
-from guzzionboard.transports.simulator import FAULTS as SIM_FAULTS   # noqa: E402
-from guzzionboard.transports.simulator import SimulatedEcu           # noqa: E402
-from guzzionboard.workstation import Workstation                     # noqa: E402
+from guzzionboard import (
+    __version__,
+    rpmsignal,
+)
+from guzzionboard import procedures as procedures_mod
+from guzzionboard import tools as tools_mod
+from guzzionboard.catalog import CATALOG_DIR, ECU_DIR, load_catalog
+from guzzionboard.derived import CHANNELS as DERIVED_CHANNELS
+from guzzionboard.maps import BUNDLED_XDF_DIR, library_payload, load_bundled_xdfs
+from guzzionboard.transports.simulator import FAULTS as SIM_FAULTS
+from guzzionboard.transports.simulator import SimulatedEcu
+from guzzionboard.workstation import Workstation
 
 OUTPUT = ROOT / "web" / "demo-data.json"
 

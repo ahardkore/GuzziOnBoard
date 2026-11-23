@@ -32,6 +32,7 @@ from pathlib import Path
 import pytest
 
 import guzzionboard.desktop
+import guzzionboard.server
 from guzzionboard import resources
 from guzzionboard.checksums import load_providers
 from guzzionboard.desktop import (
@@ -227,14 +228,37 @@ def test_environment_override_wins(bundle, tmp_path, monkeypatch):
 
 def test_worker_executable_is_only_looked_for_in_a_frozen_build(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "frozen", True, raising=False)
+    # An explicit install directory keeps the test off the interpreter's own
+    # bin/, which is read-only on a system Python install.
+    monkeypatch.setenv(resources.WORKER_ENV, str(tmp_path))
     assert resources.worker_executable() is None
     name = resources.WORKER_EXECUTABLE + (".exe" if os.name == "nt" else "")
-    stub = Path(sys.executable).with_name(name)
+    stub = tmp_path / name
     stub.write_text("stub")
+    assert resources.worker_executable() == stub
+
+
+def test_the_worker_is_also_found_beside_the_interpreter(tmp_path, monkeypatch):
+    """The default layout: a frozen build puts the helper next to itself."""
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.delenv(resources.WORKER_ENV, raising=False)
+    name = resources.WORKER_EXECUTABLE + (".exe" if os.name == "nt" else "")
+    stub = Path(sys.executable).with_name(name)
+    try:
+        stub.write_text("stub")
+    except OSError as exc:      # read-only interpreter directory: not testable
+        pytest.skip(f"cannot write beside the interpreter: {exc}")
     try:
         assert resources.worker_executable() == stub
     finally:
         stub.unlink()
+
+
+def test_an_unfrozen_build_has_no_worker_whatever_is_on_disk(tmp_path, monkeypatch):
+    monkeypatch.delenv(resources.WORKER_ENV, raising=False)
+    (tmp_path / resources.WORKER_EXECUTABLE).write_text("stub")
+    monkeypatch.setenv(resources.WORKER_ENV, str(tmp_path))
+    assert resources.worker_executable() is None
 
 
 @pytest.mark.parametrize("name,expected", [
@@ -338,6 +362,43 @@ def test_an_explicit_lan_bind_relaxes_the_host_check_but_not_the_origin():
                           origin=None) is not None
 
 
+@pytest.mark.parametrize("origin", [
+    "http://127.0.0.1:abc/",       # urlsplit parses it; .port raises
+    "http://127.0.0.1:99999/",     # out of range for a TCP port
+    "http://localhost:-1/",
+    "http://[::1]:nope/",
+])
+def test_a_malformed_origin_header_is_refused_not_crashed(origin):
+    """A hostile Origin must produce a 403, never an exception.
+
+    ``urlsplit("http://host:abc/")`` succeeds and accessing ``.port`` raises
+    ``ValueError``, so a guard that reads the port outside a try block turns a
+    forbidden request into a 500 (and, in the threaded server, a traceback per
+    request).
+    """
+    guard = RequestGuard(token=None)
+    decision = guard.check(command="GET", path="/api/status", host="127.0.0.1:8000",
+                           origin=origin)
+    assert decision is not None and decision[0] == 403
+
+
+def test_the_console_server_defaults_to_loopback():
+    """``serve()`` with no argument must not publish the API to the LAN.
+
+    The API has no token in console mode, and the Origin check only stops
+    browser pages: anything else on the network could drive the motorcycle.
+    A wider bind has to be asked for explicitly.
+    """
+    import inspect
+
+    signature = inspect.signature(guzzionboard.server.serve)
+    default = signature.parameters["host"].default
+    assert default in ("127.0.0.1", "localhost", "::1")
+    assert guard_for_bind(default).check(
+        command="GET", path="/api/status", host="workshop-laptop:8000",
+        origin=None) is not None
+
+
 # ------------------------------------------------------ the host routes
 
 def test_desktop_info_route(api_server):
@@ -353,6 +414,28 @@ def test_api_answers_only_with_the_launch_token(api_server):
     assert call(server, "GET", "/api/status", token=token)[0] == 200
     encoded = base64.b64encode(b"nope").decode()      # a long wrong token
     assert call(server, "GET", "/api/status", token=encoded)[0] == 403
+
+
+def test_an_unexpected_failure_does_not_echo_internals(api_server, monkeypatch):
+    """A 500 must not hand the caller a path, a query or a library message.
+
+    The catch-all used to return ``str(exc)``, so any unexpected exception
+    leaked whatever the exception happened to contain straight to the page.
+    """
+    server, _bridge, token = api_server
+    handler = server.RequestHandlerClass
+    api = handler.api
+    secret = "/home/someone/.guzzionboard/sessions/x.jsonl: disk exploded"
+
+    def boom(_query):
+        raise RuntimeError(secret)
+
+    monkeypatch.setattr(api, "get_status", boom)
+    status, payload = call(server, "GET", "/api/status", token=token)
+    assert status == 500
+    assert payload["code"] == "internal"
+    assert secret not in json.dumps(payload)
+    assert "disk exploded" not in json.dumps(payload)
 
 
 def test_the_page_is_marked_and_the_bridge_is_injected(api_server):
@@ -862,8 +945,9 @@ def test_frozen_worker_is_discovered_and_runs_plugins(tmp_path, monkeypatch):
     lookup, the command line and the isolated round trip all line up.
     """
     monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setenv(resources.WORKER_ENV, str(tmp_path))
     name = resources.WORKER_EXECUTABLE + (".exe" if os.name == "nt" else "")
-    stub = Path(sys.executable).with_name(name)
+    stub = tmp_path / name
     stub.write_text(
         "#!/bin/sh\n"
         f'exec "{sys.executable}" -I -S -B "{ROOT / "guzzionboard" / "checksum_worker.py"}"\n'
@@ -872,17 +956,14 @@ def test_frozen_worker_is_discovered_and_runs_plugins(tmp_path, monkeypatch):
     plugins = tmp_path / "checksums"
     plugins.mkdir()
     (plugins / "frozen_plugin.py").write_text(PLUGIN, encoding="utf-8")
-    try:
-        assert resources.worker_executable() == stub
-        providers, errors = load_providers(plugins)
-        assert not errors and len(providers) == 1
-        provider = providers[0]
-        assert provider.provider_id == "frozen.test"
-        assert provider.supports(["Some XDF Title"])
-        updated, verified = provider._isolated_apply(b"12345678", {"region": "flash"})
-        assert updated == b"12345678" and verified == b"12345678"
-    finally:
-        stub.unlink()
+    assert resources.worker_executable() == stub
+    providers, errors = load_providers(plugins)
+    assert not errors and len(providers) == 1
+    provider = providers[0]
+    assert provider.provider_id == "frozen.test"
+    assert provider.supports(["Some XDF Title"])
+    updated, verified = provider._isolated_apply(b"12345678", {"region": "flash"})
+    assert updated == b"12345678" and verified == b"12345678"
 
 
 def test_unfrozen_builds_run_plugins_with_this_interpreter(tmp_path):
@@ -977,7 +1058,6 @@ def test_the_bridge_installs_the_token_and_reroutes_saves():
     )
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout.strip().splitlines()[-1])
-    token_header = "X-GuzziOnBoard-Token"
     same_origin = [c for c in payload["calls"] if c[0] == "fetch" and c[1] == "/api/status"]
     foreign = [c for c in payload["calls"] if c[0] == "fetch" and c[1].startswith("https://")]
     assert same_origin and same_origin[0][2] == "tok"
@@ -1162,3 +1242,61 @@ def test_the_dotnet_hook_is_a_noop_without_the_clr(window_app, monkeypatch):
     assert _hook_dotnet_unhandled() is None      # off Windows: instant return
     monkeypatch.setattr(guzzionboard.desktop.sys, "platform", "win32")
     assert _hook_dotnet_unhandled() is None      # no clr here: swallowed, not raised
+
+
+def test_the_request_policy_is_its_own_module():
+    """The Host/Origin/token policy is the security boundary of the API.
+
+    It lives in ``guzzionboard/http_policy`` so it can be reviewed, imported
+    and tested without pulling in the route table; ``server`` re-exports the
+    public names so nothing else had to change.
+    """
+    from guzzionboard import http_policy
+
+    guard = http_policy.guard_for_bind("127.0.0.1")
+    assert isinstance(guard, http_policy.RequestGuard)
+    assert http_policy.TOKEN_HEADER == "X-GuzziOnBoard-Token"
+    assert http_policy.LOOPBACK_HOST_NAMES == {"127.0.0.1", "localhost", "::1"}
+    assert http_policy.loopback_guard().check(
+        command="GET", path="/api/status", host="127.0.0.1:1", origin=None) is None
+    # ``server`` still exports what it always did.
+    assert RequestGuard is http_policy.RequestGuard
+    assert guard_for_bind is http_policy.guard_for_bind
+
+
+def test_the_frozen_worker_also_serves_key_plugins(tmp_path, monkeypatch):
+    """One bundled helper, two plugin families.
+
+    A frozen build can only ship one PyInstaller console entry, so the worker
+    has to answer ``describe-key``/``key`` as well as ``describe``/``apply``.
+    Loading a key plugin in a frozen build used to fail because the helper only
+    knew the checksum contract.
+    """
+    from guzzionboard import security
+
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setenv(resources.WORKER_ENV, str(tmp_path))
+    name = resources.WORKER_EXECUTABLE + (".exe" if os.name == "nt" else "")
+    stub = tmp_path / name
+    stub.write_text(
+        "#!/bin/sh\n"
+        f'exec "{sys.executable}" -I -S -B "{ROOT / "guzzionboard" / "key_worker.py"}"\n'
+    )
+    stub.chmod(0o755)
+    keys = tmp_path / "keys"
+    keys.mkdir()
+    (keys / "frozen_key.py").write_text(
+        "ECU_ID = '5am'\n"
+        "NAME = 'Frozen Key'\n"
+        "VERIFIED = False\n"
+        "def key(seed):\n"
+        "    return bytes((b ^ 0xFF) for b in seed)\n"
+    )
+    providers = security.load_plugins(keys)
+    try:
+        assert len(providers) == 1
+        assert providers[0].name == "Frozen Key"
+        assert providers[0](b"\x01\x02\x03\x04") == b"\xfe\xfd\xfc\xfb"
+    finally:
+        security._REGISTRY["5am"] = [p for p in security._REGISTRY["5am"]
+                                     if p is not providers[0]]

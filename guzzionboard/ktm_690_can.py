@@ -24,6 +24,7 @@ Passive only; no diagnostic session, no write path.
 from __future__ import annotations
 
 from collections.abc import Iterable
+
 from .canlog import CanFrame
 
 PROFILE = 'ktm_690_can_broadcast'

@@ -8,7 +8,12 @@ from guzzionboard.diagnostics import DiagnosticsService
 from guzzionboard.protocol.harley_delphi_can import HarleyDelphiCanSession
 from guzzionboard.protocol.kwp2000 import ProtocolError
 from guzzionboard.safety import Mode, SafetyGate
-from guzzionboard.transports.base import Connection, InitResult, Transport, TransportUnavailable
+from guzzionboard.transports.base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportUnavailable,
+)
 from guzzionboard.workstation import Workstation
 
 
@@ -119,7 +124,9 @@ def test_live_raw_did_refuses_mismatched_length_and_unauthorized_id():
 def test_virtual_can_isotp_live_multiframe_candidate_identity():
     import threading
     import uuid
+
     import can
+
     from guzzionboard.protocol.isotp import segment
     from guzzionboard.transports.can import CanTransport
     channel = 'harley-delphi-' + uuid.uuid4().hex

@@ -32,12 +32,15 @@ DEMO_LAB = WEB / "demo-lab.js"
 
 sys.path.insert(0, str(ROOT))
 
-from guzzionboard.catalog import load_catalog              # noqa: E402
-from guzzionboard.server import mark_live_backend          # noqa: E402
+from guzzionboard.catalog import load_catalog
+from guzzionboard.server import (
+    ROUTES_GET,
+    ROUTES_POST,
+    mark_live_backend,
+)
 
 sys.path.insert(0, str(ROOT / "scripts"))
-import build_demo_data                                     # noqa: E402
-
+import build_demo_data
 
 # -- the exported catalog -------------------------------------------------
 
@@ -226,6 +229,65 @@ def test_the_simulated_half_is_implemented_not_refused():
     source = DEMO_LAB.read_text(encoding="utf-8")
     for path in SIMULATED_ENDPOINTS:
         assert f"'{path}'" in source, f"{path} is not handled by demo-lab.js"
+
+
+def _demo_routes() -> tuple[set[tuple[str, str]], set[str]]:
+    """Every route the browser demo answers, and every one it explicitly refuses."""
+    import re
+
+    source = DEMO_API.read_text(encoding="utf-8") + DEMO_LAB.read_text(encoding="utf-8")
+    handled = set(re.findall(r"GET\['(/api/[^']+)'\]", source))
+    handled |= set(re.findall(r"POST\['(/api/[^']+)'\]", source))
+    handled |= set(re.findall(r"D\.register\('(?:GET|POST)', '(/api/[^']+)'", source))
+    refused_block = source.split("LOCAL_ONLY")[1].split("};")[0]
+    refused = set(re.findall(r"'(/api/[^']+)':", refused_block))
+    return {(path, "GET") for path in handled} | {(path, "POST") for path in handled}, refused
+
+
+@pytest.mark.parametrize("method,routes", [("GET", ROUTES_GET), ("POST", ROUTES_POST)])
+def test_every_server_route_is_either_demoed_or_explicitly_refused(method, routes):
+    """No route may 404 in the hosted demo when the real server answers it.
+
+    A route added to ``server.py`` and forgotten here would surface to a demo
+    visitor as "no route /api/..." - a bug report about the product rather than
+    about the demo. Anything with no plausible in-page answer must be listed in
+    the demo's LOCAL_ONLY refusal table instead, which says why.
+    """
+    implemented, refused = _demo_routes()
+    missing = [
+        path for path in routes
+        if (path, method) not in implemented and path not in refused
+    ]
+    assert not missing, (
+        f"{method} routes neither simulated nor explicitly refused by the hosted "
+        f"demo: {sorted(missing)}"
+    )
+
+
+def test_keyboard_focus_is_never_removed_without_replacement():
+    """``outline: none`` on a focusable control is an invisible cursor.
+
+    Each removal has to be replaced by something as visible: a ring, a border
+    change plus a shadow, or a ``:focus-visible`` outline.
+    """
+    css = (WEB / "styles.css").read_text(encoding="utf-8")
+    assert "outline: none" not in css
+    assert css.count(":focus-visible") >= 6
+    assert "@media (prefers-reduced-motion: reduce)" in css
+    assert "@media (forced-colors: active)" in css
+
+
+def test_map_cells_and_editors_carry_a_spoken_label():
+    """A map grid is 400 buttons with a number in each: a screen reader needs
+    the row, the column and the unit, not just the value."""
+    source = (WEB / "app.js").read_text(encoding="utf-8")
+    for marker in (
+        'aria-label="${esc(t.title)}, ${esc(t.y[r] ?? r)} by ${esc(t.x[c] ?? c)}',
+        'aria-label="Editable ${axisName.toUpperCase()} axis',
+        'aria-label="${esc(c.title)}: ${esc(fmtValue(c.value))}',
+        'aria-label="Toggle ${esc(f.title)}"',
+    ):
+        assert marker in source, marker
 
 
 def test_the_simulated_half_says_that_it_is_simulated():

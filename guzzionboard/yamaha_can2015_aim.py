@@ -35,6 +35,7 @@ of 0x205; both may be right (ABS unit vs ECU rebroadcast) - noted, not merged.
 from __future__ import annotations
 
 from collections.abc import Iterable
+
 from .canlog import CanFrame
 
 PROFILE = 'yamaha_can2015_aim_broadcast'

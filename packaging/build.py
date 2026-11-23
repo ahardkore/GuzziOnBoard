@@ -387,7 +387,7 @@ def main(argv: list[str] | None = None) -> int:
 
 def _pyinstaller_importable() -> bool:
     try:
-        import PyInstaller  # noqa: F401
+        import PyInstaller
     except ImportError:
         return False
     return True

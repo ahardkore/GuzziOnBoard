@@ -39,8 +39,6 @@ the operator chooses to attach it to a GitHub issue or PR.
 """
 from __future__ import annotations
 
-from . import resources
-
 import hashlib
 import json
 import re
@@ -48,7 +46,7 @@ import time
 import uuid
 from pathlib import Path
 
-from . import __version__
+from . import __version__, resources
 
 SCHEMA = "guzzionboard.protocol-confirmation/v1"
 DEFAULT_DIR = resources.data_root() / "confirmations"

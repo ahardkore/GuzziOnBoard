@@ -50,8 +50,6 @@ Two wire protocols are supported, selected per ECU family by the catalog:
 """
 from __future__ import annotations
 
-from . import resources
-
 import hashlib
 import json
 import time
@@ -59,6 +57,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+from . import resources
 from .basemap import DEFAULT_BASEMAP_DIR, BaseMapVault, ecu_key
 from .catalog import EcuProfile
 from .firmware import (
@@ -603,13 +602,21 @@ class ProgrammingService:
         return image
 
     def _read_honda_research(self, region_name: str, confirmed: bool) -> FirmwareImage:
-        from .protocol.honda_cbr600rr import (HondaCB500FDashSession, HONDA_RESEARCH_LAYOUTS,
-                                               HONDA_EXAMPLE_INFERRED_IDS, HONDA_RESEARCH_IMAGE_SIZES,
-                                               HONDA_RESEARCH_STARTS, HONDA_RESEARCH_EXAMPLE_PARTS,
-                                               HONDA_RESEARCH_COMMENTED_IDS, HONDA_VFR_RESEARCH_IDS,
-                                               HONDA_TABLE_ONLY_IDS, HONDA_EXAMPLE_ONLY_IDS,
-                                               HONDA_FAMILY_INFERRED_IDS, HONDA_SOURCE_CONFLICTS,
-                                               read_honda_research_image)
+        from .protocol.honda_cbr600rr import (
+            HONDA_EXAMPLE_INFERRED_IDS,
+            HONDA_EXAMPLE_ONLY_IDS,
+            HONDA_FAMILY_INFERRED_IDS,
+            HONDA_RESEARCH_COMMENTED_IDS,
+            HONDA_RESEARCH_EXAMPLE_PARTS,
+            HONDA_RESEARCH_IMAGE_SIZES,
+            HONDA_RESEARCH_LAYOUTS,
+            HONDA_RESEARCH_STARTS,
+            HONDA_SOURCE_CONFLICTS,
+            HONDA_TABLE_ONLY_IDS,
+            HONDA_VFR_RESEARCH_IDS,
+            HondaCB500FDashSession,
+            read_honda_research_image,
+        )
         from .protocol.honda_pgmfi import HondaPgmfiFlashResearchSession
         if (confirmed is not True or region_name != "flash" or self.gate.mode != Mode.READ_ONLY
                 or not self.diag.transport.is_physical or self.diag.transport.name != "kline"):

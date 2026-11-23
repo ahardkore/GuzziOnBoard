@@ -1,40 +1,14 @@
 """Synthetic relay tests. No actual ECU or hosted service is used."""
 import json
-from types import SimpleNamespace
 
 import pytest
 
 from guzzionboard import confirmations, protocol_updates, read_sharing, signing
 from guzzionboard.catalog import load_catalog
-from guzzionboard.firmware import FirmwareImage
-from guzzionboard.safety import Mode
-from guzzionboard.sessionlog import SessionLog
 from guzzionboard.validation_service import RelayError, ValidationRelay
 
 SEED = '11' * 32
 TOKEN = 't' * 40
-
-
-@pytest.fixture
-def shared(tmp_path, monkeypatch):
-    monkeypatch.setenv('GOB_SHARE_READ_VALIDATIONS', '1')
-    monkeypatch.setenv('GOB_VALIDATION_URL', 'https://validation.example')
-    monkeypatch.setenv('GOB_VALIDATION_TOKEN', TOKEN)
-    monkeypatch.setattr(read_sharing, 'OUTBOX', tmp_path / 'outbox')
-    monkeypatch.setattr(confirmations, 'INSTALL_FILE', tmp_path / 'install.json')
-    monkeypatch.setattr(read_sharing, 'flush_outbox', lambda: None)
-    profile = load_catalog(overlays=False).ecu('5am')
-    log = SessionLog(directory=tmp_path / 'sessions', meta={'ecu':'5am', 'transport':'kline', 'mode':'read_only'})
-    log.frame('tx', b'\x81\x10\xf1\x81\x05')
-    log.frame('rx', b'\x80\xf1\x10\xc1\xea\x8f')
-    log.action('connect', {'ok':True, 'init':'fast', 'protocol':'iso14230'})
-    log.action('identify', {'fields':{'VIN':'PRIVATE VIN'}})
-    log.frame('rx', b'private firmware data')
-    image = FirmwareImage(data=bytearray(311296), ecu_id='5am', region='flash', source='read')
-    log.action('memory_read_complete', {'region':'flash','size':image.size,'sha256':image.sha256})
-    diag = SimpleNamespace(transport=SimpleNamespace(name='kline', is_physical=True),
-                           log=log, profile=profile, gate=SimpleNamespace(mode=Mode.READ_ONLY))
-    return tmp_path, diag, image
 
 
 def test_report_is_minimal_and_is_published_with_one_read(shared):
@@ -86,8 +60,9 @@ def test_http_submission_retry_and_automatic_application(shared, monkeypatch):
     import threading
     import urllib.request
     from http.server import ThreadingHTTPServer
+
     from guzzionboard.auto_protocol_updates import AutoProtocolUpdates
-    from guzzionboard.validation_service import handler_for, MAX_REQUEST
+    from guzzionboard.validation_service import MAX_REQUEST, handler_for
     from guzzionboard.workstation import Workstation
 
     tmp_path, diag, image = shared
@@ -152,6 +127,44 @@ def test_http_submission_retry_and_automatic_application(shared, monkeypatch):
 
 
 # Preserve the implementation when the fixture disables background sends.
+def test_an_undeliverable_report_is_quarantined_not_retried_forever(shared, monkeypatch):
+    """A report the relay can never accept must not block the queue head.
+
+    The outbox is drained oldest-first, so one oversized or permanently
+    refused report used to stop every later report from ever being sent.
+    """
+    import urllib.error
+
+    tmp_path, diag, image = shared
+    monkeypatch.setenv('GOB_SHARE_READ_VALIDATIONS', '1')
+    monkeypatch.setenv('GOB_VALIDATION_URL', 'https://relay.invalid')
+    monkeypatch.setenv('GOB_VALIDATION_TOKEN', TOKEN)
+    assert read_sharing.queue_read(diag, image, 'flash')
+    monkeypatch.setattr(read_sharing, 'flush_outbox', lambda: None)
+
+    outbox = read_sharing.OUTBOX
+    oversized = outbox / 'conf-aforever.json'
+    oversized.write_bytes(b'x' * 70000)
+    assert oversized.exists()
+
+    real_flush = _real_flush_outbox
+    monkeypatch.setattr(read_sharing, 'flush_outbox', real_flush)
+
+    class Refuse:
+        def open(self, *args, **kwargs):
+            raise urllib.error.HTTPError('https://relay.invalid', 422, 'no', {}, None)
+
+    import urllib.request
+    monkeypatch.setattr(urllib.request, 'build_opener', lambda *args: Refuse())
+    real_flush()
+
+    # The oversized one is set aside; the valid one was refused with a 4xx
+    # and is set aside too, rather than being retried forever at the head.
+    assert not oversized.exists()
+    assert list(outbox.glob('conf-*.json')) == []
+    assert list(outbox.glob('*.rejected'))
+
+
 _real_flush_outbox = read_sharing.flush_outbox
 
 

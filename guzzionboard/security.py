@@ -26,13 +26,21 @@ locks people out of their own motorcycle.
 """
 from __future__ import annotations
 
-import importlib.util
+import hashlib
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Protocol
 
+from . import resources
+
 #: Where a user-supplied provider is looked for.
 PLUGIN_DIR = Path.home() / ".guzzionboard" / "keys"
+#: The interpreter-side worker that runs a plugin outside this process.
+WORKER = Path(__file__).with_name("key_worker.py")
+WORKER_TIMEOUT_SECONDS = 4
+MAX_WORKER_RESPONSE = 64 * 1024
+MAX_SEED_BYTES = 8
 
 
 class SecurityUnavailable(Exception):
@@ -57,14 +65,26 @@ class Provider:
     verified: bool = False
     note: str = ""
     source: str = ""
+    #: Set for a plugin loaded from disk: it is imported and called in a
+    #: separate, contained interpreter (see :mod:`guzzionboard.key_worker`).
+    plugin_path: str = ""
+    plugin_sha256: str = ""
 
     def __call__(self, seed: bytes) -> bytes:
+        if self.plugin_path:
+            return _run_key_worker(Path(self.plugin_path), seed,
+                                   expected_sha256=self.plugin_sha256)
         return self.fn(seed)
 
     def as_dict(self) -> dict:
         return {
             "ecu_id": self.ecu_id, "name": self.name, "verified": self.verified,
             "note": self.note, "source": self.source,
+            "plugin_sha256": self.plugin_sha256,
+            "isolation": (
+                "fresh-python-process+resource-limits+audit-guard"
+                if self.plugin_path else "in-process-provider"
+            ),
         }
 
 
@@ -171,8 +191,65 @@ register(
 # --------------------------------------------------------------------------
 
 
+def worker_command() -> list[str] | None:
+    """How to start the isolated key-plugin worker on this installation."""
+    if not resources.frozen():
+        return [sys.executable, "-I", "-S", "-B", str(WORKER)]
+    helper = resources.worker_executable()
+    return [str(helper)] if helper is not None else None
+
+
+def _run_worker(path: Path, request: dict) -> dict:
+    from .checksums import ChecksumUnavailable
+    from .checksums import _run_worker as run_checksum_worker
+
+    # The command line, environment scrubbing, timeout and response cap are
+    # the same problem the checksum worker already solves; reuse them rather
+    # than keeping a second, drifting copy of that logic.
+    payload = {"plugin": str(path.resolve()), **request}
+    try:
+        return run_checksum_worker(path, payload, command=worker_command(),
+                                   label="key")
+    except ChecksumUnavailable as exc:
+        raise SecurityUnavailable(str(exc)) from exc
+
+
+def _run_key_worker(path: Path, seed: bytes, *,
+                    expected_sha256: str = "") -> bytes:
+    """Call a plugin's ``key()`` in the isolated worker and return its answer."""
+    if len(seed) > MAX_SEED_BYTES:
+        raise SecurityUnavailable(
+            f"SecurityAccess seed is {len(seed)} bytes; {MAX_SEED_BYTES} is the maximum"
+        )
+    try:
+        expected = hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise SecurityUnavailable(f"cannot read key plugin {path}: {exc}") from exc
+    if expected_sha256 and expected != expected_sha256:
+        raise SecurityUnavailable(
+            "key plugin changed since it was loaded; review it and reload"
+        )
+    response = _run_worker(path, {"operation": "key", "seed": seed.hex()})
+    # The plugin file must not have changed between review/loading and use.
+    try:
+        current = hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise SecurityUnavailable(f"cannot re-read key plugin {path}: {exc}") from exc
+    if current != expected:
+        raise SecurityUnavailable(
+            "key plugin changed while it was loaded; review it and reload"
+        )
+    key = response.get("key")
+    if not isinstance(key, str):
+        raise SecurityUnavailable("isolated key plugin returned no key")
+    try:
+        return bytes.fromhex(key)
+    except ValueError as exc:
+        raise SecurityUnavailable("isolated key plugin returned a non-hex key") from exc
+
+
 def load_plugins(directory: str | Path = PLUGIN_DIR) -> list[Provider]:
-    """Import every ``*.py`` in ``directory`` as a key provider.
+    """Load every ``*.py`` in ``directory`` as a key provider.
 
     A plugin module must define::
 
@@ -180,6 +257,17 @@ def load_plugins(directory: str | Path = PLUGIN_DIR) -> list[Provider]:
         NAME = "my-5am-key"
         VERIFIED = True          # you have tested it on a real ECU
         def key(seed: bytes) -> bytes: ...
+
+    Plugins are *not* imported into this process. Each file is fingerprinted
+    and described by a fresh interpreter with resource limits and an audit
+    guard (:mod:`guzzionboard.key_worker`); ``key()`` is called there too, so
+    a plugin cannot read the session log, open a socket, or reach the
+    motorcycle except through the seed/key answer it is asked for. A plugin
+    that declares ``VERIFIED = True`` is still only as trustworthy as the file
+    the user dropped in; the self-declaration is reported, not adjudicated.
+
+    Returns the providers that loaded; failures are logged, not raised, so one
+    broken plugin cannot take the app down.
     """
     directory = Path(directory)
     if not directory.is_dir():
@@ -187,21 +275,26 @@ def load_plugins(directory: str | Path = PLUGIN_DIR) -> list[Provider]:
 
     loaded: list[Provider] = []
     for path in sorted(directory.glob("*.py")):
-        spec = importlib.util.spec_from_file_location(f"guzzikeys_{path.stem}", path)
-        if spec is None or spec.loader is None:
+        if path.name.startswith(".") or path.is_symlink():
             continue
-        module = importlib.util.module_from_spec(spec)
         try:
-            spec.loader.exec_module(module)
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            response = _run_worker(path, {"operation": "describe-key"})
+            meta = response["metadata"]
+            if not meta.get("has_key"):
+                raise SecurityUnavailable("plugin defines no callable key()")
             provider = Provider(
-                ecu_id=module.ECU_ID,
-                name=getattr(module, "NAME", path.stem),
-                fn=module.key,
-                verified=bool(getattr(module, "VERIFIED", False)),
-                note=getattr(module, "NOTE", ""),
+                ecu_id=str(meta["ecu_id"]),
+                name=str(meta.get("name") or path.stem),
+                fn=lambda seed, _path=path, _digest=digest: _run_key_worker(
+                    _path, seed, expected_sha256=_digest),
+                verified=bool(meta.get("verified")),
+                note=str(meta.get("note") or ""),
                 source=str(path),
+                plugin_path=str(path),
+                plugin_sha256=digest,
             )
-        except Exception as exc:  # a broken plugin must not kill the app
+        except (SecurityUnavailable, OSError, KeyError, TypeError) as exc:
             import logging
 
             logging.getLogger(__name__).warning("key plugin %s failed: %s", path, exc)

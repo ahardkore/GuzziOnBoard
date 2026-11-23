@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import pytest
+from test_maps import DEVICE_SIZE, build_xdf
 
 from guzzionboard.firmware import FirmwareImage
 from guzzionboard.maps import XdfError, XdfFile
-from test_maps import DEVICE_SIZE, build_xdf
 
 
 def image_bytes() -> bytearray:

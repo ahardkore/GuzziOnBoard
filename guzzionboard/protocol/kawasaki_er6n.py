@@ -7,7 +7,14 @@ This implementation has not been tested on hardware by GuzziOnBoard.
 from __future__ import annotations
 
 import time
-from .kwp2000 import KWP2000Session, ProtocolError, NegativeResponse, checksum, decode_frame
+
+from .kwp2000 import (
+    KWP2000Session,
+    NegativeResponse,
+    ProtocolError,
+    checksum,
+    decode_frame,
+)
 
 
 class KawasakiER6nSession(KWP2000Session):

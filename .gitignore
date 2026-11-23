@@ -12,6 +12,13 @@ venv/
 captures/
 .venv/
 node_modules/
+# Test and coverage output (pytest-cov, pytest-xdist).
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.ruff_cache/
+.mypy_cache/
 test-results/
 playwright-report/
 blob-report/

@@ -3,10 +3,18 @@ import pytest
 
 from guzzionboard.catalog import load_catalog
 from guzzionboard.diagnostics import DiagnosticsService
-from guzzionboard.protocol.kawasaki_er6n import KawasakiER6nSession, decode_kawasaki_value
+from guzzionboard.protocol.kawasaki_er6n import (
+    KawasakiER6nSession,
+    decode_kawasaki_value,
+)
 from guzzionboard.protocol.kwp2000 import ProtocolError, encode_request
 from guzzionboard.safety import Mode, SafetyGate
-from guzzionboard.transports.base import Connection, InitResult, Transport, TransportUnavailable
+from guzzionboard.transports.base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportUnavailable,
+)
 from guzzionboard.workstation import Workstation
 
 

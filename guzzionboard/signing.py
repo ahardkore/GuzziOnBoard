@@ -114,9 +114,15 @@ def _decode_point(data: bytes) -> tuple[int, int] | None:
         return None
     if x & 1 != sign:
         x = P - x
-    # Reject a point that is not on the curve, and the small-order encodings
-    # that would otherwise let a signature verify against a degenerate key.
+    # Reject a point that is not on the curve.
     if (-x * x + y * y - 1 - _D * x * x * y * y) % P != 0:
+        return None
+    # Reject small-order points (order dividing the cofactor 8, including
+    # the identity). Small-order points are on the curve, so the equation
+    # above does not catch them, but under a degenerate key such as the
+    # identity any signature verifies: with A = identity the check reduces
+    # to s*B == R, which an attacker satisfies for any message.
+    if _scalar_mult((x, y), 8) == (0, 1):
         return None
     return (x, y)
 
@@ -133,11 +139,17 @@ def _clamp(seed: bytes) -> int:
 
 
 def is_public_key(value: str) -> bool:
-    """True if ``value`` is a hex-encoded 32-byte Ed25519 public key."""
+    """True if ``value`` is a usable Ed25519 public key.
+
+    Length alone is not enough: the encoding must decode to a non-degenerate
+    curve point, so the identity and other small-order encodings are refused
+    wherever a key is pinned or loaded.
+    """
     try:
-        return len(bytes.fromhex(value)) == 32
+        raw = bytes.fromhex(value)
     except (ValueError, TypeError):
         return False
+    return len(raw) == 32 and _decode_point(raw) is not None
 
 
 def public_key(seed_hex: str) -> str:

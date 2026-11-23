@@ -9,6 +9,28 @@ The owner-provided D1 ID is configured in `cloudflare/wrangler.build.toml`.
 Cloudflare Workers cannot run the standalone Python HTTP relay unchanged. This
 Worker implements the same submission and signed-update endpoints using D1.
 
+## Why there are two implementations, and how they stay honest
+
+`guzzionboard/validation_service.py` and `cloudflare/worker.mjs` are both
+deliberate, not a half-finished migration:
+
+| | Python relay | Cloudflare Worker |
+| --- | --- | --- |
+| Runs where | an operator's own machine or VPS | the edge, no server to keep |
+| Storage | SQLite | D1 |
+| Deployable by | anyone, offline from this project | the project owner |
+
+They must not quietly disagree about what they accept, so the contract is
+pinned by tests rather than by intention: `tests/test_cloudflare_worker.py`
+asserts both use the same `MAX_REQUEST`/`MAX_CAPTURE` limits, accept only a
+`verdict: ok` bundle whose only claim is `memory_read`, verify the report
+against its capture before signing, and refuse personal-data fields (`vin`,
+`serial`, `plate`, `owner`, `email`, `address`). The end-to-end harness in
+`tests/cloudflare-worker-harness.mjs` runs the Worker's real validation for the
+same synthetic report the Python relay is tested with.
+
+A change to one without the other will fail those tests. That is the point.
+
 ## What this deploys
 
 * `POST /v1/confirmations` accepts an authenticated, bounded minimal read report.

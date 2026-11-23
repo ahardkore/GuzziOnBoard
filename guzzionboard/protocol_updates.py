@@ -74,8 +74,11 @@ from .signing import (
     is_public_key,
     load_keyring,
     save_keyring,
+)
+from .signing import (
     verify as verify_signature,
 )
+from .storage import atomic_write
 
 SCHEMA = "guzzionboard.protocol-update/v1"
 ENVELOPE_SCHEMA = "guzzionboard.protocol-update-envelope/v1"
@@ -791,10 +794,8 @@ def _revoked_keys(directory: Path) -> set[str]:
 
 def _save_revoked_keys(directory: Path, names: set[str]) -> None:
     directory.mkdir(parents=True, exist_ok=True)
-    target = directory / "revoked-keys.json"
-    temporary = directory / "revoked-keys.json.tmp"
-    temporary.write_text(json.dumps({"keys": sorted(names)}, indent=2) + "\n", encoding="utf-8")
-    os.replace(temporary, target)
+    atomic_write(directory / "revoked-keys.json",
+                 (json.dumps({"keys": sorted(names)}, indent=2) + "\n").encode("utf-8"))
 
 
 def keyring(directory: str | Path | None = None) -> dict[str, str]:
@@ -984,8 +985,8 @@ def apply_pack(
     (directory / "applied").mkdir(exist_ok=True)
     digest = preview["sha256"]
     stored = directory / "applied" / f"{digest}.json"
-    stored.write_text(json.dumps(envelope, indent=2, sort_keys=True) + "\n",
-                      encoding="utf-8")
+    atomic_write(stored,
+                 (json.dumps(envelope, indent=2, sort_keys=True) + "\n").encode("utf-8"))
     record = {
         "schema": OVERLAY_SCHEMA,
         "pack": preview["pack"] | {"sha256": digest, "key_id": preview["key_id"]},
@@ -997,9 +998,10 @@ def apply_pack(
         "promotions": _overlay_promotions(envelope["payload"]),
         "preview": preview["changes"],
     }
-    (directory / "applied.json").write_text(
-        json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    # applied.json is the pointer of record: publish it atomically so a crash
+    # mid-write cannot leave a truncated overlay that fails to load forever.
+    atomic_write(directory / "applied.json",
+                 (json.dumps(record, indent=2, sort_keys=True) + "\n").encode("utf-8"))
     return {"applied": True, **preview}
 
 

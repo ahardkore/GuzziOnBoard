@@ -8,6 +8,7 @@ fixtures only; its gauge formulas were not compared with the bike's dash.
 from __future__ import annotations
 
 import time
+
 from .kwp2000 import KWP2000Session, NegativeResponse, ProtocolError, checksum
 
 

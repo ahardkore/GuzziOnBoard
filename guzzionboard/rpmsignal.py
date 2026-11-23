@@ -25,11 +25,11 @@ linear ramp between the two RPMs) are the ``events`` format here too.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 import struct
 import time
 import wave
+from dataclasses import dataclass
+from pathlib import Path
 
 DEFAULT_SIGNAL_DIR = Path.home() / ".guzzionboard" / "signals"
 DEFAULT_SAMPLE_RATE = 44100

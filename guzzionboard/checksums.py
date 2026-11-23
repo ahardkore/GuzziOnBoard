@@ -12,19 +12,19 @@ behavior; it is not claimed to be a kernel-grade sandbox.
 """
 from __future__ import annotations
 
-from . import resources
-
 import base64
-from dataclasses import dataclass
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable
+
+from . import resources
 
 PLUGIN_DIR = resources.data_root() / "checksums"
 WORKER = Path(__file__).with_name("checksum_worker.py")
@@ -52,7 +52,15 @@ def worker_command() -> list[str] | None:
     return [str(helper)] if helper is not None else None
 
 
-def _run_worker(path: Path, request: dict) -> dict:
+def _run_worker(path: Path, request: dict, *,
+                command: list[str] | None = None,
+                label: str = "checksum") -> dict:
+    """Run one plugin operation in the isolated worker.
+
+    ``command`` and ``label`` let a second plugin family (SecurityAccess key
+    providers, see :mod:`guzzionboard.security`) reuse this containment
+    instead of maintaining a parallel copy of it.
+    """
     payload = {"plugin": str(path.resolve()), **request}
     encoded = json.dumps(payload, separators=(",", ":")).encode("utf-8")
     if len(encoded) > 16 * 1024 * 1024:
@@ -73,10 +81,11 @@ def _run_worker(path: Path, request: dict) -> dict:
             value = os.environ.get(name)
             if value:
                 environment[name] = value
-    command = worker_command()
+    if command is None:
+        command = worker_command()
     if command is None:
         raise ChecksumUnavailable(
-            "this build has no isolated checksum worker; checksum plugins are "
+            f"this build has no isolated {label} worker; {label} plugins are "
             "unavailable in it (install from source, or use a build that ships "
             "the GuzziOnBoard-worker helper)"
         )
@@ -94,23 +103,23 @@ def _run_worker(path: Path, request: dict) -> dict:
             )
     except subprocess.TimeoutExpired as exc:
         raise ChecksumUnavailable(
-            f"checksum plugin exceeded {WORKER_TIMEOUT_SECONDS} second isolation timeout"
+            f"{label} plugin exceeded {WORKER_TIMEOUT_SECONDS} second isolation timeout"
         ) from exc
     except OSError as exc:
-        raise ChecksumUnavailable(f"cannot start isolated checksum worker: {exc}") from exc
+        raise ChecksumUnavailable(f"cannot start isolated {label} worker: {exc}") from exc
     if len(result.stdout) > MAX_WORKER_RESPONSE:
-        raise ChecksumUnavailable("checksum worker response exceeds 16 MiB")
+        raise ChecksumUnavailable(f"{label} worker response exceeds 16 MiB")
     try:
         response = json.loads(result.stdout.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         detail = result.stderr.decode("utf-8", "replace")[:300]
         raise ChecksumUnavailable(
-            "isolated checksum worker returned invalid output"
+            f"isolated {label} worker returned invalid output"
             + (f": {detail}" if detail else "")
         ) from exc
     if result.returncode != 0 or not response.get("ok"):
         raise ChecksumUnavailable(
-            f"isolated checksum plugin failed: {response.get('error') or 'unknown worker error'}"
+            f"isolated {label} plugin failed: {response.get('error') or 'unknown worker error'}"
         )
     return response
 

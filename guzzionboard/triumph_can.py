@@ -20,6 +20,7 @@ only; no diagnostic session, no write path.
 from __future__ import annotations
 
 from collections.abc import Iterable
+
 from .canlog import CanFrame
 
 PROFILE = 'triumph_can_broadcast'

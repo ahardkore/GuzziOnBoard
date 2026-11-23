@@ -18,8 +18,8 @@ import time
 from dataclasses import dataclass
 from typing import Callable
 
-from .kwp2000 import ProtocolError
 from ..transports.base import Connection
+from .kwp2000 import ProtocolError
 
 
 @dataclass

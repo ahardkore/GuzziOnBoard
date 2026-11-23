@@ -10,7 +10,12 @@ from guzzionboard.protocol.iso9141 import (
 )
 from guzzionboard.protocol.kwp2000 import NegativeResponse, ProtocolError, checksum
 from guzzionboard.safety import Mode, SafetyGate
-from guzzionboard.transports.base import Connection, InitResult, Transport, TransportUnavailable
+from guzzionboard.transports.base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportUnavailable,
+)
 
 
 def iso(*payload):

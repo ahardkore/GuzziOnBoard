@@ -9,25 +9,23 @@ exposed over the HTTP API surface.
 """
 from __future__ import annotations
 
+import pytest
+
+from guzzionboard.catalog import load_catalog
 from guzzionboard.diagnostics import DiagnosticsService
 from guzzionboard.programming import ProgrammingService
-from guzzionboard.catalog import load_catalog
 from guzzionboard.safety import Mode, SafetyGate, VehicleState
 from guzzionboard.security import (
     SecurityUnavailable,
     providers_for,
 )
+from guzzionboard.server import Api
 from guzzionboard.transports.simulator import (
     EngineModel,
     SimulatedEcu,
     SimulatorTransport,
 )
-
-import pytest
-
-from guzzionboard.server import Api
 from guzzionboard.workstation import Workstation
-
 
 # ------------------------------------------------------------- gate level
 
@@ -141,3 +139,91 @@ def test_report_text_renders_gate_events_alongside_decisions(tmp_path):
     # both the decision-shaped and event-shaped audit entries render
     assert "programming_enabled" in text
     assert "unverified_keys_accepted" in text
+
+
+# ------------------------------------------------------- plugin isolation
+
+def test_key_plugins_run_in_the_isolated_worker(tmp_path):
+    """A plugin is untrusted code from the user's home directory.
+
+    It used to be ``exec_module``-ed into the app process, so it could read the
+    session log, open sockets, or hand a key to any ECU family it named.
+    """
+    from guzzionboard import security
+
+    before = list(security.providers_for("5am"))
+    (tmp_path / "good.py").write_text(
+        "ECU_ID = '5am'\n"
+        "NAME = 'local-test'\n"
+        "VERIFIED = False\n"
+        "NOTE = 'unit test'\n"
+        "def key(seed):\n"
+        "    return bytes((b ^ 0xFF) for b in seed)\n"
+    )
+    providers = security.load_plugins(tmp_path)
+    assert len(providers) == 1
+    provider = providers[0]
+    assert provider.name == "local-test"
+    described = provider.as_dict()
+    assert described["isolation"].startswith("fresh-python-process")
+    assert len(described["plugin_sha256"]) == 64
+    assert provider(b"\x01\x02\x03\x04") == b"\xfe\xfd\xfc\xfb"
+    # Loading registers it; drop it again so other tests see the old registry.
+    security._REGISTRY["5am"] = [p for p in security._REGISTRY["5am"]
+                                 if p is not provider]
+    assert security.providers_for("5am") == before
+
+
+def test_a_key_plugin_cannot_touch_the_filesystem_or_the_network(tmp_path):
+    from guzzionboard import security
+
+    marker = tmp_path.parent / "key-plugin-escape.txt"
+    (tmp_path / "escape.py").write_text(
+        "from pathlib import Path\n"
+        f"Path({str(marker)!r}).write_text('escaped')\n"
+        "ECU_ID = '5am'\n"
+        "def key(seed): return b'\\x00\\x00\\x00\\x00'\n"
+    )
+    assert security.load_plugins(tmp_path) == []
+    assert not marker.exists()
+    (tmp_path / "escape.py").unlink()
+
+    (tmp_path / "network.py").write_text(
+        "ECU_ID = '5am'\n"
+        "def key(seed):\n"
+        "    import socket\n"
+        "    socket.socket()\n"
+        "    return b'\\x00\\x00\\x00\\x00'\n"
+    )
+    providers = security.load_plugins(tmp_path)
+    assert len(providers) == 1
+    with pytest.raises(SecurityUnavailable, match="denied"):
+        providers[0](b"\x01\x02\x03\x04")
+    security._REGISTRY["5am"] = [p for p in security._REGISTRY["5am"]
+                                 if p is not providers[0]]
+
+
+def test_a_changed_key_plugin_is_refused_between_load_and_use(tmp_path):
+    """The reviewed bytes must be the bytes that answer the seed."""
+    from guzzionboard import security
+
+    path = tmp_path / "changing.py"
+    # Deliberately long enough that the rewrite is unambiguous on every
+    # filesystem: same length, same mtime granularity, different bytes.
+    path.write_text(
+        "ECU_ID = '5am'\n"
+        "def key(seed):\n"
+        "    return bytes([1, 2, 3, 4])\n"
+    )
+    providers = security.load_plugins(tmp_path)
+    assert len(providers) == 1
+    provider = providers[0]
+    path.write_text(
+        "ECU_ID = '5am'\n"
+        "def key(seed):\n"
+        "    return bytes([9, 9, 9, 9])\n"
+    )
+    with pytest.raises(SecurityUnavailable, match="changed"):
+        provider(b"\x01\x02\x03\x04")
+    security._REGISTRY["5am"] = [p for p in security._REGISTRY["5am"]
+                                 if p is not provider]

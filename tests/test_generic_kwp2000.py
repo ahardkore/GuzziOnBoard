@@ -5,10 +5,19 @@ from guzzionboard.catalog import load_catalog
 from guzzionboard.diagnostics import DiagnosticsService
 from guzzionboard.protocol.generic_kwp import GenericKwp2000Session
 from guzzionboard.protocol.kwp2000 import (
-    KWP2000Session, NegativeResponse, ProtocolError, encode_request,
+    KWP2000Session,
+    NegativeResponse,
+    ProtocolError,
+    encode_request,
 )
 from guzzionboard.safety import Mode, SafetyGate
-from guzzionboard.transports.base import Connection, InitResult, Transport, TransportError, TransportUnavailable
+from guzzionboard.transports.base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportError,
+    TransportUnavailable,
+)
 from guzzionboard.workstation import Workstation
 
 

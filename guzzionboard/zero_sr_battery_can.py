@@ -19,6 +19,7 @@ Known IDs (base 0x0B57ED00 | 0x0B57EDC0 | 0x0B57EDxx):
 from __future__ import annotations
 
 from collections.abc import Iterable
+
 from .canlog import CanFrame
 
 PROFILE = 'zero_sr_battery_can_broadcast'

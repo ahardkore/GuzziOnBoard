@@ -75,3 +75,23 @@ programming disabled and the write surface red again → the four support
 utilities (ZT-2→DIF, bench RPM signal, FTDI driver bundle in the adapter
 report, Mana TCU cataloged) → report export → disconnect. 25/25 checks
 pass; the same assertions the UI relies on.
+
+---
+
+## The hosted demo vs the local workstation
+
+Every API route is either implemented in the demo's browser shims or listed in
+its `LOCAL_ONLY` refusal table with a reason; `tests/test_demo_mode.py` fails if
+a server route is in neither. The ones the demo refuses need a serial port, a
+filesystem or a long job, and it says so with HTTP 501 and
+`code: demo_local_only` rather than pretending.
+
+Two things to keep straight when reading a parity table:
+
+* A route that works on the workstation but is refused by the demo is **not**
+  a parity gap. Faking it would be.
+* `web/demo-data.json` and `web/xdf-library.json` are generated from the Python
+  catalog. `python3 scripts/build_demo_data.py --check` (run in CI) fails when
+  the checked-in snapshot has drifted, so the demo cannot quietly offer
+  coverage the real tool does not have.
+

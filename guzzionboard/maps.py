@@ -37,16 +37,17 @@ That base is auto-detected from the image size and always reported back.
 """
 from __future__ import annotations
 
+import ast
 import hashlib
-
-from . import resources
-
 import math
+import operator
 import re
 import struct
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from . import resources
 
 #: Where user-supplied XDFs are looked for, mirroring the key plugin dir.
 XDF_DIR = resources.data_root() / "xdfs"
@@ -153,8 +154,57 @@ def _prepare_scalar_math(equation: str) -> tuple[str, bool]:
     return expr, has_shifts
 
 
+#: Arithmetic only. ``_prepare_scalar_math`` already rejects everything else,
+#: but a small explicit table means the evaluator never depends on ``eval``
+#: for its safety, only on this dict.
+_BINOPS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.FloorDiv: operator.floordiv,
+    ast.Mod: operator.mod,
+    ast.Pow: operator.pow,
+    ast.LShift: operator.lshift,
+    ast.RShift: operator.rshift,
+}
+_UNARYOPS = {ast.UAdd: operator.pos, ast.USub: operator.neg}
+
+
+def _eval_node(node, x_val):
+    """Evaluate a parsed expression tree; no name lookup, no calls, no attr."""
+    if isinstance(node, ast.Expression):
+        return _eval_node(node.body, x_val)
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, bool) or not isinstance(node.value, (int, float)):
+            raise ValueError("only numeric literals are allowed")
+        return node.value
+    if isinstance(node, ast.Name):
+        if node.id != "X":
+            raise ValueError(f"unknown symbol {node.id!r}")
+        return x_val
+    if isinstance(node, ast.BinOp):
+        operation = _BINOPS.get(type(node.op))
+        if operation is None:
+            raise ValueError("operator not allowed")
+        return operation(_eval_node(node.left, x_val),
+                         _eval_node(node.right, x_val))
+    if isinstance(node, ast.UnaryOp):
+        operation = _UNARYOPS.get(type(node.op))
+        if operation is None:
+            raise ValueError("operator not allowed")
+        return operation(_eval_node(node.operand, x_val))
+    raise ValueError(f"{type(node).__name__} is not allowed in an equation")
+
+
 def eval_math(equation: str, x: float) -> float:
-    """Evaluate a TunerPro MATH equation for one raw value."""
+    """Evaluate a TunerPro MATH equation for one raw value.
+
+    The equation is parsed and walked against a fixed arithmetic table rather
+    than handed to :func:`eval`. The text still has to pass the strict
+    allowlist in :func:`_prepare_scalar_math`; this is the second, independent
+    line of defence, so a hole in the regex cannot become code execution.
+    """
     expr, has_shifts = _prepare_scalar_math(equation)
     try:
         if has_shifts:
@@ -164,11 +214,13 @@ def eval_math(equation: str, x: float) -> float:
             x_val: int | float = int(round(val_f))
         else:
             x_val = float(x)
-        result = float(eval(expr, {"__builtins__": {}}, {"X": x_val}))  # noqa: S307
+        tree = ast.parse(expr, mode="eval")
+        result = float(_eval_node(tree, x_val))
         if not math.isfinite(result):
             raise ValueError("non-finite result")
         return result
-    except (ArithmeticError, ValueError, TypeError, SyntaxError, RecursionError) as exc:
+    except (ArithmeticError, ValueError, TypeError, SyntaxError, RecursionError,
+            MemoryError) as exc:
         raise XdfError(f"equation {equation!r} failed on {x}: {exc}") from exc
 
 

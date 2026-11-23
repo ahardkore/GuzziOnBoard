@@ -7,13 +7,13 @@ and retain their hashed captures/reports at the paths named by each record.
 
 from __future__ import annotations
 
-from . import resources
-
-from datetime import datetime
 import hashlib
 import json
-from pathlib import Path
 import re
+from datetime import datetime
+from pathlib import Path
+
+from . import resources
 
 VALIDATION_DIR = resources.data_root() / "validation"
 SCHEMA = "guzzionboard.physical-validation/v1"

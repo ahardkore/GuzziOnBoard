@@ -40,9 +40,10 @@ def test_console_script_is_registered():
 # modules, and that the installer script describes a real installation.
 
 import importlib
-import pytest
 import zipfile
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 SPEC = ROOT / "packaging" / "guzzionboard.spec"

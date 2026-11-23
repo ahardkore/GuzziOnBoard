@@ -1,13 +1,13 @@
 """Synthetic passive serial observation; not physical hardware validation."""
-from types import SimpleNamespace
 import sys
+from types import SimpleNamespace
 
 import pytest
 
 from guzzionboard import yamaha_mt03_listen as yamaha
 from guzzionboard.server import Api
-from guzzionboard.workstation import Workstation
 from guzzionboard.transports.base import TransportError, TransportUnavailable
+from guzzionboard.workstation import Workstation
 
 
 def test_source_capture_frames_checksum_and_raw_values():

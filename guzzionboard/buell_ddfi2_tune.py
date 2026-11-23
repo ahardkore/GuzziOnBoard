@@ -15,7 +15,16 @@ The read-only decoder (buell_ddfi2_serial.py) still reports these frames as
 """
 from __future__ import annotations
 
-from .buell_ddfi2_serial import SOH, EOH, SOT, EOT, TESTER_ID, ECM_ID, CMD_SET, BUEIB_PAGES
+from .buell_ddfi2_serial import (
+    BUEIB_PAGES,
+    CMD_SET,
+    ECM_ID,
+    EOH,
+    EOT,
+    SOH,
+    SOT,
+    TESTER_ID,
+)
 
 PROFILE = 'buell_xb12x_ddfi2_tune_experimental'
 

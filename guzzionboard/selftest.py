@@ -25,7 +25,6 @@ from pathlib import Path
 
 from . import __version__, resources
 
-
 #: A windowed build has no console, so the transcript of a self-test run is
 #: written here as well as to stdout. Set by the build (packaging/build.py)
 #: and by anyone who wants a copy of the output.
@@ -88,11 +87,15 @@ def run(*, export_dir: str | None = None, host: str = "127.0.0.1",
     result.say(f"GuzziOnBoard {__version__} self-test")
     if os.environ.get("GOB_SELFTEST_REQUIRE_HARDWARE") == "1":
         try:
-            import serial  # noqa: F401
-            import serial.tools.list_ports  # noqa: F401
-            import can  # noqa: F401
-            import can.interfaces  # noqa: F401
-            import can.interfaces.slcan  # noqa: F401 — dynamically loaded backend
+            # A frozen build silently omits a module that nothing imports, so
+            # these are *checks*, not unused imports: keep them.
+            import can
+            import can.interfaces
+            import can.interfaces.slcan
+            import serial
+            import serial.tools.list_ports
+
+            assert serial.VERSION
             # python-can loads backends dynamically; importing the top-level
             # package alone cannot prove the frozen virtual backend was collected.
             bus = can.Bus(interface="virtual", channel="gob-selftest")
@@ -298,9 +301,9 @@ def _run_checks(result: Result, exports: Path, host: str) -> None:
         workstation.disconnect()
 
     # -- the desktop bridge script itself --------------------------------
-    from .desktop import DesktopBridge  # noqa: F401  (import check only)
+    from . import desktop as desktop_module
 
-    result.record(True, "desktop shell module imports")
+    result.record(bool(desktop_module.DesktopBridge), "desktop shell module imports")
 
 
 class _SelftestBridge:

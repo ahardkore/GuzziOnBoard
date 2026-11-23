@@ -6,7 +6,12 @@ from guzzionboard.diagnostics import DiagnosticsService
 from guzzionboard.protocol.kwp2000 import ProtocolError
 from guzzionboard.protocol.obd_can import ObdCanSession
 from guzzionboard.safety import Mode, SafetyGate
-from guzzionboard.transports.base import Connection, InitResult, Transport, TransportUnavailable
+from guzzionboard.transports.base import (
+    Connection,
+    InitResult,
+    Transport,
+    TransportUnavailable,
+)
 from guzzionboard.workstation import Workstation
 
 
@@ -95,7 +100,9 @@ def test_profile_only_and_mode_boundaries():
 def test_end_to_end_virtual_can_isotp_multiframe():
     import threading
     import uuid
+
     import can
+
     from guzzionboard.protocol.isotp import segment
     from guzzionboard.transports.can import CanTransport
     channel = 'obd-test-' + uuid.uuid4().hex

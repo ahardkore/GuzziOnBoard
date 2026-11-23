@@ -1,7 +1,6 @@
 """Guard against accidentally concatenating separate GitHub workflows."""
 from pathlib import Path
 
-
 WORKFLOWS = Path(__file__).resolve().parents[1] / ".github" / "workflows"
 
 

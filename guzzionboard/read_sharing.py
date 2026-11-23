@@ -96,6 +96,24 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         raise urllib.error.URLError("submission redirects are not allowed")
 
 
+def _quarantine(path, reason: str) -> None:
+    """Drop a report that can never be accepted, instead of retrying forever.
+
+    A report larger than the relay's request cap or rejected as malformed will
+    never succeed on a retry, and leaving it at the head of the sorted queue
+    blocks every later report behind it.
+    """
+    try:
+        with _lock:
+            path.rename(path.with_suffix(".rejected"))
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "read confirmation %s quarantined: %s", path.name, reason)
+    except OSError:
+        pass
+
+
 def flush_outbox():
     if not configured() or not _flush_lock.acquire(blocking=False):
         return
@@ -110,6 +128,8 @@ def flush_outbox():
                 with _lock:
                     data = path.read_bytes()
                 if len(data) > 65536:
+                    # Never deliverable: leaving it here wedges the queue.
+                    _quarantine(path, "larger than the relay request cap")
                     continue
                 request = urllib.request.Request(url, data=data, method="POST", headers={
                     "Authorization": "Bearer " + token, "Content-Type": "application/json"})
@@ -118,8 +138,17 @@ def flush_outbox():
                     if response.status in (200, 201) and result.get("accepted") is True:
                         with _lock:
                             path.unlink(missing_ok=True)
-            except (OSError, ValueError, urllib.error.URLError):
+            except urllib.error.HTTPError as exc:
+                # 4xx means the relay will never accept this report as-is;
+                # 5xx may be transient, so it stays queued.
+                if 400 <= exc.code < 500 and exc.code not in (408, 429):
+                    _quarantine(path, f"relay refused it with HTTP {exc.code}")
+                    continue
+                break
+            except (OSError, ValueError):
                 break  # retain this and later reports for the next attempt
+            except urllib.error.URLError:
+                break  # offline or refused: retain for the next attempt
     finally:
         _flush_lock.release()
 

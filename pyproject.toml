@@ -20,7 +20,14 @@ hardware = ["pyserial>=3.5", "python-can>=4.2"]
 # Optional source-run Intrepid adapter; see docs/INTREPID_HARDWARE.md for
 # platform libraries and libicsneo's Intrepid-only hardware license condition.
 intrepid = ["python-can>=4.2", "python_ics>=1!26.3.17", "filelock>=3"]
-dev = ["pytest>=7.4"]
+dev = [
+    "pytest>=7.4",
+    # The suite takes about four minutes serially; the tests are independent
+    # processes' worth of work, so run them in parallel.
+    "pytest-xdist>=3.5",
+    "pytest-cov>=5.0",
+    "ruff>=0.9",
+]
 # What packaging/build.py needs; pip install -e '.[desktop]' is the shortest
 # route to running the workstation in a window from a checkout.
 build = ["pyinstaller>=6.0"]
@@ -39,3 +46,25 @@ packages = ["guzzionboard", "guzzionboard.protocol", "guzzionboard.transports", 
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Deliberately empty: a plain ``pytest`` must work without any extra installed.
+# Parallelism is opt-in with ``pytest -n auto --dist loadfile`` (and is what CI
+# and the README run); see "Development and tests" in the README.
+addopts = []
+# Broadcast/relay tests bind loopback sockets and compare wall-clock behaviour;
+# grouping them keeps them on one worker.
+markers = [
+    "serial: must not run concurrently with itself (loopback servers, clocks)",
+]
+
+[tool.coverage.run]
+source = ["guzzionboard"]
+branch = true
+omit = ["guzzionboard/key_worker.py", "guzzionboard/checksum_worker.py"]
+
+[tool.coverage.report]
+# Workers run in a fresh interpreter by design and are covered by their own
+# behavioural tests; excluding them keeps the number honest rather than noisy.
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]

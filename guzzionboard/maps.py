@@ -546,6 +546,24 @@ class Embedded:
             is_float=is_float,
         )
 
+    def _effective_strides_bits(self) -> tuple[int, int]:
+        minor = self.minor_stride_bits
+        major = self.major_stride_bits
+        # TunerPro 1D vectors populate whichever stride box matches the editor
+        # view: horizontal 1xN vectors often carry positive mmedmajorstridebits
+        # with mmedminorstridebits=0 (negative values like -32/-16 are TunerPro
+        # sentinels for default element size), while vertical Nx1 vectors may
+        # carry mmedminorstridebits>0 with mmedmajorstridebits=0.
+        if self.rows == 1 and self.cols > 1 and minor == 0 and major > 0:
+            minor = major
+            major = 0
+        elif self.cols == 1 and self.rows > 1 and major == 0 and minor > 0:
+            major = minor
+            minor = 0
+        eff_minor = minor or self.size_bits
+        eff_major = major or (eff_minor * self.cols)
+        return eff_major, eff_minor
+
     def validate_layout(self) -> None:
         if (not 1 <= self.rows <= MAX_XDF_AXIS or not 1 <= self.cols <= MAX_XDF_AXIS
                 or self.rows * self.cols > MAX_XDF_CELLS):
@@ -558,7 +576,11 @@ class Embedded:
                              (self.minor_stride_bits, self.cols > 1)):
             if used and (stride < 0 or stride % 8):
                 raise XdfError("negative or non-byte-aligned embedded stride is not supported")
-        if self.column_major and self.cols > 1 and (self.major_stride_bits or self.minor_stride_bits):
+        if self.rows == 1 and self.cols > 1 and self.minor_stride_bits == 0 and self.major_stride_bits > 0 and self.major_stride_bits % 8:
+            raise XdfError("negative or non-byte-aligned embedded stride is not supported")
+        if self.cols == 1 and self.rows > 1 and self.major_stride_bits == 0 and self.minor_stride_bits > 0 and self.minor_stride_bits % 8:
+            raise XdfError("negative or non-byte-aligned embedded stride is not supported")
+        if self.column_major and self.cols > 1 and (self.major_stride_bits > 0 or self.minor_stride_bits):
             raise XdfError("column-major embedded data with explicit strides is not supported")
 
     @property
@@ -570,8 +592,7 @@ class Embedded:
         self.validate_layout()
         if self.column_major and self.cols > 1:
             return self.count * self.size_bits
-        minor = self.minor_stride_bits or self.size_bits
-        major = self.major_stride_bits or (minor * self.cols)
+        major, minor = self._effective_strides_bits()
         return (self.rows - 1) * major + (self.cols - 1) * minor + self.size_bits
 
     def positions(self, offset: int) -> list[tuple[int, int]]:
@@ -581,11 +602,9 @@ class Embedded:
         if self.column_major and self.cols > 1:
             return [(offset + (c * self.rows + r) * size, size)
                     for r in range(self.rows) for c in range(self.cols)]
-        minor = (self.minor_stride_bits or self.size_bits) // 8
-        major = (
-            self.major_stride_bits // 8
-            if self.major_stride_bits else minor * self.cols
-        )
+        major_bits, minor_bits = self._effective_strides_bits()
+        major = major_bits // 8
+        minor = minor_bits // 8
         return [
             (offset + r * major + c * minor, size)
             for r in range(self.rows)

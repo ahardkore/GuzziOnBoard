@@ -31,9 +31,11 @@ from . import (
     buell_ddfi,
     buell_epr,
     canlog,
+    ecu_image_checksums,
     harley_hdlan_listen,
     harley_memory,
     honda_checksum_research,
+    honda_keihin_offline,
     honda_mgz,
     honda_tuning,
     j2534,
@@ -124,7 +126,7 @@ from .workstation import Workstation
 
 def load_checksum_providers():
     local, errors = load_local_checksum_providers()
-    builtins = [honda_tuning.provider(), honda_mgz.provider()]
+    builtins = [honda_tuning.provider(), honda_mgz.provider(), *honda_keihin_offline.providers()]
     builtin_ids = {provider.provider_id for provider in builtins}
     filtered = []
     for item in local:
@@ -1142,7 +1144,7 @@ class Api:
     def _family_tokens(value: str) -> set[str]:
         compact = re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
         return set(re.findall(
-            r"CBR1000RR2012US|MIUG3|MIU1|MBC1|5AM2|5AM|16M|15RC|15M|15P|59M|7SM|5SM|5DM|11MP|P7|P8",
+            r"CBR1000RR2012US|CB500MGZA03|CBR1000RRMEL|CB500MJW|CRF110FKYKD12|MSX125K26911|MSX125K26B13|MSX125K26C31|Z125MK0FA01|MIUG3|MIU1|MBC1|5AM2|5AM|16M|15RC|15M|15P|59M|7SM|5SM|5DM|11MP|P7|P8",
             compact,
         ))
 
@@ -1185,6 +1187,10 @@ class Api:
                     "the pinned adapted XDF and the exact MGZ-A03 original image SHA-256"
                 )
             image.ecu_id = honda_mgz.ECU_ID
+            return
+        if honda_keihin_offline.check_build_fitment(
+            xdf_family, xdf.file_sha256, image, self.ws.selection
+        ):
             return
         if not xdf_family:
             raise TuningError(
@@ -1628,6 +1634,7 @@ class Api:
             "address_base": effective_base, "changes": changes, "diff": diff,
             "candidate_sha256": hashlib.sha256(candidate).hexdigest(),
             "honda_checksum_candidates": honda_checksum_research.proposals(source.data, candidate),
+            "ecu_checksum_candidates": ecu_image_checksums.proposals(source.data, candidate),
             "declared_checksums": list(xdf.checksums),
             "warning": ("Research preview only: vehicle/ECU/software fitment and "
                         "checksum correctness are not established. No checksum was "
@@ -1700,6 +1707,9 @@ class Api:
             if source.data[:start] != candidate[:start] or source.data[end:] != candidate[end:]:
                 raise TuningError("edits must stay inside the selected file region")
             checksum = None
+            ecu_checksum = None
+            if body.get("honda_checksum_ecm_id") is not None and body.get("ecu_checksum_family") is not None:
+                raise TuningError("choose at most one research checksum candidate per export")
             if body.get("honda_checksum_ecm_id") is not None:
                 if delphi_layout or body.get("confirm_honda_checksum") is not True:
                     raise TuningError("explicit Honda research checksum confirmation is required")
@@ -1718,12 +1728,36 @@ class Api:
                 candidate_hash = hashlib.sha256(candidate).hexdigest()
                 if candidate_hash != checksum["output_sha256"] or sum(candidate) & 255:
                     raise TuningError("Honda checksum output verification failed")
+            elif body.get("ecu_checksum_family") is not None:
+                if delphi_layout or body.get("confirm_ecu_checksum") is not True:
+                    raise TuningError("explicit ECU research checksum confirmation is required")
+                fam = body.get("ecu_checksum_family")
+                if not isinstance(fam, str):
+                    raise TuningError("choose an exact ECU checksum family")
+                ecu_checksum = next((p for p in preview["ecu_checksum_candidates"] if p["family"] == fam), None)
+                if ecu_checksum is None:
+                    raise TuningError("ECU checksum candidate no longer matches the reviewed source and edits")
+                if body.get("expected_checksum_output_sha256") != ecu_checksum["output_sha256"]:
+                    raise TuningError("corrected output changed; review the ECU checksum preview again")
+                if not (start <= ecu_checksum["checksum_start"] and ecu_checksum["checksum_end_exclusive"] <= end):
+                    raise TuningError("ECU checksum bytes fall outside the selected file region")
+                candidate = ecu_image_checksums.REPAIRERS[fam](candidate)
+                candidate_hash = hashlib.sha256(candidate).hexdigest()
+                rep_recs = ecu_image_checksums._records_list(ecu_image_checksums.VERIFIERS[fam](candidate))
+                if candidate_hash != ecu_checksum["output_sha256"] or not rep_recs or not all(r.get("ok") for r in rep_recs):
+                    raise TuningError("ECU checksum output verification failed")
             manifest = {
                 "schema": "guzzionboard.harley-research-edit/v1" if delphi_layout else "guzzionboard.research-edit/v1",
                 "research_only": True, "flash_ready": False,
-                "warning": ("Not flash-ready: only the selected source-described whole-file byte sum was adjusted; fitment, other checksums and signatures are not verified."
-                            if checksum else "Not flash-ready: fitment, checksums and signatures are not verified or repaired."),
+                "warning": (
+                    f"Not flash-ready: {ecu_checksum['caveat']}"
+                    if ecu_checksum else
+                    "Not flash-ready: only the selected source-described whole-file byte sum was adjusted; fitment, other checksums and signatures are not verified."
+                    if checksum else
+                    "Not flash-ready: fitment, checksums and signatures are not verified or repaired."
+                ),
                 "honda_checksum": checksum,
+                "ecu_checksum": ecu_checksum,
                 "reviewed_candidate_sha256": preview["candidate_sha256"],
                 "layout": layout, "region_start": start, "region_end_exclusive": end,
                 "region_basis": "source-described" if delphi_layout else "operator-declared-not-verified",
@@ -2516,6 +2550,81 @@ class Api:
             return 400, {"error": str(exc)}
         return 200, result
 
+    def post_tools_ecu_checksum(self, body: dict) -> tuple[int, dict]:
+        """Inspect or opt-in repair multi-brand ECU image checksums on a local file."""
+        try:
+            image, is_base, _ = self._map_source(body)
+            family = str(body.get("family") or "auto").strip()
+            matches = ecu_image_checksums.inspect_and_propose(image.data, algorithm=family)
+        except (TuningError, FirmwareError, ValueError, OSError) as exc:
+            return 400, {"error": str(exc)}
+        if not body.get("repair"):
+            return 200, {
+                "writes_file": False,
+                "source": {
+                    "path": image.path, "sha256": image.sha256,
+                    "bytes": image.size, "is_base_map": is_base,
+                },
+                "families": list(ecu_image_checksums.VERIFIERS),
+                "matches": matches,
+            }
+        if body.get("confirm") != "APPLY RESEARCH ECU CHECKSUM":
+            return 400, {"error": "pass confirm='APPLY RESEARCH ECU CHECKSUM' to export a repaired research copy"}
+        if not family or family == "auto" or family not in ecu_image_checksums.REPAIRERS:
+            return 400, {"error": "an explicit 'family' is required when repair=true"}
+        if body.get("expected_source_sha256") != image.sha256:
+            return 400, {"error": "source image SHA-256 changed; inspect the image again"}
+        match = next((m for m in matches if m["family"] == family), None)
+        if match is None or not match.get("repaired_ok") or not match.get("output_sha256"):
+            return 400, {"error": f"image is not recognised as repairable {family}"}
+        if not match.get("byte_changes"):
+            return 400, {"error": f"image already satisfies {family} checksum; no repair needed"}
+        if body.get("expected_output_sha256") != match["output_sha256"]:
+            return 400, {"error": "repaired output SHA-256 changed; inspect the image again"}
+        repaired = ecu_image_checksums.REPAIRERS[family](image.data)
+        out_hash = hashlib.sha256(repaired).hexdigest()
+        if out_hash != match["output_sha256"]:
+            return 400, {"error": "repaired output verification failed"}
+        manifest = {
+            "schema": "guzzionboard.ecu-checksum-repair/v1",
+            "research_only": True,
+            "flash_ready": False,
+            "family": family,
+            "label": match["label"],
+            "tested": match["tested"],
+            "warning": f"Not flash-ready: {match['caveat']}",
+            "source": {
+                "path": image.path, "sha256": image.sha256,
+                "bytes": image.size, "is_base_map": is_base,
+            },
+            "byte_changes": match["byte_changes"],
+            "output_sha256": out_hash,
+            "upstream_source": match["source"],
+        }
+        directory = resources.data_root() / "research" / "ecu-checksum"
+        directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        stem = f"{family}-repaired-{out_hash[:12]}-{secrets.token_hex(8)}"
+        output = directory / (stem + ".bin")
+        report = directory / (stem + ".json")
+        created_output = created_report = False
+        try:
+            descriptor = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            created_output = True
+            with os.fdopen(descriptor, "wb") as f:
+                f.write(repaired)
+            descriptor = os.open(report, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            created_report = True
+            with os.fdopen(descriptor, "w", encoding="utf-8") as f:
+                json.dump(manifest, f, indent=2)
+                f.write("\n")
+        except OSError as exc:
+            if created_output:
+                output.unlink(missing_ok=True)
+            if created_report:
+                report.unlink(missing_ok=True)
+            return 400, {"error": str(exc)}
+        return 201, {"path": str(output), "manifest_path": str(report), "manifest": manifest}
+
     def get_gearing(self, query: dict) -> tuple[int, dict]:
         def number(name, default):
             try:
@@ -2680,6 +2789,7 @@ ROUTES_POST = {
     "/api/tools/klinelog": "post_tools_klinelog",
     "/api/tools/z2dif": "post_tools_z2dif",
     "/api/tools/rpmsignal": "post_tools_rpmsignal",
+    "/api/tools/ecu-checksum": "post_tools_ecu_checksum",
     "/api/sessions/compare": "post_sessions_compare",
     "/api/sim/engine": "post_sim_engine",
     "/api/sim/faults": "post_sim_faults",

@@ -5,9 +5,19 @@
   const select = $('sharedEcuFamily'), out = $('sharedEcuOut');
   let catalog = null, definitions = [];
   // Explicit mappings only: no substring matching or equivalence inference.
-  const xdfFamilies = { p8: ['P8'], '16m': ['16M'], '15m': ['15M'], '15rc': ['15RC'],
-    '5am': ['5AM'], '59m': ['59M'], '7sm': ['7SM'], miug3: ['MIUG3'],
-    honda_cb500_mgz_a03: ['CB500-MGZ-A03'], honda_cbr1000rr_2012_us: ['CBR1000RR-2012-US'] };
+  const xdfFamilies = {
+    p7: ['P7'], p8: ['P8'], '16m': ['16M'], '15m': ['15M'], '15p': ['15P'],
+    '15rc': ['15RC'], '5am': ['5AM'], '59m': ['59M'], '7sm': ['7SM'],
+    mbc1: ['MBC1'], miu1: ['MIU1'], miug3: ['MIUG3'],
+    honda_cb500_mgz_a03: ['CB500-MGZ-A03'],
+    honda_cbr1000rr_2012_us: ['CBR1000RR-2012-US'],
+    honda_cbr1000rr_mel: ['CBR1000RR-MEL'],
+    honda_cb500_mjw: ['CB500-MJW'],
+    honda_crf110f_kyk: ['CRF110F-KYK-D12'],
+    honda_msx125_k26_911: ['MSX125-K26-911'],
+    honda_msx125_k26_sf: ['MSX125-K26-B13', 'MSX125-K26-C31'],
+    honda_z125m_k0f: ['Z125M-K0F-A01'],
+  };
   function add(parent, tag, text) { const el = document.createElement(tag); el.textContent = text; parent.append(el); return el; }
   $('sharedEcuLoad').onclick = async () => {
     select.disabled = true; out.textContent = 'Loading catalog…';

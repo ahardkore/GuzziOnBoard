@@ -3359,7 +3359,7 @@ const mapChangeLocation = (change) => change.kind === 'table'
 function benchFamilies() {
   const family = (maps.vehicle?.ecu_family
     || state.status?.vehicle?.ecu?.family || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const tokens = family.match(/(CBR1000RR2012US|CB500MGZA03|MIUG3|MIU1|MBC1|5AM2|5AM|16M|15RC|15M|15P|59M|7SM|5SM|5DM|11MP|P7|P8)/g) || [];
+  const tokens = family.match(/(CBR1000RR2012US|CB500MGZA03|CBR1000RRMEL|CB500MJW|CRF110FKYKD12|MSX125K26911|MSX125K26B13|MSX125K26C31|Z125MK0FA01|MIUG3|MIU1|MBC1|5AM2|5AM|16M|15RC|15M|15P|59M|7SM|5SM|5DM|11MP|P7|P8)/g) || [];
   // "IAW 5AM / 5AM2" and "MIU G3" both have to land on the catalog's ids.
   return [...new Set(tokens.map((t) => (t === '5AM2' ? '5AM' : t)))];
 }
@@ -4982,6 +4982,7 @@ $('#mapResearchPreviewBtn').onclick = async () => {
       ${!isHostedDemo() && maps.buellHandoff?.isCurrent() && maps.buellHandoff.path === result.source.path && maps.buellHandoff.sha256 === result.source.sha256 && maps.buellHandoff.xdf === selectedXdf ? '<button class="btn danger" id="buellMapExportBtn">Save reviewed copy for Buell write review…</button><p class="small">No ECU is contacted. The subsequent review only accepts source-defined fuel/spark and axis bytes, not page zero.</p>' : ''}
       ${!isHostedDemo() && maps.rusefiHandoff?.isCurrent() && maps.rusefiHandoff.path === result.source.path && maps.rusefiHandoff.sha256 === result.source.sha256 ? '<button class="btn danger" id="rusefiMapExportBtn">Save reviewed copy for rusEFI write review…</button><p class="small">No ECU is contacted. The page and user-selected XDF are not verified for fitment.</p>' : ''}
       ${!isHostedDemo() && result.honda_checksum_candidates?.length ? `<div class="gate-card warn"><h4>Honda checksum candidates · research only</h4><p>Matching bytes are not ECU identification or fitment proof. Review the source, ID, layout, checksum location and output hash. Only the displayed whole-file byte sum will be adjusted; no ECU is contacted.</p>${result.honda_checksum_candidates.map((c, index) => `<p class="small"><b>${esc(c.part)}</b> · ID ${esc(c.ecm_id)} · Source ${esc(c.source)} · ID position 0x${c.id_offset.toString(16).toUpperCase()} (${esc(c.id_basis)}) · assumed start 0x${c.read_start.toString(16).toUpperCase()}<br>Checksum byte 0x${c.checksum_offset.toString(16).toUpperCase()}: ${c.before} → ${c.after}<br>Corrected SHA-256 <code>${esc(c.output_sha256)}</code>${c.conflict ? `<br><b>Source conflict:</b> ${esc(c.conflict)}` : ''}${c.commented ? '<br>Association is commented out in one source table.' : ''}<br><button class="btn danger" data-honda-checksum-export="${index}">Export corrected research copy…</button></p>`).join('')}</div>` : ''}
+      ${!isHostedDemo() && result.ecu_checksum_candidates?.length ? `<div class="gate-card warn"><h4>ECU image checksum candidates · research only</h4><p>The unedited source image matched a verified structural checksum layout. Review the family, tested models, checksum byte diffs, caveat and corrected SHA-256 before exporting a local copy.</p>${result.ecu_checksum_candidates.map((c, index) => `<p class="small"><b>${esc(c.label)}</b> (<code>${esc(c.family)}</code>) · Reference models: ${esc(c.tested)}<br>${c.byte_changes.length ? c.byte_changes.map((b) => `Offset <code>${esc(b.offset)}</code> (${b.length} B): <code>${esc(b.before_hex)}</code> → <code>${esc(b.after_hex)}</code>`).join(' · ') : 'Checksum already satisfied by edited bytes'}<br>Corrected SHA-256 <code>${esc(c.output_sha256)}</code><br><b>Caveat:</b> ${esc(c.caveat)}<br><button class="btn danger" data-ecu-checksum-export="${index}">Export corrected research copy…</button></p>`).join('')}</div>` : ''}
       ${!isHostedDemo() && [0x4000, 0x28000].includes(result.source.bytes)
         ? '<button class="btn danger" id="harleyResearchExportBtn">Export reviewed Delphi research copy…</button>' : ''}
       ${!isHostedDemo() ? `<div class="toolbar"><label class="inline">Editable file start <input id="researchRegionStart" size="12" placeholder="e.g. 0x4000"></label>
@@ -5049,6 +5050,28 @@ $('#mapResearchPreviewBtn').onclick = async () => {
           if (version !== researchPreviewVersion) return;
           out.insertAdjacentHTML('beforeend', `<div class="gate-card warn"><h4>Honda research copy saved · not flash-ready</h4><p class="small">Image: <code>${esc(saved.path)}</code><br>Manifest: <code>${esc(saved.manifest_path)}</code><br>SHA-256: <code>${esc(saved.manifest.output_sha256)}</code></p><p class="small">Only the selected checksum byte was adjusted; other checksums, fitment and signatures remain unverified. No ECU was contacted.</p></div>`);
         } catch (err) { if (version === researchPreviewVersion) toast(`Honda research export refused: ${err.message}`, 'bad'); }
+        finally { if (version === researchPreviewVersion) button.disabled = false; }
+      };
+    });
+    out.querySelectorAll('[data-ecu-checksum-export]').forEach((button) => {
+      button.onclick = async () => {
+        const candidate = result.ecu_checksum_candidates[Number(button.dataset.ecuChecksumExport)];
+        if (!candidate) return;
+        const accepted = await confirmDialog('Export ECU checksum research copy?',
+          `<p>For <b>${esc(candidate.label)}</b> (<code>${esc(candidate.family)}</code>), export the reviewed edits and update only its checksum field(s).<br><b>Caveat:</b> ${esc(candidate.caveat)}<br>This copy remains <b>research-only and not flash-ready</b>. The original file stays untouched and no ECU is contacted.</p>`,
+          'Export corrected research copy', { tone: 'danger' });
+        if (!accepted || version !== researchPreviewVersion || selectedXdf !== $('#xdfSelect').value) return;
+        button.disabled = true;
+        try {
+          const saved = await api('/api/maps/research-export', { method: 'POST', body: {
+            ...body, region_start: 0, region_end: result.source.bytes,
+            expected_candidate_sha256: result.candidate_sha256, accept_research_only: true,
+            ecu_checksum_family: candidate.family, confirm_ecu_checksum: true,
+            expected_checksum_output_sha256: candidate.output_sha256,
+          } });
+          if (version !== researchPreviewVersion) return;
+          out.insertAdjacentHTML('beforeend', `<div class="gate-card warn"><h4>ECU research copy saved · not flash-ready</h4><p class="small">Image: <code>${esc(saved.path)}</code><br>Manifest: <code>${esc(saved.manifest_path)}</code><br>SHA-256: <code>${esc(saved.manifest.output_sha256)}</code></p><p class="small">${esc(candidate.caveat)} No ECU was contacted.</p></div>`);
+        } catch (err) { if (version === researchPreviewVersion) toast(`ECU research export refused: ${err.message}`, 'bad'); }
         finally { if (version === researchPreviewVersion) button.disabled = false; }
       };
     });

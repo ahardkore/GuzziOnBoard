@@ -1697,6 +1697,7 @@
     '/api/tools/buell-ddfi': 'Buell DDFI tool',
     '/api/tools/rusefi-read': 'rusEFI read',
     '/api/tools/yamaha-mt03-listen': 'Yamaha MT-03 capture',
+    '/api/tools/ecu-checksum': 'ECU image checksum inspection and repair',
     /* Research exports write files next to the XDF library on disk. */
     '/api/maps/research-preview': 'Offline research export',
     '/api/maps/research-export': 'Offline research export',

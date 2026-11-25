@@ -1455,7 +1455,7 @@
     "source_url": "https://github.com/aeaphichart/HondaECU-1/blob/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CBR500R_MGZ_2013-2016/38770-MGZ.xdf",
     "brand": "honda",
     "family": "HONDA-RESEARCH",
-    "label": "Honda CBR500R MGZ 2013-2016 / 38770-MGZ (research only) \u00b7 default endian conflicts with A03",
+    "label": "Honda CBR500R MGZ 2013-2016 / 38770-MGZ (research only) · default endian conflicts with A03",
     "xdf_filename": "38770-MGZ.xdf",
     "vendor_path": "honda/38770-MGZ.xdf",
     "used_by": [
@@ -1575,13 +1575,13 @@
     "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
     "brand": "honda",
     "family": "CB500-MGZ-A03",
-    "label": "Honda CB500F / CBR500R 2013\u20132016 MGZ-A03 (scoped offline adaptation)",
+    "label": "Honda CB500F / CBR500R 2013–2016 MGZ-A03 (scoped offline adaptation)",
     "xdf_filename": "CB500_MGZ_A03_gob.xdf",
     "vendor_path": "honda/CB500_MGZ_A03_gob.xdf",
     "used_by": [
       {
         "brand": "honda",
-        "label": "CB500F / CBR500R 2013\u20132016, 38770-MGZ-A03 only"
+        "label": "CB500F / CBR500R 2013–2016, 38770-MGZ-A03 only"
       }
     ]
   },
@@ -1824,5 +1824,110 @@
       }
     ],
     "research_only": true
+  },
+  {
+    "zip_filename": "CBR1000RR_MEL_gob.xdf",
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+    "brand": "honda",
+    "family": "CBR1000RR-MEL",
+    "label": "Honda CBR1000RR 2006–2007 MEL (scoped offline adaptation)",
+    "xdf_filename": "CBR1000RR_MEL_gob.xdf",
+    "vendor_path": "honda/CBR1000RR_MEL_gob.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "CBR1000RR 2006–2007, 38770-MEL-A21/A22/D21/F21/L22"
+      }
+    ]
+  },
+  {
+    "zip_filename": "CB500_MJW_gob.xdf",
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+    "brand": "honda",
+    "family": "CB500-MJW",
+    "label": "Honda CB500F / CBR500R / CB500X 2017–2018 MJW (scoped offline adaptation)",
+    "xdf_filename": "CB500_MJW_gob.xdf",
+    "vendor_path": "honda/CB500_MJW_gob.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "CB500F / CBR500R / CB500X 2017–2018, 38770-MJW-AQ1/DR1"
+      }
+    ]
+  },
+  {
+    "zip_filename": "CRF110F_KYK_D12_gob.xdf",
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+    "brand": "honda",
+    "family": "CRF110F-KYK-D12",
+    "label": "Honda CRF110F 2019–2024 KYK-D12 (scoped offline adaptation)",
+    "xdf_filename": "CRF110F_KYK_D12_gob.xdf",
+    "vendor_path": "honda/CRF110F_KYK_D12_gob.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "CRF110F 2019–2024, 38770-KYK-D12"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MSX125_K26_911_gob.xdf",
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+    "brand": "honda",
+    "family": "MSX125-K26-911",
+    "label": "Honda MSX125 / Grom 2013–2015 K26-911/931 (scoped offline adaptation)",
+    "xdf_filename": "MSX125_K26_911_gob.xdf",
+    "vendor_path": "honda/MSX125_K26_911_gob.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "MSX125 / Grom 2013–2015, 38770-K26-911/931"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MSX125_K26_B13_gob.xdf",
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+    "brand": "honda",
+    "family": "MSX125-K26-B13",
+    "label": "Honda MSX125 / Grom SF 2016–2020 K26-B13 (scoped offline adaptation)",
+    "xdf_filename": "MSX125_K26_B13_gob.xdf",
+    "vendor_path": "honda/MSX125_K26_B13_gob.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "MSX125 / Grom SF 2016–2020, 38770-K26-B13"
+      }
+    ]
+  },
+  {
+    "zip_filename": "MSX125_K26_C31_gob.xdf",
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+    "brand": "honda",
+    "family": "MSX125-K26-C31",
+    "label": "Honda MSX125 / Grom SF 2016–2020 K26-C31 (scoped offline adaptation)",
+    "xdf_filename": "MSX125_K26_C31_gob.xdf",
+    "vendor_path": "honda/MSX125_K26_C31_gob.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "MSX125 / Grom SF 2016–2020, 38770-K26-C31"
+      }
+    ]
+  },
+  {
+    "zip_filename": "Z125M_K0F_A01_gob.xdf",
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+    "brand": "honda",
+    "family": "Z125M-K0F-A01",
+    "label": "Honda Monkey 125 / Z125M 2018–2021 K0F-A01 (scoped offline adaptation)",
+    "xdf_filename": "Z125M_K0F_A01_gob.xdf",
+    "vendor_path": "honda/Z125M_K0F_A01_gob.xdf",
+    "used_by": [
+      {
+        "brand": "honda",
+        "label": "Monkey 125 / Z125M 2018–2021, 38770-K0F-A01"
+      }
+    ]
   }
 ]

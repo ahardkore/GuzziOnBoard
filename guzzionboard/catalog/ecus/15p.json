@@ -1,0 +1,33 @@
+{
+  "id": "15p",
+  "family": "Magneti Marelli IAW 15P",
+  "display_name": "Magneti Marelli IAW 15P",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "2002-2011",
+  "notes": "Magneti Marelli IAW 15P K-Line ECU fitted to Moto Morini Corsaro 1200 / 9 1/2 / Scrambler / Granpasso / 1200 Sport and Piaggio X9 500 / Aprilia Atlantic 500 / Gilera Fuoco 500 / Nexus 500 / Malaguti Spidermax 500 MASTER-engine scooters. Offline XDF map inspection and tuning builds are supported; physical live sessions remain blocked pending a family-specific wire capture.",
+  "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "GuzziDiag / IAWDiag compatibility establishes K-Line support, but no primary IAW 15P diagnostic capture is bundled.",
+    "simulator_supported": false
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "image_size": null,
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No verified IAW 15P programming capture is bundled; physical memory access is blocked.",
+    "regions": {}
+  },
+  "capabilities": [],
+  "sources": [
+    "https://www.von-der-salierburg.de/download/GuzziDiag/ (PaulDaytona / GuzziDiag 15P Morini & Piaggio 500 XDF definitions)",
+    "GuzziDiag / IAWDiag supported ECU family documentation"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}

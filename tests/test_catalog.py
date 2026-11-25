@@ -220,7 +220,12 @@ def test_unknown_vehicle_raises_rather_than_guessing(catalog):
 
 
 def test_cross_brand_makes_are_present(catalog):
-    assert set(catalog.makes()) == {"Aprilia", "BMW Motorrad", "Ducati", "Harley-Davidson", "Honda", "Kawasaki", "Moto Guzzi", "Royal Enfield", "Suzuki", "Triumph", "Yamaha"}
+    assert set(catalog.makes()) == {
+        "Aprilia", "BMW Motorrad", "Ducati", "GasGas", "Gilera",
+        "Harley-Davidson", "Honda", "Husqvarna", "Kawasaki", "Malaguti",
+        "Moto Guzzi", "Moto Morini", "Piaggio", "Royal Enfield", "Scomadi",
+        "Suzuki", "Triumph", "Vespa", "Yamaha",
+    }
 
 
 def test_brand_year_model_selection_cascade(catalog):

@@ -176,8 +176,8 @@ test('the checksum workbench reports an image whose word does not add up', async
 test('the XDF library finder searches all bundled definitions by brand and field', async ({ page }) => {
   await page.locator('#xdfFindQuery').fill('injection');
   await page.locator('#xdfFindBtn').click();
-  await expect(page.locator('#xdfFindMeta')).toContainText('of 121 definition(s)');
-  await expect(page.locator('#xdfFindMeta')).toContainText('4,280 tables');
+  await expect(page.locator('#xdfFindMeta')).toContainText('of 128 definition(s)');
+  await expect(page.locator('#xdfFindMeta')).toContainText('4,430 tables');
   await expect(page.locator('#xdfFindOut .xdf-find-group').first()).toBeVisible();
   const groups = await page.locator('#xdfFindOut .xdf-find-group').count();
   expect(groups).toBeGreaterThan(3);

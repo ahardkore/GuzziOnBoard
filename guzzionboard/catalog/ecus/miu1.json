@@ -1,0 +1,33 @@
+{
+  "id": "miu1",
+  "family": "Magneti Marelli MIU1",
+  "display_name": "Magneti Marelli MIU1 / MIU G1 throttle-body ECU",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "2005-2020",
+  "notes": "First-generation Magneti Marelli integrated throttle-body ECU (MIU1 / 32M1) fitted to Piaggio Beverly / Carnaby / MP3 / X7 / X8 / X Evo, Vespa GTS / GTV / LX / S, Gilera Nexus / Runner, Aprilia RS4 125 / SX 125 / SR Max 300, and Scomadi TL200. Offline XDF map inspection and tuning builds are supported; physical sessions remain blocked pending a verified MIU1 wire capture.",
+  "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "No verified Magneti Marelli MIU1 diagnostic wire capture is bundled.",
+    "simulator_supported": false
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "image_size": null,
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No verified MIU1 programming capture is bundled; physical memory access is blocked.",
+    "regions": {}
+  },
+  "capabilities": [],
+  "sources": [
+    "https://www.von-der-salierburg.de/download/GuzziDiag/ (PaulDaytona / GuzziDiag MIU1_E3, MIU1_Aprilia_125, MIU1_Scomadi_200 XDF definitions)",
+    "GuzziDiag / MIU Reader supported ECU family notes"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}

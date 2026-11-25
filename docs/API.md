@@ -131,6 +131,7 @@ Each is gated by the safety layer described in
 | `POST /api/tools/klinelog` | `post_tools_klinelog` | Characterise a K-Line capture: which local identifiers answered?; answers `error` |
 | `POST /api/tools/z2dif` | `post_tools_z2dif` | Convert a Zeitronix ZT-2 (ZDL) CSV log to LogWorks DIF.; answers `error` |
 | `POST /api/tools/rpmsignal` | `post_tools_rpmsignal` | Render a bench RPM trigger signal to a WAV file.; answers `error`, `presets` |
+| `POST /api/tools/ecu-checksum` | `post_tools_ecu_checksum` | Inspect or opt-in repair 9 multi-brand ECU image checksum families on a local file; answers `error`, `matches`, `path`, `manifest` |
 | `POST /api/sessions/compare` | `post_sessions_compare` | answers `error` |
 | `POST /api/sim/engine` | `post_sim_engine` | answers `error` |
 | `POST /api/sim/faults` | `post_sim_faults` | answers `error` |

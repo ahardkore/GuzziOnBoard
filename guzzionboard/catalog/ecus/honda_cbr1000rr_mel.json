@@ -1,0 +1,34 @@
+{
+  "id": "honda_cbr1000rr_mel",
+  "family": "CBR1000RR-MEL",
+  "display_name": "Honda CBR1000RR 2006-2007 Keihin MEL (offline tuning only)",
+  "transport": "kline",
+  "confidence": "inferred",
+  "years": "2006-2007",
+  "notes": "HondaECU identifies 38770-MEL-A21/A22/D21/F21/L22 (256 KiB, checksum at 0x3FFF8) for CBR1000RR 2006–2007. Offline image build accepts only the pinned adapted XDF and exact stock calibration SHA-256 digests.",
+  "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+    "simulator_supported": false
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "Offline image editing does not implement ECU programming."
+  },
+  "capabilities": [],
+  "sources": [
+    "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+    "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+    "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+    "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+    "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}

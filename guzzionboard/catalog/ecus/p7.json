@@ -1,0 +1,33 @@
+{
+  "id": "p7",
+  "family": "Magneti Marelli P7",
+  "display_name": "Magneti Marelli Weber-Marelli IAW P7",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "1989-1993",
+  "notes": "Early Weber-Marelli IAW 04W / P7 EPROM ECU fitted to Moto Guzzi California III i.e. and 1000 S i.e. Offline XDF map inspection and tuning plan builds are supported against socketed EPROM images; no validated live diagnostic capture is bundled, so physical sessions remain blocked.",
+  "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "No Moto Guzzi Weber-Marelli IAW P7 wire capture or primary register definition is bundled.",
+    "simulator_supported": false
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "image_size": null,
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "IAW P7 maps reside on a socketed UV/flash EPROM; use an external EPROM programmer and preserve the original chip.",
+    "regions": {}
+  },
+  "capabilities": [],
+  "sources": [
+    "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/P7_04W_V1_0.xdf.zip (PaulDaytona / GuzziDiag P7_04W XDF definition)",
+    "GuzziTek ECU master list (2011)"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}

@@ -646,6 +646,21 @@
     };
   }
 
+  function effectiveStridesBits(embedded) {
+    var minor = embedded.minor_stride_bits;
+    var major = embedded.major_stride_bits;
+    if (embedded.rows === 1 && embedded.cols > 1 && minor === 0 && major > 0) {
+      minor = major;
+      major = 0;
+    } else if (embedded.cols === 1 && embedded.rows > 1 && major === 0 && minor > 0) {
+      major = minor;
+      minor = 0;
+    }
+    var effMinor = minor || embedded.size_bits;
+    var effMajor = major || (effMinor * embedded.cols);
+    return { major: effMajor, minor: effMinor };
+  }
+
   function validateEmbeddedLayout(embedded) {
     if (!Number.isSafeInteger(embedded.rows) || !Number.isSafeInteger(embedded.cols)
         || embedded.rows < 1 || embedded.cols < 1 || embedded.rows > 65536
@@ -658,7 +673,15 @@
         throw new Error('negative or non-byte-aligned embedded stride is not supported');
       }
     });
-    if (embedded.column_major && embedded.cols > 1 && (embedded.major_stride_bits || embedded.minor_stride_bits)) {
+    if (embedded.rows === 1 && embedded.cols > 1 && embedded.minor_stride_bits === 0
+        && embedded.major_stride_bits > 0 && embedded.major_stride_bits % 8) {
+      throw new Error('negative or non-byte-aligned embedded stride is not supported');
+    }
+    if (embedded.cols === 1 && embedded.rows > 1 && embedded.major_stride_bits === 0
+        && embedded.minor_stride_bits > 0 && embedded.minor_stride_bits % 8) {
+      throw new Error('negative or non-byte-aligned embedded stride is not supported');
+    }
+    if (embedded.column_major && embedded.cols > 1 && (embedded.major_stride_bits > 0 || embedded.minor_stride_bits)) {
       throw new Error('column-major embedded data with explicit strides is not supported');
     }
   }
@@ -668,9 +691,8 @@
     if (embedded.column_major && embedded.cols > 1) {
       return embedded.rows * embedded.cols * embedded.size_bits;
     }
-    var minor = embedded.minor_stride_bits || embedded.size_bits;
-    var major = embedded.major_stride_bits || (minor * embedded.cols);
-    return (embedded.rows - 1) * major + (embedded.cols - 1) * minor
+    var strides = effectiveStridesBits(embedded);
+    return (embedded.rows - 1) * strides.major + (embedded.cols - 1) * strides.minor
       + embedded.size_bits;
   }
 
@@ -678,9 +700,9 @@
     validateEmbeddedLayout(embedded);
     var size = embedded.size_bits / 8;
     var colMajor = embedded.column_major && embedded.cols > 1;
-    var minor = (embedded.minor_stride_bits || embedded.size_bits) / 8;
-    var major = embedded.major_stride_bits
-      ? embedded.major_stride_bits / 8 : minor * embedded.cols;
+    var strides = effectiveStridesBits(embedded);
+    var minor = strides.minor / 8;
+    var major = strides.major / 8;
     var out = [];
     for (var r = 0; r < embedded.rows; r++) {
       for (var c = 0; c < embedded.cols; c++) {
@@ -6848,7 +6870,7 @@
 
   /* Research *exports* write files beside the XDF library on disk, which
    * /api/maps/research-preview above deliberately does not do. */
-  ['/api/maps/research-export', '/api/maps/harley-research-export'].forEach(function (path) {
+  ['/api/maps/research-export', '/api/maps/harley-research-export', '/api/tools/ecu-checksum'].forEach(function (path) {
     D.register('POST', path, function () {
       throw httpError(501,
         'A research export writes files next to the XDF library on this '

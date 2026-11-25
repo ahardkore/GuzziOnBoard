@@ -15,11 +15,11 @@
     "applied": false,
     "status": {}
    },
-   "ecu_count": 50,
-   "vehicle_count": 555,
-   "model_count": 461,
+   "ecu_count": 60,
+   "vehicle_count": 637,
+   "model_count": 540,
    "year_range": [
-    1992,
+    1990,
     2026
    ],
    "ecus": [
@@ -90,6 +90,40 @@
      "session": {
       "physical_supported": false,
       "physical_blocked_reason": "Available compatibility records and closed binaries do not disclose a trustworthy family-specific diagnostic initialization or request definition."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "15p",
+     "family": "Magneti Marelli IAW 15P",
+     "display_name": "Magneti Marelli IAW 15P",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "2002-2011",
+     "notes": "Magneti Marelli IAW 15P K-Line ECU fitted to Moto Morini Corsaro 1200 / 9 1/2 / Scrambler / Granpasso / 1200 Sport and Piaggio X9 500 / Aprilia Atlantic 500 / Gilera Fuoco 500 / Nexus 500 / Malaguti Spidermax 500 MASTER-engine scooters. Offline XDF map inspection and tuning builds are supported; physical live sessions remain blocked pending a family-specific wire capture.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://www.von-der-salierburg.de/download/GuzziDiag/ (PaulDaytona / GuzziDiag 15P Morini & Piaggio 500 XDF definitions)",
+      "GuzziDiag / IAWDiag supported ECU family documentation"
+     ],
+     "memory": {
+      "image_size": null,
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "No verified IAW 15P programming capture is bundled; physical memory access is blocked.",
+      "regions": {}
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "offline-tuning-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "GuzziDiag / IAWDiag compatibility establishes K-Line support, but no primary IAW 15P diagnostic capture is bundled.",
+      "simulator_supported": false
      },
      "actuators": [],
      "routines": [],
@@ -1131,6 +1165,41 @@
      "field_confirmation": {}
     },
     {
+     "id": "honda_cb500_mjw",
+     "family": "CB500-MJW",
+     "display_name": "Honda CB500 / CBR500 2017-2018 Keihin MJW (offline tuning only)",
+     "transport": "kline",
+     "confidence": "inferred",
+     "years": "2017-2018",
+     "notes": "HondaECU identifies 38770-MJW-AQ1 and 38770-MJW-DR1 (256 KiB, checksum at 0x3FFF8) for CB500F / CBR500R / CB500X 2017–2018. Offline image build accepts only the pinned adapted XDF and exact AQ1/DR1 stock SHA-256 digests.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+      "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+      "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+      "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+      "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Offline image editing does not implement ECU programming."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "offline-tuning-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+      "simulator_supported": false
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "honda_cb500f_dashble",
      "family": "Honda CB500F DashBle table 11 (year unspecified)",
      "display_name": "Honda CB500F DashBle (ECU-only, read-only K-Line)",
@@ -1239,6 +1308,41 @@
      "field_confirmation": {}
     },
     {
+     "id": "honda_cbr1000rr_mel",
+     "family": "CBR1000RR-MEL",
+     "display_name": "Honda CBR1000RR 2006-2007 Keihin MEL (offline tuning only)",
+     "transport": "kline",
+     "confidence": "inferred",
+     "years": "2006-2007",
+     "notes": "HondaECU identifies 38770-MEL-A21/A22/D21/F21/L22 (256 KiB, checksum at 0x3FFF8) for CBR1000RR 2006–2007. Offline image build accepts only the pinned adapted XDF and exact stock calibration SHA-256 digests.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+      "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+      "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+      "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+      "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Offline image editing does not implement ECU programming."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "offline-tuning-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+      "simulator_supported": false
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "honda_cbr600rr_2005",
      "family": "2005 Honda CBR600RR (source-reported)",
      "display_name": "Honda CBR600RR 2005 (read-only K-Line)",
@@ -1285,6 +1389,41 @@
      "field_confirmation": {}
     },
     {
+     "id": "honda_crf110f_kyk",
+     "family": "CRF110F-KYK-D12",
+     "display_name": "Honda CRF110F Keihin KYK-D12 (offline tuning only)",
+     "transport": "kline",
+     "confidence": "inferred",
+     "years": "2019-2024",
+     "notes": "HondaECU identifies 38770-KYK-D12 (64 KiB M16C calibration read, checksum at 0x0000) for CRF110F 2019+. Offline image build accepts only the pinned adapted XDF and exact KYK-D12 stock SHA-256 digest.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+      "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+      "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+      "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+      "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Offline image editing does not implement ECU programming."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "offline-tuning-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+      "simulator_supported": false
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "honda_ctx700_minidash",
      "family": "Honda CTX700 K-Line (source-reported)",
      "display_name": "Honda CTX700 (read-only minidash tables)",
@@ -1322,6 +1461,76 @@
       "simulator_supported": false,
       "tester_present_interval": 2.0,
       "physical_evidence_note": "Minidash describes CTX700 use; year and ECU are unspecified. This adaptation is synthetic-tested only."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "honda_msx125_k26_911",
+     "family": "MSX125-K26-911",
+     "display_name": "Honda MSX125 / Grom 2013-2015 Keihin K26-911/931 (offline tuning only)",
+     "transport": "kline",
+     "confidence": "inferred",
+     "years": "2013-2015",
+     "notes": "HondaECU identifies 38770-K26-911 and 38770-K26-931 (48 KiB M16C calibration read, checksum at 0x0000) for first-generation MSX125 / Grom. Offline image build accepts only the pinned adapted XDF and exact 911/931 stock SHA-256 digests.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+      "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+      "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+      "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+      "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Offline image editing does not implement ECU programming."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "offline-tuning-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+      "simulator_supported": false
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "honda_msx125_k26_sf",
+     "family": "MSX125-K26-B13 / MSX125-K26-C31",
+     "display_name": "Honda MSX125 / Grom SF 2016-2020 Keihin K26-B13/C31 (offline tuning only)",
+     "transport": "kline",
+     "confidence": "inferred",
+     "years": "2016-2020",
+     "notes": "HondaECU identifies 38770-K26-B13 and 38770-K26-C31 (64 KiB M16C calibration read, checksum at 0x0000) for MSX125 / Grom SF. Offline image build accepts only the matching pinned adapted B13 or C31 XDF and exact stock SHA-256 digest.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+      "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+      "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+      "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+      "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Offline image editing does not implement ECU programming."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "offline-tuning-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+      "simulator_supported": false
      },
      "actuators": [],
      "routines": [],
@@ -1452,6 +1661,41 @@
       "simulator_supported": false,
       "tester_present_interval": 2.0,
       "physical_evidence_note": "Sources list PGM-FI models or relevant K-Line ECU examples; Dynojet lists CRF110F for its tool. This separate integration has synthetic tests only; model-specific compatibility is not physically verified."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "honda_z125m_k0f",
+     "family": "Z125M-K0F-A01",
+     "display_name": "Honda Monkey 125 / Z125M Keihin K0F-A01 (offline tuning only)",
+     "transport": "kline",
+     "confidence": "inferred",
+     "years": "2018-2021",
+     "notes": "HondaECU identifies 38770-K0F-A01 (96 KiB M16C calibration read, checksum at 0x0000) for Monkey 125 / Z125M. Offline image build accepts only the pinned adapted XDF and exact K0F-A01 stock SHA-256 digest.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+      "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+      "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+      "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+      "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
+     ],
+     "memory": {
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "Offline image editing does not implement ECU programming."
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "offline-tuning-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+      "simulator_supported": false
      },
      "actuators": [],
      "routines": [],
@@ -1919,6 +2163,74 @@
      "field_confirmation": {}
     },
     {
+     "id": "mbc1",
+     "family": "Magneti Marelli MBC1",
+     "display_name": "Magneti Marelli MBC1 (rotary / trial)",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "2002-2009",
+     "notes": "Compact Magneti Marelli MBC1 fuel-injection / ignition unit fitted to GasGas FSE 400 / FSE 450 / Pampera 450 and Husqvarna TE / TC / SMR four-strokes. Offline XDF map inspection and tuning builds are supported; physical sessions remain blocked pending a verified wire capture.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_205_V0.2.zip (PaulDaytona / GuzziDiag MBC1 XDF definitions)",
+      "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_209_V0.2.zip (PaulDaytona / GuzziDiag MBC1_209 XDF definition)"
+     ],
+     "memory": {
+      "image_size": null,
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "No verified MBC1 programming protocol capture is bundled; physical memory access is blocked.",
+      "regions": {}
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "offline-tuning-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "No verified Magneti Marelli MBC1 diagnostic wire capture is bundled.",
+      "simulator_supported": false
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "miu1",
+     "family": "Magneti Marelli MIU1",
+     "display_name": "Magneti Marelli MIU1 / MIU G1 throttle-body ECU",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "2005-2020",
+     "notes": "First-generation Magneti Marelli integrated throttle-body ECU (MIU1 / 32M1) fitted to Piaggio Beverly / Carnaby / MP3 / X7 / X8 / X Evo, Vespa GTS / GTV / LX / S, Gilera Nexus / Runner, Aprilia RS4 125 / SX 125 / SR Max 300, and Scomadi TL200. Offline XDF map inspection and tuning builds are supported; physical sessions remain blocked pending a verified MIU1 wire capture.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://www.von-der-salierburg.de/download/GuzziDiag/ (PaulDaytona / GuzziDiag MIU1_E3, MIU1_Aprilia_125, MIU1_Scomadi_200 XDF definitions)",
+      "GuzziDiag / MIU Reader supported ECU family notes"
+     ],
+     "memory": {
+      "image_size": null,
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "No verified MIU1 programming capture is bundled; physical memory access is blocked.",
+      "regions": {}
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "offline-tuning-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "No verified Magneti Marelli MIU1 diagnostic wire capture is bundled.",
+      "simulator_supported": false
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
      "id": "miug3",
      "family": "Marelli MIU G3",
      "display_name": "Magneti Marelli MIU G3",
@@ -2004,6 +2316,40 @@
       "note": "ISO-TP physical transport alone does not establish UDS/KWP services or identifiers.",
       "physical_supported": false,
       "physical_blocked_reason": "ISO-TP transport, CAN identifiers, addressing, and diagnostic application payloads remain unvalidated."
+     },
+     "actuators": [],
+     "routines": [],
+     "capability_confidence": {},
+     "field_confirmation": {}
+    },
+    {
+     "id": "p7",
+     "family": "Magneti Marelli P7",
+     "display_name": "Magneti Marelli Weber-Marelli IAW P7",
+     "transport": "kline",
+     "confidence": "unknown",
+     "years": "1989-1993",
+     "notes": "Early Weber-Marelli IAW 04W / P7 EPROM ECU fitted to Moto Guzzi California III i.e. and 1000 S i.e. Offline XDF map inspection and tuning plan builds are supported against socketed EPROM images; no validated live diagnostic capture is bundled, so physical sessions remain blocked.",
+     "capabilities": [],
+     "effective_capabilities": [],
+     "sources": [
+      "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/P7_04W_V1_0.xdf.zip (PaulDaytona / GuzziDiag P7_04W XDF definition)",
+      "GuzziTek ECU master list (2011)"
+     ],
+     "memory": {
+      "image_size": null,
+      "read_supported": false,
+      "write_supported": false,
+      "write_blocked_reason": "IAW P7 maps reside on a socketed UV/flash EPROM; use an external EPROM programmer and preserve the original chip.",
+      "regions": {}
+     },
+     "kline": {},
+     "can": {},
+     "session": {
+      "protocol": "offline-tuning-only",
+      "physical_supported": false,
+      "physical_blocked_reason": "No Moto Guzzi Weber-Marelli IAW P7 wire capture or primary register definition is bundled.",
+      "simulator_supported": false
      },
      "actuators": [],
      "routines": [],
@@ -2576,16 +2922,60 @@
    "Aprilia",
    "BMW Motorrad",
    "Ducati",
+   "GasGas",
+   "Gilera",
    "Harley-Davidson",
    "Honda",
+   "Husqvarna",
    "Kawasaki",
+   "Malaguti",
    "Moto Guzzi",
+   "Moto Morini",
+   "Piaggio",
    "Royal Enfield",
+   "Scomadi",
    "Suzuki",
    "Triumph",
+   "Vespa",
    "Yamaha"
   ],
   "models": [
+   {
+    "model": "1000 S i.e.",
+    "variants": [
+     {
+      "make": "Moto Guzzi",
+      "model": "1000 S i.e.",
+      "year_from": 1990,
+      "year_to": 1993,
+      "ecu": "p7",
+      "displacement": "",
+      "tps": "",
+      "notes": "Weber-Marelli IAW 04W / P7 EPROM injection.",
+      "confidence": "inferred",
+      "label": "1000 S i.e. (1990-1993)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "1000 SS",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "1000 SS",
+      "year_from": 2003,
+      "year_to": 2006,
+      "ecu": "59m",
+      "displacement": "",
+      "tps": "",
+      "notes": "Supersport 1000 DS (IAW 59M).",
+      "confidence": "inferred",
+      "label": "1000 SS (2003-2006)",
+      "can": {}
+     }
+    ]
+   },
    {
     "model": "1200 Sport",
     "variants": [
@@ -2600,6 +2990,19 @@
       "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
       "confidence": "documented",
       "label": "1200 Sport (2006-2013)",
+      "can": {}
+     },
+     {
+      "make": "Moto Morini",
+      "model": "1200 Sport",
+      "year_from": 2008,
+      "year_to": 2012,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 5AM.",
+      "confidence": "inferred",
+      "label": "1200 Sport (2008-2012)",
       "can": {}
      }
     ]
@@ -2659,6 +3062,24 @@
     ]
    },
    {
+    "model": "749 (IAW 5AM)",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "749 (IAW 5AM)",
+      "year_from": 2005,
+      "year_to": 2006,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Facelift 749 / 749S with Marelli IAW 5AM.",
+      "confidence": "inferred",
+      "label": "749 (IAW 5AM) (2005-2006)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "750 SS",
     "variants": [
      {
@@ -2690,6 +3111,24 @@
       "notes": "Later 888s (from chassis s/n 000509) carry the P8, like the Guzzi Daytona 1000. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "888 (1993-1994)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "9 1/2",
+    "variants": [
+     {
+      "make": "Moto Morini",
+      "model": "9 1/2",
+      "year_from": 2006,
+      "year_to": 2011,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 5AM.",
+      "confidence": "inferred",
+      "label": "9 1/2 (2006-2011)",
       "can": {}
      }
     ]
@@ -2744,6 +3183,24 @@
     ]
    },
    {
+    "model": "946 125 3V",
+    "variants": [
+     {
+      "make": "Vespa",
+      "model": "946 125 3V",
+      "year_from": 2013,
+      "year_to": 2017,
+      "ecu": "miug3",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU G3.",
+      "confidence": "inferred",
+      "label": "946 125 3V (2013-2017)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "996",
     "variants": [
      {
@@ -2793,6 +3250,24 @@
       "notes": "999 / 999S (2003-2005 shape). ECU family newly modelled here - fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "999 (2003-2006)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "999 (IAW 5AM)",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "999 (IAW 5AM)",
+      "year_from": 2005,
+      "year_to": 2006,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Facelift 999 with Marelli IAW 5AM.",
+      "confidence": "inferred",
+      "label": "999 (IAW 5AM) (2005-2006)",
       "can": {}
      }
     ]
@@ -2883,6 +3358,24 @@
     ]
    },
    {
+    "model": "Atlantic 500",
+    "variants": [
+     {
+      "make": "Aprilia",
+      "model": "Atlantic 500",
+      "year_from": 2002,
+      "year_to": 2008,
+      "ecu": "15p",
+      "displacement": "",
+      "tps": "",
+      "notes": "Piaggio MASTER 500 with Marelli IAW 15P.",
+      "confidence": "unknown",
+      "label": "Atlantic 500 (2002-2008)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Audace 1400",
     "variants": [
      {
@@ -2968,6 +3461,60 @@
       "notes": "Target throttle 3.2-3.6 degrees. Never reset the Bellagio TPS electronically.",
       "confidence": "documented",
       "label": "Bellagio 940 (2007-2013)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Beverly 250 / 300 / 400 (MIU1)",
+    "variants": [
+     {
+      "make": "Piaggio",
+      "model": "Beverly 250 / 300 / 400 (MIU1)",
+      "year_from": 2006,
+      "year_to": 2014,
+      "ecu": "miu1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU1 E3.",
+      "confidence": "unknown",
+      "label": "Beverly 250 / 300 / 400 (MIU1) (2006-2014)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Beverly 300 / 350 (MIU G3)",
+    "variants": [
+     {
+      "make": "Piaggio",
+      "model": "Beverly 300 / 350 (MIU G3)",
+      "year_from": 2011,
+      "year_to": 2020,
+      "ecu": "miug3",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU G3 (MIUG3_Piaggio_V1.2.xdf).",
+      "confidence": "inferred",
+      "label": "Beverly 300 / 350 (MIU G3) (2011-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Beverly 500",
+    "variants": [
+     {
+      "make": "Piaggio",
+      "model": "Beverly 500",
+      "year_from": 2002,
+      "year_to": 2008,
+      "ecu": "15p",
+      "displacement": "",
+      "tps": "",
+      "notes": "MASTER 500 engine with Marelli IAW 15P.",
+      "confidence": "unknown",
+      "label": "Beverly 500 (2002-2008)",
       "can": {}
      }
     ]
@@ -3076,6 +3623,42 @@
       "notes": "CARC frame. Target throttle 4.6-4.8 degrees. PF1C/PF2C bodies support the electronic TPS reset.",
       "confidence": "documented",
       "label": "Breva 850 (2006-2011)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "C 600 Sport",
+    "variants": [
+     {
+      "make": "BMW Motorrad",
+      "model": "C 600 Sport",
+      "year_from": 2012,
+      "year_to": 2015,
+      "ecu": "7sm",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 7SM (7SM_BMW_C600_C650_V1.xdf).",
+      "confidence": "inferred",
+      "label": "C 600 Sport (2012-2015)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "C 650 GT",
+    "variants": [
+     {
+      "make": "BMW Motorrad",
+      "model": "C 650 GT",
+      "year_from": 2012,
+      "year_to": 2015,
+      "ecu": "7sm",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 7SM (7SM_BMW_C600_C650_V1.xdf).",
+      "confidence": "inferred",
+      "label": "C 650 GT (2012-2015)",
       "can": {}
      }
     ]
@@ -3251,6 +3834,24 @@
     ]
    },
    {
+    "model": "CB500F (MJW)",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "CB500F (MJW)",
+      "year_from": 2017,
+      "year_to": 2018,
+      "ecu": "honda_cb500_mjw",
+      "displacement": "",
+      "tps": "",
+      "notes": "Offline map editing for pinned 38770-MJW-AQ1/DR1 calibrations.",
+      "confidence": "inferred",
+      "label": "CB500F (MJW) (2017-2018)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "CB500X",
     "variants": [
      {
@@ -3264,6 +3865,24 @@
       "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming.",
       "confidence": "unknown",
       "label": "CB500X (2016-2018)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "CB500X (MJW)",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "CB500X (MJW)",
+      "year_from": 2017,
+      "year_to": 2018,
+      "ecu": "honda_cb500_mjw",
+      "displacement": "",
+      "tps": "",
+      "notes": "Offline map editing for pinned 38770-MJW-AQ1/DR1 calibrations.",
+      "confidence": "inferred",
+      "label": "CB500X (MJW) (2017-2018)",
       "can": {}
      }
     ]
@@ -3519,6 +4138,24 @@
     ]
    },
    {
+    "model": "CBR1000RR (MEL)",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "CBR1000RR (MEL)",
+      "year_from": 2006,
+      "year_to": 2007,
+      "ecu": "honda_cbr1000rr_mel",
+      "displacement": "",
+      "tps": "",
+      "notes": "Offline map editing for pinned 38770-MEL-A21/A22/D21/F21/L22 calibrations.",
+      "confidence": "inferred",
+      "label": "CBR1000RR (MEL) (2006-2007)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "CBR1000RR (US)",
     "variants": [
      {
@@ -3751,6 +4388,24 @@
       "notes": "MCU Innovations lists this model/year for Honda Keihin K-Line PGM-FI. This is a source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. No memory reading or programming.",
       "confidence": "unknown",
       "label": "CBR500R (2017-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "CBR500R (MJW)",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "CBR500R (MJW)",
+      "year_from": 2017,
+      "year_to": 2018,
+      "ecu": "honda_cb500_mjw",
+      "displacement": "",
+      "tps": "",
+      "notes": "Offline map editing for pinned 38770-MJW-AQ1/DR1 calibrations.",
+      "confidence": "inferred",
+      "label": "CBR500R (MJW) (2017-2018)",
       "can": {}
      }
     ]
@@ -4022,6 +4677,24 @@
       "notes": "HondaECU-1 lists a 2019 CRF110F K-Line ECU; Dynojet lists CRF110F 2019–2024 for its Power Vision. This is not confirmation that this separate implementation works on every ECU. Synthetic tests only; read-only attempt, no memory or programming.",
       "confidence": "unknown",
       "label": "CRF110F (2019-2024)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "CRF110F (KYK-D12)",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "CRF110F (KYK-D12)",
+      "year_from": 2019,
+      "year_to": 2024,
+      "ecu": "honda_crf110f_kyk",
+      "displacement": "",
+      "tps": "",
+      "notes": "Offline map editing for pinned 38770-KYK-D12 calibration.",
+      "confidence": "inferred",
+      "label": "CRF110F (KYK-D12) (2019-2024)",
       "can": {}
      }
     ]
@@ -4410,6 +5083,19 @@
       "confidence": "inferred",
       "label": "California III i.e. (1993-1997)",
       "can": {}
+     },
+     {
+      "make": "Moto Guzzi",
+      "model": "California III i.e.",
+      "year_from": 1990,
+      "year_to": 1992,
+      "ecu": "p7",
+      "displacement": "",
+      "tps": "",
+      "notes": "Weber-Marelli IAW 04W / P7 EPROM injection.",
+      "confidence": "inferred",
+      "label": "California III i.e. (1990-1992)",
+      "can": {}
      }
     ]
    },
@@ -4566,6 +5252,42 @@
     ]
    },
    {
+    "model": "Caponord 1200",
+    "variants": [
+     {
+      "make": "Aprilia",
+      "model": "Caponord 1200",
+      "year_from": 2013,
+      "year_to": 2017,
+      "ecu": "7sm",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 7SM.",
+      "confidence": "inferred",
+      "label": "Caponord 1200 (2013-2017)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Carnaby 250 / 300",
+    "variants": [
+     {
+      "make": "Piaggio",
+      "model": "Carnaby 250 / 300",
+      "year_from": 2008,
+      "year_to": 2012,
+      "ecu": "miu1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU1 E3.",
+      "confidence": "unknown",
+      "label": "Carnaby 250 / 300 (2008-2012)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Continental GT 650",
     "variants": [
      {
@@ -4579,6 +5301,42 @@
       "notes": "RoyalEnfieldObd (MIT) documents standard OBD-II CAN polling (PIDs 0x0C/0x0D/0x11/0x0B/0x0F/0x5C/0x04) on one Interceptor 650; one bike's reading list is not a fitment claim for other years or markets. Read-only standard OBD only; no memory, clears or programming.",
       "confidence": "unknown",
       "label": "Continental GT 650 (2018-2026)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Corsaro 1200",
+    "variants": [
+     {
+      "make": "Moto Morini",
+      "model": "Corsaro 1200",
+      "year_from": 2005,
+      "year_to": 2017,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Bialbero CorsaCorta 1200 with Marelli IAW 5AM (early cars also saw IAW 15P).",
+      "confidence": "inferred",
+      "label": "Corsaro 1200 (2005-2017)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Corsaro 1200 (IAW 15P)",
+    "variants": [
+     {
+      "make": "Moto Morini",
+      "model": "Corsaro 1200 (IAW 15P)",
+      "year_from": 2005,
+      "year_to": 2010,
+      "ecu": "15p",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 15P calibration variant (15P_Morini_V1.xdf).",
+      "confidence": "unknown",
+      "label": "Corsaro 1200 (IAW 15P) (2005-2010)",
       "can": {}
      }
     ]
@@ -4651,6 +5409,24 @@
       "notes": "TPS is set mechanically with a voltmeter - no electronic reset.",
       "confidence": "documented",
       "label": "Daytona RS (1996-2001)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Dorsoduro 1200",
+    "variants": [
+     {
+      "make": "Aprilia",
+      "model": "Dorsoduro 1200",
+      "year_from": 2011,
+      "year_to": 2016,
+      "ecu": "7sm",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 7SM.",
+      "confidence": "inferred",
+      "label": "Dorsoduro 1200 (2011-2016)",
       "can": {}
      }
     ]
@@ -6611,6 +7387,42 @@
     ]
    },
    {
+    "model": "FSE 400 / 450",
+    "variants": [
+     {
+      "make": "GasGas",
+      "model": "FSE 400 / 450",
+      "year_from": 2002,
+      "year_to": 2007,
+      "ecu": "mbc1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MBC1 (MBC1_205_V0.2.xdf / MBC1_209_V0.2.xdf).",
+      "confidence": "unknown",
+      "label": "FSE 400 / 450 (2002-2007)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "FSR 450 / EC 450",
+    "variants": [
+     {
+      "make": "GasGas",
+      "model": "FSR 450 / EC 450",
+      "year_from": 2007,
+      "year_to": 2009,
+      "ecu": "mbc1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MBC1.",
+      "confidence": "unknown",
+      "label": "FSR 450 / EC 450 (2007-2009)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "FXBB Street Bob 107",
     "variants": [
      {
@@ -7610,6 +8422,42 @@
     ]
    },
    {
+    "model": "Fly / Liberty 125-150 3V",
+    "variants": [
+     {
+      "make": "Piaggio",
+      "model": "Fly / Liberty 125-150 3V",
+      "year_from": 2012,
+      "year_to": 2017,
+      "ecu": "miug3",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU G3.",
+      "confidence": "inferred",
+      "label": "Fly / Liberty 125-150 3V (2012-2017)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Fuoco 500",
+    "variants": [
+     {
+      "make": "Gilera",
+      "model": "Fuoco 500",
+      "year_from": 2007,
+      "year_to": 2013,
+      "ecu": "15p",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 15P.",
+      "confidence": "unknown",
+      "label": "Fuoco 500 (2007-2013)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "G 310 R",
     "variants": [
      {
@@ -7641,6 +8489,24 @@
       "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming.",
       "confidence": "unknown",
       "label": "GL1800 (2015-2015)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "GP 800",
+    "variants": [
+     {
+      "make": "Gilera",
+      "model": "GP 800",
+      "year_from": 2007,
+      "year_to": 2014,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 5AM (850 V-twin maxi-scooter).",
+      "confidence": "inferred",
+      "label": "GP 800 (2007-2014)",
       "can": {}
      }
     ]
@@ -7852,12 +8718,66 @@
       "model": "GT 1000",
       "year_from": 2006,
       "year_to": 2009,
-      "ecu": "59m",
+      "ecu": "5am",
       "displacement": "992",
       "tps": "",
       "notes": "SportClassic GT 1000 Touring. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "GT 1000 (2006-2009)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "GTS 250 / 300 (MIU1)",
+    "variants": [
+     {
+      "make": "Vespa",
+      "model": "GTS 250 / 300 (MIU1)",
+      "year_from": 2005,
+      "year_to": 2014,
+      "ecu": "miu1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU1 E3.",
+      "confidence": "unknown",
+      "label": "GTS 250 / 300 (MIU1) (2005-2014)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "GTS 300 (MIU G3)",
+    "variants": [
+     {
+      "make": "Vespa",
+      "model": "GTS 300 (MIU G3)",
+      "year_from": 2012,
+      "year_to": 2020,
+      "ecu": "miug3",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU G3 (MIUG3_Piaggio_V1.2.xdf).",
+      "confidence": "inferred",
+      "label": "GTS 300 (MIU G3) (2012-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "GTV 250 / 300",
+    "variants": [
+     {
+      "make": "Vespa",
+      "model": "GTV 250 / 300",
+      "year_from": 2006,
+      "year_to": 2013,
+      "ecu": "miu1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU1 E3.",
+      "confidence": "unknown",
+      "label": "GTV 250 / 300 (2006-2013)",
       "can": {}
      }
     ]
@@ -7876,6 +8796,24 @@
       "notes": "Honda FI diagnostic product lists this model/year; this is not confirmation of this integration or every table. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning.",
       "confidence": "unknown",
       "label": "Goldwing 1800 (2005-2008)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Granpasso 1200",
+    "variants": [
+     {
+      "make": "Moto Morini",
+      "model": "Granpasso 1200",
+      "year_from": 2008,
+      "year_to": 2016,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 5AM.",
+      "confidence": "inferred",
+      "label": "Granpasso 1200 (2008-2016)",
       "can": {}
      }
     ]
@@ -7966,6 +8904,24 @@
       "notes": "Hypermotard 1100 / 1100 S / SP. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "Hypermotard 1100 (2007-2012)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Hypermotard 796",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Hypermotard 796",
+      "year_from": 2010,
+      "year_to": 2012,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Hypermotard 796 (IAW 5AM / Siemens transitions; XDF covers 5AM).",
+      "confidence": "inferred",
+      "label": "Hypermotard 796 (2010-2012)",
       "can": {}
      }
     ]
@@ -8115,6 +9071,24 @@
     ]
    },
    {
+    "model": "LX / S 125-150 i.e.",
+    "variants": [
+     {
+      "make": "Vespa",
+      "model": "LX / S 125-150 i.e.",
+      "year_from": 2009,
+      "year_to": 2014,
+      "ecu": "miu1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU1 E3.",
+      "confidence": "unknown",
+      "label": "LX / S 125-150 i.e. (2009-2014)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "MGX-21",
     "variants": [
      {
@@ -8128,6 +9102,42 @@
       "notes": "Ride-by-wire. Handle self-learning must be followed immediately by throttle self-learning. No CO trim.",
       "confidence": "documented",
       "label": "MGX-21 (2016-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "MP3 250 / 300 / 400 (MIU1)",
+    "variants": [
+     {
+      "make": "Piaggio",
+      "model": "MP3 250 / 300 / 400 (MIU1)",
+      "year_from": 2006,
+      "year_to": 2014,
+      "ecu": "miu1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU1 E3.",
+      "confidence": "unknown",
+      "label": "MP3 250 / 300 / 400 (MIU1) (2006-2014)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "MP3 300 / 500 (MIU G3)",
+    "variants": [
+     {
+      "make": "Piaggio",
+      "model": "MP3 300 / 500 (MIU G3)",
+      "year_from": 2011,
+      "year_to": 2020,
+      "ecu": "miug3",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU G3.",
+      "confidence": "inferred",
+      "label": "MP3 300 / 500 (MIU G3) (2011-2020)",
       "can": {}
      }
     ]
@@ -8159,6 +9169,42 @@
       "notes": "HondaECU-1 lists this ECU/model/year in its checksum table and describes K-Line access; this is not confirmation that these fixed diagnostic tables work. Synthetic tests only; read-only attempt, no memory or programming.",
       "confidence": "unknown",
       "label": "MSX125 (2017-2017)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "MSX125 / Grom (K26-911)",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "MSX125 / Grom (K26-911)",
+      "year_from": 2013,
+      "year_to": 2015,
+      "ecu": "honda_msx125_k26_911",
+      "displacement": "",
+      "tps": "",
+      "notes": "Offline map editing for pinned 38770-K26-911/931 calibrations.",
+      "confidence": "inferred",
+      "label": "MSX125 / Grom (K26-911) (2013-2015)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "MSX125 / Grom SF (K26-B13/C31)",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "MSX125 / Grom SF (K26-B13/C31)",
+      "year_from": 2016,
+      "year_to": 2020,
+      "ecu": "honda_msx125_k26_sf",
+      "displacement": "",
+      "tps": "",
+      "notes": "Offline map editing for pinned 38770-K26-B13 and 38770-K26-C31 calibrations.",
+      "confidence": "inferred",
+      "label": "MSX125 / Grom SF (K26-B13/C31) (2016-2020)",
       "can": {}
      }
     ]
@@ -8357,6 +9403,42 @@
     ]
    },
    {
+    "model": "Monkey 125 / Z125M (K0F-A01)",
+    "variants": [
+     {
+      "make": "Honda",
+      "model": "Monkey 125 / Z125M (K0F-A01)",
+      "year_from": 2018,
+      "year_to": 2021,
+      "ecu": "honda_z125m_k0f",
+      "displacement": "",
+      "tps": "",
+      "notes": "Offline map editing for pinned 38770-K0F-A01 calibration.",
+      "confidence": "inferred",
+      "label": "Monkey 125 / Z125M (K0F-A01) (2018-2021)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Monster 1000",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Monster 1000",
+      "year_from": 2003,
+      "year_to": 2005,
+      "ecu": "59m",
+      "displacement": "",
+      "tps": "",
+      "notes": "Monster 1000 i.e. Dual Spark (IAW 59M).",
+      "confidence": "inferred",
+      "label": "Monster 1000 (2003-2005)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Monster 1000 S",
     "variants": [
      {
@@ -8375,6 +9457,42 @@
     ]
    },
    {
+    "model": "Monster 400",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Monster 400",
+      "year_from": 2004,
+      "year_to": 2008,
+      "ecu": "59m",
+      "displacement": "",
+      "tps": "",
+      "notes": "Injected Monster 400 i.e. (IAW 59M).",
+      "confidence": "inferred",
+      "label": "Monster 400 (2004-2008)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Monster 600",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Monster 600",
+      "year_from": 2001,
+      "year_to": 2002,
+      "ecu": "59m",
+      "displacement": "",
+      "tps": "",
+      "notes": "Monster 600 i.e. (IAW 59M).",
+      "confidence": "inferred",
+      "label": "Monster 600 (2001-2002)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Monster 620",
     "variants": [
      {
@@ -8388,6 +9506,42 @@
       "notes": "Injected air-cooled Monsters of this era all carry the 59M. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Monster 620 (2002-2006)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Monster 695",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Monster 695",
+      "year_from": 2006,
+      "year_to": 2008,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Monster 695 (IAW 5AM).",
+      "confidence": "inferred",
+      "label": "Monster 695 (2006-2008)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Monster 750",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Monster 750",
+      "year_from": 2002,
+      "year_to": 2002,
+      "ecu": "59m",
+      "displacement": "",
+      "tps": "",
+      "notes": "Monster 750 i.e. (IAW 59M).",
+      "confidence": "inferred",
+      "label": "Monster 750 (2002-2002)",
       "can": {}
      }
     ]
@@ -8436,12 +9590,48 @@
       "model": "Monster S2R",
       "year_from": 2004,
       "year_to": 2007,
-      "ecu": "59m",
+      "ecu": "5am",
       "displacement": "803",
       "tps": "",
       "notes": "S2R 800; the S2R 1000 shares the family. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Monster S2R (2004-2007)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Monster S2R 1000",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Monster S2R 1000",
+      "year_from": 2006,
+      "year_to": 2008,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Monster S2R 1000 (IAW 5AM).",
+      "confidence": "inferred",
+      "label": "Monster S2R 1000 (2006-2008)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Monster S2R 800",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Monster S2R 800",
+      "year_from": 2005,
+      "year_to": 2007,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Monster S2R 800 (IAW 5AM).",
+      "confidence": "inferred",
+      "label": "Monster S2R 800 (2005-2007)",
       "can": {}
      }
     ]
@@ -8454,12 +9644,30 @@
       "model": "Monster S4R",
       "year_from": 2003,
       "year_to": 2006,
-      "ecu": "59m",
+      "ecu": "5am",
       "displacement": "996",
       "tps": "",
       "notes": "S4R Testastretta. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Monster S4R (2003-2006)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Monster S4RS",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Monster S4RS",
+      "year_from": 2006,
+      "year_to": 2008,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Monster S4RS Testastretta (IAW 5AM).",
+      "confidence": "inferred",
+      "label": "Monster S4RS (2006-2008)",
       "can": {}
      }
     ]
@@ -8472,12 +9680,48 @@
       "model": "Multistrada 1000 DS",
       "year_from": 2003,
       "year_to": 2006,
-      "ecu": "59m",
+      "ecu": "5am",
       "displacement": "992",
       "tps": "",
       "notes": "Multistrada 1000 DS. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Multistrada 1000 DS (2003-2006)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Multistrada 1100",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Multistrada 1100",
+      "year_from": 2007,
+      "year_to": 2009,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Multistrada 1100 / 1100 S (IAW 5AM).",
+      "confidence": "inferred",
+      "label": "Multistrada 1100 (2007-2009)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Multistrada 620",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Multistrada 620",
+      "year_from": 2005,
+      "year_to": 2006,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Multistrada 620 / 620 Dark (IAW 5AM).",
+      "confidence": "inferred",
+      "label": "Multistrada 620 (2005-2006)",
       "can": {}
      }
     ]
@@ -8635,6 +9879,42 @@
       "notes": "Target throttle about 3.6 degrees.",
       "confidence": "documented",
       "label": "Nevada Classic 750 (2004-2012)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Nexus 250 / 300",
+    "variants": [
+     {
+      "make": "Gilera",
+      "model": "Nexus 250 / 300",
+      "year_from": 2006,
+      "year_to": 2012,
+      "ecu": "miu1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU1 E3.",
+      "confidence": "unknown",
+      "label": "Nexus 250 / 300 (2006-2012)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Nexus 500",
+    "variants": [
+     {
+      "make": "Gilera",
+      "model": "Nexus 500",
+      "year_from": 2003,
+      "year_to": 2011,
+      "ecu": "15p",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 15P.",
+      "confidence": "unknown",
+      "label": "Nexus 500 (2003-2011)",
       "can": {}
      }
     ]
@@ -8980,6 +10260,24 @@
     ]
    },
    {
+    "model": "Pampera 450",
+    "variants": [
+     {
+      "make": "GasGas",
+      "model": "Pampera 450",
+      "year_from": 2007,
+      "year_to": 2008,
+      "ecu": "mbc1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MBC1.",
+      "confidence": "unknown",
+      "label": "Pampera 450 (2007-2008)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Paul Smart 1000 LE",
     "variants": [
      {
@@ -8987,12 +10285,30 @@
       "model": "Paul Smart 1000 LE",
       "year_from": 2006,
       "year_to": 2008,
-      "ecu": "59m",
+      "ecu": "5am",
       "displacement": "992",
       "tps": "",
       "notes": "SportClassic Paul Smart replica. Fitment only; physical diagnostics are unavailable.",
       "confidence": "inferred",
       "label": "Paul Smart 1000 LE (2006-2008)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Primavera / Sprint 125-150 3V",
+    "variants": [
+     {
+      "make": "Vespa",
+      "model": "Primavera / Sprint 125-150 3V",
+      "year_from": 2013,
+      "year_to": 2020,
+      "ecu": "miug3",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU G3.",
+      "confidence": "inferred",
+      "label": "Primavera / Sprint 125-150 3V (2013-2020)",
       "can": {}
      }
     ]
@@ -9106,6 +10422,24 @@
     ]
    },
    {
+    "model": "RS4 125",
+    "variants": [
+     {
+      "make": "Aprilia",
+      "model": "RS4 125",
+      "year_from": 2011,
+      "year_to": 2016,
+      "ecu": "miu1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU1 125 4T.",
+      "confidence": "unknown",
+      "label": "RS4 125 (2011-2016)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "RST Futura 1000",
     "variants": [
      {
@@ -9166,13 +10500,85 @@
       "make": "Aprilia",
       "model": "RSV4 Factory",
       "year_from": 2009,
-      "year_to": 2011,
+      "year_to": 2014,
       "ecu": "7sm",
       "displacement": "999",
       "tps": "",
       "notes": "GuzziTek master list maps the 2009-2011 RSV4 Factory to the 7SM - the same ECU family as the Guzzi California 1400. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
-      "label": "RSV4 Factory (2009-2011)",
+      "label": "RSV4 Factory (2009-2014)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "RSV4 R",
+    "variants": [
+     {
+      "make": "Aprilia",
+      "model": "RSV4 R",
+      "year_from": 2009,
+      "year_to": 2014,
+      "ecu": "7sm",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 7SM (1338 / 13A9).",
+      "confidence": "inferred",
+      "label": "RSV4 R (2009-2014)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "RSV4 RF",
+    "variants": [
+     {
+      "make": "Aprilia",
+      "model": "RSV4 RF",
+      "year_from": 2015,
+      "year_to": 2018,
+      "ecu": "7sm",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 7SM (6404 / 7614).",
+      "confidence": "inferred",
+      "label": "RSV4 RF (2015-2018)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "RSV4 RR",
+    "variants": [
+     {
+      "make": "Aprilia",
+      "model": "RSV4 RR",
+      "year_from": 2015,
+      "year_to": 2020,
+      "ecu": "7sm",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 7SM (6404 / 7614).",
+      "confidence": "inferred",
+      "label": "RSV4 RR (2015-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Runner ST / VX 125-200",
+    "variants": [
+     {
+      "make": "Gilera",
+      "model": "Runner ST / VX 125-200",
+      "year_from": 2008,
+      "year_to": 2014,
+      "ecu": "miu1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU1 E3.",
+      "confidence": "unknown",
+      "label": "Runner ST / VX 125-200 (2008-2014)",
       "can": {}
      }
     ]
@@ -9268,6 +10674,42 @@
     ]
    },
    {
+    "model": "SR Max 300",
+    "variants": [
+     {
+      "make": "Aprilia",
+      "model": "SR Max 300",
+      "year_from": 2011,
+      "year_to": 2016,
+      "ecu": "miu1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU1 QUASAR 300.",
+      "confidence": "unknown",
+      "label": "SR Max 300 (2011-2016)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "SRV 850",
+    "variants": [
+     {
+      "make": "Aprilia",
+      "model": "SRV 850",
+      "year_from": 2012,
+      "year_to": 2016,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 5AM (850 V-twin maxi-scooter).",
+      "confidence": "inferred",
+      "label": "SRV 850 (2012-2016)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "ST2",
     "variants": [
      {
@@ -9340,6 +10782,24 @@
     ]
    },
    {
+    "model": "ST4 S (IAW 5AM)",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "ST4 S (IAW 5AM)",
+      "year_from": 2004,
+      "year_to": 2005,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Later ST4S ABS / non-ABS with Marelli IAW 5AM.",
+      "confidence": "inferred",
+      "label": "ST4 S (IAW 5AM) (2004-2005)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "SV650",
     "variants": [
      {
@@ -9371,6 +10831,42 @@
       "notes": "SV650overlay reports operation on 2007 SV650AK7. Source warns some conversions are inaccurate; this integration has synthetic tests only. Live data is read-only and candidate; no ECU ID, faults, memory or programming.",
       "confidence": "inferred",
       "label": "SV650AK7 (2007-2007)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "SX 125",
+    "variants": [
+     {
+      "make": "Aprilia",
+      "model": "SX 125",
+      "year_from": 2018,
+      "year_to": 2020,
+      "ecu": "miu1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU1 125 4T.",
+      "confidence": "unknown",
+      "label": "SX 125 (2018-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Scrambler 1200",
+    "variants": [
+     {
+      "make": "Moto Morini",
+      "model": "Scrambler 1200",
+      "year_from": 2009,
+      "year_to": 2016,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 5AM.",
+      "confidence": "inferred",
+      "label": "Scrambler 1200 (2009-2016)",
       "can": {}
      }
     ]
@@ -9430,6 +10926,24 @@
     ]
    },
    {
+    "model": "Spidermax GT / RS 500",
+    "variants": [
+     {
+      "make": "Malaguti",
+      "model": "Spidermax GT / RS 500",
+      "year_from": 2004,
+      "year_to": 2011,
+      "ecu": "15p",
+      "displacement": "",
+      "tps": "",
+      "notes": "Piaggio MASTER 500 with Marelli IAW 15P.",
+      "confidence": "unknown",
+      "label": "Spidermax GT / RS 500 (2004-2011)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Sport 1000",
     "variants": [
      {
@@ -9437,7 +10951,7 @@
       "model": "Sport 1000",
       "year_from": 2006,
       "year_to": 2009,
-      "ecu": "59m",
+      "ecu": "5am",
       "displacement": "992",
       "tps": "",
       "notes": "SportClassic Sport 1000 (early cars: 59M; later: 5AM running change). Fitment only; physical diagnostics are unavailable.",
@@ -9538,6 +11052,24 @@
     ]
    },
    {
+    "model": "Streetfighter 848",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Streetfighter 848",
+      "year_from": 2012,
+      "year_to": 2015,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Streetfighter 848 (IAW 5AM).",
+      "confidence": "inferred",
+      "label": "Streetfighter 848 (2012-2015)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Super Cub 110",
     "variants": [
      {
@@ -9592,6 +11124,24 @@
     ]
    },
    {
+    "model": "Superbike 1098R",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Superbike 1098R",
+      "year_from": 2008,
+      "year_to": 2009,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "1098R / Bayliss LE (IAW 5AM).",
+      "confidence": "inferred",
+      "label": "Superbike 1098R (2008-2009)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Superbike 1198",
     "variants": [
      {
@@ -9610,6 +11160,24 @@
     ]
    },
    {
+    "model": "Superbike 749R",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Superbike 749R",
+      "year_from": 2004,
+      "year_to": 2006,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "749R with Marelli IAW 5AM.",
+      "confidence": "inferred",
+      "label": "Superbike 749R (2004-2006)",
+      "can": {}
+     }
+    ]
+   },
+   {
     "model": "Superbike 848",
     "variants": [
      {
@@ -9623,6 +11191,86 @@
       "notes": "The 848/1098/1198 Superbikes run the 5AM - the same ECU family as the Guzzi CARC bikes. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "Superbike 848 (2008-2010)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Superbike 848 EVO",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Superbike 848 EVO",
+      "year_from": 2011,
+      "year_to": 2013,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "848 EVO / Corse SE (IAW 5AM).",
+      "confidence": "inferred",
+      "label": "Superbike 848 EVO (2011-2013)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Superbike 999R",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Superbike 999R",
+      "year_from": 2003,
+      "year_to": 2004,
+      "ecu": "59m",
+      "displacement": "",
+      "tps": "",
+      "notes": "Early 999R (IAW 59M).",
+      "confidence": "inferred",
+      "label": "Superbike 999R (2003-2004)",
+      "can": {}
+     },
+     {
+      "make": "Ducati",
+      "model": "Superbike 999R",
+      "year_from": 2005,
+      "year_to": 2006,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Later 999R (IAW 5AM).",
+      "confidence": "inferred",
+      "label": "Superbike 999R (2005-2006)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Superbike 999S",
+    "variants": [
+     {
+      "make": "Ducati",
+      "model": "Superbike 999S",
+      "year_from": 2003,
+      "year_to": 2004,
+      "ecu": "59m",
+      "displacement": "",
+      "tps": "",
+      "notes": "Early 999S (IAW 59M).",
+      "confidence": "inferred",
+      "label": "Superbike 999S (2003-2004)",
+      "can": {}
+     },
+     {
+      "make": "Ducati",
+      "model": "Superbike 999S",
+      "year_from": 2005,
+      "year_to": 2006,
+      "ecu": "5am",
+      "displacement": "",
+      "tps": "",
+      "notes": "Later 999S (IAW 5AM).",
+      "confidence": "inferred",
+      "label": "Superbike 999S (2005-2006)",
       "can": {}
      }
     ]
@@ -9659,6 +11307,24 @@
       "notes": "WRT Garage lists Indonesian Supra X 125 Helm-In 2014-2020 with Keihin 38770-K41-N01 and fast-init K-Line. Source framing differs from this implementation. Source-based read-only diagnostic attempt, not confirmation of ECU, supported tables, readings or physical compatibility. Verify market and ECU label. Synthetic tests only; no memory reading or programming.",
       "confidence": "unknown",
       "label": "Supra X 125 Helm-In (2014-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "TE / TC / SMR 250-510 (MBC1)",
+    "variants": [
+     {
+      "make": "Husqvarna",
+      "model": "TE / TC / SMR 250-510 (MBC1)",
+      "year_from": 2006,
+      "year_to": 2009,
+      "ecu": "mbc1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MBC1.",
+      "confidence": "unknown",
+      "label": "TE / TC / SMR 250-510 (MBC1) (2006-2009)",
       "can": {}
      }
     ]
@@ -9731,6 +11397,78 @@
       "notes": "First-generation Tuono. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
       "confidence": "inferred",
       "label": "Tuono 1000 (2002-2005)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Tuono V4 1000 APRC",
+    "variants": [
+     {
+      "make": "Aprilia",
+      "model": "Tuono V4 1000 APRC",
+      "year_from": 2011,
+      "year_to": 2014,
+      "ecu": "7sm",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 7SM (13A9).",
+      "confidence": "inferred",
+      "label": "Tuono V4 1000 APRC (2011-2014)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Tuono V4 1100 Factory",
+    "variants": [
+     {
+      "make": "Aprilia",
+      "model": "Tuono V4 1100 Factory",
+      "year_from": 2015,
+      "year_to": 2020,
+      "ecu": "7sm",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 7SM (6404 / 7614).",
+      "confidence": "inferred",
+      "label": "Tuono V4 1100 Factory (2015-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Tuono V4 1100 RR",
+    "variants": [
+     {
+      "make": "Aprilia",
+      "model": "Tuono V4 1100 RR",
+      "year_from": 2015,
+      "year_to": 2020,
+      "ecu": "7sm",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli IAW 7SM (6404 / 7614).",
+      "confidence": "inferred",
+      "label": "Tuono V4 1100 RR (2015-2020)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "Turismo Leggera TL200",
+    "variants": [
+     {
+      "make": "Scomadi",
+      "model": "Turismo Leggera TL200",
+      "year_from": 2016,
+      "year_to": 2020,
+      "ecu": "miu1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU1 (MIU1_Scomadi_200_V1.xdf).",
+      "confidence": "unknown",
+      "label": "Turismo Leggera TL200 (2016-2020)",
       "can": {}
      }
     ]
@@ -10135,6 +11873,24 @@
       "notes": "Single throttle body. Uses throttle self-learning, not a TPS reset. No CO trim.",
       "confidence": "documented",
       "label": "V7 II Stornello (2016-2017)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "V7 III (MIU G3)",
+    "variants": [
+     {
+      "make": "Moto Guzzi",
+      "model": "V7 III (MIU G3)",
+      "year_from": 2017,
+      "year_to": 2020,
+      "ecu": "miug3",
+      "displacement": "",
+      "tps": "",
+      "notes": "MIU G3 calibration variant corresponding to MIUG3_Guzzi_V7_III_V1.00.xdf.",
+      "confidence": "inferred",
+      "label": "V7 III (MIU G3) (2017-2020)",
       "can": {}
      }
     ]
@@ -11046,6 +12802,60 @@
       "notes": "Source lists this model/year for Honda diagnostic use; this is not confirmation that this implementation or every table works. Synthetic tests only; read-only diagnostic attempt, no memory, controls or tuning.",
       "confidence": "unknown",
       "label": "X-ADV 750 (2021-2025)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "X10 350 / 500",
+    "variants": [
+     {
+      "make": "Piaggio",
+      "model": "X10 350 / 500",
+      "year_from": 2012,
+      "year_to": 2016,
+      "ecu": "miug3",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU G3.",
+      "confidence": "inferred",
+      "label": "X10 350 / 500 (2012-2016)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "X7 / X8 / X Evo 250-400",
+    "variants": [
+     {
+      "make": "Piaggio",
+      "model": "X7 / X8 / X Evo 250-400",
+      "year_from": 2006,
+      "year_to": 2012,
+      "ecu": "miu1",
+      "displacement": "",
+      "tps": "",
+      "notes": "Marelli MIU1 E3.",
+      "confidence": "unknown",
+      "label": "X7 / X8 / X Evo 250-400 (2006-2012)",
+      "can": {}
+     }
+    ]
+   },
+   {
+    "model": "X9 500",
+    "variants": [
+     {
+      "make": "Piaggio",
+      "model": "X9 500",
+      "year_from": 2002,
+      "year_to": 2007,
+      "ecu": "15p",
+      "displacement": "",
+      "tps": "",
+      "notes": "MASTER 500 engine with Marelli IAW 15P.",
+      "confidence": "unknown",
+      "label": "X9 500 (2002-2007)",
       "can": {}
      }
     ]
@@ -12792,42 +14602,42 @@
     "model": "Monster S2R",
     "year_from": 2004,
     "year_to": 2007,
-    "ecu": "59m"
+    "ecu": "5am"
    },
    {
     "make": "Ducati",
     "model": "Monster S4R",
     "year_from": 2003,
     "year_to": 2006,
-    "ecu": "59m"
+    "ecu": "5am"
    },
    {
     "make": "Ducati",
     "model": "Multistrada 1000 DS",
     "year_from": 2003,
     "year_to": 2006,
-    "ecu": "59m"
+    "ecu": "5am"
    },
    {
     "make": "Ducati",
     "model": "GT 1000",
     "year_from": 2006,
     "year_to": 2009,
-    "ecu": "59m"
+    "ecu": "5am"
    },
    {
     "make": "Ducati",
     "model": "Paul Smart 1000 LE",
     "year_from": 2006,
     "year_to": 2008,
-    "ecu": "59m"
+    "ecu": "5am"
    },
    {
     "make": "Ducati",
     "model": "Sport 1000",
     "year_from": 2006,
     "year_to": 2009,
-    "ecu": "59m"
+    "ecu": "5am"
    },
    {
     "make": "Ducati",
@@ -12931,7 +14741,7 @@
     "make": "Aprilia",
     "model": "RSV4 Factory",
     "year_from": 2009,
-    "year_to": 2011,
+    "year_to": 2014,
     "ecu": "7sm"
    },
    {
@@ -15992,6 +17802,580 @@
     "year_from": 2017,
     "year_to": 2026,
     "ecu": "bmw_can_research"
+   },
+   {
+    "make": "Moto Guzzi",
+    "model": "California III i.e.",
+    "year_from": 1990,
+    "year_to": 1992,
+    "ecu": "p7"
+   },
+   {
+    "make": "Moto Guzzi",
+    "model": "1000 S i.e.",
+    "year_from": 1990,
+    "year_to": 1993,
+    "ecu": "p7"
+   },
+   {
+    "make": "Moto Guzzi",
+    "model": "V7 III (MIU G3)",
+    "year_from": 2017,
+    "year_to": 2020,
+    "ecu": "miug3"
+   },
+   {
+    "make": "Honda",
+    "model": "CBR1000RR (MEL)",
+    "year_from": 2006,
+    "year_to": 2007,
+    "ecu": "honda_cbr1000rr_mel"
+   },
+   {
+    "make": "Honda",
+    "model": "CBR500R (MJW)",
+    "year_from": 2017,
+    "year_to": 2018,
+    "ecu": "honda_cb500_mjw"
+   },
+   {
+    "make": "Honda",
+    "model": "CB500F (MJW)",
+    "year_from": 2017,
+    "year_to": 2018,
+    "ecu": "honda_cb500_mjw"
+   },
+   {
+    "make": "Honda",
+    "model": "CB500X (MJW)",
+    "year_from": 2017,
+    "year_to": 2018,
+    "ecu": "honda_cb500_mjw"
+   },
+   {
+    "make": "Honda",
+    "model": "CRF110F (KYK-D12)",
+    "year_from": 2019,
+    "year_to": 2024,
+    "ecu": "honda_crf110f_kyk"
+   },
+   {
+    "make": "Honda",
+    "model": "MSX125 / Grom (K26-911)",
+    "year_from": 2013,
+    "year_to": 2015,
+    "ecu": "honda_msx125_k26_911"
+   },
+   {
+    "make": "Honda",
+    "model": "MSX125 / Grom SF (K26-B13/C31)",
+    "year_from": 2016,
+    "year_to": 2020,
+    "ecu": "honda_msx125_k26_sf"
+   },
+   {
+    "make": "Honda",
+    "model": "Monkey 125 / Z125M (K0F-A01)",
+    "year_from": 2018,
+    "year_to": 2021,
+    "ecu": "honda_z125m_k0f"
+   },
+   {
+    "make": "Ducati",
+    "model": "Monster 400",
+    "year_from": 2004,
+    "year_to": 2008,
+    "ecu": "59m"
+   },
+   {
+    "make": "Ducati",
+    "model": "Monster 600",
+    "year_from": 2001,
+    "year_to": 2002,
+    "ecu": "59m"
+   },
+   {
+    "make": "Ducati",
+    "model": "Monster 750",
+    "year_from": 2002,
+    "year_to": 2002,
+    "ecu": "59m"
+   },
+   {
+    "make": "Ducati",
+    "model": "Monster 1000",
+    "year_from": 2003,
+    "year_to": 2005,
+    "ecu": "59m"
+   },
+   {
+    "make": "Ducati",
+    "model": "1000 SS",
+    "year_from": 2003,
+    "year_to": 2006,
+    "ecu": "59m"
+   },
+   {
+    "make": "Ducati",
+    "model": "Superbike 999R",
+    "year_from": 2003,
+    "year_to": 2004,
+    "ecu": "59m"
+   },
+   {
+    "make": "Ducati",
+    "model": "Superbike 999R",
+    "year_from": 2005,
+    "year_to": 2006,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "Superbike 999S",
+    "year_from": 2003,
+    "year_to": 2004,
+    "ecu": "59m"
+   },
+   {
+    "make": "Ducati",
+    "model": "Superbike 999S",
+    "year_from": 2005,
+    "year_to": 2006,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "749 (IAW 5AM)",
+    "year_from": 2005,
+    "year_to": 2006,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "Superbike 749R",
+    "year_from": 2004,
+    "year_to": 2006,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "999 (IAW 5AM)",
+    "year_from": 2005,
+    "year_to": 2006,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "ST4 S (IAW 5AM)",
+    "year_from": 2004,
+    "year_to": 2005,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "Monster 695",
+    "year_from": 2006,
+    "year_to": 2008,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "Monster S2R 800",
+    "year_from": 2005,
+    "year_to": 2007,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "Monster S2R 1000",
+    "year_from": 2006,
+    "year_to": 2008,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "Monster S4RS",
+    "year_from": 2006,
+    "year_to": 2008,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "Multistrada 620",
+    "year_from": 2005,
+    "year_to": 2006,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "Multistrada 1100",
+    "year_from": 2007,
+    "year_to": 2009,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "Hypermotard 796",
+    "year_from": 2010,
+    "year_to": 2012,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "Superbike 848 EVO",
+    "year_from": 2011,
+    "year_to": 2013,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "Superbike 1098R",
+    "year_from": 2008,
+    "year_to": 2009,
+    "ecu": "5am"
+   },
+   {
+    "make": "Ducati",
+    "model": "Streetfighter 848",
+    "year_from": 2012,
+    "year_to": 2015,
+    "ecu": "5am"
+   },
+   {
+    "make": "Aprilia",
+    "model": "RSV4 R",
+    "year_from": 2009,
+    "year_to": 2014,
+    "ecu": "7sm"
+   },
+   {
+    "make": "Aprilia",
+    "model": "RSV4 RR",
+    "year_from": 2015,
+    "year_to": 2020,
+    "ecu": "7sm"
+   },
+   {
+    "make": "Aprilia",
+    "model": "RSV4 RF",
+    "year_from": 2015,
+    "year_to": 2018,
+    "ecu": "7sm"
+   },
+   {
+    "make": "Aprilia",
+    "model": "Tuono V4 1000 APRC",
+    "year_from": 2011,
+    "year_to": 2014,
+    "ecu": "7sm"
+   },
+   {
+    "make": "Aprilia",
+    "model": "Tuono V4 1100 RR",
+    "year_from": 2015,
+    "year_to": 2020,
+    "ecu": "7sm"
+   },
+   {
+    "make": "Aprilia",
+    "model": "Tuono V4 1100 Factory",
+    "year_from": 2015,
+    "year_to": 2020,
+    "ecu": "7sm"
+   },
+   {
+    "make": "Aprilia",
+    "model": "Caponord 1200",
+    "year_from": 2013,
+    "year_to": 2017,
+    "ecu": "7sm"
+   },
+   {
+    "make": "Aprilia",
+    "model": "Dorsoduro 1200",
+    "year_from": 2011,
+    "year_to": 2016,
+    "ecu": "7sm"
+   },
+   {
+    "make": "Aprilia",
+    "model": "SRV 850",
+    "year_from": 2012,
+    "year_to": 2016,
+    "ecu": "5am"
+   },
+   {
+    "make": "Aprilia",
+    "model": "Atlantic 500",
+    "year_from": 2002,
+    "year_to": 2008,
+    "ecu": "15p"
+   },
+   {
+    "make": "Aprilia",
+    "model": "RS4 125",
+    "year_from": 2011,
+    "year_to": 2016,
+    "ecu": "miu1"
+   },
+   {
+    "make": "Aprilia",
+    "model": "SX 125",
+    "year_from": 2018,
+    "year_to": 2020,
+    "ecu": "miu1"
+   },
+   {
+    "make": "Aprilia",
+    "model": "SR Max 300",
+    "year_from": 2011,
+    "year_to": 2016,
+    "ecu": "miu1"
+   },
+   {
+    "make": "BMW Motorrad",
+    "model": "C 600 Sport",
+    "year_from": 2012,
+    "year_to": 2015,
+    "ecu": "7sm"
+   },
+   {
+    "make": "BMW Motorrad",
+    "model": "C 650 GT",
+    "year_from": 2012,
+    "year_to": 2015,
+    "ecu": "7sm"
+   },
+   {
+    "make": "Moto Morini",
+    "model": "Corsaro 1200",
+    "year_from": 2005,
+    "year_to": 2017,
+    "ecu": "5am"
+   },
+   {
+    "make": "Moto Morini",
+    "model": "Corsaro 1200 (IAW 15P)",
+    "year_from": 2005,
+    "year_to": 2010,
+    "ecu": "15p"
+   },
+   {
+    "make": "Moto Morini",
+    "model": "9 1/2",
+    "year_from": 2006,
+    "year_to": 2011,
+    "ecu": "5am"
+   },
+   {
+    "make": "Moto Morini",
+    "model": "Granpasso 1200",
+    "year_from": 2008,
+    "year_to": 2016,
+    "ecu": "5am"
+   },
+   {
+    "make": "Moto Morini",
+    "model": "Scrambler 1200",
+    "year_from": 2009,
+    "year_to": 2016,
+    "ecu": "5am"
+   },
+   {
+    "make": "Moto Morini",
+    "model": "1200 Sport",
+    "year_from": 2008,
+    "year_to": 2012,
+    "ecu": "5am"
+   },
+   {
+    "make": "Piaggio",
+    "model": "X9 500",
+    "year_from": 2002,
+    "year_to": 2007,
+    "ecu": "15p"
+   },
+   {
+    "make": "Piaggio",
+    "model": "Beverly 500",
+    "year_from": 2002,
+    "year_to": 2008,
+    "ecu": "15p"
+   },
+   {
+    "make": "Piaggio",
+    "model": "Beverly 250 / 300 / 400 (MIU1)",
+    "year_from": 2006,
+    "year_to": 2014,
+    "ecu": "miu1"
+   },
+   {
+    "make": "Piaggio",
+    "model": "Beverly 300 / 350 (MIU G3)",
+    "year_from": 2011,
+    "year_to": 2020,
+    "ecu": "miug3"
+   },
+   {
+    "make": "Piaggio",
+    "model": "MP3 250 / 300 / 400 (MIU1)",
+    "year_from": 2006,
+    "year_to": 2014,
+    "ecu": "miu1"
+   },
+   {
+    "make": "Piaggio",
+    "model": "MP3 300 / 500 (MIU G3)",
+    "year_from": 2011,
+    "year_to": 2020,
+    "ecu": "miug3"
+   },
+   {
+    "make": "Piaggio",
+    "model": "X7 / X8 / X Evo 250-400",
+    "year_from": 2006,
+    "year_to": 2012,
+    "ecu": "miu1"
+   },
+   {
+    "make": "Piaggio",
+    "model": "Carnaby 250 / 300",
+    "year_from": 2008,
+    "year_to": 2012,
+    "ecu": "miu1"
+   },
+   {
+    "make": "Piaggio",
+    "model": "X10 350 / 500",
+    "year_from": 2012,
+    "year_to": 2016,
+    "ecu": "miug3"
+   },
+   {
+    "make": "Piaggio",
+    "model": "Fly / Liberty 125-150 3V",
+    "year_from": 2012,
+    "year_to": 2017,
+    "ecu": "miug3"
+   },
+   {
+    "make": "Vespa",
+    "model": "GTS 250 / 300 (MIU1)",
+    "year_from": 2005,
+    "year_to": 2014,
+    "ecu": "miu1"
+   },
+   {
+    "make": "Vespa",
+    "model": "GTS 300 (MIU G3)",
+    "year_from": 2012,
+    "year_to": 2020,
+    "ecu": "miug3"
+   },
+   {
+    "make": "Vespa",
+    "model": "GTV 250 / 300",
+    "year_from": 2006,
+    "year_to": 2013,
+    "ecu": "miu1"
+   },
+   {
+    "make": "Vespa",
+    "model": "LX / S 125-150 i.e.",
+    "year_from": 2009,
+    "year_to": 2014,
+    "ecu": "miu1"
+   },
+   {
+    "make": "Vespa",
+    "model": "Primavera / Sprint 125-150 3V",
+    "year_from": 2013,
+    "year_to": 2020,
+    "ecu": "miug3"
+   },
+   {
+    "make": "Vespa",
+    "model": "946 125 3V",
+    "year_from": 2013,
+    "year_to": 2017,
+    "ecu": "miug3"
+   },
+   {
+    "make": "Gilera",
+    "model": "GP 800",
+    "year_from": 2007,
+    "year_to": 2014,
+    "ecu": "5am"
+   },
+   {
+    "make": "Gilera",
+    "model": "Fuoco 500",
+    "year_from": 2007,
+    "year_to": 2013,
+    "ecu": "15p"
+   },
+   {
+    "make": "Gilera",
+    "model": "Nexus 500",
+    "year_from": 2003,
+    "year_to": 2011,
+    "ecu": "15p"
+   },
+   {
+    "make": "Gilera",
+    "model": "Nexus 250 / 300",
+    "year_from": 2006,
+    "year_to": 2012,
+    "ecu": "miu1"
+   },
+   {
+    "make": "Gilera",
+    "model": "Runner ST / VX 125-200",
+    "year_from": 2008,
+    "year_to": 2014,
+    "ecu": "miu1"
+   },
+   {
+    "make": "Malaguti",
+    "model": "Spidermax GT / RS 500",
+    "year_from": 2004,
+    "year_to": 2011,
+    "ecu": "15p"
+   },
+   {
+    "make": "GasGas",
+    "model": "FSE 400 / 450",
+    "year_from": 2002,
+    "year_to": 2007,
+    "ecu": "mbc1"
+   },
+   {
+    "make": "GasGas",
+    "model": "FSR 450 / EC 450",
+    "year_from": 2007,
+    "year_to": 2009,
+    "ecu": "mbc1"
+   },
+   {
+    "make": "GasGas",
+    "model": "Pampera 450",
+    "year_from": 2007,
+    "year_to": 2008,
+    "ecu": "mbc1"
+   },
+   {
+    "make": "Husqvarna",
+    "model": "TE / TC / SMR 250-510 (MBC1)",
+    "year_from": 2006,
+    "year_to": 2009,
+    "ecu": "mbc1"
+   },
+   {
+    "make": "Scomadi",
+    "model": "Turismo Leggera TL200",
+    "year_from": 2016,
+    "year_to": 2020,
+    "ecu": "miu1"
    }
   ],
   "ecus": [
@@ -16063,6 +18447,41 @@
     "session": {
      "physical_supported": false,
      "physical_blocked_reason": "Available compatibility records and closed binaries do not disclose a trustworthy family-specific diagnostic initialization or request definition."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
+    "id": "15p",
+    "family": "Magneti Marelli IAW 15P",
+    "display_name": "Magneti Marelli IAW 15P",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "2002-2011",
+    "notes": "Magneti Marelli IAW 15P K-Line ECU fitted to Moto Morini Corsaro 1200 / 9 1/2 / Scrambler / Granpasso / 1200 Sport and Piaggio X9 500 / Aprilia Atlantic 500 / Gilera Fuoco 500 / Nexus 500 / Malaguti Spidermax 500 MASTER-engine scooters. Offline XDF map inspection and tuning builds are supported; physical live sessions remain blocked pending a family-specific wire capture.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://www.von-der-salierburg.de/download/GuzziDiag/ (PaulDaytona / GuzziDiag 15P Morini & Piaggio 500 XDF definitions)",
+     "GuzziDiag / IAWDiag supported ECU family documentation"
+    ],
+    "memory": {
+     "image_size": null,
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "No verified IAW 15P programming capture is bundled; physical memory access is blocked.",
+     "regions": {}
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "offline-tuning-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "GuzziDiag / IAWDiag compatibility establishes K-Line support, but no primary IAW 15P diagnostic capture is bundled.",
+     "simulator_supported": false
     },
     "actuators": [],
     "routines": [],
@@ -18365,6 +20784,42 @@
     "parameters": []
    },
    {
+    "id": "honda_cb500_mjw",
+    "family": "CB500-MJW",
+    "display_name": "Honda CB500 / CBR500 2017-2018 Keihin MJW (offline tuning only)",
+    "transport": "kline",
+    "confidence": "inferred",
+    "years": "2017-2018",
+    "notes": "HondaECU identifies 38770-MJW-AQ1 and 38770-MJW-DR1 (256 KiB, checksum at 0x3FFF8) for CB500F / CBR500R / CB500X 2017–2018. Offline image build accepts only the pinned adapted XDF and exact AQ1/DR1 stock SHA-256 digests.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+     "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+     "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+     "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+     "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Offline image editing does not implement ECU programming."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "offline-tuning-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+     "simulator_supported": false
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
     "id": "honda_cb500f_dashble",
     "family": "Honda CB500F DashBle table 11 (year unspecified)",
     "display_name": "Honda CB500F DashBle (ECU-only, read-only K-Line)",
@@ -18606,6 +21061,42 @@
     "parameters": []
    },
    {
+    "id": "honda_cbr1000rr_mel",
+    "family": "CBR1000RR-MEL",
+    "display_name": "Honda CBR1000RR 2006-2007 Keihin MEL (offline tuning only)",
+    "transport": "kline",
+    "confidence": "inferred",
+    "years": "2006-2007",
+    "notes": "HondaECU identifies 38770-MEL-A21/A22/D21/F21/L22 (256 KiB, checksum at 0x3FFF8) for CBR1000RR 2006–2007. Offline image build accepts only the pinned adapted XDF and exact stock calibration SHA-256 digests.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+     "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+     "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+     "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+     "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Offline image editing does not implement ECU programming."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "offline-tuning-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+     "simulator_supported": false
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
     "id": "honda_cbr600rr_2005",
     "family": "2005 Honda CBR600RR (source-reported)",
     "display_name": "Honda CBR600RR 2005 (read-only K-Line)",
@@ -18784,6 +21275,42 @@
       "confidence": "inferred"
      }
     ]
+   },
+   {
+    "id": "honda_crf110f_kyk",
+    "family": "CRF110F-KYK-D12",
+    "display_name": "Honda CRF110F Keihin KYK-D12 (offline tuning only)",
+    "transport": "kline",
+    "confidence": "inferred",
+    "years": "2019-2024",
+    "notes": "HondaECU identifies 38770-KYK-D12 (64 KiB M16C calibration read, checksum at 0x0000) for CRF110F 2019+. Offline image build accepts only the pinned adapted XDF and exact KYK-D12 stock SHA-256 digest.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+     "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+     "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+     "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+     "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Offline image editing does not implement ECU programming."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "offline-tuning-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+     "simulator_supported": false
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
    },
    {
     "id": "honda_ctx700_minidash",
@@ -18974,6 +21501,78 @@
       "confidence": "inferred"
      }
     ]
+   },
+   {
+    "id": "honda_msx125_k26_911",
+    "family": "MSX125-K26-911",
+    "display_name": "Honda MSX125 / Grom 2013-2015 Keihin K26-911/931 (offline tuning only)",
+    "transport": "kline",
+    "confidence": "inferred",
+    "years": "2013-2015",
+    "notes": "HondaECU identifies 38770-K26-911 and 38770-K26-931 (48 KiB M16C calibration read, checksum at 0x0000) for first-generation MSX125 / Grom. Offline image build accepts only the pinned adapted XDF and exact 911/931 stock SHA-256 digests.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+     "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+     "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+     "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+     "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Offline image editing does not implement ECU programming."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "offline-tuning-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+     "simulator_supported": false
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
+    "id": "honda_msx125_k26_sf",
+    "family": "MSX125-K26-B13 / MSX125-K26-C31",
+    "display_name": "Honda MSX125 / Grom SF 2016-2020 Keihin K26-B13/C31 (offline tuning only)",
+    "transport": "kline",
+    "confidence": "inferred",
+    "years": "2016-2020",
+    "notes": "HondaECU identifies 38770-K26-B13 and 38770-K26-C31 (64 KiB M16C calibration read, checksum at 0x0000) for MSX125 / Grom SF. Offline image build accepts only the matching pinned adapted B13 or C31 XDF and exact stock SHA-256 digest.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+     "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+     "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+     "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+     "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Offline image editing does not implement ECU programming."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "offline-tuning-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+     "simulator_supported": false
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
    },
    {
     "id": "honda_pgmfi_flash_research",
@@ -19359,6 +21958,42 @@
       "confidence": "unknown"
      }
     ]
+   },
+   {
+    "id": "honda_z125m_k0f",
+    "family": "Z125M-K0F-A01",
+    "display_name": "Honda Monkey 125 / Z125M Keihin K0F-A01 (offline tuning only)",
+    "transport": "kline",
+    "confidence": "inferred",
+    "years": "2018-2021",
+    "notes": "HondaECU identifies 38770-K0F-A01 (96 KiB M16C calibration read, checksum at 0x0000) for Monkey 125 / Z125M. Offline image build accepts only the pinned adapted XDF and exact K0F-A01 stock SHA-256 digest.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+     "https://github.com/AutotronicCommunity/Protokol-Live-Data-PGM-FI-Honda-Bike (PROTOKOL LIVE DATA poster: checksum rule, wake/start/keepalive, per-table parameter formulas for tables 10/11/13/17/20/21/D1)",
+     "https://github.com/AutotronicCommunity/Protokol-Diagnostik-PGMFI-Honda-Bike (DIAGNOSTIC poster: DTC queries 73/74 3-byte layout, DTC code table, PC817 K-Line interface schematics; clear-DTC query 60 noted as write and NOT adopted)",
+     "https://github.com/AutotronicCommunity/PGMFI_HONDA_BIKE (PGMFI HONDA.pdf protocol document)",
+     "https://github.com/AutotronicCommunity/dtc_honda (Honda PGM-FI MIL/OBD2 DTC dictionary, transcribed into catalog/dtc_manufacturer.json)"
+    ],
+    "memory": {
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "Offline image editing does not implement ECU programming."
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "offline-tuning-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+     "simulator_supported": false
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
    },
    {
     "id": "kawasaki_er6n_2006",
@@ -20412,6 +23047,76 @@
     "parameters": []
    },
    {
+    "id": "mbc1",
+    "family": "Magneti Marelli MBC1",
+    "display_name": "Magneti Marelli MBC1 (rotary / trial)",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "2002-2009",
+    "notes": "Compact Magneti Marelli MBC1 fuel-injection / ignition unit fitted to GasGas FSE 400 / FSE 450 / Pampera 450 and Husqvarna TE / TC / SMR four-strokes. Offline XDF map inspection and tuning builds are supported; physical sessions remain blocked pending a verified wire capture.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_205_V0.2.zip (PaulDaytona / GuzziDiag MBC1 XDF definitions)",
+     "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_209_V0.2.zip (PaulDaytona / GuzziDiag MBC1_209 XDF definition)"
+    ],
+    "memory": {
+     "image_size": null,
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "No verified MBC1 programming protocol capture is bundled; physical memory access is blocked.",
+     "regions": {}
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "offline-tuning-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "No verified Magneti Marelli MBC1 diagnostic wire capture is bundled.",
+     "simulator_supported": false
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
+    "id": "miu1",
+    "family": "Magneti Marelli MIU1",
+    "display_name": "Magneti Marelli MIU1 / MIU G1 throttle-body ECU",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "2005-2020",
+    "notes": "First-generation Magneti Marelli integrated throttle-body ECU (MIU1 / 32M1) fitted to Piaggio Beverly / Carnaby / MP3 / X7 / X8 / X Evo, Vespa GTS / GTV / LX / S, Gilera Nexus / Runner, Aprilia RS4 125 / SX 125 / SR Max 300, and Scomadi TL200. Offline XDF map inspection and tuning builds are supported; physical sessions remain blocked pending a verified MIU1 wire capture.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://www.von-der-salierburg.de/download/GuzziDiag/ (PaulDaytona / GuzziDiag MIU1_E3, MIU1_Aprilia_125, MIU1_Scomadi_200 XDF definitions)",
+     "GuzziDiag / MIU Reader supported ECU family notes"
+    ],
+    "memory": {
+     "image_size": null,
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "No verified MIU1 programming capture is bundled; physical memory access is blocked.",
+     "regions": {}
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "offline-tuning-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "No verified Magneti Marelli MIU1 diagnostic wire capture is bundled.",
+     "simulator_supported": false
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
     "id": "miug3",
     "family": "Marelli MIU G3",
     "display_name": "Magneti Marelli MIU G3",
@@ -20751,6 +23456,41 @@
      "note": "ISO-TP physical transport alone does not establish UDS/KWP services or identifiers.",
      "physical_supported": false,
      "physical_blocked_reason": "ISO-TP transport, CAN identifiers, addressing, and diagnostic application payloads remain unvalidated."
+    },
+    "actuators": [],
+    "routines": [],
+    "capability_confidence": {},
+    "field_confirmation": {},
+    "parameters": []
+   },
+   {
+    "id": "p7",
+    "family": "Magneti Marelli P7",
+    "display_name": "Magneti Marelli Weber-Marelli IAW P7",
+    "transport": "kline",
+    "confidence": "unknown",
+    "years": "1989-1993",
+    "notes": "Early Weber-Marelli IAW 04W / P7 EPROM ECU fitted to Moto Guzzi California III i.e. and 1000 S i.e. Offline XDF map inspection and tuning plan builds are supported against socketed EPROM images; no validated live diagnostic capture is bundled, so physical sessions remain blocked.",
+    "capabilities": [],
+    "effective_capabilities": [],
+    "sources": [
+     "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/P7_04W_V1_0.xdf.zip (PaulDaytona / GuzziDiag P7_04W XDF definition)",
+     "GuzziTek ECU master list (2011)"
+    ],
+    "memory": {
+     "image_size": null,
+     "read_supported": false,
+     "write_supported": false,
+     "write_blocked_reason": "IAW P7 maps reside on a socketed UV/flash EPROM; use an external EPROM programmer and preserve the original chip.",
+     "regions": {}
+    },
+    "kline": {},
+    "can": {},
+    "session": {
+     "protocol": "offline-tuning-only",
+     "physical_supported": false,
+     "physical_blocked_reason": "No Moto Guzzi Weber-Marelli IAW P7 wire capture or primary register definition is bundled.",
+     "simulator_supported": false
     },
     "actuators": [],
     "routines": [],
@@ -23155,7 +25895,7 @@
    "model": "Monster S2R",
    "year_from": 2004,
    "year_to": 2007,
-   "ecu": "59m",
+   "ecu": "5am",
    "displacement": "803",
    "tps": "",
    "notes": "S2R 800; the S2R 1000 shares the family. Fitment only; physical diagnostics are unavailable.",
@@ -23168,7 +25908,7 @@
    "model": "Monster S4R",
    "year_from": 2003,
    "year_to": 2006,
-   "ecu": "59m",
+   "ecu": "5am",
    "displacement": "996",
    "tps": "",
    "notes": "S4R Testastretta. Fitment only; physical diagnostics are unavailable.",
@@ -23181,7 +25921,7 @@
    "model": "Multistrada 1000 DS",
    "year_from": 2003,
    "year_to": 2006,
-   "ecu": "59m",
+   "ecu": "5am",
    "displacement": "992",
    "tps": "",
    "notes": "Multistrada 1000 DS. Fitment only; physical diagnostics are unavailable.",
@@ -23194,7 +25934,7 @@
    "model": "GT 1000",
    "year_from": 2006,
    "year_to": 2009,
-   "ecu": "59m",
+   "ecu": "5am",
    "displacement": "992",
    "tps": "",
    "notes": "SportClassic GT 1000 Touring. Fitment only; physical diagnostics are unavailable.",
@@ -23207,7 +25947,7 @@
    "model": "Paul Smart 1000 LE",
    "year_from": 2006,
    "year_to": 2008,
-   "ecu": "59m",
+   "ecu": "5am",
    "displacement": "992",
    "tps": "",
    "notes": "SportClassic Paul Smart replica. Fitment only; physical diagnostics are unavailable.",
@@ -23220,7 +25960,7 @@
    "model": "Sport 1000",
    "year_from": 2006,
    "year_to": 2009,
-   "ecu": "59m",
+   "ecu": "5am",
    "displacement": "992",
    "tps": "",
    "notes": "SportClassic Sport 1000 (early cars: 59M; later: 5AM running change). Fitment only; physical diagnostics are unavailable.",
@@ -23414,13 +26154,13 @@
    "make": "Aprilia",
    "model": "RSV4 Factory",
    "year_from": 2009,
-   "year_to": 2011,
+   "year_to": 2014,
    "ecu": "7sm",
    "displacement": "999",
    "tps": "",
    "notes": "GuzziTek master list maps the 2009-2011 RSV4 Factory to the 7SM - the same ECU family as the Guzzi California 1400. The model-to-ECU mapping does not validate application bytes on this make; only separately evidenced family capabilities are exposed, and controls stay disabled.",
    "confidence": "inferred",
-   "label": "RSV4 Factory (2009-2011)",
+   "label": "RSV4 Factory (2009-2014)",
    "can": {}
   },
   {
@@ -29103,6 +31843,1072 @@
    "confidence": "unknown",
    "label": "G 310 R (2017-2026)",
    "can": {}
+  },
+  {
+   "make": "Moto Guzzi",
+   "model": "California III i.e.",
+   "year_from": 1990,
+   "year_to": 1992,
+   "ecu": "p7",
+   "displacement": "",
+   "tps": "",
+   "notes": "Weber-Marelli IAW 04W / P7 EPROM injection.",
+   "confidence": "inferred",
+   "label": "California III i.e. (1990-1992)",
+   "can": {}
+  },
+  {
+   "make": "Moto Guzzi",
+   "model": "1000 S i.e.",
+   "year_from": 1990,
+   "year_to": 1993,
+   "ecu": "p7",
+   "displacement": "",
+   "tps": "",
+   "notes": "Weber-Marelli IAW 04W / P7 EPROM injection.",
+   "confidence": "inferred",
+   "label": "1000 S i.e. (1990-1993)",
+   "can": {}
+  },
+  {
+   "make": "Moto Guzzi",
+   "model": "V7 III (MIU G3)",
+   "year_from": 2017,
+   "year_to": 2020,
+   "ecu": "miug3",
+   "displacement": "",
+   "tps": "",
+   "notes": "MIU G3 calibration variant corresponding to MIUG3_Guzzi_V7_III_V1.00.xdf.",
+   "confidence": "inferred",
+   "label": "V7 III (MIU G3) (2017-2020)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "CBR1000RR (MEL)",
+   "year_from": 2006,
+   "year_to": 2007,
+   "ecu": "honda_cbr1000rr_mel",
+   "displacement": "",
+   "tps": "",
+   "notes": "Offline map editing for pinned 38770-MEL-A21/A22/D21/F21/L22 calibrations.",
+   "confidence": "inferred",
+   "label": "CBR1000RR (MEL) (2006-2007)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "CBR500R (MJW)",
+   "year_from": 2017,
+   "year_to": 2018,
+   "ecu": "honda_cb500_mjw",
+   "displacement": "",
+   "tps": "",
+   "notes": "Offline map editing for pinned 38770-MJW-AQ1/DR1 calibrations.",
+   "confidence": "inferred",
+   "label": "CBR500R (MJW) (2017-2018)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "CB500F (MJW)",
+   "year_from": 2017,
+   "year_to": 2018,
+   "ecu": "honda_cb500_mjw",
+   "displacement": "",
+   "tps": "",
+   "notes": "Offline map editing for pinned 38770-MJW-AQ1/DR1 calibrations.",
+   "confidence": "inferred",
+   "label": "CB500F (MJW) (2017-2018)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "CB500X (MJW)",
+   "year_from": 2017,
+   "year_to": 2018,
+   "ecu": "honda_cb500_mjw",
+   "displacement": "",
+   "tps": "",
+   "notes": "Offline map editing for pinned 38770-MJW-AQ1/DR1 calibrations.",
+   "confidence": "inferred",
+   "label": "CB500X (MJW) (2017-2018)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "CRF110F (KYK-D12)",
+   "year_from": 2019,
+   "year_to": 2024,
+   "ecu": "honda_crf110f_kyk",
+   "displacement": "",
+   "tps": "",
+   "notes": "Offline map editing for pinned 38770-KYK-D12 calibration.",
+   "confidence": "inferred",
+   "label": "CRF110F (KYK-D12) (2019-2024)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "MSX125 / Grom (K26-911)",
+   "year_from": 2013,
+   "year_to": 2015,
+   "ecu": "honda_msx125_k26_911",
+   "displacement": "",
+   "tps": "",
+   "notes": "Offline map editing for pinned 38770-K26-911/931 calibrations.",
+   "confidence": "inferred",
+   "label": "MSX125 / Grom (K26-911) (2013-2015)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "MSX125 / Grom SF (K26-B13/C31)",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "honda_msx125_k26_sf",
+   "displacement": "",
+   "tps": "",
+   "notes": "Offline map editing for pinned 38770-K26-B13 and 38770-K26-C31 calibrations.",
+   "confidence": "inferred",
+   "label": "MSX125 / Grom SF (K26-B13/C31) (2016-2020)",
+   "can": {}
+  },
+  {
+   "make": "Honda",
+   "model": "Monkey 125 / Z125M (K0F-A01)",
+   "year_from": 2018,
+   "year_to": 2021,
+   "ecu": "honda_z125m_k0f",
+   "displacement": "",
+   "tps": "",
+   "notes": "Offline map editing for pinned 38770-K0F-A01 calibration.",
+   "confidence": "inferred",
+   "label": "Monkey 125 / Z125M (K0F-A01) (2018-2021)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Monster 400",
+   "year_from": 2004,
+   "year_to": 2008,
+   "ecu": "59m",
+   "displacement": "",
+   "tps": "",
+   "notes": "Injected Monster 400 i.e. (IAW 59M).",
+   "confidence": "inferred",
+   "label": "Monster 400 (2004-2008)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Monster 600",
+   "year_from": 2001,
+   "year_to": 2002,
+   "ecu": "59m",
+   "displacement": "",
+   "tps": "",
+   "notes": "Monster 600 i.e. (IAW 59M).",
+   "confidence": "inferred",
+   "label": "Monster 600 (2001-2002)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Monster 750",
+   "year_from": 2002,
+   "year_to": 2002,
+   "ecu": "59m",
+   "displacement": "",
+   "tps": "",
+   "notes": "Monster 750 i.e. (IAW 59M).",
+   "confidence": "inferred",
+   "label": "Monster 750 (2002-2002)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Monster 1000",
+   "year_from": 2003,
+   "year_to": 2005,
+   "ecu": "59m",
+   "displacement": "",
+   "tps": "",
+   "notes": "Monster 1000 i.e. Dual Spark (IAW 59M).",
+   "confidence": "inferred",
+   "label": "Monster 1000 (2003-2005)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "1000 SS",
+   "year_from": 2003,
+   "year_to": 2006,
+   "ecu": "59m",
+   "displacement": "",
+   "tps": "",
+   "notes": "Supersport 1000 DS (IAW 59M).",
+   "confidence": "inferred",
+   "label": "1000 SS (2003-2006)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Superbike 999R",
+   "year_from": 2003,
+   "year_to": 2004,
+   "ecu": "59m",
+   "displacement": "",
+   "tps": "",
+   "notes": "Early 999R (IAW 59M).",
+   "confidence": "inferred",
+   "label": "Superbike 999R (2003-2004)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Superbike 999R",
+   "year_from": 2005,
+   "year_to": 2006,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Later 999R (IAW 5AM).",
+   "confidence": "inferred",
+   "label": "Superbike 999R (2005-2006)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Superbike 999S",
+   "year_from": 2003,
+   "year_to": 2004,
+   "ecu": "59m",
+   "displacement": "",
+   "tps": "",
+   "notes": "Early 999S (IAW 59M).",
+   "confidence": "inferred",
+   "label": "Superbike 999S (2003-2004)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Superbike 999S",
+   "year_from": 2005,
+   "year_to": 2006,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Later 999S (IAW 5AM).",
+   "confidence": "inferred",
+   "label": "Superbike 999S (2005-2006)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "749 (IAW 5AM)",
+   "year_from": 2005,
+   "year_to": 2006,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Facelift 749 / 749S with Marelli IAW 5AM.",
+   "confidence": "inferred",
+   "label": "749 (IAW 5AM) (2005-2006)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Superbike 749R",
+   "year_from": 2004,
+   "year_to": 2006,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "749R with Marelli IAW 5AM.",
+   "confidence": "inferred",
+   "label": "Superbike 749R (2004-2006)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "999 (IAW 5AM)",
+   "year_from": 2005,
+   "year_to": 2006,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Facelift 999 with Marelli IAW 5AM.",
+   "confidence": "inferred",
+   "label": "999 (IAW 5AM) (2005-2006)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "ST4 S (IAW 5AM)",
+   "year_from": 2004,
+   "year_to": 2005,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Later ST4S ABS / non-ABS with Marelli IAW 5AM.",
+   "confidence": "inferred",
+   "label": "ST4 S (IAW 5AM) (2004-2005)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Monster 695",
+   "year_from": 2006,
+   "year_to": 2008,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Monster 695 (IAW 5AM).",
+   "confidence": "inferred",
+   "label": "Monster 695 (2006-2008)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Monster S2R 800",
+   "year_from": 2005,
+   "year_to": 2007,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Monster S2R 800 (IAW 5AM).",
+   "confidence": "inferred",
+   "label": "Monster S2R 800 (2005-2007)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Monster S2R 1000",
+   "year_from": 2006,
+   "year_to": 2008,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Monster S2R 1000 (IAW 5AM).",
+   "confidence": "inferred",
+   "label": "Monster S2R 1000 (2006-2008)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Monster S4RS",
+   "year_from": 2006,
+   "year_to": 2008,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Monster S4RS Testastretta (IAW 5AM).",
+   "confidence": "inferred",
+   "label": "Monster S4RS (2006-2008)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Multistrada 620",
+   "year_from": 2005,
+   "year_to": 2006,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Multistrada 620 / 620 Dark (IAW 5AM).",
+   "confidence": "inferred",
+   "label": "Multistrada 620 (2005-2006)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Multistrada 1100",
+   "year_from": 2007,
+   "year_to": 2009,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Multistrada 1100 / 1100 S (IAW 5AM).",
+   "confidence": "inferred",
+   "label": "Multistrada 1100 (2007-2009)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Hypermotard 796",
+   "year_from": 2010,
+   "year_to": 2012,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Hypermotard 796 (IAW 5AM / Siemens transitions; XDF covers 5AM).",
+   "confidence": "inferred",
+   "label": "Hypermotard 796 (2010-2012)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Superbike 848 EVO",
+   "year_from": 2011,
+   "year_to": 2013,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "848 EVO / Corse SE (IAW 5AM).",
+   "confidence": "inferred",
+   "label": "Superbike 848 EVO (2011-2013)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Superbike 1098R",
+   "year_from": 2008,
+   "year_to": 2009,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "1098R / Bayliss LE (IAW 5AM).",
+   "confidence": "inferred",
+   "label": "Superbike 1098R (2008-2009)",
+   "can": {}
+  },
+  {
+   "make": "Ducati",
+   "model": "Streetfighter 848",
+   "year_from": 2012,
+   "year_to": 2015,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Streetfighter 848 (IAW 5AM).",
+   "confidence": "inferred",
+   "label": "Streetfighter 848 (2012-2015)",
+   "can": {}
+  },
+  {
+   "make": "Aprilia",
+   "model": "RSV4 R",
+   "year_from": 2009,
+   "year_to": 2014,
+   "ecu": "7sm",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 7SM (1338 / 13A9).",
+   "confidence": "inferred",
+   "label": "RSV4 R (2009-2014)",
+   "can": {}
+  },
+  {
+   "make": "Aprilia",
+   "model": "RSV4 RR",
+   "year_from": 2015,
+   "year_to": 2020,
+   "ecu": "7sm",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 7SM (6404 / 7614).",
+   "confidence": "inferred",
+   "label": "RSV4 RR (2015-2020)",
+   "can": {}
+  },
+  {
+   "make": "Aprilia",
+   "model": "RSV4 RF",
+   "year_from": 2015,
+   "year_to": 2018,
+   "ecu": "7sm",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 7SM (6404 / 7614).",
+   "confidence": "inferred",
+   "label": "RSV4 RF (2015-2018)",
+   "can": {}
+  },
+  {
+   "make": "Aprilia",
+   "model": "Tuono V4 1000 APRC",
+   "year_from": 2011,
+   "year_to": 2014,
+   "ecu": "7sm",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 7SM (13A9).",
+   "confidence": "inferred",
+   "label": "Tuono V4 1000 APRC (2011-2014)",
+   "can": {}
+  },
+  {
+   "make": "Aprilia",
+   "model": "Tuono V4 1100 RR",
+   "year_from": 2015,
+   "year_to": 2020,
+   "ecu": "7sm",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 7SM (6404 / 7614).",
+   "confidence": "inferred",
+   "label": "Tuono V4 1100 RR (2015-2020)",
+   "can": {}
+  },
+  {
+   "make": "Aprilia",
+   "model": "Tuono V4 1100 Factory",
+   "year_from": 2015,
+   "year_to": 2020,
+   "ecu": "7sm",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 7SM (6404 / 7614).",
+   "confidence": "inferred",
+   "label": "Tuono V4 1100 Factory (2015-2020)",
+   "can": {}
+  },
+  {
+   "make": "Aprilia",
+   "model": "Caponord 1200",
+   "year_from": 2013,
+   "year_to": 2017,
+   "ecu": "7sm",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 7SM.",
+   "confidence": "inferred",
+   "label": "Caponord 1200 (2013-2017)",
+   "can": {}
+  },
+  {
+   "make": "Aprilia",
+   "model": "Dorsoduro 1200",
+   "year_from": 2011,
+   "year_to": 2016,
+   "ecu": "7sm",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 7SM.",
+   "confidence": "inferred",
+   "label": "Dorsoduro 1200 (2011-2016)",
+   "can": {}
+  },
+  {
+   "make": "Aprilia",
+   "model": "SRV 850",
+   "year_from": 2012,
+   "year_to": 2016,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 5AM (850 V-twin maxi-scooter).",
+   "confidence": "inferred",
+   "label": "SRV 850 (2012-2016)",
+   "can": {}
+  },
+  {
+   "make": "Aprilia",
+   "model": "Atlantic 500",
+   "year_from": 2002,
+   "year_to": 2008,
+   "ecu": "15p",
+   "displacement": "",
+   "tps": "",
+   "notes": "Piaggio MASTER 500 with Marelli IAW 15P.",
+   "confidence": "unknown",
+   "label": "Atlantic 500 (2002-2008)",
+   "can": {}
+  },
+  {
+   "make": "Aprilia",
+   "model": "RS4 125",
+   "year_from": 2011,
+   "year_to": 2016,
+   "ecu": "miu1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU1 125 4T.",
+   "confidence": "unknown",
+   "label": "RS4 125 (2011-2016)",
+   "can": {}
+  },
+  {
+   "make": "Aprilia",
+   "model": "SX 125",
+   "year_from": 2018,
+   "year_to": 2020,
+   "ecu": "miu1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU1 125 4T.",
+   "confidence": "unknown",
+   "label": "SX 125 (2018-2020)",
+   "can": {}
+  },
+  {
+   "make": "Aprilia",
+   "model": "SR Max 300",
+   "year_from": 2011,
+   "year_to": 2016,
+   "ecu": "miu1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU1 QUASAR 300.",
+   "confidence": "unknown",
+   "label": "SR Max 300 (2011-2016)",
+   "can": {}
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "C 600 Sport",
+   "year_from": 2012,
+   "year_to": 2015,
+   "ecu": "7sm",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 7SM (7SM_BMW_C600_C650_V1.xdf).",
+   "confidence": "inferred",
+   "label": "C 600 Sport (2012-2015)",
+   "can": {}
+  },
+  {
+   "make": "BMW Motorrad",
+   "model": "C 650 GT",
+   "year_from": 2012,
+   "year_to": 2015,
+   "ecu": "7sm",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 7SM (7SM_BMW_C600_C650_V1.xdf).",
+   "confidence": "inferred",
+   "label": "C 650 GT (2012-2015)",
+   "can": {}
+  },
+  {
+   "make": "Moto Morini",
+   "model": "Corsaro 1200",
+   "year_from": 2005,
+   "year_to": 2017,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Bialbero CorsaCorta 1200 with Marelli IAW 5AM (early cars also saw IAW 15P).",
+   "confidence": "inferred",
+   "label": "Corsaro 1200 (2005-2017)",
+   "can": {}
+  },
+  {
+   "make": "Moto Morini",
+   "model": "Corsaro 1200 (IAW 15P)",
+   "year_from": 2005,
+   "year_to": 2010,
+   "ecu": "15p",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 15P calibration variant (15P_Morini_V1.xdf).",
+   "confidence": "unknown",
+   "label": "Corsaro 1200 (IAW 15P) (2005-2010)",
+   "can": {}
+  },
+  {
+   "make": "Moto Morini",
+   "model": "9 1/2",
+   "year_from": 2006,
+   "year_to": 2011,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 5AM.",
+   "confidence": "inferred",
+   "label": "9 1/2 (2006-2011)",
+   "can": {}
+  },
+  {
+   "make": "Moto Morini",
+   "model": "Granpasso 1200",
+   "year_from": 2008,
+   "year_to": 2016,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 5AM.",
+   "confidence": "inferred",
+   "label": "Granpasso 1200 (2008-2016)",
+   "can": {}
+  },
+  {
+   "make": "Moto Morini",
+   "model": "Scrambler 1200",
+   "year_from": 2009,
+   "year_to": 2016,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 5AM.",
+   "confidence": "inferred",
+   "label": "Scrambler 1200 (2009-2016)",
+   "can": {}
+  },
+  {
+   "make": "Moto Morini",
+   "model": "1200 Sport",
+   "year_from": 2008,
+   "year_to": 2012,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 5AM.",
+   "confidence": "inferred",
+   "label": "1200 Sport (2008-2012)",
+   "can": {}
+  },
+  {
+   "make": "Piaggio",
+   "model": "X9 500",
+   "year_from": 2002,
+   "year_to": 2007,
+   "ecu": "15p",
+   "displacement": "",
+   "tps": "",
+   "notes": "MASTER 500 engine with Marelli IAW 15P.",
+   "confidence": "unknown",
+   "label": "X9 500 (2002-2007)",
+   "can": {}
+  },
+  {
+   "make": "Piaggio",
+   "model": "Beverly 500",
+   "year_from": 2002,
+   "year_to": 2008,
+   "ecu": "15p",
+   "displacement": "",
+   "tps": "",
+   "notes": "MASTER 500 engine with Marelli IAW 15P.",
+   "confidence": "unknown",
+   "label": "Beverly 500 (2002-2008)",
+   "can": {}
+  },
+  {
+   "make": "Piaggio",
+   "model": "Beverly 250 / 300 / 400 (MIU1)",
+   "year_from": 2006,
+   "year_to": 2014,
+   "ecu": "miu1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU1 E3.",
+   "confidence": "unknown",
+   "label": "Beverly 250 / 300 / 400 (MIU1) (2006-2014)",
+   "can": {}
+  },
+  {
+   "make": "Piaggio",
+   "model": "Beverly 300 / 350 (MIU G3)",
+   "year_from": 2011,
+   "year_to": 2020,
+   "ecu": "miug3",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU G3 (MIUG3_Piaggio_V1.2.xdf).",
+   "confidence": "inferred",
+   "label": "Beverly 300 / 350 (MIU G3) (2011-2020)",
+   "can": {}
+  },
+  {
+   "make": "Piaggio",
+   "model": "MP3 250 / 300 / 400 (MIU1)",
+   "year_from": 2006,
+   "year_to": 2014,
+   "ecu": "miu1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU1 E3.",
+   "confidence": "unknown",
+   "label": "MP3 250 / 300 / 400 (MIU1) (2006-2014)",
+   "can": {}
+  },
+  {
+   "make": "Piaggio",
+   "model": "MP3 300 / 500 (MIU G3)",
+   "year_from": 2011,
+   "year_to": 2020,
+   "ecu": "miug3",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU G3.",
+   "confidence": "inferred",
+   "label": "MP3 300 / 500 (MIU G3) (2011-2020)",
+   "can": {}
+  },
+  {
+   "make": "Piaggio",
+   "model": "X7 / X8 / X Evo 250-400",
+   "year_from": 2006,
+   "year_to": 2012,
+   "ecu": "miu1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU1 E3.",
+   "confidence": "unknown",
+   "label": "X7 / X8 / X Evo 250-400 (2006-2012)",
+   "can": {}
+  },
+  {
+   "make": "Piaggio",
+   "model": "Carnaby 250 / 300",
+   "year_from": 2008,
+   "year_to": 2012,
+   "ecu": "miu1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU1 E3.",
+   "confidence": "unknown",
+   "label": "Carnaby 250 / 300 (2008-2012)",
+   "can": {}
+  },
+  {
+   "make": "Piaggio",
+   "model": "X10 350 / 500",
+   "year_from": 2012,
+   "year_to": 2016,
+   "ecu": "miug3",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU G3.",
+   "confidence": "inferred",
+   "label": "X10 350 / 500 (2012-2016)",
+   "can": {}
+  },
+  {
+   "make": "Piaggio",
+   "model": "Fly / Liberty 125-150 3V",
+   "year_from": 2012,
+   "year_to": 2017,
+   "ecu": "miug3",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU G3.",
+   "confidence": "inferred",
+   "label": "Fly / Liberty 125-150 3V (2012-2017)",
+   "can": {}
+  },
+  {
+   "make": "Vespa",
+   "model": "GTS 250 / 300 (MIU1)",
+   "year_from": 2005,
+   "year_to": 2014,
+   "ecu": "miu1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU1 E3.",
+   "confidence": "unknown",
+   "label": "GTS 250 / 300 (MIU1) (2005-2014)",
+   "can": {}
+  },
+  {
+   "make": "Vespa",
+   "model": "GTS 300 (MIU G3)",
+   "year_from": 2012,
+   "year_to": 2020,
+   "ecu": "miug3",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU G3 (MIUG3_Piaggio_V1.2.xdf).",
+   "confidence": "inferred",
+   "label": "GTS 300 (MIU G3) (2012-2020)",
+   "can": {}
+  },
+  {
+   "make": "Vespa",
+   "model": "GTV 250 / 300",
+   "year_from": 2006,
+   "year_to": 2013,
+   "ecu": "miu1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU1 E3.",
+   "confidence": "unknown",
+   "label": "GTV 250 / 300 (2006-2013)",
+   "can": {}
+  },
+  {
+   "make": "Vespa",
+   "model": "LX / S 125-150 i.e.",
+   "year_from": 2009,
+   "year_to": 2014,
+   "ecu": "miu1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU1 E3.",
+   "confidence": "unknown",
+   "label": "LX / S 125-150 i.e. (2009-2014)",
+   "can": {}
+  },
+  {
+   "make": "Vespa",
+   "model": "Primavera / Sprint 125-150 3V",
+   "year_from": 2013,
+   "year_to": 2020,
+   "ecu": "miug3",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU G3.",
+   "confidence": "inferred",
+   "label": "Primavera / Sprint 125-150 3V (2013-2020)",
+   "can": {}
+  },
+  {
+   "make": "Vespa",
+   "model": "946 125 3V",
+   "year_from": 2013,
+   "year_to": 2017,
+   "ecu": "miug3",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU G3.",
+   "confidence": "inferred",
+   "label": "946 125 3V (2013-2017)",
+   "can": {}
+  },
+  {
+   "make": "Gilera",
+   "model": "GP 800",
+   "year_from": 2007,
+   "year_to": 2014,
+   "ecu": "5am",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 5AM (850 V-twin maxi-scooter).",
+   "confidence": "inferred",
+   "label": "GP 800 (2007-2014)",
+   "can": {}
+  },
+  {
+   "make": "Gilera",
+   "model": "Fuoco 500",
+   "year_from": 2007,
+   "year_to": 2013,
+   "ecu": "15p",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 15P.",
+   "confidence": "unknown",
+   "label": "Fuoco 500 (2007-2013)",
+   "can": {}
+  },
+  {
+   "make": "Gilera",
+   "model": "Nexus 500",
+   "year_from": 2003,
+   "year_to": 2011,
+   "ecu": "15p",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli IAW 15P.",
+   "confidence": "unknown",
+   "label": "Nexus 500 (2003-2011)",
+   "can": {}
+  },
+  {
+   "make": "Gilera",
+   "model": "Nexus 250 / 300",
+   "year_from": 2006,
+   "year_to": 2012,
+   "ecu": "miu1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU1 E3.",
+   "confidence": "unknown",
+   "label": "Nexus 250 / 300 (2006-2012)",
+   "can": {}
+  },
+  {
+   "make": "Gilera",
+   "model": "Runner ST / VX 125-200",
+   "year_from": 2008,
+   "year_to": 2014,
+   "ecu": "miu1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU1 E3.",
+   "confidence": "unknown",
+   "label": "Runner ST / VX 125-200 (2008-2014)",
+   "can": {}
+  },
+  {
+   "make": "Malaguti",
+   "model": "Spidermax GT / RS 500",
+   "year_from": 2004,
+   "year_to": 2011,
+   "ecu": "15p",
+   "displacement": "",
+   "tps": "",
+   "notes": "Piaggio MASTER 500 with Marelli IAW 15P.",
+   "confidence": "unknown",
+   "label": "Spidermax GT / RS 500 (2004-2011)",
+   "can": {}
+  },
+  {
+   "make": "GasGas",
+   "model": "FSE 400 / 450",
+   "year_from": 2002,
+   "year_to": 2007,
+   "ecu": "mbc1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MBC1 (MBC1_205_V0.2.xdf / MBC1_209_V0.2.xdf).",
+   "confidence": "unknown",
+   "label": "FSE 400 / 450 (2002-2007)",
+   "can": {}
+  },
+  {
+   "make": "GasGas",
+   "model": "FSR 450 / EC 450",
+   "year_from": 2007,
+   "year_to": 2009,
+   "ecu": "mbc1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MBC1.",
+   "confidence": "unknown",
+   "label": "FSR 450 / EC 450 (2007-2009)",
+   "can": {}
+  },
+  {
+   "make": "GasGas",
+   "model": "Pampera 450",
+   "year_from": 2007,
+   "year_to": 2008,
+   "ecu": "mbc1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MBC1.",
+   "confidence": "unknown",
+   "label": "Pampera 450 (2007-2008)",
+   "can": {}
+  },
+  {
+   "make": "Husqvarna",
+   "model": "TE / TC / SMR 250-510 (MBC1)",
+   "year_from": 2006,
+   "year_to": 2009,
+   "ecu": "mbc1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MBC1.",
+   "confidence": "unknown",
+   "label": "TE / TC / SMR 250-510 (MBC1) (2006-2009)",
+   "can": {}
+  },
+  {
+   "make": "Scomadi",
+   "model": "Turismo Leggera TL200",
+   "year_from": 2016,
+   "year_to": 2020,
+   "ecu": "miu1",
+   "displacement": "",
+   "tps": "",
+   "notes": "Marelli MIU1 (MIU1_Scomadi_200_V1.xdf).",
+   "confidence": "unknown",
+   "label": "Turismo Leggera TL200 (2016-2020)",
+   "can": {}
   }
  ],
  "profiles": {
@@ -29146,6 +32952,28 @@
     "physical_blocked_reason": "Available compatibility records and closed binaries do not disclose a trustworthy family-specific diagnostic initialization or request definition."
    },
    "identification": {}
+  },
+  "15p": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "MagnetiMarelliIAW15PHW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "GuzziDiag / IAWDiag compatibility establishes K-Line support, but no primary IAW 15P diagnostic capture is bundled.",
+    "simulator_supported": false
+   },
+   "identification": {
+    "available": false
+   }
   },
   "15rc": {
    "parameters": {},
@@ -31327,6 +35155,28 @@
     "available": false
    }
   },
+  "honda_cb500_mjw": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "CB500-MJWHW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+    "simulator_supported": false
+   },
+   "identification": {
+    "available": false
+   }
+  },
   "honda_cb500f_dashble": {
    "parameters": {
     "rpm": {
@@ -31495,6 +35345,28 @@
     "available": false
    }
   },
+  "honda_cbr1000rr_mel": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "CBR1000RR-MELHW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+    "simulator_supported": false
+   },
+   "identification": {
+    "available": false
+   }
+  },
   "honda_cbr600rr_2005": {
    "parameters": {
     "rpm": {
@@ -31641,6 +35513,28 @@
    "identification": {
     "available": true,
     "note": "Unverified raw five-byte ECM ID candidate; not a confirmed part number or programming identity."
+   }
+  },
+  "honda_crf110f_kyk": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "CRF110F-KYK-D12HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+    "simulator_supported": false
+   },
+   "identification": {
+    "available": false
    }
   },
   "honda_ctx700_minidash": {
@@ -31796,6 +35690,50 @@
     "simulator_supported": false,
     "tester_present_interval": 2.0,
     "physical_evidence_note": "Minidash describes CTX700 use; year and ECU are unspecified. This adaptation is synthetic-tested only."
+   },
+   "identification": {
+    "available": false
+   }
+  },
+  "honda_msx125_k26_911": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "MSX125-K26-911HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+    "simulator_supported": false
+   },
+   "identification": {
+    "available": false
+   }
+  },
+  "honda_msx125_k26_sf": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "MSX125-K26-B13/MSX125-K26-C31HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+    "simulator_supported": false
    },
    "identification": {
     "available": false
@@ -32082,6 +36020,28 @@
    "identification": {
     "available": true,
     "note": "Raw five-byte ECM ID candidate only; not a verified ECU identity."
+   }
+  },
+  "honda_z125m_k0f": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "Z125M-K0F-A01HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "Honda diagnostic and programming sessions are not implemented for this offline tuning profile.",
+    "simulator_supported": false
+   },
+   "identification": {
+    "available": false
    }
   },
   "kawasaki_er6n_2006": {
@@ -32892,6 +36852,50 @@
     "reason": "ManaTCU displays BIN/TCU versions, but the request and response layout were not published in the available capture."
    }
   },
+  "mbc1": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "MagnetiMarelliMBC1HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "No verified Magneti Marelli MBC1 diagnostic wire capture is bundled.",
+    "simulator_supported": false
+   },
+   "identification": {
+    "available": false
+   }
+  },
+  "miu1": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "MagnetiMarelliMIU1HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "No verified Magneti Marelli MIU1 diagnostic wire capture is bundled.",
+    "simulator_supported": false
+   },
+   "identification": {
+    "available": false
+   }
+  },
   "miug3": {
    "parameters": {
     "manifold_pressure_raw": {
@@ -33172,6 +37176,28 @@
    "identification": {
     "available": false,
     "reason": "No validated family-specific diagnostic application definition is available."
+   }
+  },
+  "p7": {
+   "parameters": {},
+   "actuators": {},
+   "routines": {},
+   "identity": {
+    "Drawing": "CM000000",
+    "Hardware": "MagnetiMarelliP7HW000",
+    "Omologation": "SIMULATED",
+    "Software": "0000SIM0",
+    "Tester": "D00000"
+   },
+   "dtc_overrides": {},
+   "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "No Moto Guzzi Weber-Marelli IAW P7 wire capture or primary register definition is bundled.",
+    "simulator_supported": false
+   },
+   "identification": {
+    "available": false
    }
   },
   "p8": {
@@ -38069,6 +42095,58 @@
    "url": "../guzzionboard/xdfs/honda/CB500_MGZ_A03_gob.xdf"
   },
   {
+   "title": "CB500F / CBR500R 2017-2018 MJW offline adaptation",
+   "path": "guzzionboard/xdfs/honda/CB500_MJW_gob.xdf",
+   "version": "",
+   "tables": 35,
+   "constants": 0,
+   "flags": 56,
+   "patches": 0,
+   "unsupported": 0,
+   "region_size": 262144,
+   "categories": [
+    "B0",
+    "B1",
+    "B2",
+    "B3",
+    "B4",
+    "B5",
+    "B6",
+    "B7",
+    "Breakpoints",
+    "Fuel",
+    "Group 1",
+    "Group 2",
+    "Group 3",
+    "Idle",
+    "Ignition",
+    "Limiters",
+    "MAP",
+    "Switches",
+    "TPS",
+    "Testing"
+   ],
+   "filename": "CB500_MJW_gob.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "CB500-MJW",
+   "label": "Honda CB500F / CBR500R / CB500X 2017–2018 MJW (scoped offline adaptation)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "CB500F / CBR500R / CB500X 2017–2018, 38770-MJW-AQ1/DR1"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": false,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+   "url": "../guzzionboard/xdfs/honda/CB500_MJW_gob.xdf"
+  },
+  {
    "title": "CBR1000RR 2012 US",
    "path": "guzzionboard/xdfs/honda/CBR1000RR_2012_US.xdf",
    "version": "1.00",
@@ -38125,6 +42203,91 @@
    "research_only": false,
    "source_url": "https://github.com/roccofz1/HondaECU/blob/dbb8d37bfb5dfd6d5d2b001ec44d8774063b9109/definitions/xdf/CBR1000RR_2012_US.xdf",
    "url": "../guzzionboard/xdfs/honda/CBR1000RR_2012_US.xdf"
+  },
+  {
+   "title": "CBR1000RR 2006-2007 MEL offline adaptation",
+   "path": "guzzionboard/xdfs/honda/CBR1000RR_MEL_gob.xdf",
+   "version": "",
+   "tables": 66,
+   "constants": 0,
+   "flags": 1,
+   "patches": 0,
+   "unsupported": 0,
+   "region_size": 2498884,
+   "categories": [
+    "Breakpoints",
+    "Fuel",
+    "Gears 1-2",
+    "Gears 3-4",
+    "Gears 5-6",
+    "HESD",
+    "Idle",
+    "Ignition",
+    "Intake Flap",
+    "Limiters",
+    "MAP",
+    "MS0",
+    "MS1",
+    "Neutral/Clutch-In",
+    "TPS"
+   ],
+   "filename": "CBR1000RR_MEL_gob.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "CBR1000RR-MEL",
+   "label": "Honda CBR1000RR 2006–2007 MEL (scoped offline adaptation)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "CBR1000RR 2006–2007, 38770-MEL-A21/A22/D21/F21/L22"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": false,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+   "url": "../guzzionboard/xdfs/honda/CBR1000RR_MEL_gob.xdf"
+  },
+  {
+   "title": "CRF110F 2019 KYK-D12 offline adaptation",
+   "path": "guzzionboard/xdfs/honda/CRF110F_KYK_D12_gob.xdf",
+   "version": "",
+   "tables": 11,
+   "constants": 0,
+   "flags": 0,
+   "patches": 0,
+   "unsupported": 0,
+   "region_size": 415030,
+   "categories": [
+    "Breakpoints",
+    "Fuel",
+    "Ignition",
+    "Limiters",
+    "MAP",
+    "TPS"
+   ],
+   "filename": "CRF110F_KYK_D12_gob.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "CRF110F-KYK-D12",
+   "label": "Honda CRF110F 2019–2024 KYK-D12 (scoped offline adaptation)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "CRF110F 2019–2024, 38770-KYK-D12"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": false,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+   "url": "../guzzionboard/xdfs/honda/CRF110F_KYK_D12_gob.xdf"
   },
   {
    "title": "Honda VFR1200F 2010 NA 38770-MGE-773",
@@ -38236,6 +42399,158 @@
    "research_only": true,
    "source_url": "https://github.com/AlexKovalevich/HondaECU/blob/db0a6cb8e516aac2406a231380c93e258c722b7c/xdfs/VFR1200F_38770-MGE-773/HONDA_VFR1200F_38770-MGE-D41.xdf",
    "url": "../guzzionboard/xdfs/honda/HONDA_VFR1200F_MGE_D41.xdf"
+  },
+  {
+   "title": "MSX125 / Grom 2013-2015 K26-911 offline adaptation",
+   "path": "guzzionboard/xdfs/honda/MSX125_K26_911_gob.xdf",
+   "version": "",
+   "tables": 8,
+   "constants": 0,
+   "flags": 4,
+   "patches": 0,
+   "unsupported": 0,
+   "region_size": 65536,
+   "categories": [
+    "Breakpoints",
+    "Fuel",
+    "Ignition",
+    "Limiters",
+    "TPS"
+   ],
+   "filename": "MSX125_K26_911_gob.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "MSX125-K26-911",
+   "label": "Honda MSX125 / Grom 2013–2015 K26-911/931 (scoped offline adaptation)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "MSX125 / Grom 2013–2015, 38770-K26-911/931"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": false,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+   "url": "../guzzionboard/xdfs/honda/MSX125_K26_911_gob.xdf"
+  },
+  {
+   "title": "MSX125 / Grom SF 2016-2019 K26-B13 offline adaptation",
+   "path": "guzzionboard/xdfs/honda/MSX125_K26_B13_gob.xdf",
+   "version": "",
+   "tables": 7,
+   "constants": 0,
+   "flags": 4,
+   "patches": 0,
+   "unsupported": 0,
+   "region_size": 65536,
+   "categories": [
+    "Breakpoints",
+    "Fuel",
+    "Ignition",
+    "Limiters",
+    "TPS"
+   ],
+   "filename": "MSX125_K26_B13_gob.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "MSX125-K26-B13",
+   "label": "Honda MSX125 / Grom SF 2016–2020 K26-B13 (scoped offline adaptation)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "MSX125 / Grom SF 2016–2020, 38770-K26-B13"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": false,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+   "url": "../guzzionboard/xdfs/honda/MSX125_K26_B13_gob.xdf"
+  },
+  {
+   "title": "MSX125 / Grom SF 2016-2019 K26-C31 offline adaptation",
+   "path": "guzzionboard/xdfs/honda/MSX125_K26_C31_gob.xdf",
+   "version": "",
+   "tables": 14,
+   "constants": 0,
+   "flags": 10,
+   "patches": 0,
+   "unsupported": 0,
+   "region_size": 65536,
+   "categories": [
+    "Breakpoints",
+    "Decel Fuel Cut-Off",
+    "Feedback Fuel",
+    "Fuel",
+    "Ignition",
+    "Limiters",
+    "Rev Limiter",
+    "TPS",
+    "Thailand"
+   ],
+   "filename": "MSX125_K26_C31_gob.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "MSX125-K26-C31",
+   "label": "Honda MSX125 / Grom SF 2016–2020 K26-C31 (scoped offline adaptation)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "MSX125 / Grom SF 2016–2020, 38770-K26-C31"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": false,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+   "url": "../guzzionboard/xdfs/honda/MSX125_K26_C31_gob.xdf"
+  },
+  {
+   "title": "Monkey 125 / Z125M 2018-2021 K0F-A01 offline adaptation",
+   "path": "guzzionboard/xdfs/honda/Z125M_K0F_A01_gob.xdf",
+   "version": "",
+   "tables": 9,
+   "constants": 0,
+   "flags": 4,
+   "patches": 0,
+   "unsupported": 0,
+   "region_size": 65536,
+   "categories": [
+    "Breakpoints",
+    "Fuel",
+    "Ignition",
+    "Limiters",
+    "TPS"
+   ],
+   "filename": "Z125M_K0F_A01_gob.xdf",
+   "brand": "honda",
+   "brand_label": "Honda",
+   "family": "Z125M-K0F-A01",
+   "label": "Honda Monkey 125 / Z125M 2018–2021 K0F-A01 (scoped offline adaptation)",
+   "fits": [
+    {
+     "brand": "honda",
+     "brand_label": "Honda",
+     "label": "Monkey 125 / Z125M 2018–2021, 38770-K0F-A01"
+    }
+   ],
+   "fits_brands": [
+    "Honda"
+   ],
+   "catalogued": true,
+   "research_only": false,
+   "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952",
+   "url": "../guzzionboard/xdfs/honda/Z125M_K0F_A01_gob.xdf"
   },
   {
    "title": "Husqvarna MBC1",

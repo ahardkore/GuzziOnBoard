@@ -1048,7 +1048,7 @@
     "version": "GuzziOnBoard 1",
     "verified_parse": true,
     "license": "GPL-3.0 (repository)",
-    "note": "Changed missing-item byte-order default from little to big based on observed 800\u20139300 RPM axis in source A03 image; added checksum-provider declaration. No hardware validation."
+    "note": "Changed missing-item byte-order default from little to big based on observed 800–9300 RPM axis in source A03 image; added checksum-provider declaration. No hardware validation."
   },
   "buell/BUEIB_source_research.xdf": {
     "source_url": "https://github.com/kz6fittycent/XBTune/tree/c592b11b17e1a3cd5f55f8bc726f2890d892d63b",
@@ -1209,5 +1209,82 @@
     "verified_parse": true,
     "license": "GPL-3.0 (repository; author states he created and freely released the XDF)",
     "note": "Source title names a 2013 German MGE-D41; do not generalize. Original source XDF unchanged; source values can be uncertain. No firmware bundled."
+  },
+  "honda/CBR1000RR_MEL_gob.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CBR1000RR_MEL_2006-2007/38770-MEL.xdf",
+    "sha256": "6e9a948646094ae3041374023dfebf8169059bfd25ea7b702366c7a2e6e20cd8",
+    "title": "CBR1000RR 2006-2007 MEL offline adaptation",
+    "author": "HondaECU contributors; adapted by GuzziOnBoard",
+    "version": "GuzziOnBoard 1",
+    "imported_utc": "2026-11-25",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository); see LICENSES/HondaECU-GPL-3.0.txt",
+    "note": "Added checksum-provider declaration (Honda MEL checksum) and unique deftitle for pinned stock calibration SHA-256 verification. Offline only; no hardware validation."
+  },
+  "honda/CB500_MJW_gob.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CBR500R_MJW_2017-2018/38770-MJW.xdf",
+    "sha256": "05ff5586cd5af3ac70ff6edd9ba64d201f64d05d9c71cdbaff0d4c99ae1fcc54",
+    "title": "CB500F / CBR500R 2017-2018 MJW offline adaptation",
+    "author": "HondaECU contributors; adapted by GuzziOnBoard",
+    "version": "GuzziOnBoard 1",
+    "imported_utc": "2026-11-25",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository); see LICENSES/HondaECU-GPL-3.0.txt",
+    "note": "Added checksum-provider declaration (Honda MJW checksum) and unique deftitle for pinned stock calibration SHA-256 verification. Offline only; no hardware validation."
+  },
+  "honda/CRF110F_KYK_D12_gob.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/CRF110F_KYK_2019/38770-KYK-D12.xdf",
+    "sha256": "134c58736f713d283cbe8f496ace6a60ecd9ac90cc848b5a9c41824ed5511033",
+    "title": "CRF110F 2019 KYK-D12 offline adaptation",
+    "author": "HondaECU contributors; adapted by GuzziOnBoard",
+    "version": "GuzziOnBoard 1",
+    "imported_utc": "2026-11-25",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository); see LICENSES/HondaECU-GPL-3.0.txt",
+    "note": "Added checksum-provider declaration (Honda KYK-D12 checksum) and unique deftitle for pinned stock calibration SHA-256 verification. Offline only; no hardware validation."
+  },
+  "honda/MSX125_K26_911_gob.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/MSX125_K26_2013-2016/38770-K26-911.xdf",
+    "sha256": "3753460641a6aa64b2b2d0114a1efb81c68ce8a6324746b8a082e4dcbd6206ba",
+    "title": "MSX125 / Grom 2013-2015 K26-911 offline adaptation",
+    "author": "HondaECU contributors; adapted by GuzziOnBoard",
+    "version": "GuzziOnBoard 1",
+    "imported_utc": "2026-11-25",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository); see LICENSES/HondaECU-GPL-3.0.txt",
+    "note": "Added checksum-provider declaration (Honda K26-911 checksum) and unique deftitle for pinned stock calibration SHA-256 verification. Offline only; no hardware validation."
+  },
+  "honda/MSX125_K26_B13_gob.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/MSX125_K26_2016-2019/38770-K26-B13.xdf",
+    "sha256": "7de3a66dc09c071cc5f59afcce3b2982066c5453ff8291f9826517db638b0752",
+    "title": "MSX125 / Grom SF 2016-2019 K26-B13 offline adaptation",
+    "author": "HondaECU contributors; adapted by GuzziOnBoard",
+    "version": "GuzziOnBoard 1",
+    "imported_utc": "2026-11-25",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository); see LICENSES/HondaECU-GPL-3.0.txt",
+    "note": "Added checksum-provider declaration (Honda K26-B13 checksum) and unique deftitle for pinned stock calibration SHA-256 verification. Offline only; no hardware validation."
+  },
+  "honda/MSX125_K26_C31_gob.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/MSX125_K26_2016-2019/38770-K26-C31.xdf",
+    "sha256": "bea344590ea70b1eb9c051c03a5c3dfec9a97a6bbf59fcdde0dc69dddb248310",
+    "title": "MSX125 / Grom SF 2016-2019 K26-C31 offline adaptation",
+    "author": "HondaECU contributors; adapted by GuzziOnBoard",
+    "version": "GuzziOnBoard 1",
+    "imported_utc": "2026-11-25",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository); see LICENSES/HondaECU-GPL-3.0.txt",
+    "note": "Added checksum-provider declaration (Honda K26-C31 checksum) and unique deftitle for pinned stock calibration SHA-256 verification. Offline only; no hardware validation."
+  },
+  "honda/Z125M_K0F_A01_gob.xdf": {
+    "source_url": "https://github.com/aeaphichart/HondaECU-1/tree/b59ae98baf092def23d7c34d5ef5f43bd6aba952/xdfs/Z125M_K0F_2019/38770-K0F-A01.xdf",
+    "sha256": "ae9d8f7a9d107a19a478a04f339976759dcbe2e54d526d5e46c8e0cc04281946",
+    "title": "Monkey 125 / Z125M 2018-2021 K0F-A01 offline adaptation",
+    "author": "HondaECU contributors; adapted by GuzziOnBoard",
+    "version": "GuzziOnBoard 1",
+    "imported_utc": "2026-11-25",
+    "verified_parse": true,
+    "license": "GPL-3.0 (repository); see LICENSES/HondaECU-GPL-3.0.txt",
+    "note": "Added checksum-provider declaration (Honda K0F-A01 checksum) and unique deftitle for pinned stock calibration SHA-256 verification. Offline only; no hardware validation."
   }
 }

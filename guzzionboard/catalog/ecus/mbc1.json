@@ -1,0 +1,33 @@
+{
+  "id": "mbc1",
+  "family": "Magneti Marelli MBC1",
+  "display_name": "Magneti Marelli MBC1 (rotary / trial)",
+  "transport": "kline",
+  "confidence": "unknown",
+  "years": "2002-2009",
+  "notes": "Compact Magneti Marelli MBC1 fuel-injection / ignition unit fitted to GasGas FSE 400 / FSE 450 / Pampera 450 and Husqvarna TE / TC / SMR four-strokes. Offline XDF map inspection and tuning builds are supported; physical sessions remain blocked pending a verified wire capture.",
+  "session": {
+    "protocol": "offline-tuning-only",
+    "physical_supported": false,
+    "physical_blocked_reason": "No verified Magneti Marelli MBC1 diagnostic wire capture is bundled.",
+    "simulator_supported": false
+  },
+  "identification": {
+    "available": false
+  },
+  "memory": {
+    "image_size": null,
+    "read_supported": false,
+    "write_supported": false,
+    "write_blocked_reason": "No verified MBC1 programming protocol capture is bundled; physical memory access is blocked.",
+    "regions": {}
+  },
+  "capabilities": [],
+  "sources": [
+    "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_205_V0.2.zip (PaulDaytona / GuzziDiag MBC1 XDF definitions)",
+    "https://www.von-der-salierburg.de/download/GuzziDiag/xdf/MBC1_209_V0.2.zip (PaulDaytona / GuzziDiag MBC1_209 XDF definition)"
+  ],
+  "parameters": [],
+  "actuators": [],
+  "routines": []
+}
